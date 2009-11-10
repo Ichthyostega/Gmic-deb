@@ -1,0 +1,15 @@
+Description: Fix a typo.
+
+Index: gmic-1.3.2.9/src/gmic_def.raw
+===================================================================
+--- gmic-1.3.2.9.orig/src/gmic_def.raw	2009-11-09 18:46:19.000000000 +0100
++++ gmic-1.3.2.9/src/gmic_def.raw	2009-11-09 18:46:31.000000000 +0100
+@@ -3456,7 +3456,7 @@
+ #@gimp Frequency splitting : gimp_split_freq, gimp_split_freq_preview
+ #@gimp : Smoothness = float(3,0,20)
+ #@gimp : Note = note{"<small><b>Note :</b>
+-#@gimp : This filter splits an image layer into two layers, one containing the low frequencies (colors), the other with the high frequencies (contours). You can thus process each layer separatly, then recompose them with the previous <b>Frequency merging</b> filter.
++#@gimp : This filter splits an image layer into two layers, one containing the low frequencies (colors), the other with the high frequencies (contours). You can thus process each layer separately, then recompose them with the previous <b>Frequency merging</b> filter.
+ #@gimp : </small>"}
+ gimp_split_freq_preview :
+   -gimp_split_freq $1 -a x

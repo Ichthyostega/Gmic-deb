@@ -1,5 +1,5 @@
-gmic (1.3.2.9) testing; urgency=low
+gmic (1.3.2.9-1) unstable; urgency=low
 
-  * Initial release.
+  * Initial release (closes: #532629).
 
- -- bulin claude <xcfaudio@gmail.com>  Thu, 30 Jan 2009 11:39:41 +0200
+ -- Jakub Wilk <ubanus@users.sf.net>  Tue, 10 Nov 2009 13:53:28 +0100
