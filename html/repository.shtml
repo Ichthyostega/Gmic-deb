@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+                      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!--#include file="header.html" -->
+<link href="style.css" rel="stylesheet" type="text/css">
+
+<div id="bloc_option"><div id="top_bleu"><div id="text_top">Debian packages</div></div>
+<div id="center"><div id="text_centre_intro">
+
+ <ul>
+ <li><b><font color="black">Up-to-date packages : </font></b>
+    To be sure to get the latest packages of <b>G'MIC</b>, please check the official
+    <a href="http://sourceforge.net/project/showfiles.php?group_id=234931">download page</a> first.
+ </li><br/>
+ <li><b><font color="black">Package repository :</font></b>
+    A repository of <b>G'MIC</b> packages for <b>Debian Linux</b> is available at :
+    <pre>
+       http://download.tuxfamily.org/xcfaudio/gmic/
+    </pre>
+    You can add the following line to your <tt>/etc/apt/sources.list</tt> file :
+    <pre>
+       deb http://download.tuxfamily.org/xcfaudio/gmic testing contrib
+    </pre>
+    Then, type :
+    <pre>
+       wget http://download.tuxfamily.org/xcfaudio/download/xcfaudio.key.asc -O - | sudo apt-key add -
+       apt-get update
+       apt-get install gmic
+    </pre>
+</li>
+</ul>
+</div></div><div id="footer"><img src="images/footer.jpg" /></div></div>
+
+<div id="bloc_option"><div id="top_bleu"><div id="text_top">CVS Repository</div></div>
+<div id="center"><div id="text_centre_intro">
+  The source code of <b>G'MIC</b> is hosted on a CVS repository with public access.
+  Accessing it via CVS ensures you get the latest code available, and will ease the
+  updates as well (knowing the tool <i>cvs</i> is needed indeed). To do this, just
+  type the commands :
+  <pre>
+  export CVS_RSH=ssh<br/>
+  cvs -d:pserver:anonymous@gmic.cvs.sourceforge.net:/cvsroot/gmic co gmic
+  </pre>
+  in your favorite console. Nevertheless, you have to know that some code in the CVS version
+  may be experimental, so always test the latest stable archive before complaining !
+</div></div><div id="footer"><img src="images/footer.jpg" /></div></div>
+
+<!--#include file="copyright.html" -->
+<!--#include file="footer.html" -->

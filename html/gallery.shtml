@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+                      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!--#include file="header.html" -->
+<link href="style.css" rel="stylesheet" type="text/css">
+<div id="bloc_option"><div id="top_bleu"><div id="text_top">Image Gallery</div></div>
+<div id="center"><div id="text_centre_intro">
+  All the images below have been processed by the command line version <b><a href="documentation.shtml">gmic</a></b>
+  of <b>G'MIC</b>, from a set of original 2D color images (displayed on the first row).<br/>
+  Click on an image to zoom-in. The corresponding <b>G'MIC</b> command used to generate the image appears as a caption.
+  This gallery is intended to show the flexibility and the genericity of the <b>G'MIC</b> language.
+  Remember, you can easily define your own image filters and effects by writting
+  your own <b>G'MIC</b> <a href="http://cimg.cvs.sourceforge.net/*checkout*/cimg/CImg/examples/gmic_def.raw">command file</a>,
+  then put them directly in <a href="http://www.gimp.org">GIMP</a> afterwards.
+
+  <br/><br/>Check also our specific <a href="album/index.html">GIMP plug-in album</a> for more examples.
+
+  <br/><br/><b>Copyrights : </b> All pictures have been shot by <a href="http://www.greyc.ensicaen.fr/~dtschump/">D. Tschumperlé</a>,
+  except the last one, taken from <a href="http://www.flickr.com/photos/digitalart/1906662004/">Flickr</a>
+  (distributed under the CC-By licence).<br/><br/>
+
+<!--#include file="gallery_content.html" -->
+
+</div></div><div id="footer"><img src="images/footer.jpg" /></div></div>
+<!--#include file="copyright.html" -->
+<!--#include file="footer.html" -->

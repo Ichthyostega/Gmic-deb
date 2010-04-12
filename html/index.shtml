@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+                      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!--#include file="header.html" -->
+<link href="style.css" rel="stylesheet" type="text/css">
+
+<div id="bloc_option"><div id="top_vert"><div id="text_top">Summary</div></div>
+<div id="center"><div id="text_centre_intro">
+
+  This project aims at defining a script language (<b>G'MIC</b>) dedicated to image processing.
+  The interpreter of this minimal but powerful language is distributed as an open-source module/library
+  embeddable in third-party applications.
+  <b>G'MIC</b> can be used to define complex image processing pipelines for converting,
+  manipulating, filtering and visualizing generic 1D/2D/3D multi-spectral image datasets.
+  Of course, it is able to manage color images, but also more complex data
+  as image sequences or 3D volumetric data.<br/><br/>
+  <b>G'MIC</b> is an open framework : it is possible to extend it with
+  custom commands, defining thus new image filters.
+  By the way, the default language already contains a substantial set of pre-defined image processing algorithms.
+  <br/><br/>
+
+  Here you will find packages providing the sources of the <b>G'MIC</b> interpreter, as well as
+  two usable instances of it :
+  <ul>
+    <li>A binary executable <b><a href="documentation.shtml">gmic</a></b>, allowing to use the <b>G'MIC</b> interpreter from the command line.</li>
+    <li>An interactive plug-in <b><a href="gimp.shtml">gmic_gimp</a></b> for extending the capabilities of the image retouching software <a href="http://www.gimp.org">GIMP</a>.</li>
+  </ul>
+
+  <b>G'MIC</b> has been designed with portability in mind and runs on different platforms.
+  It can be easily re-used in any other free software, as an external library since it is distributed under the
+  <a href="http://www.cecill.info/licences/Licence_CeCILL_V2-en.html"><b>CeCILL</b></a> license (GPL-compatible).
+  It is developed in the
+  <a href="http://www.greyc.ensicaen.fr/EquipeImage/">Image Team</a>
+  of the
+  <a href="http://www.greyc.ensicaen.fr/">GREYC</a> laboratory, in Caen/France,
+  by permanent researchers working in the field of image processing.<br/><br/>
+
+</div></div><div id="footer"><img src="images/footer.jpg" /></div></div>
+
+<div id="bloc_option"><div id="top_bleu"><div id="text_top">Features</div></div>
+<div id="center"><div id="text_centre_intro">
+
+  <b>G'MIC</b> is an image processing framework, and it can process image data like any other image processing tool.
+  Anyway, it has specific features that make it particular :
+  <ul>
+    <li>It defines a complete <b>script language</b> and provides its corresponding <b>open-source interpreter</b> that can be easily
+      embedded in any free software.</li>
+    <li>It internally works with <b>lists of images</b>. Image manipulations and interactions can be done either grouped or
+      focused on specific items.</li>
+    <li>It can process a wide variety of image types, including <b>multi-spectral</b>
+      (arbitray number of channels) and <b>3D volumetric</b> images as well as <b>image sequences</b>.</li>
+    <li>It considers <b>typed image pixels</b>. It can process flawlessly images coded
+      with 8bits or 16bits integers per channel, as well as float-valued datasets.</li>
+    <li>It provides minimal but efficient <b>visualization and exploration modules</b>, including
+      the visualization of 3D multi-spectral images, 3D objects (elevation map, isocurves, isosurfaces,...), and 1D graph plots.</li>
+    <li>More generally, it is able to display custom interactive windows where user events can be managed easily.</li>
+    <li>It is <b>highly extensible</b> through the use of
+      <b><a href="http://cimg.cvs.sourceforge.net/*checkout*/cimg/CImg/examples/gmic_def.raw">custom command files</a></b>
+      which extend the interpreter capabilities.</li>
+    </li>
+    <li>It can be used directly inside <a href="http://www.gimp.org">GIMP</a>, allowing end-users to
+      define and apply all <b>G'MIC</b> operations from a nice GUI, without much coding efforts.</li>
+    <li>It is based on the latest development versions of the <a href="http://cimg.sourceforge.net"><b>CImg Library</b></a>,
+      a C++ template image processing toolkit.</li>
+  </ul>
+  </div>
+</div>
+<div id="footer"><img src="images/footer.jpg" /></div></div>
+
+<div id="bloc_option"><div id="top_bleu"><div id="text_top">Screenshots</div></div>
+<div id="center"><div id="text_centre_intro">
+
+  Here are some screenshots illustrating the various uses of <b>G'MIC</b>.
+  It shows how it is able to process and visualize different types of 2D/3D image datasets.
+  <b>G'MIC</b> is actually a handy toolbox for many image processing applications.
+  See also the <a href="gallery.shtml">Gallery section</a> for more detailed examples.<br/><br/>
+  <center>
+    <image src="img/ss_brain3d.jpg" border="0" alt="G'MIC screenshot"></image>
+    <image src="img/ss_cubism.jpg" border="0" alt="G'MIC screenshot"></image>
+    <image src="img/ss_anim3d.gif" border="0" alt="G'MIC screenshot"></image>
+    <image src="img/ss_surface.jpg" border="0" alt="G'MIC screenshot"></image>
+    <image src="img/ss_tiger.jpg" border="0" alt="G'MIC screenshot"></image>
+    <image src="img/ss_caesar.jpg" border="0" alt="G'MIC screenshot"></image>
+    <image src="img/ss_plot.jpg" border="0" alt="G'MIC screenshot"></image>
+    <image src="img/ss_object3d.jpg" border="0" alt="G'MIC screenshot"></image>
+    <image src="img/ss_morph.gif" border="0" alt="G'MIC screenshot"></image>
+  </center>
+<br/>
+</div></div><div id="footer"><img src="images/footer.jpg" /></div></div>
+
+<div id="bloc_option"><div id="top_rouge"><div id="text_top">The Team</div></div>
+<div id="center"><div id="text_centre_intro">
+
+  Project Manager and Main Developer :
+  <ul>
+  <li> <a href="http://www.greyc.ensicaen.fr/~dtschump/"><b>David Tschumperl&eacute;</b></a></li>
+  </ul>
+  Contributors :
+  <ul>
+  <li>Members of the <a href="http://www.greyc.ensicaen.fr/EquipeImage/">Image Team</a> at the
+  <a href="http://www.greyc.ensicaen.fr/">GREYC</a> laboratory, in Caen/France (testing).</li>
+  <li><a href="http://www.xcfa.tuxfamily.org/"><b>Claude Bulin</b></a> (packaging).</li>
+  <li><a href="http://ekd.tuxfamily.org/"><b>Angelo Lama</b></a> (testing).</li>
+  <li><b>J&eacute;rome Ferrari</b> (testing).</li>
+  <li><a href="http://polariscorp.free.fr"><b>Stephane de la Linuxerie</b></a> (design).</li>
+  </ul>
+
+</div></div><div id="footer"><img src="images/footer.jpg" /></div></div>
+
+<!--#include file="copyright.html" -->
+<!--#include file="footer.html" -->

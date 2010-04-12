@@ -1,0 +1,99 @@
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+                        _____   _   __  __ _____ _____
+                       / ____| | | |  \/  |_   _/ ____|
+                      | |  __  |_| | \  / | | || |
+                      | | |_ |     | |\/| | | || |
+                      | |__| |     | |  | |_| || |____
+                       \_____|     |_|  |_|_____\_____|
+
+                        GREYC's Magic Image Converter
+
+                       ( http://gmic.sourceforge.net/ )
+
+                                  v.1.3.2
+
+--------------------------------------------------------------------------------
+
+# Summary
+#---------
+
+  This project aims at defining a minimal but powerful script language (G'MIC) dedicated
+  to image processing. The interpreter of this language is distributed as an open-source
+  module/library embeddable in third-party applications. G'MIC can be used to define
+  complex image processing pipelines for converting, manipulating, filtering and visualizing
+  generic 1D/2D/3D multi-spectral image datasets. Of course, it is able to manage color images,
+  but also more complex data as image sequences or 3D volumetric data.
+
+  G'MIC is an open framework : it is possible to extend the proposed default language with
+  custom G'MIC-written commands, defining thus new image filters. By the way, it already
+  contains a substantial set of pre-defined image processing algorithms.
+
+  In this package, you will find the sources of the G'MIC interpreter and two binary tools :
+
+    * A binary executable gmic for using the G'MIC interpreter from the command line.
+    * An interactive plug-in gmic_gimp for extending the capabilities of the image retouching
+      software GIMP.
+
+  G'MIC has been designed with portability in mind and runs on different platforms.
+  It can be easily re-used in any other free software, as an external library.
+  It is developed in the Image Team of the GREYC laboratory, in Caen/France, by permanent
+  researchers working in the image processing field.
+
+# Project Manager and Main Developer
+#------------------------------------
+
+  David Tschumperle  ( http://www.greyc.ensicaen.fr/~dtschump/ ) (source code)
+
+# Contributors
+#-------------
+
+  Claude Bulin       ( http://www.xcfa.tuxfamily.org/ )          (packaging)
+  Angelo Lama        ( historical developper of EKD : http://ekd.tuxfamily.org,
+                       post-prod software for videos and images) (testing)
+  Stephane de la Linuxerie (http://linuxerie.midiblogs.com and http://polariscorp.free.fr) (design & gimp plug-in)
+  Jerome Ferrari     (testing)
+
+# Institution
+#-------------
+
+ GREYC Image / CNRS UMR 6072 / FRANCE
+
+ Team web page : http://www.greyc.ensicaen.fr/EquipeImage/
+
+# Licenses
+#----------
+
+ The source code of G'MIC and the G'MIC Toolbox for Gimp is distributed under
+ the CECILL v.2.0 license (file 'Licence_CeCILL_V2-en.txt').
+ This License is a Free-Software license, compatible with the GPL license
+ (using those files in a distributed closed-source project is then forbidden).
+
+ The CeCiLL v.2.0 license ( http://www.cecill.info/index.en.html ) have been
+ created under the supervision of the three biggest research institutions on
+ computer sciences in France :
+
+   - CNRS  ( http://www.cnrs.fr/ )
+   - CEA   ( http://www.cea.fr/ )
+   - INRIA ( http://www.inria.fr/ )
+
+# How to build G'MIC ?
+#---------------------
+
+ To build the full G'MIC version (including command line and plug-in versions), just
+ type 'configure' in the main G'MIC directory. Then, go for a coffee, because the compilation
+ time for the command line version is quite long. If you are interested by the G'MIC plug-in
+ only, go to the 'src/' directory, and type 'make gimp'. You need the gimptools as well
+ as the libfftw3 developpement files installed on your system to be able to compile G'MIC.
+
+# How to install the G'MIC plug-in for GIMP ?
+#---------------------------------------------
+
+ Once you have your 'gmic_gimp' file available for your system, just copy it in your
+ GIMP plug-in directory. On Unix, this is usually in '$HOME/.gimp-2.x/plug-ins/'.
+ On Windows, this is usually in 'C:\Program Files\GIMP-2.x\lib\gimp\2.0\plugins\'.
+ Run GIMP, and the 'G'MIC...' entry should appear at the end of your 'Filters' menu.
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
