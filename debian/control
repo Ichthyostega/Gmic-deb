@@ -1,7 +1,8 @@
 Source: gmic
 Section: graphics
 Priority: optional
-Maintainer: Jakub Wilk <ubanus@users.sf.net>
+Maintainer: Bernd Zeimetz <bzed@debian.org>
+Uploaders: Jakub Wilk <ubanus@users.sf.net>
 Build-Depends: debhelper (>= 7.0.50),
  cimg-dev (>= 1.3),
  libgraphicsmagick++-dev,
