@@ -24,6 +24,7 @@ build-stamp: config.status
 .PHONY: clean
 clean:
 	rm -f $(patsubst %.gz,%,$(wildcard man/*.gz))
+	rm -f src/gmic_use_lib
 	rm -rf .pc
 	dh clean
 
