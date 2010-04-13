@@ -1,5 +1,10 @@
-gmic (1.3.2.9-1) unstable; urgency=low
+gmic (1.3.2.9.dfsg-1) unstable; urgency=low
 
+  [ Jakub Wilk ]
   * Initial release (closes: #532629).
 
- -- Jakub Wilk <ubanus@users.sf.net>  Tue, 10 Nov 2009 13:53:28 +0100
+  [ Bernd Zeimetz ]
+  * Removing non-free content (the html documentation comes without
+    sources and was generated using a non-free album generator).
+
+ -- Bernd Zeimetz <bzed@debian.org>  Tue, 13 Apr 2010 22:56:12 +0200
