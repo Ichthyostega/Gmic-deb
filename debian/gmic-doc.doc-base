@@ -1,8 +1,0 @@
-Document: gmic-documentation
-Title: G'MIC documentation
-Author: David Tschumperlé
-Section: Graphics
-
-Format: HTML
-Index: /usr/share/doc/gmic-doc/html/index.shtml
-Files: /usr/share/doc/gmic-doc/html/*.html /usr/share/doc/gmic-doc/html/*.shtml
