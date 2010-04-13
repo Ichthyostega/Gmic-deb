@@ -482,7 +482,7 @@ License: other
  Version 2.0 dated 2006-07-12.
 
 Files: debian/copyright
-Copyright: 2009 Jakub Wilk <ubanus@users.sf.net>
+Copyright: 2009 Jakub Wilk <ubanus@users.sf.net>, 2010 Bernd Zeimetz <bzed@debian.org>
 License: GPL-2
  On Debian systems, the complete text of the GNU General Public License
  version 2 can be found in the /usr/share/common-licenses/GPL-2 file.
