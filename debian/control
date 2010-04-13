@@ -4,7 +4,6 @@ Priority: optional
 Maintainer: Bernd Zeimetz <bzed@debian.org>
 Uploaders: Jakub Wilk <ubanus@users.sf.net>
 Build-Depends: debhelper (>= 7.0.50),
- cimg-dev (>= 1.3),
  libgraphicsmagick++-dev,
  libgimp2.0-dev (>= 2.4),
  libavcodec-dev, libavformat-dev, libswscale-dev, libfftw3-dev
