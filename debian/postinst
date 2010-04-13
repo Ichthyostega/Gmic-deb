@@ -1,8 +1,0 @@
-#!/bin/sh
-set -e
-
-gunzip --force /usr/share/doc/gmic/html/*.gz
-#gunzip --force /usr/share/doc/gmic/html/js/*.gz
-rm -f /usr/share/doc/gmic/html/Makefile.*
-
-exit 0
