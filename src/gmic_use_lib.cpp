@@ -3,7 +3,7 @@
  #  File        : gmic_use_lib.cpp
  #                ( C++ source file )
  #
- #  Description : Show how to call G'MIC API from a C++ source code.
+ #  Description : Show how to call the G'MIC interpreter from a C++ source code.
  #
  #  Copyright   : David Tschumperle
  #                ( http://www.greyc.ensicaen.fr/~dtschump/ )
@@ -45,6 +45,11 @@
     g++ -o gmic_use_lib gmic_use_lib.cpp -lgmic -lfftw3
 */
 
+/* Uncomment the two lines below if you want to use the CImg library along with the G'MIC library.
+ */
+//#include "CImg.h"
+//using namespace cimg_library;
+
 #include <cmath>
 #include "gmic.h"
 
@@ -56,49 +61,50 @@ int main() {
 
   gmic_list<float> image_list;
   image_list.assign(5);
-  for (unsigned int i = 0; i<image_list.size; ++i) {
-    gmic_image<float>& img = image_list.data[i];
+  for (unsigned int i = 0; i<image_list._width; ++i) {
+    gmic_image<float>& img = image_list._data[i];
     img.assign(256,256,1,3);
 
     std::fprintf(stderr,"    Input image %u =  %ux%ux%ux%u, buffer : %p\n",i,
-                 image_list.data[i].width,
-                 image_list.data[i].height,
-                 image_list.data[i].depth,
-                 image_list.data[i].spectrum,
-                 image_list.data[i].data);
+                 image_list._data[i]._width,
+                 image_list._data[i]._height,
+                 image_list._data[i]._depth,
+                 image_list._data[i]._spectrum,
+                 image_list._data[i]._data);
 
     // Fill each image buffer with sinus values (with different frequencies).
-    float *ptr = img.data;
-    for (unsigned int c = 0; c<img.spectrum; ++c)
-      for (unsigned int y = 0; y<img.height; ++y)
-        for (unsigned int x = 0; x<img.width; ++x)
+    float *ptr = img._data;
+    for (unsigned int c = 0; c<img._spectrum; ++c)
+      for (unsigned int y = 0; y<img._height; ++y)
+        for (unsigned int x = 0; x<img._width; ++x)
           *(ptr++) = std::cos(x/(1.+i))*std::sin(y/(1.+i+c));
   }
 
   // Second step : Call G'MIC API to process input images.
   //------------------------------------------------------
-  std::fprintf(stderr,"\n- 2st step : Call G'MIC commands.\n");
+  std::fprintf(stderr,"\n- 2st step : Call G'MIC interpreter.\n");
 
   try {
 
     // Here you can call any G'MIC command you want !
-    gmic("-+ -n 0,255",image_list); // do a simple averaging + renormalization.
+    // (here, create a deformed average of the input images, and save it as a BMP file).
+    gmic("-+ -n 0,255 -flower 8 -sharpen 100 -o foo.bmp",image_list);
 
-  } catch (gmic_exception &e) {
-    std::fprintf(stderr,"\n- Error encountered when calling G'MIC : '%s'\n",e.message());
+  } catch (gmic_exception &e) { // Catch exception, if an error occured in the interpreter.
+    std::fprintf(stderr,"\n- Error encountered when calling G'MIC : '%s'\n",e.what());
     return 0;
   }
 
-  // Third step : retrieve modified image data.
+  // Third step : get back modified image data.
   //-------------------------------------------
-  std::fprintf(stderr,"\n- 3st step : Returned %d output images.\n",image_list.size);
-  for (unsigned int i = 0; i<image_list.size; ++i) {
+  std::fprintf(stderr,"\n- 3st step : Returned %d output images.\n",image_list._width);
+  for (unsigned int i = 0; i<image_list._width; ++i) {
     std::fprintf(stderr,"   Output image %u = %ux%ux%ux%u, buffer : %p\n",i,
-                 image_list.data[i].width,
-                 image_list.data[i].height,
-                 image_list.data[i].depth,
-                 image_list.data[i].spectrum,
-                 image_list.data[i].data);
+                 image_list._data[i]._width,
+                 image_list._data[i]._height,
+                 image_list._data[i]._depth,
+                 image_list._data[i]._spectrum,
+                 image_list._data[i]._data);
   }
 
   // That's it !
