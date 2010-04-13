@@ -1,4 +1,4 @@
-gmic (1.3.4.1.dfsg-1) unstable; urgency=low
+gmic (1.3.4.1+dfsg-1) unstable; urgency=low
 
   [ Jakub Wilk ]
   * Initial release (closes: #532629).
