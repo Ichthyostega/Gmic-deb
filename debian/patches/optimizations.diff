@@ -1,21 +1,13 @@
 Description: Turn off exaggerated optimizations.
 
-Index: gmic-1.3.2.9/src/Makefile
-===================================================================
---- gmic-1.3.2.9.orig/src/Makefile	2009-11-09 21:32:33.000000000 +0100
-+++ gmic-1.3.2.9/src/Makefile	2009-11-09 21:32:42.000000000 +0100
-@@ -100,14 +100,6 @@
- BOARD_CFLAGS = -Dcimg_use_board
- BOARD_LDFLAGS = -lboard
- 
--# Flags to enable code optimization by the compiler.
--ifeq ($(CC),icc)
--OPT_CFLAGS = -O3 -ipo -no-prec-div
--else
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -157,7 +157,7 @@ STD_LIB_LDFLAGS = $(FFTW_LDFLAGS)
+ ifeq ($(CC),g++)
+ MANDATORY_CFLAGS += -Wall -W -I$(LIBDIR)/include
+ MANDATORY_LDFLAGS = -lm -L$(LIBDIR)/lib
 -OPT_CFLAGS = -O3 -fno-tree-pre
--#OPT_CFLAGS = -fno-tree-pre -g -Dcimg_verbosity=3
--endif
--
- # Groups of flags for building different configurations
- STD_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(PNG_CFLAGS) \
-                  $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
++OPT_CFLAGS = -fno-tree-pre
+ endif
+ 
+ ifeq ($(CC),icc)
