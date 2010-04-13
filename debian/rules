@@ -17,7 +17,7 @@ build: build-stamp
 build-stamp: config.status
 	dh_auto_build -- \
 		LDFLAGS="-Wl,--as-needed" \
-		CFLAGS="$(CFLAGS) -fno-tree-pre -I. -I/usr/include/libavcodec/ -I/usr/include/libavformat/ -I/usr/include/libswscale/"
+		CFLAGS="$(CFLAGS) -I. -I/usr/include/libavcodec/ -I/usr/include/libavformat/ -I/usr/include/libswscale/"
 	touch $(@)
 
 .PHONY: clean
