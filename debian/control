@@ -2,7 +2,7 @@ Source: gmic
 Section: graphics
 Priority: optional
 Maintainer: Bernd Zeimetz <bzed@debian.org>
-Uploaders: Jakub Wilk <ubanus@users.sf.net>
+Uploaders: Jakub Wilk <jwilk@debian.org>
 Build-Depends: debhelper (>= 7.0.50),
  libgimp2.0-dev (>= 2.4),
  libavcodec-dev, libavformat-dev, libswscale-dev, libgraphicsmagick++-dev,
