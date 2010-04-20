@@ -3,7 +3,11 @@
 ifneq (,$(findstring arm,$(shell dpkg-architecture -qDEB_BUILD_GNU_CPU)))
   GMIC_CFLAGS = -g -O0
 else
-  GMIC_CFLAGS = $(CFLAGS)
+  ifneq (,$(findstring mips,$(shell dpkg-architecture -qDEB_BUILD_GNU_CPU)))
+    GMIC_CFLAGS = -g -O0
+  else
+    GMIC_CFLAGS = $(CFLAGS)
+  endif
 endif
 
 .PHONY: override_dh_auto_test
