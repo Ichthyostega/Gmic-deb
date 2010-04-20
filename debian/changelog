@@ -3,8 +3,9 @@ gmic (1.3.4.1+dfsg-3) unstable; urgency=low
   * [045a2f86] Remove strip commands from src/Makefile. dh_strip takes
     care of stripping if necessary.
   * [d3740bdf] Add patch to make gmic build on kfreebsd.
+  * [61119501] Use -O0 on arm to stop g++ from using even more memory.
 
- -- Bernd Zeimetz <bzed@debian.org>  Tue, 20 Apr 2010 17:01:22 +0200
+ -- Bernd Zeimetz <bzed@debian.org>  Tue, 20 Apr 2010 18:09:57 +0200
 
 gmic (1.3.4.1+dfsg-2) unstable; urgency=low
 
