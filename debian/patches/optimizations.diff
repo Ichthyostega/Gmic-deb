@@ -2,7 +2,7 @@ Description: Turn off exaggerated optimizations.
 
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -157,7 +157,7 @@ STD_LIB_LDFLAGS = $(FFTW_LDFLAGS)
+@@ -162,7 +162,7 @@ STD_LIB_LDFLAGS = $(FFTW_LDFLAGS)
  ifeq ($(CC),g++)
  MANDATORY_CFLAGS += -Wall -W -I$(LIBDIR)/include
  MANDATORY_LDFLAGS = -lm -L$(LIBDIR)/lib

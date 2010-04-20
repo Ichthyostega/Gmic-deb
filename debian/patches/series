@@ -1,3 +1,4 @@
+kfreebsd-support
 do_not_strip_in_Makefile
 typos.diff
 optimizations.diff
