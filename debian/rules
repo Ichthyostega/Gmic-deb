@@ -1,5 +1,11 @@
 #!/usr/bin/make -f
 
+ifneq (,$(findstring arm,$(shell dpkg-architecture -qDEB_BUILD_GNU_CPU)))
+  GMIC_CFLAGS = -g -O0
+else
+  GMIC_CFLAGS = $(CFLAGS)
+endif
+
 .PHONY: override_dh_auto_test
 override_dh_auto_test: ;
 
@@ -17,7 +23,7 @@ build: build-stamp
 build-stamp: config.status
 	dh_auto_build -- \
 		LDFLAGS="-Wl,--as-needed" \
-		CFLAGS="$(CFLAGS) -I. -I/usr/include/libavcodec/ -I/usr/include/libavformat/ -I/usr/include/libswscale/"
+		CFLAGS="$(GMIC_CFLAGS) -I. -I/usr/include/libavcodec/ -I/usr/include/libavformat/ -I/usr/include/libswscale/"
 	touch $(@)
 
 .PHONY: clean
