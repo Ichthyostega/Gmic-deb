@@ -6,7 +6,7 @@
  OS := $(shell uname)
 +# GNU/kFreeBSD uses the linux configuration.
 +ifeq ($(OS),GNU/kFreeBSD)
-+OS = linux
++OS = Linux
 +endif
 +
  CC = g++
