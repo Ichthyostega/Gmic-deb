@@ -1,0 +1,18 @@
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -238,7 +238,6 @@ gmic_gimp.o: gmic.cpp gmic_def.h
+ 	$(CC) -o gmic_gimp.o -c gmic.cpp -Dgmic_gimp -Dgmic_minimal -Dgmic_float $(CFLAGS)
+ gmic_gimp : gmic_gimp.o gmic_gimp.cpp
+ 	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o $(CFLAGS) $(LDFLAGS) `gimptool-2.0$(EXE) --cflags` `gimptool-2.0$(EXE) --libs`
+-	strip gmic_gimp$(EXE)
+ 
+ gmic_minimal: gmic.cpp
+ 	$(CC) -o gmic gmic.cpp -Dgmic_minimal -Dgmic_float -Dgmic_main -Dcimg_debug=3 -Dcimg_use_vt100 -g $(CFLAGS) $(LDFLAGS)
+@@ -262,7 +261,6 @@ gmic_double.o: gmic.cpp
+ 	$(CC) -o gmic_double.o -c gmic.cpp -Dgmic_separate_compilation -Dgmic_double $(CFLAGS)
+ gmic_gmic: gmic.cpp gmic_bool.o gmic_uchar.o gmic_char.o gmic_ushort.o gmic_short.o gmic_uint.o gmic_int.o gmic_float.o gmic_double.o gmic_def.h
+ 	$(CC) -o gmic gmic.cpp -Dgmic_separate_compilation -Dgmic_main $(CFLAGS) gmic_bool.o gmic_uchar.o gmic_char.o gmic_ushort.o gmic_short.o gmic_uint.o gmic_int.o gmic_float.o gmic_double.o $(LDFLAGS)
+-	strip gmic$(EXE)
+ 
+ def:
+ 	cd ../../CImg/examples && $(MAKE) gmic_def
