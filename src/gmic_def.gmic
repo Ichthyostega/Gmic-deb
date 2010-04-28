@@ -134,7 +134,7 @@ outputw :
 ow :
   -outputw
 
-#@gmic outputp : 'prefix' : Output selected images as prefixed versions of their original filenames (eq. to '-op').
+#@gmic outputp : prefix : Output selected images as prefixed versions of their original filenames (eq. to '-op').
 outputp : -skip ${1="_"}
   -if {@#>1} -e[0--3] "Output image$? as their initial locations, prefixed by '$1'."
   -else -e[0--3] "Output image$? as its initial location, prefixed by '$1'."
@@ -171,6 +171,18 @@ display0 :
 #@gmic d0 : eq. to '-display0'. :
 d0 :
   -display0
+
+# Function useful to display help of commands, in interactive shell mode (linux only).
+help : -skip ${1=""}
+  -v -
+  -if {narg($1)}
+    -x "gmic -h $1 | tail -n +6 | head -n -1"
+  -else
+    -x "gmic -h | head -n 5"
+  -endif
+  -v +
+h :
+  -help $*
 
 #@gmic split_tiles : M!=0,_N!=0,_is_homogeneous={0|1} : Split selected images as a MxN array of tiles.
 split_tiles : -skip $1,${2=$1},${3=0}
@@ -211,9 +223,9 @@ roundify : -check "$1>=0"
 strcmp :
   -v - (0,{"$1_"}) (@{-1,w},{"$2_"}) -=[-2] @{-1,w} --[-2,-1] -abs[-1] -p {!@{-1,+}} -rm[-1] -v +
 
-#@gmic apply_pose3d : p1,..,p12 : Apply 3D pose matrix to selected 3D objects.
+#@gmic apply_pose3d : p1,..,p12 : Apply 3d pose matrix to selected 3d objects.
 apply_pose3d : -skip $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
-  -e[^-1] "Apply 3D pose matrix [ $1,$2,$3,$4; $5,$6,$7,$8; $9,$10,$11,$12 ] to 3D object$?."
+  -e[^-1] "Apply 3d pose matrix [ $1,$2,$3,$4; $5,$6,$7,$8; $9,$10,$11,$12 ] to 3d object$?."
   -v - -repeat @# -l[-1] -s3d
     -r[2] 3,{@{2,#}/3},1,1,-1 -s[2] x
     --*[2] $5 --*[3] $6 --*[4] $7 -+[-3--1] -+[-1] $8
@@ -277,9 +289,9 @@ histogram_cumul : -check "isint(${1=256}) && $1>0 && isbool(${2=0})"
     -if $2 -/[-1] @{-1,M} -endif
   -mv[-1] 0 -done -v +
 
-#@gmic direction2rgb : : Compute RGB representation of selected 2D direction fields.
+#@gmic direction2rgb : : Compute RGB representation of selected 2d direction fields.
 direction2rgb :
-  -e[^-1] "Compute RGB representation of 2D direction field$?."
+  -e[^-1] "Compute RGB representation of 2d direction field$?."
   -v - -repeat @#
     -channels[-1] 0,1 -s[-1] c -complex2polar[-2,-1]
     -*[-1] 128 -/[-1] 3.14159265359 -+[-1] 256 -mod[-1] 256 -map[-1] 1
@@ -293,16 +305,32 @@ vector2tensor :
     -s c
     -if {@#==2} --sqr[-1] -*[-2] [-3] -sqr[-3]
     -elif {@#==3} --sqr[-2] --*[-3] [-2] --sqr[-3] -*[-5,-4] [-6] -sqr[-6]
-    -else -error "Invalid image : Dimensions "@{-1,w}","@{-1,h}","@{-1,d}","@{-1,s}" does not represent a field of 2D or 3D vectors."
+    -else -error "Invalid image : Dimensions "@{-1,w}","@{-1,h}","@{-1,d}","@{-1,s}" does not represent a field of 2d or 3d vectors."
     -endif
     -a c
   -endl -mv[-1] 0 -done -v +
+
+#@gmic fftpolar : : Compute Fourier transform of selected images, as centered magnitude/phase images.
+fftpolar :
+  -e[^-1] "Compute Fourier transform of image$?, as centered magnitude/phase images."
+  -v - -repeat @#
+    -fft[-1] -complex2polar[-2,-1]
+    -shift[-2,-1] 50%,50%,50%,0,2
+  -mv[-2,-1] 0 -done -v +
+
+#@gmic ifftpolar : : Compute inverse Fourier transform of selected images, from centered magnitude/phase images.
+ifftpolar :
+  -e[^-1] "Compute inverse Fourier transform of image$?, from centered magnitude/phase images."
+  -v - -repeat {@#/2}
+    -shift[-2,-1] -50%,-50%,-50%,0,2
+    -polar2complex[-2,-1] -ifft[-2,-1] -rm[-1]
+  -mv[-1] 0 -done -v +
 
 #@gmic display_fft : : Display Fourier transform of selected images, with centered log-module and argument (eq. to '-dfft').
 display_fft :
   -e[^-1] "Render Fourier transform of image$? with centered log-module and argument."
   -v - -repeat @#
-    -fft[-1] -complex2polar[-2,-1] -shift[-2,-1] 50%,50%,50%,0,2 -+[-2] 1 -log[-2] -n[-2,-1] 0,255 -a[-2,-1] x
+    -fftpolar[-1] -+[-2] 1 -log[-2] -n[-2,-1] 0,255 -a[-2,-1] x
   -mv[-1] 0 -done -s x,2 -v +
 
 #@gmic dfft : eq. to '-display_fft'. :
@@ -368,10 +396,10 @@ gradient_orientation : -check "${1=3}==1 || $1==2 || $1==3"
     -endif
   -mv[-$1--1] 0 -done -v +
 
-#@gmic gradient2rgb : _orientation={0|1} : Compute RGB representation of 2D gradient of selected images.
+#@gmic gradient2rgb : _orientation={0|1} : Compute RGB representation of 2d gradient of selected images.
 gradient2rgb : -check "isbool(${1=0})"
-  -if $1 -e[^-1] "Compute RGB representation of 2D gradient orientation of image$?."
-  -else -e[^-1] "Compute RGB representation of 2D gradient of image$?." -endif
+  -if $1 -e[^-1] "Compute RGB representation of 2d gradient orientation of image$?."
+  -else -e[^-1] "Compute RGB representation of 2d gradient of image$?." -endif
   -v - -repeat @#
     -norm[-1]
     -if $1 -gradient_orientation[-1] 2 -else -gradient[-1] xy -endif
@@ -450,6 +478,22 @@ _topographic_map :
     -else -pp[-1] -return
     -endif
   -while 1
+
+#@gmic segment_watershed : _threshold>=0 : Apply watershed segmentation on selected images.
+segment_watershed : -check "${1=2}>=0 && ${2=11}>0"
+  -e[^-1] "Apply watershed segmentation on image$?, with edge threshold $1."
+  -v - -repeat @#
+    -p[0] {1+@{-1,m}} -+[-1] ~0
+    --gradient_norm[-1]
+    -if {@{-1,d}>1}
+      --f[-1] "if(i<$1 && i<i(x+1) && i<i(x-1) && i<i(x,y+1) && i<i(x,y-1) && i<i(x,y,z+1) && i<i(x,y,z-1),1,0)"
+    -else
+      --f[-1] "if(i<$1 && i<i(x+1) && i<i(x-1) && i<i(x,y+1) && i<i(x,y-1),1,0)"
+    -endif
+    -*[-3,-1] -*[-1] -1
+    -watershed[-2] [-1],1 -rm[-1]
+    -pp[0]
+  -mv[-1] 0 -done -v +
 
 #--------------------------------------------------
 #
@@ -697,7 +741,7 @@ remove_hotpixels : -check "isint(${1=3}) && $1>0" -skip ${2=10%}
 
 #@gmic lic : _amplitude>0,_channels>0 : Generate LIC representation of vector field.
 lic : -skip ${1=30},${2=1}
-  -e[^-1] "Generate LIC representation of 2D vector field$?, with amplitude $1 and $2 channel(s)."
+  -e[^-1] "Generate LIC representation of 2d vector field$?, with amplitude $1 and $2 channel(s)."
   -v - -repeat @#
      -channels[-1] 0,1 -/[-1] {max(abs(@{-1,m}),abs(@{-1,M}))} -vector2tensor[-1]
      100%,100%,100%,$2 -rand[-1] 0,255 -smooth[-1] [-2],$1 -rm[-2]
@@ -778,9 +822,9 @@ t2 : -threshold2 $*
 #
 #-----------------------------
 
-#@gmic resize2dx : width>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the X-axis, preserving 2D ratio (eq. to '-r2dx').
+#@gmic resize2dx : width>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the X-axis, preserving 2d ratio (eq. to '-r2dx').
 resize2dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 2D image$? to $1 pixels along the X-axis, preserving 2D ratio."
+  -e[^-1] "Resize 2d image$? to $1 pixels along the X-axis, preserving 2d ratio."
   -v - -repeat @#
     (@{-1,h}) -*[-1] $1 -/[-1] @{-2,w} -c[-1] 1,100%
     -r[-2] $1,@-1,[-2],[-2],$2 -rm[-1]
@@ -789,9 +833,9 @@ resize2dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
 r2dx :
   -resize2dx $*
 
-#@gmic resize3dx : width>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the X-axis, preserving 3D ratio (eq. to '-r3dx').
+#@gmic resize3dx : width>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the X-axis, preserving 3d ratio (eq. to '-r3dx').
 resize3dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 3D image$? to $1 pixels along the X-axis, preserving 3D ratio."
+  -e[^-1] "Resize 3d image$? to $1 pixels along the X-axis, preserving 3d ratio."
   -v - -repeat @#
     (@{-1,h},@{-1,d}) -*[-1] $1 -/[-1] @{-2,w} -c[-1] 1,100%
     -r[-2] $1,@-1,[-2],$2 -rm[-1]
@@ -800,9 +844,9 @@ resize3dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
 r3dx :
   -resize3dx $*
 
-#@gmic resize2dy : height>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Y-axis, preserving 2D ratio (eq. to '-r2dy').
+#@gmic resize2dy : height>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Y-axis, preserving 2d ratio (eq. to '-r2dy').
 resize2dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 2D image$? to $1 pixels along the Y-axis, preserving 2D ratio."
+  -e[^-1] "Resize 2d image$? to $1 pixels along the Y-axis, preserving 2d ratio."
   -v - -repeat @#
     (@{-1,w}) -*[-1] $1 -/[-1] @{-2,h} -c[-1] 1,100%
     -r[-2] @-1,$1,[-2],[-2],$2 -rm[-1]
@@ -811,9 +855,9 @@ resize2dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
 r2dy :
   -resize2dy $*
 
-#@gmic resize3dy : height>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Y-axis, preserving 3D ratio (eq. to '-r3dy').
+#@gmic resize3dy : height>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Y-axis, preserving 3d ratio (eq. to '-r3dy').
 resize3dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 3D image$? to $1 pixels along the Y-axis, preserving 3D ratio."
+  -e[^-1] "Resize 3d image$? to $1 pixels along the Y-axis, preserving 3d ratio."
   -v - -repeat @#
     (@{-1,w},@{-1,h}) -*[-1] $1 -/[-1] @{-2,h} -c[-1] 1,100%
     -r[-2] @{-1,0},$1,@{-1,1},[-2],$2 -rm[-1]
@@ -822,9 +866,9 @@ resize3dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
 r3dy :
   -resize3dy $*
 
-#@gmic resize3dz : depth>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Z-axis, preserving 3D ratio (eq. to '-r3dz').
+#@gmic resize3dz : depth>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Z-axis, preserving 3d ratio (eq. to '-r3dz').
 resize3dz : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 3D image$? to $1 pixels along the Z-axis, preserving 3D ratio."
+  -e[^-1] "Resize 3d image$? to $1 pixels along the Z-axis, preserving 3d ratio."
   -v - -repeat @#
     (@{-1,w},@{-1,h}) -*[-1] $1 -/[-1] @{-2,d} -c[-1] 1,100%
     -r[-2] @-1,$1,[-2],$2 -rm[-1]
@@ -915,9 +959,9 @@ shrink_xy : -check "$1>=0"
   -e[^-1] "Shrink image$? along the XY-axes with size $1."
   -v - -shrink_x $1 -shrink_y $1 -v +
 
-#@gmic elevate : _depth,_is_plain,_is_colored : Elevate selected 2D images into 3D volumes.
+#@gmic elevate : _depth,_is_plain,_is_colored : Elevate selected 2d images into 3d volumes.
 elevate : -check "${1=64}>0" -skip ${2=1},${3=1}
-  -e[^-1] "Elevate 2D image$? into $1-slices volume(s)."
+  -e[^-1] "Elevate 2d image$? into $1-slices volume(s)."
   -v - -r 100%,100%,1,100%
   -repeat @# -l[-1]
   --norm[0] -i 100%,100%,$1,{if($3,@{0,s},1)}
@@ -1112,25 +1156,15 @@ tetris : -skip ${1=10}
     -r[-1] [-2] -rm[-2] -blur[-1] 2 -sharpen[-1] 300,1
   -mv[-1] 0 -done -v +
 
-#@gmic mosaic : _density>=0,_amplitude,_relief={0|1} : Add random mosaic pattern to selected images.
-mosaic : -skip ${1=0.2},${2=40},${3=0}
-  -e[^-1] "Add random mosaic pattern to image$?, with density $1."
+#@gmic mosaic : _density>=0,_edges={ 0 | 1 } : Create random mosaic from selected images.
+mosaic : -skip ${1=0.8},${2=1}
+  -e[^-1] "Apply mosaic effect on image$?, with density $1."
   -v - -repeat @#
-    (@{-1,m},@{-1,M}) [-2],[-2],1,1 -noise[-1] $1,2 -distance[-1] 1 -sharpen[-1] 10000
-    -if $3 -gradient[-1] xy -+[-2,-1] -n[-1] -1,1 -else -n[-1] 0,1 -endif
-    -*[-1] $2 -+[-3,-1] -c[-2] @-1 -rm[-1]
+    -p[0] {1+@{-1,m}} -+[-1] ~0
+    100%,100% -noise[-1] $1,2 -*[-2] [-1] -distance[-1] 1 -*[-1] -1 -watershed[-2] [-1],{if($2,0,1)} -rm[-1]
+    -if $2 --l[-1] -t 0.0001 -s c -and -endl --[-2] ~0 -*[-2,-1] -else --[-1] ~0 -endif
+    -pp[0]
   -mv[-1] 0 -done -v +
-
-#@gmic mosaic2 : _density>=0,_relief={ 0 | 1 }
-mosaic2 : -skip ${1=0.3},${2=1}
-  -repeat @#
-    [-1],[-1] -noise[-1] $1,2 --distance[-1] 1 -*[-1] -1 -*[-3,-2] -r[-1] [-2]
-    -watershed[-2] [-1] -rm[-1]
-
-    --luminance[-1] -gradient[-1] xy,1 -sqr[-2,-1] -+[-2,-1] -t[-1] 0.1 -*[-1] -1 -+[-1] 1
-    -*[-2,-1]
-
-  -mv[-1] 0 -done
 
 #@gmic puzzle : _scale>=0 : Apply puzzle effect on selected images.
 puzzle : -skip ${1=5}
@@ -1203,6 +1237,13 @@ draw_whirl : -skip ${1=100}
     -sqrt[-1] -n[-1] 0,255 -equalize[-1] 256
   -mv[-1] 0 -done -v +
 
+#@gmic stencil : _radius[%]>=0,_smoothness>=0,_iterations>=0 : Apply stencil filter on selected images.
+stencil : -check "${1=3}>=0 && ${2=1}>=0 && ${3=8}>=0"
+  -e[^-1] "Apply stencil filter on image$?, with radius $1, smoothness $2 and $3 iterations."
+  -v -
+  -n 0,1 -repeat $3 -blur $1 -unsharp {$1*$2},1000 -c 0,255 -done -t 50%
+  -v +
+
 #@gmic stencilbw : _edges>=0,_smoothness>=0 : Apply B&W stencil effect on selected images.
 stencilbw : -skip ${1=15},${2=10}
   -e[^-1] "Apply B&W stencil effect on image$?, with edges $1 and smoothness $2."
@@ -1273,7 +1314,7 @@ glow : -skip ${1=-1}
 #@gmic old_photo : : Apply old photo effect on selected images.
 old_photo :
   -e[^-1] "Apply old photo effect on image$?."
-  -v - -noise 20 -bilateral 30,60 -blur 2 -sharpen 100 -frame_fuzzy 20,20,6,3 -damp_patch 0.75 -n 0,255 -sepia -v +
+  -v - -noise 20 -bilateral 30,60 -blur 2 -sharpen 100 -frame_fuzzy 20,20,6,3 -shadow_patch 0.75 -n 0,255 -sepia -v +
 
 #------------------------------------
 #
@@ -1368,11 +1409,11 @@ flower : -skip ${1=30},${2=6},${3=0},${4=0},${5=0.5},${6=0.5},${7=2}
 zoom : -skip ${1=2},${2=0.5},${3=0.5},${4=0.5},${5=0}
   -e[^-1] "Apply zoom effect on image$?, with factor $1 and center ($2,$3)."
   -v - -repeat @#
-    -if {@{-1,d}==1} # 2D image.
+    -if {@{-1,d}==1} # 2d image.
        ({(@{-1,w}-1)*$2*(1-1/$1)},{(@{-1,w}-1)*($2+(1-$2)/$1)})
        ({(@{-2,h}-1)*$3*(1-1/$1)};{(@{-2,h}-1)*($3+(1-$3)/$1)})
        -r[-2--1] [-3],[-3],1,1,3 -a[-2--1] c -warp[-2] [-1],0,1,$5
-    -else # 3D image.
+    -else # 3d image.
        ({(@{-1,w}-1)*$2*(1-1/$1)},{(@{-1,w}-1)*($2+(1-$2)/$1)})
        ({(@{-2,h}-1)*$3*(1-1/$1)};{(@{-2,h}-1)*($3+(1-$3)/$1)})
        ({(@{-3,d}-1)*$4*(1-1/$1)}/{(@{-3,d}-1)*($4+(1-$4)/$1)})
@@ -1399,7 +1440,8 @@ fish_eye : -skip ${1=50},${2=50},${3=50},${4=1.2}
     -warp[-2] [-1],1,1,1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic transform_polar : "expr_radius",_"expr_angle",_x_center,_y_center,_borders={0|1} : Apply user-defined transform on polar representation of selected images.
+#@gmic transform_polar : "expr_radius",_"expr_angle",_x_center,_y_center,_borders={ 0 | 1 } :
+#@gmic : Apply user-defined transform on polar representation of selected images.
 transform_polar : -skip "${1=r}","${2=a}",${3=50},${4=50},${5=1}
   -e[^-1] "Apply custom polar transform with 'new_r = $1', 'new_a = $2', centered at ($3%,$4%)."
   -v -
@@ -1455,9 +1497,9 @@ stripes_y : -skip ${1=10}
     -*[-1] 0.15 -+[-1,-2] -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic damp_patch : _opacity>=0 : Add damp patches to selected images.
-damp_patch : -skip ${1=0.7}
-  -e[^-1] "Apply damp patches to image$?, with opacity $1."
+#@gmic shadow_patch : _opacity>=0 : Add shadow patches to selected images.
+shadow_patch : -skip ${1=0.7}
+  -e[^-1] "Apply shadow patches to image$?, with opacity $1."
   -v - -repeat @#
     100%,100%,1,1 -shift[-1] -2,-2 -shift[-1] 1,1
     -plasma[-1] 3,0.3 -abs[-1] -blur[-1] 1 -c[-1] 3%,15% -r[-1] [-2]
@@ -1470,6 +1512,23 @@ light_patch : -skip ${1=10},${2=0.9},${3=1.7}
   -v - -repeat @#
     -n[-1] 0,255 $1,$1 -noise[-1] 40 -r[-1] [-2],5 -c[-1] 0,255
     -n[-1] $2,$3 -*[-2,-1] -c[-1] 0,255
+  -mv[-1] 0 -done -v +
+
+#@gmic light_relief : _ambient_light,_specular_light,_specular_size,_darkness,_xl,_yl,_zl,_zscale,_opacity_bumpmap={ 0 | 1 } :
+#@gmic : Apply relief light to selected images.
+light_relief : -skip ${1=0.3},${2=0.5},${3=0.2},${4=0},${5=0.2},${6=0.5},${7=0.5},${8=1},${9=1},${10=0}
+  -e[^-1] "Apply relief light to image$?."
+  -v - -repeat @#
+    ({-$6},{1-$6};{-$6},{1-$6}^{-$7},{-$7};{1-$7},{1-$7}^$8,$8;$8,$8) -r[-1] [-2],[-2],1,3,3  # Create light vector field.
+    -if $10 --channels[-2] 3 -to_rgb[-3] -else --to_rgb[-2] -norm[-1] -endif
+    -blur[-1] $5% -gradient[-1] xy 100%,100%,1,1,$9  -a[-3--1] c                              # Create normal vector field.
+    -orientation[-2,-1] -*[-2,-1] -s[-1] c -+[-3--1]                                          # Normalized scalar product.
+    100%,100% -=[-1] 1,{$6*100}%,{$7*100}% -distance[-1] 1 -sqr[-1] -*[-1] -1                 # Compute specular attenuation.
+    -/[-1] {($3*max(@{-1,w},@{-1,h}))^2} -exp[-1] -*[-1] $2 -+[-1] $1
+    -*[-2,-1] --[-1] $4 -*[-1] @{-2,M}
+    -l[-2,-1] -split_opacity -reverse[0--2]                                                   # Add light property to non-opaque part of the image.
+    -+[-2,-1] -c[-1] 0,255
+    -reverse -a c -endl
   -mv[-1] 0 -done -v +
 
 #@gmic noise_hurl : _amplitude>=0 : Add hurl noise to selected images.
@@ -1495,6 +1554,15 @@ paper_texture :
     [-1] 30%,30% -noise[-1] 1,2 -r[-1] [-2],[-2],[-2],1,0 -ifft[-1]
     -rm[-1] -shift[-1] 50%,50%,50%,0,2 -sharpen[-1] 1 -n[-1] 1,1.2 -r[-1] [-2]
     -*[-2,-1] -c[-1] [-2],[-2] -rm[-2]
+  -mv[-1] 0 -done -v +
+
+#@gmic mosaic_texture : _density>=0,_amplitude,_relief={ 0 | 1 } : Add random mosaic texture to selected images.
+mosaic_texture : -skip ${1=0.2},${2=40},${3=0}
+  -e[^-1] "Add random mosaic texture to image$?, with density $1."
+  -v - -repeat @#
+    (@{-1,m},@{-1,M}) [-2],[-2],1,1 -noise[-1] $1,2 -distance[-1] 1 -sharpen[-1] 10000
+    -if $3 -gradient[-1] xy -+[-2,-1] -n[-1] -1,1 -else -n[-1] 0,1 -endif
+    -*[-1] $2 -+[-3,-1] -c[-2] @-1 -rm[-1]
   -mv[-1] 0 -done -v +
 
 #-------------------------
@@ -1744,10 +1812,10 @@ select_color :
 #@gmic replace_color : _tolerance[%]>=0,_smoothness[%]>=0,src1,...,srcN,dest1,...,destN : Replace pixels from/to specified colors in selected images.
 replace_color :
   -v - (${3*}) -unroll[-1] c -s[-1] c,2
-  -v + -e[^-1] "Replace color ("@-2") to color ("@-1") in image$?, with tolerance $1 and smoothness $2." -rm[-2,-1]
-  -v - -repeat @#
+  -v + -e[^-1] "Replace color ("@-2") to color ("@-1") in image$?, with tolerance $1 and smoothness $2." -v -
+  -rm[-2,-1] -repeat @#
     (${3*}) -unroll[-1] c -s[-1] c,2 -r[-2,-1] 1,1,1,@{-3,s} --[-1] [-2]
-    -r[-2] [-3] --[-2] [-3] -norm[-2] -t[-2] $1 -blur[-2] $2 -*[-2] -1 -+[-2] 1
+    -r[-2] [-3] --[-2] [-3] -norm[-2] -t[-2] {$1+1e-8} -blur[-2] $2 -*[-2] -1 -+[-2] 1
     -mv[-2] @# -r[-2] [-1],[-1] -*[-2,-1] -+[-2,-1]
   -mv[-1] 0 -done -v +
 
@@ -2156,13 +2224,13 @@ animate : -skip ${1=30},${2=0},${3=""},${4=0},${5=1},${6=""}
 
 #-------------------------
 #
-#  3D-related filters
+#  3d-related filters
 #
 #-------------------------
 
-#@gmic animate3d : _width>0,_height>0,_dx,_dy,_dz,_zoom>=0,_filename : Animate selected 3D objects in a window.
+#@gmic animate3d : _width>0,_height>0,_dx,_dy,_dz,_zoom>=0,_filename : Animate selected 3d objects in a window.
 animate3d : -skip ${1=640},${2=480},${3=0},${4=10},${5=0},${7=""} -check ${6=1}>=0
-  -e[^-1] "Animate 3D object$?, in a $1x$2 window with angle velocities ($3,$4,$5)."
+  -e[^-1] "Animate 3d object$?, in a $1x$2 window with angle velocities ($3,$4,$5)."
   -v - -repeat @#
     --n3d[@{>,-1}] -*3d[-1] {$6*min($1,$2)/1.5} -c3d[-1] (0,0,0)
     -p[0] 0
@@ -2175,9 +2243,9 @@ animate3d : -skip ${1=640},${2=480},${3=0},${4=10},${5=0},${7=""} -check ${6=1}>
     -pp[0]
   -done -v +
 
-#@gmic imagecube3d : : Create 3D mapped cubes from selected images.
+#@gmic imagecube3d : : Create 3d mapped cubes from selected images.
 imagecube3d :
-  -e[^-1] "Generated 3D mapped cube frome image$?."
+  -e[^-1] "Generated 3d mapped cube frome image$?."
   -v - -repeat @#
     -p[0] {@{-1,w}-1} -p[1] {@{-1,h}-1}
     -i[-2] (67.5;73.5;109.5;103.5;51.5;100.5;\  # Magick number for CImg3d.
@@ -2202,9 +2270,9 @@ imagecube3d :
     -a[-3--1] y
   -mv[-1] 0 -done -v +
 
-#@gmic imagepyramid3d : : Create 3D mapped pyramides from selected images.
+#@gmic imagepyramid3d : : Create 3d mapped pyramides from selected images.
 imagepyramid3d :
-  -e[^-1] "Generated 3D mapped pyramids frome image$?."
+  -e[^-1] "Generated 3d mapped pyramids frome image$?."
   -v - -repeat @#
     -p[0] {@{-1,w}-1} -p[1] {@{-1,h}-1} -p[2] {@{-1,w}/2}
     -i[-2] (67.5;73.5;109.5;103.5;51.5;100.5;\  # Magick number for CImg3d.
@@ -2225,16 +2293,16 @@ imagepyramid3d :
     -a[-3--1] y
   -mv[-1] 0 -done -v +
 
-#@gmic text3d : "text",_font_height>0,_depth>0,_smoothness : Create a 3D text object from specified text.
+#@gmic text3d : "text",_font_height>0,_depth>0,_smoothness : Create a 3d text object from specified text.
 text3d : -skip ${2=57},${3=10},${4=1.5}
-  -e[^-1] "Generate 3D text object '$1' with size $2, depth $3 and smoothness $4."
+  -e[^-1] "Generate 3d text object '$1' with size $2, depth $3 and smoothness $4."
   -v - -i 1024,{10*$2},1,1 -text[-1] "$1",0,0,$2,1,1 -autocrop[-1] 0
   -r[-1] 100%,100%,$3 -r[-1] {@{-1,w}+12},{@{-1,h}+12},{@{-1,d}+12},1,0,0,0.5,0.5,0.5
   -blur[-1] $4 -n[-1] 0,1 -isosurface3d[-1] 0.5 -r3d[-1] -v +
 
-#@gmic gmic3d : : Create a 3D G'MIC logo.
+#@gmic gmic3d : : Create a 3d G'MIC logo.
 gmic3d :
-  -e[^-1] "Generate 3D G'MIC logo."
+  -e[^-1] "Generate 3d G'MIC logo."
   -v -
   -text3d G,60,20,2 -col3d[-1] 16,64,255
   -text3d \',60,20,2 -+3d[-1] 30 -col3d[-1] 64,128,255
@@ -2250,6 +2318,20 @@ gmic3d :
   -done
   -+3d[-30--1] -+3d[-1] 0,5,30 -+3d[-2--1]
   -v +
+
+#@gmic snapshot3d : _size>0,_zoom>0 : Create 2d snapshots of selected 3d objects.
+snapshot3d : -check "${1=512}>0 && ${2=1}>0" -skip ${3=""}
+  -if {narg($3)}
+    -e[^-2,-1] "Create $1x$1 snapshot$? from 3d object$?, with zoom factor $2 and background color ${3*}."
+  -else
+    -e[^-2,-1] "Create $1x$1 snapshot$? from 3d object$?, with zoom factor $2."
+  -endif
+  -v - -repeat @#
+    -c3d[-1] -n3d[-1] -*3d[-1] {3*$1*$2/4}
+    -if {narg($3)} (${3*}) -unroll[-1] c -else 1,2,1,3,32,64,32,116,64,96 -endif -r[-1] $1,$1,1,3,3
+    -object3d[-1] [-2],50%,50%,0,1,1 -name[-1] @{-2,n}
+    -rm[-2]
+  -mv[-1] 0 -done -v +
 
 #-------------------------
 #
@@ -2737,7 +2819,7 @@ x_life :
   -rm[0-3] -pp[0-3] -w 0 -v +
 
 #@gmic x_fire : : Launch fire demo.
-x_fire :
+x_fire : -skip "${1=G'MIC}"
   -e[] "\n
 ------ Fire demo ------------------------\n
 ----\n
@@ -2750,7 +2832,7 @@ x_fire :
  -i[0] 100,32 -w[0] 600,300,0,0,"Fire demo"
  -i[1] (0,255,255,255,255^0,0,255,255,255^0,0,0,128,255) -r[1] 256,1,1,3,3
  -i[2] (0,0,0;0,0,0;1,1,1;0,1,0) -*[2] 0.23
- -text3d G\'MIC,34,3,1 -mv[-1] 3 -c3d[3] -*3d[3] 5 -col3d[-1] 255,205,130 -db3d 0 -f3d 300
+ -text3d "$1",34,3,1 -mv[-1] 3 -c3d[3] -n3d[3] -*3d[3] 320 -col3d[3] 255,205,130 -db3d 0 -f3d 300
  100,100 -rand[-1] 0,255 -ellipse[-1] 50%,50%,5,5,0,1,300 -blur[-1] 10
  -sharpen[-1] 1000 -shrink_xy[-1] 1 -n[-1] 0,255 -to_rgb[-1] -light3d [-1] -rm[-1]
 
@@ -2760,7 +2842,7 @@ x_fire :
    -correlate[0] [2]                                                # Apply fire effect.
    @{0,w},1 -rand[-1] 128,256 -image[0] [-1],0,{@{0,h}-1} -rm[-1]   # Add new random values at the bottom line.
    --r[0] 400,200,1,1,3 -map[-1] [1]                                # Map fire palette
-   --rot3d[3] 0,1,0,~0 -m3d 5 -object3d[-2] [-1],50%,50%            # Draw 3D object.
+   --rot3d[3] 0,1,0,~0 -m3d 5 -object3d[-2] [-1],50%,50%            # Draw 3d object.
    -*3d[-1] 0.25,0.16,1 -m3d 3 -object3d[0] [-1],50%,50%
    -rm[-1]
    -pr[0] {~0+3}                                                    # Update 3d angle.
@@ -2768,7 +2850,7 @@ x_fire :
  -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
 
  # Exit properly.
- -rm[0-2] -pp[0]
+ -rm[0-2] -pp[0] -w 0
  -v +
 
 #--------------------------
@@ -3245,14 +3327,6 @@ gimp_polaroid :
 
 #@gimp Old photograph : old_photo, old_photo(1)
 
-#@gimp Drop shadow : gimp_drop_shadow, gimp_drop_shadow(1)
-#@gimp : X-shadow = float(3,-20,20)
-#@gimp : Y-shadow = float(3,-20,20)
-#@gimp : Smoothness = float(1.8,0,5)
-#@gimp : Angle = float(0,0,360)
-gimp_drop_shadow :
-  -drop_shadow $1%,$2%,$3% -rotate $4,0
-
 #@gimp Reflection : gimp_reflect, gimp_reflect(1)
 #@gimp : Height = float(50,0,100)
 #@gimp : Attenuation = float(1,0.1,4)
@@ -3322,12 +3396,33 @@ gimp_kaleidoscope :
   -shift $3%,$4%,0,0,2 -kaleidoscope $1,$2,$5,$6,$7
 
 #@gimp Stencil : gimp_stencil, gimp_stencil(0)
-#@gimp : Amplitude = int(5,1,10)
-#@gimp : Sharpness = float(10,0,100)
 #@gimp : Radius = float(3,0,10)
+#@gimp : Smoothness = float(0.5,0.5,30)
+#@gimp : Iterations = int(8,1,40)
 #@gimp : Channel(s) = choice(3,"All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Stencil type = choice(0,"Black & White","Color")
+#@gimp : Transparency = bool(0)
 gimp_stencil :
-  -apply_channels "-repeat $1 -blur $3 -unsharp $3,$2 -c 0,255 -mv[-1] 0 -done",$4,0
+  -v -
+  -if $5
+    -repeat @#
+      --luminance[-1] -stencil[-1] $1,$2,$3 -*[-1] -65535 -to_colormode[-1] @{-2,s}
+      -do
+        -p @{-1,c}
+        -if {@{-1,(~0)}==-65535}
+          (~0)
+          -flood[-2] @{-1,0},@{-1,1},0,0,1,@{-3,(@{-1,0},@{-1,1},0,0)},@{-3,(@{-1,0},@{-1,1},0,1)},@{-3,(@{-1,0},@{-1,1},0,2)}
+          -rm[-1] -pp[-1]
+        -else -pp[-1] -break
+        -endif
+      -while 1
+      -rm[-2] -mv[-1] 0 -done
+      -if $6 -to_rgba -replace_color 0,0,0,0,0,255,0,0,0,0 -endif
+  -else
+    -apply_channels "-stencil $1,$2,$3 -* 255",$4,0
+    -if $6 -repeat @# -l[@{>,-1}] -s c --or -a c -endl -done -endif
+  -endif
+  -v +
 
 #@gimp B&amp;W stencil : stencilbw, stencilbw(0)
 #@gimp : Threshold = float(10,0,30)
@@ -3799,6 +3894,13 @@ gimp_isophotes :
     -blur $2 -isophotes $1
   -endif
 
+#@gimp Segmentation : gimp_segment_watershed, gimp_segment_watershed(0)
+#@gimp : Edge threshold = float(2,0,5)
+#@gimp : Smoothness = float(1,0,5)
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+gimp_segment_watershed :
+  -apply_channels "-blur $2 -segment_watershed $1",$3,0
+
 #@gimp Difference of gaussians : gimp_dog, gimp_dog(1)
 #@gimp : 1st Variance = float(1.4,0,5)
 #@gimp : 2nd Variance = float(1.5,0,5)
@@ -3972,20 +4074,6 @@ gimp_shade_stripes :
 #@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
 gimp_stripes_y :
   -apply_channels "-stripes_y $1",$2,0
-
-#@gimp Damp patch : gimp_damp_patch, gimp_damp_patch(1)
-#@gimp : Opacity = float(0.7,0,1)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
-gimp_damp_patch :
-  -apply_channels "-damp_patch $1",$2,0
-
-#@gimp Light patch : gimp_light_patch, gimp_light_patch(0)
-#@gimp : Density = int(5,2,30)
-#@gimp : Darkness = float(0.7,0,1)
-#@gimp : Lightness = float(2.5,1,4)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
-gimp_light_patch :
-  -apply_channels "-light_patch $1,$2,$3",$4,0
 
 #@gimp Gaussian blur : gimp_gaussian_blur, gimp_gaussian_blur(1)
 #@gimp : XY-amplitude = float(3,0,40)
@@ -4459,6 +4547,45 @@ gimp_append_tiles_preview :
   -frame 1,1,0,0,0,255 -append_tiles $1,$2
 
 
+#@gimp _<b>Lights &amp; Shadows</b>
+#----------------------------------
+
+
+#@gimp Drop shadow : gimp_drop_shadow, gimp_drop_shadow(1)
+#@gimp : X-shadow = float(3,-20,20)
+#@gimp : Y-shadow = float(3,-20,20)
+#@gimp : Smoothness = float(1.8,0,5)
+#@gimp : Angle = float(0,0,360)
+gimp_drop_shadow :
+  -drop_shadow $1%,$2%,$3% -rotate $4,0
+
+#@gimp Shadow patch : gimp_shadow_patch, gimp_shadow_patch(1)
+#@gimp : Opacity = float(0.7,0,1)
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+gimp_shadow_patch :
+  -apply_channels "-shadow_patch $1",$2,0
+
+#@gimp Light patch : gimp_light_patch, gimp_light_patch(0)
+#@gimp : Density = int(5,2,30)
+#@gimp : Darkness = float(0.7,0,1)
+#@gimp : Lightness = float(2.5,1,4)
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+gimp_light_patch :
+  -apply_channels "-light_patch $1,$2,$3",$4,0
+
+#@gimp Relief light : light_relief, light_relief(1)
+#@gimp : Ambient lightness = float(0.3,0,5)
+#@gimp : Specular lightness = float(0.2,0,2)
+#@gimp : Specular size = float(0.2,0,1)
+#@gimp : Darkness = float(0,0,1)
+#@gimp : Smoothness = float(0.2,0,5)
+#@gimp : X-light = float(0.5,0,1)
+#@gimp : Y-light = float(0.5,0,1)
+#@gimp : Z-light = float(5,0,20)
+#@gimp : Z-scale = float(0.5,0,3)
+#@gimp : Opacity as bumpmap = bool(0)
+
+
 #@gimp _<b>Patterns</b>
 #-----------------------
 
@@ -4469,13 +4596,20 @@ gimp_append_tiles_preview :
 gimp_puzzle :
   -apply_channels "-puzzle $1",$2,0
 
-#@gimp Mosaic pattern : gimp_mosaic, gimp_mosaic(0)
+#@gimp Mosaic : gimp_mosaic, gimp_mosaic(0)
+#@gimp : Density = float(1,0.1,10)
+#@gimp : Keep edges = bool(true)
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+gimp_mosaic :
+  -apply_channels "-mosaic $1,$2",$3,0
+
+#@gimp Mosaic texture : gimp_mosaic_texture, gimp_mosaic_texture(0)
 #@gimp : Density = float(1,0.1,10)
 #@gimp : Amplitude = float(-80,-255,255)
 #@gimp : Relief = bool(true)
 #@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
-gimp_mosaic :
-  -apply_channels "-mosaic $1,$2,$3",$4,0
+gimp_mosaic_texture :
+  -apply_channels "-mosaic_texture $1,$2,$3",$4,0
 
 #@gimp Whirls texture : gimp_whirls, gimp_whirls(0)
 #@gimp : Density = int(7,3,20)
@@ -4565,7 +4699,7 @@ gimp_canvas :
 #------------------------
 
 
-#@gimp 3D elevation : gimp_elevation, gimp_elevation_preview(1)
+#@gimp 3d elevation : gimp_elevation, gimp_elevation_preview(1)
 #@gimp : Width = _int(512,8,1024)
 #@gimp : Height = _int(512,8,1024)
 #@gimp : Scale = float(0.05,-0.2,0.2)
@@ -4594,7 +4728,7 @@ gimp_elevation_preview :
   -if {@#==0} -q -endif
   -gimp_elevation @{-1,w},@{-1,h},$3,$4,$5,$6,$7,$8,$9,$10
 
-#@gimp 3D image object : gimp_imageobject3d, gimp_imageobject3d(1)
+#@gimp 3d image object : gimp_imageobject3d, gimp_imageobject3d(1)
 #@gimp : Type = choice("Cube","Pyramid")
 #@gimp : Width = int(512,1,1024)
 #@gimp : Height = int(512,1,1024)
@@ -4615,7 +4749,7 @@ gimp_imageobject3d :
 _gimp_imageobject3d_0 : -imagecube3d
 _gimp_imageobject3d_1 : -imagepyramid3d
 
-#@gimp 3D random objects : gimp_random3d, gimp_random3d(1)
+#@gimp 3d random objects : gimp_random3d, gimp_random3d(1)
 #@gimp : Type = choice("Cube","Cone","Cylinder","Sphere","Torus")
 #@gimp : Density = int(50,1,300)
 #@gimp : Size = float(3,1,20)
@@ -4833,7 +4967,7 @@ gimp_animate_morpho :
   -if $3 -p "$4/gmic_morpho.png" -else -p "" -endif
   -animate _gimp_morpho,($7;$5;$8),($7;$6;$8),$1,$2,~-1 -pp[-1]
 
-#@gimp 3D elevation : gimp_elevation_anim, gimp_elevation_anim_preview(1)
+#@gimp 3d elevation : gimp_elevation_anim, gimp_elevation_anim_preview(1)
 #@gimp : Width = _int(512,8,1024)
 #@gimp : Height = _int(512,8,1024)
 #@gimp : Scale = float(0.05,-0.2,0.2)
@@ -4867,7 +5001,7 @@ gimp_elevation_anim_preview :
   -if {@#==0} -q -endif
   -gimp_elevation_preview @{-1,w},@{-1,h},$3,$4,$5,0,$7,$8,$9,$10
 
-#@gimp 3D image object : gimp_animate_imageobject3d, gimp_animate_imageobject3d_preview(1)
+#@gimp 3d image object : gimp_animate_imageobject3d, gimp_animate_imageobject3d_preview(1)
 #@gimp : Frames = _int(10,2,100)
 #@gimp : Output as frames = _bool(1)
 #@gimp : Output as files = _bool(0)
