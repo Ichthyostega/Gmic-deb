@@ -98,7 +98,11 @@ ZLIB_LDFLAGS = -lz
 
 # Flags to enable native support of most classical image file formats, using the GraphicsMagick++ library.
 MAGICK_CFLAGS = -Dcimg_use_magick -I$(LIBDIR)/include/GraphicsMagick
+ifeq ($(OS),Darwin)
+MAGICK_LDFLAGS = -L$(LIBDIR)/lib -lGraphicsMagick++ -lGraphicsMagick -llcms -ltiff -lfreetype -ljpeg -lpng -lbz2 -lxml2 -lz -lm -lpthread -lltdl
+else
 MAGICK_LDFLAGS = -lGraphicsMagick++
+endif
 
 # Flags to enable native support of EXR file format, using the OpenEXR library/
 EXR_CFLAGS = -Dcimg_use_openexr -I$(LIBDIR)/include/OpenEXR
@@ -115,10 +119,10 @@ BOARD_LDFLAGS = -lboard
 # Groups of flags for building different configurations
 STD_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
-	  	  $(MAGICK_CFLAGS) $(EXR_CFLAGS) $(FFTW_CFLAGS) # $(FFMPEG_CFLAGS)
+	  	  $(MAGICK_CFLAGS) $(EXR_CFLAGS) $(FFTW_CFLAGS) $(FFMPEG_CFLAGS)
 STD_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) \
 		   $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) \
-		   $(ZLIB_LDFLAGS) $(MAGICK_LDFLAGS) $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(FFMPEG_LDFLAGS)
+		   $(ZLIB_LDFLAGS) $(MAGICK_LDFLAGS) $(EXR_LDFLAGS) $(FFTW_LDFLAGS) $(FFMPEG_LDFLAGS)
 
 CUST_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
@@ -179,7 +183,7 @@ endif
 #-------------------------
 
 # Main entries
-all: gmic gimp lib
+all: gmic gimp
 
 gmic:
 ifeq ($(OS),Linux)

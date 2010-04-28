@@ -4390,51 +4390,13 @@ fi
 # FIXME: Replace `main' with a function in `library':
 # Magick++
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lMagick++" >&5
-$as_echo_n "checking for main in -lMagick++... " >&6; }
-if test "${ac_cv_lib_Magickpp_main+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lMagick++  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_Magickpp_main=yes
-else
-  ac_cv_lib_Magickpp_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_Magickpp_main" >&5
-$as_echo "$ac_cv_lib_Magickpp_main" >&6; }
-if test "x$ac_cv_lib_Magickpp_main" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBMAGICK__ 1
-_ACEOF
-
-  LIBS="-lMagick++ $LIBS"
-
-else
-
-    echo "***"
-    echo "** Fatal Error : Header or library files for 'libMagick++' are missing but are mandatory to compile G'MIC. **"
-    echo "***"
-    exit -1
-
-fi
+#AC_CHECK_LIB([Magick++], [main],,
+#[
+#    echo "***"
+#    echo "** Fatal Error : Header or library files for 'libMagick++' are missing but are mandatory to compile G'MIC. **"
+#    echo "***"
+#    exit -1
+#])
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lXext" >&5
 $as_echo_n "checking for main in -lXext... " >&6; }
@@ -4528,34 +4490,144 @@ else
 
 fi
 
-#AC_CHECK_LIB([avcodec], [main],,
-#[
-#    echo "***"
-#    echo "** Fatal Error : Header or library files for 'libavcodec' are missing but are mandatory to compile G'MIC. **"
-#    echo "***"
-#    exit -1
-#])
-#AC_CHECK_LIB([avformat], [main],,
-#[
-#    echo "***"
-#    echo "** Fatal Error : Header or library files for 'libavformat' are missing but are mandatory to compile G'MIC. **"
-#    echo "***"
-#    exit -1
-#])
-#AC_CHECK_LIB([avutil], [main],,
-#[
-#    echo "***"
-#    echo "** Fatal Error : Header or library files for 'libavutil' are missing but are mandatory to compile G'MIC. **"
-#    echo "***"
-#    exit -1
-#])
-#AC_CHECK_LIB([swscale], [main],,
-#[
-#    echo "***"
-#    echo "** Fatal Error : Header or library files for 'libswscale' are missing but are mandatory to compile G'MIC.
-#    **" echo "***"
-#    exit -1
-#])
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lavcodec" >&5
+$as_echo_n "checking for main in -lavcodec... " >&6; }
+if test "${ac_cv_lib_avcodec_main+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavcodec  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_avcodec_main=yes
+else
+  ac_cv_lib_avcodec_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_avcodec_main" >&5
+$as_echo "$ac_cv_lib_avcodec_main" >&6; }
+if test "x$ac_cv_lib_avcodec_main" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVCODEC 1
+_ACEOF
+
+  LIBS="-lavcodec $LIBS"
+
+else
+
+    echo "***"
+    echo "** Fatal Error : Header or library files for 'libavcodec' are missing but are mandatory to compile G'MIC. **"
+    echo "***"
+    exit -1
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lavformat" >&5
+$as_echo_n "checking for main in -lavformat... " >&6; }
+if test "${ac_cv_lib_avformat_main+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavformat  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_avformat_main=yes
+else
+  ac_cv_lib_avformat_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_avformat_main" >&5
+$as_echo "$ac_cv_lib_avformat_main" >&6; }
+if test "x$ac_cv_lib_avformat_main" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVFORMAT 1
+_ACEOF
+
+  LIBS="-lavformat $LIBS"
+
+else
+
+    echo "***"
+    echo "** Fatal Error : Header or library files for 'libavformat' are missing but are mandatory to compile G'MIC. **"
+    echo "***"
+    exit -1
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lswscale" >&5
+$as_echo_n "checking for main in -lswscale... " >&6; }
+if test "${ac_cv_lib_swscale_main+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lswscale  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_swscale_main=yes
+else
+  ac_cv_lib_swscale_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_swscale_main" >&5
+$as_echo "$ac_cv_lib_swscale_main" >&6; }
+if test "x$ac_cv_lib_swscale_main" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSWSCALE 1
+_ACEOF
+
+  LIBS="-lswscale $LIBS"
+
+else
+
+    echo "***"
+    echo "** Fatal Error : Header or library files for 'libswscale' are missing but are mandatory to compile G'MIC.
+    **" echo "***"
+    exit -1
+
+fi
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -ljpeg" >&5
 $as_echo_n "checking for main in -ljpeg... " >&6; }
 if test "${ac_cv_lib_jpeg_main+set}" = set; then :
