@@ -9,6 +9,8 @@ Build-Depends: debhelper (>= 7.0.50),
  libx11-dev, libxrandr-dev, libmagick++-dev, libfftw3-dev | fftw3-dev
 Standards-Version: 3.8.4
 Homepage: http://gmic.sourceforge.net/
+Vcs-Git: git://git.debian.org/collab-maint/gmic.git
+Vcs-Browser: http://git.debian.org/?p=collab-maint/gmic.git
 
 Package: gmic
 Architecture: any
