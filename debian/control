@@ -26,8 +26,9 @@ Description: GREYC's Magic Image Converter
 
 Package: gimp-gmic
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, gimp (>= 2.6)
 Suggests: gmic, gmic-doc
+Enhances: gimp
 Description: GIMP plugin for GREYC's Magic Image Converter
  G'MIC is an interpreter of image processing macros whose goal is to
  convert, manipulate and visualize generic 1D/2D/3D multi-spectral
