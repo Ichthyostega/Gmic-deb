@@ -46,7 +46,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 1341
+#define gmic_version 1350
 
 // Define environment variables.
 #ifndef cimg_verbosity
@@ -65,6 +65,9 @@
 // calling the G'MIC interpreter.
 #ifdef cimg_location
 #include cimg_location
+#if cimg_OS==2
+#include <process.h>
+#endif
 
 // Define some character codes used for replacement in double quoted strings.
 const char _tilde = 25, _lbrace = 26, _rbrace = 28, _comma = 29, _dquote = 30, _arobace = 31;
@@ -135,11 +138,12 @@ struct gmic {
   gmic_list<char> command_names, command_definitions, scope, stack;
   gmic_list<unsigned int> dowhiles, repeatdones;
   gmic_image<unsigned char> background3d, light3d;
-  float pose3d[12], focale3d, light3d_x, light3d_y, light3d_z, specular_light3d, specular_shine3d, _progress, *progress;
-  bool is_released, is_debug, is_start, is_double3d, check_elif;
+  gmic_image<float> pose3d;
+  float focale3d, light3d_x, light3d_y, light3d_z, specular_light3d, specular_shine3d, _progress, *progress;
+  bool is_released, is_debug, is_start, is_quit, is_double3d, check_elif;
   int verbosity, render3d, renderd3d;
   volatile int _cancel, *cancel;
-  unsigned int position;
+  unsigned int nb_carriages, position;
   char *tmpstr, *_tmpstr;
 
   // Constructors - Destructors.
@@ -158,16 +162,17 @@ struct gmic {
   // in your own C++ source code. Use them at your own risk.
   gmic& add_commands(const char *const data_commands);
   gmic& add_commands(std::FILE *const file);
-  gmic_image<char> scope2string() const;
-  gmic_image<char> scope2string(const gmic_image<unsigned int>& scope_selection) const;
+  gmic_image<char> scope2string(const bool is_last_slash=true) const;
+  gmic_image<char> scope2string(const gmic_image<unsigned int>& scope_selection,
+                                const bool is_last_slash=true) const;
 
   gmic& assign(const char *const custom_commands=0, const bool default_commands=true,
                float *const p_progress=0, int *const p_cancel=0);
 
   gmic_image<unsigned int> selection2cimg(const char *const string, const unsigned int indice_max,
-                                          const char *const command, const bool is_selection) const;
+                                          const char *const command, const bool is_selection);
 
-  gmic_list<char> command_line_to_CImgList(const char *const command_line) const;
+  gmic_list<char> command_line_to_CImgList(const char *const command_line);
 
   char *selection2string(const gmic_image<unsigned int>& selection,
                          const gmic_list<char>& filenames,
@@ -175,31 +180,31 @@ struct gmic {
 
   template<typename T>
   bool substitute_item(const char *const source, char *const destination, const gmic_list<T>& images,
-                       const gmic_list<char>& filenames, const gmic_list<unsigned int>& repeatdones) const;
+                       const gmic_list<char>& filenames, const gmic_list<unsigned int>& repeatdones);
 
-  const gmic& print(const char *format, ...) const;
+  gmic& print(const char *format, ...);
   template<typename T>
-  const gmic& print(const gmic_list<T>& list, const char *format, ...) const;
+  gmic& print(const gmic_list<T>& list, const char *format, ...);
   template<typename T>
-  const gmic& print(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection, const char *format, ...) const;
+  gmic& print(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection, const char *format, ...);
 
-  const gmic& warning(const char *format, ...) const;
+  gmic& warning(const char *format, ...);
   template<typename T>
-  const gmic& warning(const gmic_list<T>& list, const char *format, ...) const;
+  gmic& warning(const gmic_list<T>& list, const char *format, ...);
   template<typename T>
-  const gmic& warning(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection, const char *format, ...) const;
+  gmic& warning(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection, const char *format, ...);
 
-  const gmic& error(const char *format, ...) const;
+  gmic& error(const char *format, ...);
   template<typename T>
-  const gmic& error(const gmic_list<T>& list, const char *format, ...) const;
+  gmic& error(const gmic_list<T>& list, const char *format, ...);
   template<typename T>
-  const gmic& error(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection, const char *format, ...) const;
+  gmic& error(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection, const char *format, ...);
   template<typename T>
-  const gmic& _arg_error(const gmic_list<T>& list, const char *const command, const char *const argument) const;
+  gmic& _arg_error(const gmic_list<T>& list, const char *const command, const char *const argument);
 
-  const gmic& debug(const char *format, ...) const;
+  gmic& debug(const char *format, ...);
   template<typename T>
-  const gmic& debug(const gmic_list<T>& list, const char *format, ...) const;
+  gmic& debug(const gmic_list<T>& list, const char *format, ...);
 
   template<typename T>
   gmic& display_images(const gmic_list<T>& images,
