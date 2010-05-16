@@ -75,6 +75,7 @@ CImgList<char> gmic_commands;            // The list of corresponding G'MIC comm
 CImgList<char> gmic_preview_commands;    // The list of corresponding G'MIC commands to preview the image.
 CImgList<char> gmic_arguments;           // The list of corresponding needed filter arguments.
 CImgList<double> gmic_preview_factors;   // The list of default preview factors for each filter.
+CImg<float> computed_preview;            // The last computed preview image.
 bool _create_dialog_gui;                 // Return value of the 'create_gui_dialog()' function (set by events handlers).
 void **event_infos;                      // Infos that are passed to the GUI callback functions.
 char *gmic_custom_commands = 0;          // The array of custom G'MIC commands.
@@ -1050,6 +1051,7 @@ void process_preview();
 
 // Secure function for invalidate preview.
 void _gimp_preview_invalidate() {
+  computed_preview.assign();
   if ((GIMP_IS_PREVIEW(gui_preview) && gimp_drawable_is_valid(drawable_preview->drawable_id)))
     gimp_preview_invalidate(GIMP_PREVIEW(gui_preview));
   else {
@@ -1068,8 +1070,8 @@ void on_dialog_resized() {
   int pw = 0, ph = 0;
   if (GIMP_IS_PREVIEW(gui_preview)) {
     gimp_preview_get_size(GIMP_PREVIEW(gui_preview),&pw,&ph);
-    if (!opw || !oph) { opw = pw; oph = ph; } else {
-      if (pw!=opw || ph!=oph) { set_preview_factor(); opw = pw; oph = ph; }
+    if (!opw || !oph) { opw = pw; oph = ph; computed_preview.assign(); } else {
+      if (pw!=opw || ph!=oph) { set_preview_factor(); opw = pw; oph = ph; computed_preview.assign(); }
     }
   }
 }
@@ -1503,123 +1505,132 @@ void process_preview() {
   if (!filter) return;
   const char *const command_line = get_command_line(true);
   if (!command_line || std::strstr(command_line,"-_none_")) return;
+  int w, h, channels;
+  guchar *const ptr0 = gimp_zoom_preview_get_source(GIMP_ZOOM_PREVIEW(gui_preview),&w,&h,&channels);
+  static int _xp = -1, _yp = -1;
+  int xp, yp; gimp_preview_get_position(GIMP_PREVIEW(gui_preview),&xp,&yp);
+  if (xp!=_xp || _yp!=yp) { _xp = xp; _yp = yp; computed_preview.assign(); }
+  if (!computed_preview) {
 
-  // Get input layers for the chosen filter and convert then to the preview size if necessary.
-  st_process_thread spt;
-  spt.is_thread = false;
-  spt.command_line = command_line;
-  spt.verbosity_mode = get_verbosity_mode();
-  spt.progress = -1;
+    // Get input layers for the chosen filter and convert then to the preview size if necessary.
+    st_process_thread spt;
+    spt.is_thread = false;
+    spt.command_line = command_line;
+    spt.verbosity_mode = get_verbosity_mode();
+    spt.progress = -1;
 
-  const unsigned int input_mode = get_input_mode();
-  int w, h, channels, nb_layers = 0, *layers = gimp_image_get_layers(image_id,&nb_layers);
-  guchar *const ptr0 = gimp_zoom_preview_get_source(GIMP_ZOOM_PREVIEW(gui_preview),&w,&h,&channels), *ptrs = ptr0;
-  if (nb_layers && input_mode) {
-    if (input_mode==1 ||
-        (input_mode==2 && nb_layers==1) ||
-        (input_mode==3 && nb_layers==1 && gimp_drawable_get_visible(layers[0])) ||
-        (input_mode==4 && nb_layers==1 && !gimp_drawable_get_visible(layers[0])) ||
-        (input_mode==5 && nb_layers==1)) { // If only one input layer, use the default thumbnail provided by GIMP.
-      spt.images.assign(1,w,h,1,channels);
-      const int wh = w*h;
-      switch (channels) {
-      case 1 : {
-        float *ptr_r = spt.images[0].data(0,0,0,0);
-        for (int xy = 0; xy<wh; ++xy) *(ptr_r++) = (float)*(ptrs++);
-      } break;
-      case 2 : {
-        float *ptr_r = spt.images[0].data(0,0,0,0), *ptr_g = spt.images[0].data(0,0,0,1);
-        for (int xy = 0; xy<wh; ++xy) { *(ptr_r++) = (float)*(ptrs++); *(ptr_g++) = (float)*(ptrs++);
+    const unsigned int input_mode = get_input_mode();
+    int nb_layers = 0, *layers = gimp_image_get_layers(image_id,&nb_layers);
+    guchar *ptrs = ptr0;
+    if (nb_layers && input_mode) {
+      if (input_mode==1 ||
+          (input_mode==2 && nb_layers==1) ||
+          (input_mode==3 && nb_layers==1 && gimp_drawable_get_visible(layers[0])) ||
+          (input_mode==4 && nb_layers==1 && !gimp_drawable_get_visible(layers[0])) ||
+          (input_mode==5 && nb_layers==1)) { // If only one input layer, use the default thumbnail provided by GIMP.
+        spt.images.assign(1,w,h,1,channels);
+        const int wh = w*h;
+        switch (channels) {
+        case 1 : {
+          float *ptr_r = spt.images[0].data(0,0,0,0);
+          for (int xy = 0; xy<wh; ++xy) *(ptr_r++) = (float)*(ptrs++);
+        } break;
+        case 2 : {
+          float *ptr_r = spt.images[0].data(0,0,0,0), *ptr_g = spt.images[0].data(0,0,0,1);
+          for (int xy = 0; xy<wh; ++xy) { *(ptr_r++) = (float)*(ptrs++); *(ptr_g++) = (float)*(ptrs++);
+          }
+        } break;
+        case 3 : {
+          float *ptr_r = spt.images[0].data(0,0,0,0), *ptr_g = spt.images[0].data(0,0,0,1), *ptr_b = spt.images[0].data(0,0,0,2);
+          for (int xy = 0; xy<wh; ++xy) {
+            *(ptr_r++) = (float)*(ptrs++); *(ptr_g++) = (float)*(ptrs++); *(ptr_b++) = (float)*(ptrs++);
+          }
+        } break;
+        case 4 : {
+          float
+            *ptr_r = spt.images[0].data(0,0,0,0), *ptr_g = spt.images[0].data(0,0,0,1),
+            *ptr_b = spt.images[0].data(0,0,0,2), *ptr_a = spt.images[0].data(0,0,0,3);
+          for (int xy = 0; xy<wh; ++xy) {
+            *(ptr_r++) = (float)*(ptrs++); *(ptr_g++) = (float)*(ptrs++); *(ptr_b++) = (float)*(ptrs++); *(ptr_a++) = (float)*(ptrs++);
+          }
+        } break;
         }
-      } break;
-      case 3 : {
-        float *ptr_r = spt.images[0].data(0,0,0,0), *ptr_g = spt.images[0].data(0,0,0,1), *ptr_b = spt.images[0].data(0,0,0,2);
-        for (int xy = 0; xy<wh; ++xy) {
-          *(ptr_r++) = (float)*(ptrs++); *(ptr_g++) = (float)*(ptrs++); *(ptr_b++) = (float)*(ptrs++);
+      } else { // Else, compute a 'hand-made' set of thumbnails.
+        CImgList<unsigned char> images_uchar;
+        get_input_layers(images_uchar);
+        const double factor = gimp_zoom_preview_get_factor(GIMP_ZOOM_PREVIEW(gui_preview));
+        int xp, yp; gimp_preview_get_position(GIMP_PREVIEW(gui_preview),&xp,&yp);
+        spt.images.assign(images_uchar.size());
+        cimglist_for(images_uchar,l) {
+          const int
+            cw = images_uchar[l].width(),
+            ch = images_uchar[l].height(),
+            x0 = (int)(xp/factor)*cw/w,
+            y0 = (int)(yp/factor)*ch/h,
+            x1 = (int)((xp+w)/factor)*cw/w - 1,
+            y1 = (int)((yp+h)/factor)*ch/h - 1;
+          images_uchar[l].get_crop(x0,y0,x1,y1).resize(w,h,1,-100).move_to(spt.images[l]);
+          images_uchar[l].assign();
         }
-      } break;
-      case 4 : {
-        float
-          *ptr_r = spt.images[0].data(0,0,0,0), *ptr_g = spt.images[0].data(0,0,0,1),
-          *ptr_b = spt.images[0].data(0,0,0,2), *ptr_a = spt.images[0].data(0,0,0,3);
-        for (int xy = 0; xy<wh; ++xy) {
-          *(ptr_r++) = (float)*(ptrs++); *(ptr_g++) = (float)*(ptrs++); *(ptr_b++) = (float)*(ptrs++); *(ptr_a++) = (float)*(ptrs++);
-        }
-      } break;
-      }
-    } else { // Else, compute a 'hand-made' set of thumbnails.
-      CImgList<unsigned char> images_uchar;
-      get_input_layers(images_uchar);
-      const double factor = gimp_zoom_preview_get_factor(GIMP_ZOOM_PREVIEW(gui_preview));
-      int xp, yp; gimp_preview_get_position(GIMP_PREVIEW(gui_preview),&xp,&yp);
-      spt.images.assign(images_uchar.size());
-      cimglist_for(images_uchar,l) {
-        const int
-          cw = images_uchar[l].width(),
-          ch = images_uchar[l].height(),
-          x0 = (int)(xp/factor)*cw/w,
-          y0 = (int)(yp/factor)*ch/h,
-          x1 = (int)((xp+w)/factor)*cw/w - 1,
-          y1 = (int)((yp+h)/factor)*ch/h - 1;
-        images_uchar[l].get_crop(x0,y0,x1,y1).resize(w,h,1,-100).move_to(spt.images[l]);
-        images_uchar[l].assign();
       }
     }
+
+    // Run G'MIC.
+    process_thread(&spt);
+
+    // Transfer the output layers back into GIMP preview.
+    computed_preview.assign();
+    switch (get_preview_mode()) {
+    case 0 : // Preview 1st layer
+      if (spt.images && spt.images.size()>0) spt.images[0].move_to(computed_preview);
+      calibrate_image(computed_preview,channels,true);
+      break;
+    case 1 : // Preview 2nd layer
+      if (spt.images && spt.images.size()>1) spt.images[1].move_to(computed_preview);
+      calibrate_image(computed_preview,channels,true);
+      break;
+    case 2 : // Preview 3rd layer
+      if (spt.images && spt.images.size()>2) spt.images[2].move_to(computed_preview);
+      calibrate_image(computed_preview,channels,true);
+      break;
+    case 3 : // Preview 4th layer
+      if (spt.images && spt.images.size()>3) spt.images[3].move_to(computed_preview);
+      calibrate_image(computed_preview,channels,true);
+      break;
+    case 4 : { // Preview 1st->2nd layers
+      if (spt.images.size()>2) spt.images.remove(2,spt.images.size()-1);
+      cimglist_for(spt.images,l) calibrate_image(spt.images[l],channels,true);
+      (spt.images>'x').move_to(computed_preview);
+    } break;
+    case 5 : { // Preview 1st->3nd layers
+      if (spt.images.size()>3) spt.images.remove(3,spt.images.size()-1);
+      cimglist_for(spt.images,l) calibrate_image(spt.images[l],channels,true);
+      (spt.images>'x').move_to(computed_preview);
+    } break;
+    case 6 : { // Preview 1st->4nd layers
+      if (spt.images.size()>4) spt.images.remove(4,spt.images.size()-1);
+      cimglist_for(spt.images,l) calibrate_image(spt.images[l],channels,true);
+      (spt.images>'x').move_to(computed_preview);
+    } break;
+    default : // Preview all layers
+      cimglist_for(spt.images,l) calibrate_image(spt.images[l],channels,true);
+      (spt.images>'x').move_to(computed_preview);
+    }
+    spt.images.assign();
+    if (!computed_preview) { computed_preview.assign(w,h,1,4,0); calibrate_image(computed_preview,channels,true); }
+    if (computed_preview.width()>computed_preview.height()) {
+      const unsigned int _nh = computed_preview._height*w/computed_preview._width, nh = _nh?_nh:1;
+      computed_preview.resize(w,nh,1,-100,2);
+    } else {
+      const unsigned int _nw = computed_preview._width*h/computed_preview._height, nw = _nw?_nw:1;
+      computed_preview.resize(nw,h,1,-100,2);
+    }
+    if (computed_preview.width()!=w || computed_preview.height()!=h) computed_preview.resize(w,h,1,-100,0,0,0.5,0.5);
+    convert_image_float2uchar(computed_preview);
+    computed_preview.channel(0);
   }
 
-  // Run G'MIC.
-  process_thread(&spt);
-
-  // Transfer the output layers back into GIMP preview.
-  CImg<float> img;
-  switch (get_preview_mode()) {
-  case 0 : // Preview 1st layer
-    if (spt.images && spt.images.size()>0) spt.images[0].move_to(img);
-    calibrate_image(img,channels,true);
-    break;
-  case 1 : // Preview 2nd layer
-    if (spt.images && spt.images.size()>1) spt.images[1].move_to(img);
-    calibrate_image(img,channels,true);
-    break;
-  case 2 : // Preview 3rd layer
-    if (spt.images && spt.images.size()>2) spt.images[2].move_to(img);
-    calibrate_image(img,channels,true);
-    break;
-  case 3 : // Preview 4th layer
-    if (spt.images && spt.images.size()>3) spt.images[3].move_to(img);
-    calibrate_image(img,channels,true);
-    break;
-  case 4 : { // Preview 1st->2nd layers
-    if (spt.images.size()>2) spt.images.remove(2,spt.images.size()-1);
-    cimglist_for(spt.images,l) calibrate_image(spt.images[l],channels,true);
-    (spt.images>'x').move_to(img);
-  } break;
-  case 5 : { // Preview 1st->3nd layers
-    if (spt.images.size()>3) spt.images.remove(3,spt.images.size()-1);
-    cimglist_for(spt.images,l) calibrate_image(spt.images[l],channels,true);
-    (spt.images>'x').move_to(img);
-  } break;
-  case 6 : { // Preview 1st->4nd layers
-    if (spt.images.size()>4) spt.images.remove(4,spt.images.size()-1);
-    cimglist_for(spt.images,l) calibrate_image(spt.images[l],channels,true);
-    (spt.images>'x').move_to(img);
-  } break;
-  default : // Preview all layers
-    cimglist_for(spt.images,l) calibrate_image(spt.images[l],channels,true);
-    (spt.images>'x').move_to(img);
-  }
-  spt.images.assign();
-  if (!img) { img.assign(w,h,1,4,0); calibrate_image(img,channels,true); }
-  if (img.width()>img.height()) {
-    const unsigned int _nh = img._height*w/img._width, nh = _nh?_nh:1;
-    img.resize(w,nh,1,-100,2);
-  } else {
-    const unsigned int _nw = img._width*h/img._height, nw = _nw?_nw:1;
-    img.resize(nw,h,1,-100,2);
-  }
-  if (img.width()!=w || img.height()!=h) img.resize(w,h,1,-100,0,0,0.5,0.5);
-  convert_image_float2uchar(img);
-  std::memcpy(ptr0,img.data(),w*h*channels*sizeof(unsigned char));
+  std::memcpy(ptr0,computed_preview.data(),w*h*channels*sizeof(unsigned char));
   gimp_preview_draw_buffer(GIMP_PREVIEW(gui_preview),ptr0,w*channels);
   g_free(ptr0);
 }
@@ -1902,13 +1913,28 @@ void create_parameters_gui(const bool reset_params) {
           // Check for a link.
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"link")) {
             char label[1024] = { 0 }, url[1024] = { 0 };
-            if (std::sscanf(argument_arg,"%1023[^,],%1023s",label,url)==1) std::strcpy(url,label);
+            float alignment = 0.5f;
+            switch (std::sscanf(argument_arg,"%f,%1023[^,],%1023s",&alignment,label,url)) {
+            case 2 : std::strcpy(url,label); break;
+            case 1 : std::sprintf(url,"%g",alignment); break;
+            case 0 : if (std::sscanf(argument_arg,"%1023[^,],%1023s",label,url)==1) std::strcpy(url,label); break;
+            }
             cimg::strpare(label,' ',false,true); cimg::strpare(label,'\"',true); cimg::strescape(label);
             cimg::strpare(url,' ',false,true); cimg::strpare(url,'\"',true);
             GtkWidget *const link = gtk_link_button_new_with_label(url,label);
             gtk_widget_show(link);
+            gtk_button_set_alignment(GTK_BUTTON(link),alignment,0.5);
             gtk_table_attach(GTK_TABLE(table),link,0,3,current_table_line,current_table_line+1,
-                             GTK_SHRINK,GTK_SHRINK,0,0);
+                             (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_SHRINK,0,0);
+            found_valid_argument = true;
+          }
+
+          // Check for an horizontal separator.
+          if (!found_valid_argument && !cimg::strcasecmp(argument_type,"separator")) {
+            GtkWidget *const separator = gtk_hseparator_new();
+            gtk_widget_show(separator);
+            gtk_table_attach(GTK_TABLE(table),separator,0,3,current_table_line,current_table_line+1,
+                             (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_SHRINK,0,0);
             found_valid_argument = true;
           }
 

@@ -1212,7 +1212,7 @@ gmic& gmic::display_images(const CImgList<T>& images, const CImgList<char>& file
       s = cimg::max(s,visu[l].spectrum());
     }
     std::sprintf(tmpstr,"%s (%dx%dx%dx%d)",fnames,w,h,d,s);
-    if (disp) visu.display(disp,verbosity>=0 || is_debug,'x','p');
+    if (disp) visu.display(disp.set_title(tmpstr),verbosity>=0 || is_debug,'x','p');
     else visu.display(tmpstr,verbosity>=0 || is_debug,'x','p');
   }
 #endif
@@ -1327,17 +1327,34 @@ bool gmic::substitute_item(const char *const source, char *const destination, co
         nsource+=larg+2;
         const CImg<T> empty, &img = images.size()?images.back():empty;
         gmic_strreplace(argument);
-        try {
-          std::sprintf(tmpstr,"%g",img.eval(argument));
-          CImg<char>(tmpstr,std::strlen(tmpstr)).move_to(items);
+
+        bool is_fast_substitution = false;
+        if (*argument && !argument[1]) {
+          is_fast_substitution = true;
+          switch (*argument) {
+          case 'w' : std::sprintf(tmpstr,"%d",img.width()); break;
+          case 'h' : std::sprintf(tmpstr,"%d",img.height()); break;
+          case 'd' : std::sprintf(tmpstr,"%d",img.depth()); break;
+          case 's' : std::sprintf(tmpstr,"%d",img.spectrum()); break;
+          case 'x' : case 'y' : case 'z' : case 'c' : case 'i' : std::strcpy(tmpstr,"0"); break;
+          default : is_fast_substitution = false;
+          }
+          if (is_fast_substitution) CImg<char>(tmpstr,std::strlen(tmpstr)).move_to(items);
         }
-        catch (CImgException&) {
-          if (*argument) {
-            for (const char *s = argument; *s; ++s) {
-              std::sprintf(tmpstr,"%d",(int)(unsigned char)*s);
-              CImg<char>(tmpstr,std::strlen(tmpstr)+1).move_to(items).back().back()=',';
+
+        if (!is_fast_substitution) {
+          try {
+            std::sprintf(tmpstr,"%g",img.eval(argument));
+            CImg<char>(tmpstr,std::strlen(tmpstr)).move_to(items);
+          }
+          catch (CImgException&) {
+            if (*argument) {
+              for (const char *s = argument; *s; ++s) {
+                std::sprintf(tmpstr,"%d",(int)(unsigned char)*s);
+                CImg<char>(tmpstr,std::strlen(tmpstr)+1).move_to(items).back().back()=',';
+              }
+              --(items.back()._width);
             }
-            --(items.back()._width);
           }
         }
         substitution_done = true;
@@ -6659,6 +6676,7 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position, CI
               }
 
               // Extract possible command arguments.
+              arguments[0].assign(custom_command_name,std::strlen(custom_command_name)+1);  // Set $0 to be the command name.
               for (const char *ss = argument, *_ss = ss; nb_arguments<255 && _ss; ss =_ss+1)
                 if ((_ss=std::strchr(ss,','))!=0) {
                   if (ss==_ss) ++nb_arguments;
@@ -6699,43 +6717,18 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position, CI
                     ncommand+=2;
                     has_arguments = true;
 
-                    // Substitute $* -> all given arguments, separated by ','.
-                  } else if (ncommand[1]=='*') {
-                    for (unsigned int j = 1; j<=nb_arguments; ++j) {
-                      replace_text+=std::sprintf(replace_text,"%s",arguments[j].data());
-                      if (j<nb_arguments) *(replace_text++) = ',';
-                    }
-                    replace_text = s_argument;
-                    ncommand+=2;
-                    has_arguments = true;
-
-                    // Substitute ${i*} -> all arguments after i^th one, separated by ','.
-                  } else if (std::sscanf(ncommand,"${%d*%c",&ind,&sep)==2 &&
-                             ind>0 && ind<256 && sep=='}') {
-                    for (unsigned int j = (unsigned int)ind; j<=nb_arguments; ++j) {
-                      if (!arguments[j])
-                        error(images,"Command '%s' : Argument '$%d' is undefined (in expression '${%d*}').",
-                              custom_command_name,ind,ind);
-                      replace_text+=std::sprintf(replace_text,"%s",arguments[j].data());
-                      if (j<nb_arguments) *(replace_text++) = ',';
-                    }
-                    replace_text = s_argument;
-                    ncommand+=std::sprintf(tmpstr,"${%d*}",ind);
-                    has_arguments = true;
-
                     // Substitute $i and ${i} -> value of the i^th argument.
                   } else if ((std::sscanf(ncommand,"$%d",&ind)==1 ||
                               (std::sscanf(ncommand,"${%d%c",&ind,&sep)==2 && sep=='}')) &&
-                             ind>0 && ind<256) {
-                    if (!arguments[ind]) {
-                      if (sep=='}') error(images,"Command '%s' : Argument '$%d' is undefined (in expression '${%d}').",
-                                          custom_command_name,ind,ind);
-                      else error(images,"Command '%s' : Argument '$%d' is undefined (in expression '$%d').",
-                                 custom_command_name,ind,ind);
+                             ind>=-(int)nb_arguments-1 && ind<256) {
+                    const int nind = ind + (ind<0?(int)nb_arguments+1:0);
+                    if (!arguments[nind]) {
+                      error(images,"Command '%s' : Undefined argument '$%d' (in expression '$%s%d%s').",
+                            custom_command_name,ind,sep=='}'?"{":"",ind,sep=='}'?"}":"");
                     }
-                    replace_text = arguments[ind].data();
+                    replace_text = arguments[nind].data();
                     ncommand+=std::sprintf(tmpstr,"$%d",ind) + (sep=='}'?2:0);
-                    if (ind>0) has_arguments = true;
+                    if (nind>0) has_arguments = true;
 
                     // Substitute ${i=$j} -> value of the i^th argument, or the default value, i.e. the value of another argument.
                   } else if (std::sscanf(ncommand,"${%d=$%d%c",&ind,&ind1,&sep)==3 && sep=='}' &&
@@ -6762,22 +6755,47 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position, CI
                     // Substitute ${i=default} -> value of the i^th argument, or the specified default value.
                   } else if (std::sscanf(ncommand,"${%d=%4095[^}]%c",&ind,tmpstr,&sep)==3 && sep=='}' &&
                              ind>0 && ind<256) {
-                    ncommand+=std::strlen(tmpstr) + 4;
                     if (!arguments[ind]) CImg<char>(tmpstr,std::strlen(tmpstr)+1).move_to(arguments[ind]);
-                    ncommand+=std::sprintf(tmpstr,"%d",ind);
                     replace_text = arguments[ind].data();
+                    ncommand+=std::sprintf(_tmpstr,"${%d=%s}",ind,tmpstr);
                     has_arguments = true;
 
                     // Substitute any other expression starting by '$'.
                   } else {
-                    s_argument[0] = '$';
-                    if (std::sscanf(ncommand,"%4095[^$]",s_argument+1)!=1) { s_argument[1] = 0; ++ncommand; }
-                    else ncommand+=std::strlen(s_argument);
-                  }
 
+                    // Substitute ${subset} -> values of the selected subset of arguments, separated by ','.
+                    bool is_selection = false;
+                    if (std::sscanf(ncommand,"${%4095[0-9.eE%^,:+-]%c",tmpstr,&sep)==2 && sep=='}') {
+                      CImg<unsigned int> inds;
+                      const int _verbosity = verbosity;
+                      const bool _is_debug = is_debug;
+                      verbosity = -1; is_debug = false;
+                      try { inds = selection2cimg(tmpstr,nb_arguments+1,"",false); } catch (...) { inds.assign(); }
+                      verbosity = _verbosity;
+                      is_debug = _is_debug;
+                      if (inds) {
+                        const int h1 = inds.height() - 1;
+                        cimg_forY(inds,j) {
+                          const unsigned int ind = inds[j];
+                          if (ind>0) has_arguments = true;
+                          replace_text+=std::sprintf(replace_text,"%s",arguments[inds[j]].data());
+                          if (j<h1) *(replace_text++) = ',';
+                        }
+                        replace_text = s_argument;
+                        ncommand+=std::strlen(tmpstr) + 3;
+                        is_selection = true;
+                      }
+                    }
+
+                    // No possible substitution, recopy '$' in output string.
+                    if (!is_selection) {
+                      s_argument[0] = '$';
+                      if (std::sscanf(ncommand,"%4095[^$]",s_argument+1)!=1) { s_argument[1] = 0; ++ncommand; }
+                      else ncommand+=std::strlen(s_argument);
+                    }
+                  }
                   const int replace_length = std::strlen(replace_text);
-                  if (replace_length)
-                    CImg<char>(replace_text,replace_length).move_to(lreplacement);
+                  if (replace_length) CImg<char>(replace_text,replace_length).move_to(lreplacement);
 
                 } else {
                   std::sscanf(ncommand,"%4095[^$]",s_argument);
@@ -6987,10 +7005,10 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position, CI
               if (*filename=='-') {
                 if (cimg::type<T>::id()==cimg::type<float>::id())
                   error(images,"Command '%s' : Command not found.",
-                        filename+1);
+                        argument+1);
                 else
                   error(images,"Command '%s' : Command not found in '%s' type mode (maybe available in 'float' type mode ?).",
-                        filename+1,cimg::type<T>::string());
+                        argument+1,cimg::type<T>::string());
               } else error(images,"Command 'input' : File '%s' not found.",
                            argument_text);
             }
@@ -7626,10 +7644,12 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("     expression, and are evaluated. If an expression is non evaluable, it is substituted by");
   gmic_help("     the sequence of ascii codes that composes the specified string, separated by commas ','.");
   gmic_help("     For instance, item '{3+2}' will be substituted by '5', and item '{foo}' by '102,111,111'.");
+  gmic_help("  - The last image of the list (if any) is always associated to evaluations of '{expressions}',");
+  gmic_help("     e.g. G'MIC sequence '256,128 -f {w}' will create a 256x128 scalar image filled with value 256.");
   gmic_help("  - Expression '@{}', '~{}' and '{}' are not substituted in double-quoted items. One must break");
   gmic_help("     double quotes to force their substitution, as in item \"3+8 kg = \"{3+8}\" kg\".");
   gmic_help("  - Equally, one can disable the substitution mechanism outside double-quoted items, by escaping");
-  gmic_help("      the '@','{','}' and '~' characters, e.g. as in item '\\{3+4\\}\\ won't\\ evaluate'.\n");
+  gmic_help("      the '@','{','}' and '~' characters, e.g. as in item '\\{3+4\\}\\ won't evaluate'.\n");
 
   gmic_help(" ** Mathematical expressions");
 
@@ -7718,13 +7738,17 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("     '-command' (or -'m') directive to update your default command definitions as well.");
   gmic_help("  - In custom commands, expressions starting with '$' are substituted this way :");
   gmic_help("    _ '$#' is substituted by the number of specified arguments.");
-  gmic_help("    _ '$*' is substituted by all specified arguments, separated by commas ','.");
-  gmic_help("    _ '$i' and '${i}' are substituted by the i-th specified argument.");
-  gmic_help("    _ '${i*}' is substituted by all arguments whose indices are higher or equal to i.");
-  gmic_help("    _ '${i=default}' is substituted by the value of $i (if defined) or by its new default value");
-  gmic_help("       'default' else ('default' can be a $-expression as well).");
   gmic_help("    _ '$?' is substituted by a string telling about the command subset restriction (only useful");
   gmic_help("       when custom commands need to messages on the standard output).");
+  gmic_help("    _ '$i' and '${i}' are substituted by the i-th specified argument. Negative indices '$-j'");
+  gmic_help("       are allowed and refer to the j^th last argument. '$0' is substituted by the name");
+  gmic_help("       of the custom command.");
+  gmic_help("    _ '${i=default}' is substituted by the value of $i (if defined) or by its new default value");
+  gmic_help("       'default' else ('default' can be a $-expression as well).");
+  gmic_help("    _ '${subset}' is substituted by the arguments values (separated by ',') of a specified");
+  gmic_help("       argument subset. For instance expression '${2--2}' is substitued by all specified arguments");
+  gmic_help("       to the custom command, except the first and the last ones. However, expression '${^0}' is");
+  gmic_help("       substituted by all specified arguments.");
   gmic_help("  - Arguments may be skipped when invoking a custom command by replacing them by ',', as in");
   gmic_help("     expression '-flower ,,3'. Omitted arguments are set to their default values, which must be");
   gmic_help("     explicitely defined in the code of the corresponding custom command (using expressions as");
@@ -8555,7 +8579,7 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_argument("(no args)\n");
   gmic_help(_"Define background from specified color or existing image for 3d rendering.");
   gmic_help(_"(eq. to '-b3d').\n");
-  gmic_help(_"(no args) resets the background to default.");
+  gmic_help(_"(no args) resets the background to default.\n");
 
   gmic_section("Program control and environment");
 
@@ -8871,7 +8895,7 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("  - Plot a 3d elevated function in random colors:");
   gmic_help("     gmic 128,128,1,3,\"?(0,255)\" -plasma 10,3 -blur 4 -sharpen 10000 \\");
   gmic_help("      128,128,1,1,\"X=(x-64)/6;Y=(y-64)/6;100*exp(-(X^2+Y^2)/30)*abs(cos(X)*sin(Y))\"\\");
-  gmic_help("      -elevation3d[-2] [-1]\n");
+  gmic_help("      -elevation3d[-2] [-1] -rm[-1]\n");
 
   gmic_help("  - Plot the isosurface of a 3d volume :");
   gmic_help("     gmic -m3d 5 -md3d 5 -db3d 0 -isosurface3d \"'x^2+y^2+abs(z)^abs(4*cos(x*y*z*3))'\",3\n");
@@ -8890,11 +8914,8 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("      --3d[-1] 0,5 -plane3d 15,15 -rot3d[-1] 1,0,0,90 -c3d[-1] -+3d[-1] 0,3.2 \\");
   gmic_help("      -col3d[-1] 180,150,255 -col3d[-2] 128,255,0 -col3d[-3] 255,128,0 -+3d\n");
 
-  gmic_help("  - Launch the Tic-Tac-Toe game :");
-  gmic_help("     gmic -x_tictactoe\n");
-
-  gmic_help("  - Launch the fish eye demo :");
-  gmic_help("     gmic -x_fish_eye\n");
+  gmic_help("  - Launch a set of G'MIC interactive demos :");
+  gmic_help("     gmic -x_fish_eye -x_fire G\\'MIC -x_tictactoe -rm -x_spline -x_mandelbrot 0 -x_life\n");
 
   gmic_help(" ** G'MIC comes with ABSOLUTELY NO WARRANTY; for details visit http://gmic.sourceforge.net **");
   return is_help_displayed;
@@ -8924,7 +8945,10 @@ int main(int argc, char **argv) {
     const char
       *const is_help = is_help1?"-h":is_help2?"-help":"--help",
       *const command = is_help1?is_help1:is_help2?is_help2:is_help3;
-    if (!std::strcmp(is_help,command)) help(argc,argv,0,true);  // Display general help.
+    if (!std::strcmp(is_help,command)) { // Display general help.
+      const char *const _argv[2] = { "gmic","-h" };
+      help(sizeof(_argv)/sizeof(char*),_argv,0,true);
+    }
     else { // Display help only for a specified command.
       if (command[0]!='-') std::sprintf(name,"-%s",command);
       else if (command[1]!='-') std::strcpy(name,command);

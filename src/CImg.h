@@ -4398,9 +4398,9 @@ namespace cimg_library {
     inline const char *strbuffersize(const unsigned long size) {
       static char res[256] = { 0 };
       if (size<1024LU) std::sprintf(res,"%lu byte%s",size,size>1?"s":"");
-      else if (size<1024*1024LU) { const unsigned long nsize = size/1024; std::sprintf(res,"%lu Kbyte%s",nsize,nsize>1?"s":""); }
-      else if (size<1024*1024*1024LU) { const unsigned long nsize = size/(1024*1024); std::sprintf(res,"%lu Mbyte%s",nsize,nsize>1?"s":""); }
-      else { const unsigned long nsize = size/(1024*1024*1024); std::sprintf(res,"%lu Gbyte%s",nsize,nsize>1?"s":""); }
+      else if (size<1024*1024LU) { const float nsize = size/1024.0f; std::sprintf(res,"%.1f Kb",nsize); }
+      else if (size<1024*1024*1024LU) { const float nsize = size/(1024*1024.0f); std::sprintf(res,"%.1f Mb",nsize); }
+      else { const float nsize = size/(1024*1024*1024.0f); std::sprintf(res,"%.1f Gb",nsize); }
       return res;
     }
 
@@ -13563,12 +13563,12 @@ namespace cimg_library {
         Ttfloat sum = (*this)(ip);
         (*this)(ip) = (*this)(i);
         if (ii>=0) for (int j = ii; j<=i-1; ++j) sum-=A(j,i)*(*this)(j);
-        else if (sum!=0) ii=i;
+        else if (sum!=0) ii = i;
         (*this)(i) = (T)sum;
       }
-      for (int i = N-1; i>=0; --i) {
+      for (int i = N - 1; i>=0; --i) {
         sum = (*this)(i);
-        for (int j = i+1; j<N; ++j) sum-=A(j,i)*(*this)(j);
+        for (int j = i + 1; j<N; ++j) sum-=A(j,i)*(*this)(j);
         (*this)(i) = (T)(sum/A(i,i));
       }
       return *this;
@@ -13753,27 +13753,27 @@ namespace cimg_library {
         _quicksort(0,size()-1,perm,increasing,false);
         break;
       case 'x' : {
-        CImg<T> img(*this,false);
         perm.assign(_width);
         get_crop(0,0,0,0,_width-1,0,0,0).sort(perm,increasing);
+        CImg<T> img(*this,false);
         cimg_forXYZC(*this,x,y,z,c) (*this)(x,y,z,c) = img(perm[x],y,z,c);
       } break;
       case 'y' : {
-        CImg<T> img(*this,false);
         perm.assign(_height);
         get_crop(0,0,0,0,0,_height-1,0,0).sort(perm,increasing);
+        CImg<T> img(*this,false);
         cimg_forXYZC(*this,x,y,z,c) (*this)(x,y,z,c) = img(x,perm[y],z,c);
       } break;
       case 'z' : {
-        CImg<T> img(*this,false);
         perm.assign(_depth);
         get_crop(0,0,0,0,0,0,_depth-1,0).sort(perm,increasing);
+        CImg<T> img(*this,false);
         cimg_forXYZC(*this,x,y,z,c) (*this)(x,y,z,c) = img(x,y,perm[z],c);
       } break;
       case 'c' : {
-        CImg<T> img(*this,false);
         perm.assign(_spectrum);
         get_crop(0,0,0,0,0,0,0,_spectrum-1).sort(perm,increasing);
+        CImg<T> img(*this,false);
         cimg_forXYZC(*this,x,y,z,c) (*this)(x,y,z,c) = img(x,y,z,perm[c]);
       } break;
       default :
@@ -13970,15 +13970,15 @@ namespace cimg_library {
         }
 
         if (sorting) {
-          CImg<intT> permutations(_width);
+          CImg<intT> permutations;
           CImg<t> tmp(_width);
           S.sort(permutations,false);
           cimg_forY(U,k) {
-            cimg_forX(permutations,x) tmp(x) = U(permutations(x),k);
+            cimg_forY(permutations,y) tmp(y) = U(permutations(y),k);
             std::memcpy(U.data(0,k),tmp._data,sizeof(t)*_width);
           }
           cimg_forY(V,k) {
-            cimg_forX(permutations,x) tmp(x) = V(permutations(x),k);
+            cimg_forY(permutations,y) tmp(y) = V(permutations(y),k);
             std::memcpy(V.data(0,k),tmp._data,sizeof(t)*_width);
           }
         }
@@ -23758,11 +23758,11 @@ namespace cimg_library {
 	&xup = ydir?nx0:nx1, &yup = ydir?ny0:ny1,
         &xdown = ydir?nx1:nx0, &ydown = ydir?ny1:ny0;
       if (xright<0 || xleft>=width()) return *this;
-      if (xleft<0) { yleft-=xleft*(yright - yleft)/(xright - xleft); xleft = 0; }
-      if (xright>=width()) { yright-=(xright - width())*(yright - yleft)/(xright - xleft); xright = width()-1; }
+      if (xleft<0) { yleft-=(int)((float)xleft*((float)yright - yleft)/((float)xright - xleft)); xleft = 0; }
+      if (xright>=width()) { yright-=(int)(((float)xright - width())*((float)yright - yleft)/((float)xright - xleft)); xright = width() - 1; }
       if (ydown<0 || yup>=height()) return *this;
-      if (yup<0) { xup-=yup*(xdown - xup)/(ydown - yup); yup = 0; }
-      if (ydown>=height()) { xdown-=(ydown - height())*(xdown - xup)/(ydown - yup); ydown = height()-1; }
+      if (yup<0) { xup-=(int)((float)yup*((float)xdown - xup)/((float)ydown - yup)); yup = 0; }
+      if (ydown>=height()) { xdown-=(int)(((float)ydown - height())*((float)xdown - xup)/((float)ydown - yup)); ydown = height() - 1; }
       T *ptrd0 = data(nx0,ny0);
       int dx = xright - xleft, dy = ydown - yup;
       const bool steep = dy>dx;
@@ -23840,29 +23840,29 @@ namespace cimg_library {
         &zdown = ydir?nz1:nz0;
       if (xright<0 || xleft>=width()) return *this;
       if (xleft<0) {
-        const int D = xright - xleft;
-        yleft-=xleft*(yright - yleft)/D;
-        zleft-=xleft*(zright - zleft)/D;
+        const float D = (float)xright - xleft;
+        yleft-=(int)((float)xleft*((float)yright - yleft)/D);
+        zleft-=(tzfloat)xleft*(zright - zleft)/D;
         xleft = 0;
       }
       if (xright>=width()) {
-        const int d = xright - width(), D = xright - xleft;
-        yright-=d*(yright - yleft)/D;
-        zright-=d*(zright - zleft)/D;
-        xright = width()-1;
+        const float d = (float)xright - width(), D = (float)xright - xleft;
+        yright-=(int)(d*((float)yright - yleft)/D);
+        zright-=(tzfloat)d*(zright - zleft)/D;
+        xright = width() - 1;
       }
       if (ydown<0 || yup>=height()) return *this;
       if (yup<0) {
-        const int D = ydown - yup;
-        xup-=yup*(xdown - xup)/D;
-        zup-=yup*(zdown - zup)/D;
+        const float D = (float)ydown - yup;
+        xup-=(int)((float)yup*((float)xdown - xup)/D);
+        zup-=(tzfloat)yup*(zdown - zup)/D;
         yup = 0;
       }
       if (ydown>=height()) {
-        const int d = ydown - height(), D = ydown - yup;
-        xdown-=d*(xdown - xup)/D;
-        zdown-=d*(zdown - zup)/D;
-        ydown = height()-1;
+        const float d = (float)ydown - height(), D = (float)ydown - yup;
+        xdown-=(int)(d*((float)xdown - xup)/D);
+        zdown-=(tzfloat)d*(zdown - zup)/D;
+        ydown = height() - 1;
       }
       T *ptrd0 = data(nx0,ny0);
       tz *ptrz = zbuffer.data(nx0,ny0);
@@ -23938,16 +23938,16 @@ namespace cimg_library {
       int nx0 = x0, ny0 = y0, nz0 = z0, nx1 = x1, ny1 = y1, nz1 = z1;
       if (nx0>nx1) cimg::swap(nx0,nx1,ny0,ny1,nz0,nz1);
       if (nx1<0 || nx0>=width()) return *this;
-      if (nx0<0) { const int D = 1 + nx1 - nx0; ny0-=nx0*(1 + ny1 - ny0)/D; nz0-=nx0*(1 + nz1 - nz0)/D; nx0 = 0; }
-      if (nx1>=width()) { const int d = nx1-width(), D = 1 + nx1 - nx0; ny1+=d*(1 + ny0 - ny1)/D; nz1+=d*(1 + nz0 - nz1)/D; nx1 = width()-1; }
+      if (nx0<0) { const float D = 1.0f + nx1 - nx0; ny0-=(int)((float)nx0*(1.0f + ny1 - ny0)/D); nz0-=(int)((float)nx0*(1.0f + nz1 - nz0)/D); nx0 = 0; }
+      if (nx1>=width()) { const float d = (float)nx1 - width(), D = 1.0f + nx1 - nx0; ny1+=(int)(d*(1.0f + ny0 - ny1)/D); nz1+=(int)(d*(1.0f + nz0 - nz1)/D); nx1 = width() - 1; }
       if (ny0>ny1) cimg::swap(nx0,nx1,ny0,ny1,nz0,nz1);
       if (ny1<0 || ny0>=height()) return *this;
-      if (ny0<0) { const int D = 1 + ny1 - ny0; nx0-=ny0*(1 + nx1 - nx0)/D; nz0-=ny0*(1 + nz1 - nz0)/D; ny0 = 0; }
-      if (ny1>=height()) { const int d = ny1-height(), D = 1 + ny1 - ny0; nx1+=d*(1 + nx0 - nx1)/D; nz1+=d*(1 + nz0 - nz1)/D; ny1 = height()-1; }
+      if (ny0<0) { const float D = 1.0f + ny1 - ny0; nx0-=(int)((float)ny0*(1.0f + nx1 - nx0)/D); nz0-=(int)((float)ny0*(1.0f + nz1 - nz0)/D); ny0 = 0; }
+      if (ny1>=height()) { const float d = (float)ny1 - height(), D = 1.0f + ny1 - ny0; nx1+=(int)(d*(1.0f + nx0 - nx1)/D); nz1+=(int)(d*(1.0f + nz0 - nz1)/D); ny1 = height() - 1; }
       if (nz0>nz1) cimg::swap(nx0,nx1,ny0,ny1,nz0,nz1);
       if (nz1<0 || nz0>=depth()) return *this;
-      if (nz0<0) { const int D = 1 + nz1 - nz0; nx0-=nz0*(1 + nx1 - nx0)/D; ny0-=nz0*(1 + ny1 - ny0)/D; nz0 = 0; }
-      if (nz1>=depth()) { const int d = nz1-depth(), D = 1 + nz1 - nz0; nx1+=d*(1 + nx0 - nx1)/D; ny1+=d*(1 + ny0 - ny1)/D; nz1 = depth()-1; }
+      if (nz0<0) { const float D = 1.0f + nz1 - nz0; nx0-=(int)((float)nz0*(1.0f + nx1 - nx0)/D); ny0-=(int)((float)nz0*(1.0f + ny1 - ny0)/D); nz0 = 0; }
+      if (nz1>=depth()) { const float d = (float)nz1 - depth(), D = 1.0f + nz1 - nz0; nx1+=(int)(d*(1.0f + nx0 - nx1)/D); ny1+=(int)(d*(1.0f + ny0 - ny1)/D); nz1 = depth() - 1; }
       const unsigned int dmax = cimg::max(cimg::abs(nx1 - nx0),cimg::abs(ny1 - ny0),nz1 - nz0), whd = _width*_height*_depth;
       const float px = (nx1 - nx0)/(float)dmax, py = (ny1 - ny0)/(float)dmax, pz = (nz1 - nz0)/(float)dmax;
       float x = (float)nx0, y = (float)ny0, z = (float)nz0;
@@ -24023,33 +24023,33 @@ namespace cimg_library {
         &txup = ydir?tnx0:tnx1, &tyup = ydir?tny0:tny1, &txdown = ydir?tnx1:tnx0, &tydown = ydir?tny1:tny0;
       if (xright<0 || xleft>=width()) return *this;
       if (xleft<0) {
-        const int D = xright - xleft;
-        yleft-=xleft*(yright - yleft)/D;
-        txleft-=xleft*(txright - txleft)/D;
-        tyleft-=xleft*(tyright - tyleft)/D;
+        const float D = (float)xright - xleft;
+        yleft-=(int)((float)xleft*((float)yright - yleft)/D);
+        txleft-=(int)((float)xleft*((float)txright - txleft)/D);
+        tyleft-=(int)((float)xleft*((float)tyright - tyleft)/D);
         xleft = 0;
       }
       if (xright>=width()) {
-        const int d = xright - width(), D = xright - xleft;
-        yright-=d*(yright - yleft)/D;
-        txright-=d*(txright - txleft)/D;
-        tyright-=d*(tyright - tyleft)/D;
-        xright = width()-1;
+        const float d = (float)xright - width(), D = (float)xright - xleft;
+        yright-=(int)(d*((float)yright - yleft)/D);
+        txright-=(int)(d*((float)txright - txleft)/D);
+        tyright-=(int)(d*((float)tyright - tyleft)/D);
+        xright = width() - 1;
       }
       if (ydown<0 || yup>=height()) return *this;
       if (yup<0) {
-        const int D = ydown - yup;
-        xup-=yup*(xdown - xup)/D;
-        txup-=yup*(txdown - txup)/D;
-        tyup-=yup*(tydown - tyup)/D;
+        const float D = (float)ydown - yup;
+        xup-=(int)((float)yup*((float)xdown - xup)/D);
+        txup-=(int)((float)yup*((float)txdown - txup)/D);
+        tyup-=(int)((float)yup*((float)tydown - tyup)/D);
         yup = 0;
       }
       if (ydown>=height()) {
-        const int d = ydown - height(), D = ydown - yup;
-        xdown-=d*(xdown - xup)/D;
-        txdown-=d*(txdown - txup)/D;
-        tydown-=d*(tydown - tyup)/D;
-        ydown = height()-1;
+        const float d = (float)ydown - height(), D = (float)ydown - yup;
+        xdown-=(int)(d*((float)xdown - xup)/D);
+        txdown-=(int)(d*((float)txdown - txup)/D);
+        tydown-=(int)(d*((float)tydown - tyup)/D);
+        ydown = height() - 1;
       }
       T *ptrd0 = data(nx0,ny0);
       int dx = xright - xleft, dy = ydown - yup;
@@ -24137,37 +24137,37 @@ namespace cimg_library {
         &zdown = ydir?nz1:nz0, &txdown = ydir?tnx1:tnx0, &tydown = ydir?tny1:tny0;
       if (xright<0 || xleft>=width()) return *this;
       if (xleft<0) {
-        const int D = xright - xleft;
-        yleft-=xleft*(yright - yleft)/D;
-        zleft-=xleft*(zright - zleft)/D;
-        txleft-=xleft*(txright - txleft)/D;
-        tyleft-=xleft*(tyright - tyleft)/D;
+        const float D = (float)xright - xleft;
+        yleft-=(int)((float)xleft*((float)yright - yleft)/D);
+        zleft-=(float)xleft*(zright - zleft)/D;
+        txleft-=(float)xleft*(txright - txleft)/D;
+        tyleft-=(float)xleft*(tyright - tyleft)/D;
         xleft = 0;
       }
       if (xright>=width()) {
-        const int d = xright - width(), D = xright - xleft;
-        yright-=d*(yright - yleft)/D;
+        const float d = (float)xright - width(), D = (float)xright - xleft;
+        yright-=(int)(d*((float)yright - yleft)/D);
         zright-=d*(zright - zleft)/D;
         txright-=d*(txright - txleft)/D;
         tyright-=d*(tyright - tyleft)/D;
-        xright = width()-1;
+        xright = width() - 1;
       }
       if (ydown<0 || yup>=height()) return *this;
       if (yup<0) {
-        const int D = ydown - yup;
-        xup-=yup*(xdown - xup)/D;
-        zup-=yup*(zdown - zup)/D;
-        txup-=yup*(txdown - txup)/D;
-        tyup-=yup*(tydown - tyup)/D;
+        const float D = (float)ydown - yup;
+        xup-=(int)((float)yup*((float)xdown - xup)/D);
+        zup-=(float)yup*(zdown - zup)/D;
+        txup-=(float)yup*(txdown - txup)/D;
+        tyup-=(float)yup*(tydown - tyup)/D;
         yup = 0;
       }
       if (ydown>=height()) {
-        const int d = ydown - height(), D = ydown - yup;
-        xdown-=d*(xdown - xup)/D;
+        const float d = (float)ydown - height(), D = (float)ydown - yup;
+        xdown-=(int)(d*((float)xdown - xup)/D);
         zdown-=d*(zdown - zup)/D;
         txdown-=d*(txdown - txup)/D;
         tydown-=d*(tydown - tyup)/D;
-        ydown = height()-1;
+        ydown = height() - 1;
       }
       T *ptrd0 = data(nx0,ny0);
       int dx = xright - xleft, dy = ydown - yup;
@@ -24266,16 +24266,16 @@ namespace cimg_library {
         &zdown = ydir?nz1:nz0;
       if (xright<0 || xleft>=width()) return *this;
       if (xleft<0) {
-        const int D = xright - xleft;
-        yleft-=xleft*(yright - yleft)/D;
-        zleft-=xleft*(zright - zleft)/D;
-        txleft-=xleft*(txright - txleft)/D;
-        tyleft-=xleft*(tyright - tyleft)/D;
+        const float D = (float)xright - xleft;
+        yleft-=(int)((float)xleft*((float)yright - yleft)/D);
+        zleft-=(float)xleft*(zright - zleft)/D;
+        txleft-=(float)xleft*(txright - txleft)/D;
+        tyleft-=(float)xleft*(tyright - tyleft)/D;
         xleft = 0;
       }
       if (xright>=width()) {
-        const int d = xright - width(), D = xright - xleft;
-        yright-=d*(yright - yleft)/D;
+        const float d = (float)xright - width(), D = (float)xright - xleft;
+        yright-=(int)(d*((float)yright - yleft)/D);
         zright-=d*(zright - zleft)/D;
         txright-=d*(txright - txleft)/D;
         tyright-=d*(tyright - tyleft)/D;
@@ -24283,16 +24283,16 @@ namespace cimg_library {
       }
       if (ydown<0 || yup>=height()) return *this;
       if (yup<0) {
-        const int D = ydown - yup;
-        xup-=yup*(xdown - xup)/D;
+        const float D = (float)ydown - yup;
+        xup-=(int)((float)yup*((float)xdown - xup)/D);
         zup-=yup*(zdown - zup)/D;
         txup-=yup*(txdown - txup)/D;
         tyup-=yup*(tydown - tyup)/D;
         yup = 0;
       }
       if (ydown>=height()) {
-        const int d = ydown - height(), D = ydown - yup;
-        xdown-=d*(xdown - xup)/D;
+        const float d = (float)ydown - height(), D = (float)ydown - yup;
+        xdown-=(int)(d*((float)xdown - xup)/D);
         zdown-=d*(zdown - zup)/D;
         txdown-=d*(txdown - txup)/D;
         tydown-=d*(tydown - tyup)/D;
@@ -34279,7 +34279,7 @@ namespace cimg_library {
     // Save an image to a PNG file (internal).
     // Most of this function has been written by Eric Fausett
     const CImg<T>& _save_png(std::FILE *const file, const char *const filename, const unsigned int bytes_per_pixel=0) const {
-      if (!filename)
+      if (!file && !filename)
         throw CImgArgumentException(_cimg_instance
                                     "save_png() : Specified filename is (null).",
                                     cimg_instance);
