@@ -55,6 +55,9 @@ LIBDIR = /opt/local
 else
 LIBDIR = /usr
 endif
+ifeq ($(OS),MINGW32_NT-5.1)
+EXE = .exe
+endif
 
 #---------------------------------------------------
 # Set compilation flags allowing to customize G'MIC
@@ -63,6 +66,21 @@ endif
 # Flags that are mandatory to compile 'gmic'.
 MANDATORY_CFLAGS = -Dgmic_build -I$(LIBDIR)/include
 MANDATORY_LDFLAGS = -L$(LIBDIR)/lib
+ifeq ($(CC),g++)
+MANDATORY_CFLAGS += -Wall -W -I$(LIBDIR)/include
+MANDATORY_LDFLAGS = -lm -L$(LIBDIR)/lib
+endif
+
+# Flags to enable debugging.
+DEBUG_CFLAGS = -Dcimg_use_vt100 -Dcimg_verbosity=3 -g
+
+# Flags to enable optimizations.
+ifeq ($(CC),g++)
+OPT_CFLAGS = -O3 -fno-tree-pre
+endif
+ifeq ($(CC),icc)
+OPT_CFLAGS = -O3 -ipo -no-prec-div
+endif
 
 # Flags to enable image display, using X11.
 X11_CFLAGS = -Dcimg_display=1 -Dcimg_use_xrandr -I/usr/X11R6/include
@@ -107,16 +125,22 @@ endif
 # Flags to enable native support of EXR file format, using the OpenEXR library/
 EXR_CFLAGS = -Dcimg_use_openexr -I$(LIBDIR)/include/OpenEXR
 EXR_LDFLAGS = -lIlmImf
+ifeq ($(OS),Darwin)
+EXR_LDFLAGS += -lHalf
+endif
 
 # Flags to enable the use of the FFTW3 library.
 FFTW_CFLAGS = -Dcimg_use_fftw3
 FFTW_LDFLAGS = -lfftw3
+ifeq ($(OS),MINGW32_NT-5.1)
+FFTW_LDFLAGS = -lfftw3-3
+endif
 
 # Flags to enable the use of the BOARD library.
 BOARD_CFLAGS = -Dcimg_use_board
 BOARD_LDFLAGS = -lboard
 
-# Groups of flags for building different configurations
+# Sets of flags for building different configurations.
 STD_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
 	  	  $(MAGICK_CFLAGS) $(EXR_CFLAGS) $(FFTW_CFLAGS) $(FFMPEG_CFLAGS)
@@ -131,12 +155,12 @@ CUST_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LD
                     $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) \
 	    	    $(MAGICK_LDFLAGS) $(FFTW_LDFLAGS) $(EXR_LDFLAGS) $(FFMPEG_LDFLAGS) $(BOARD_LDFLAGS)
 
-MIN_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
-                  $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
-	          $(FFTW_CFLAGS) $(FFMPEG_CFLAGS)
-MIN_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
-		   $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) \
-		   $(FFTW_LDFLAGS) $(FFMPEG_LDFLAGS)
+DEBUG_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
+                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
+	            $(FFTW_CFLAGS) $(FFMPEG_CFLAGS)
+DEBUG_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
+	  	     $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) \
+		     $(FFTW_LDFLAGS) $(FFMPEG_LDFLAGS)
 
 STD_MACOSX_CFLAGS= $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) \
                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) \
@@ -150,58 +174,38 @@ STD_WINDOWS_LDFLAGS = $(MANDATORY_LDFLAGS) $(GDI32_LDFLAGS) $(ZLIB_LDFLAGS) $(PN
 
 STD_GIMP_CFLAGS = -Dgmic_build -Dcimg_display=0 $(FFTW_CFLAGS) $(PNG_CFLAGS) $(ZLIB_CFLAGS)
 STD_GIMP_LDFLAGS = -lpthread $(FFTW_LDFLAGS) $(PNG_LDFLAGS) $(ZLIB_LDFLAGS)
+ifeq ($(OS),MINGW32_NT-5.1)
+STD_GIMP_LDFLAGS += -mwindows
+endif
 
 STD_LIB_CFLAGS = -Dcimg_display=0 $(MANDATORY_CFLAGS) $(FFTW_CFLAGS)
 STD_LIB_LDFLAGS = $(FFTW_LDFLAGS)
-
-#--------------------------------------
-# Define configuration-specific flags
-#--------------------------------------
-
-ifeq ($(CC),g++)
-MANDATORY_CFLAGS += -Wall -W -I$(LIBDIR)/include
-MANDATORY_LDFLAGS = -lm -L$(LIBDIR)/lib
-OPT_CFLAGS = -O3 -fno-tree-pre
-endif
-
-ifeq ($(CC),icc)
-OPT_CFLAGS = -O3 -ipo -no-prec-div
-endif
-
-ifeq ($(OS),Darwin)
-EXR_LDFLAGS += -lHalf
-endif
-
-ifeq ($(OS),MINGW32_NT-5.1)
-FFTW_LDFLAGS = -lfftw3-3
-STD_GIMP_LDFLAGS += -mwindows
-EXE = .exe
-endif
 
 #-------------------------
 # Define Makefile entries
 #-------------------------
 
 # Main entries
-all: gmic gimp
-
-gmic:
+all:
 ifeq ($(OS),Linux)
 	@echo "**"
 	@echo "** Linux configuration"
 	@echo "**"
 	$(MAKE) linux
+	$(MAKE) gimp
 else
 ifeq ($(OS),Darwin)
 	@echo "**"
 	@echo "** MacOSX configuration"
 	@echo "**"
 	$(MAKE) macosx
+	$(MAKE) gimp
 else
 	@echo "**"
 	@echo "** Windows configuration"
 	@echo "**"
 	$(MAKE) windows
+	$(MAKE) gimp
 endif
 endif
 
@@ -212,8 +216,8 @@ lib:
 	$(MAKE) "CFLAGS+=$(STD_LIB_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_LIB_LDFLAGS)" gmic_lib
 
 # Entries for non-default configurations.
-minimal:
-	$(MAKE) "CFLAGS+=$(MIN_UNIX_CFLAGS)" "LDFLAGS+=$(MIN_UNIX_LDFLAGS)" gmic_minimal
+debug:
+	$(MAKE) "CFLAGS+=$(DEBUG_UNIX_CFLAGS)" "LDFLAGS+=$(DEBUG_UNIX_LDFLAGS)" gmic_debug
 
 linux:
 	$(MAKE) "CFLAGS+=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_UNIX_LDFLAGS)" "STRIP_EXE=1" gmic_gmic
@@ -244,8 +248,9 @@ gmic_gimp : gmic_gimp.o gmic_gimp.cpp
 	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o $(CFLAGS) $(LDFLAGS) `gimptool-2.0$(EXE) --cflags` `gimptool-2.0$(EXE) --libs`
 	strip gmic_gimp$(EXE)
 
-gmic_minimal: gmic.cpp
-	$(CC) -o gmic gmic.cpp -Dgmic_minimal -Dgmic_float -Dgmic_main -Dcimg_debug=3 -Dcimg_use_vt100 -g $(CFLAGS) $(LDFLAGS)
+gmic_debug: gmic.cpp
+	$(CC) -o gmic gmic.cpp -Dgmic_minimal -Dgmic_float -Dgmic_main $(CFLAGS) $(LDFLAGS)
+
 gmic_bool.o: gmic.cpp
 	$(CC) -o gmic_bool.o -c gmic.cpp -Dgmic_separate_compilation -Dgmic_bool $(CFLAGS)
 gmic_uchar.o: gmic.cpp
@@ -282,6 +287,7 @@ install:
 	cp -f ../man/gmic.1.gz $(DESTDIR)/usr/share/man/man1/gmic.1.gz
 	cp -f ../man/gmic.1.gz $(DESTDIR)/usr/share/man/fr/man1/gmic.1.gz
 	mkdir -p $(DESTDIR)/usr/share/doc/gmic/html/img/
+#	if test -d /etc/bash_completion.d/; then mkdir -p $(DESTDIR)/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/etc/bash_completion.d/gmic; fi
 	for pixmap in ../html/*.*; do \
 	  if test -f $$pixmap; then \
 	    cp -f  $$pixmap  $(DESTDIR)/usr/share/doc/gmic/html/; \
@@ -302,6 +308,6 @@ uninstall:
 distclean: clean
 
 clean:
-	rm -rf gmic*.o gmic gmic_gimp libgmic* *~
+	rm -rf gmic*.o gmic gmic_gimp gmic_bashcompletion libgmic* *~
 
 # End of Makefile
