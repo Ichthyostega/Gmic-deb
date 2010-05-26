@@ -46,7 +46,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 1350
+#define gmic_version 1351
 
 // Define environment variables.
 #ifndef cimg_verbosity
@@ -116,15 +116,13 @@ namespace cimg_library {
 // Define the G'MIC exception class.
 //----------------------------------
 struct gmic_exception {
-  char _message[16384];
-  char _command[1024];
-  gmic_exception() { *_message = 0; *_command = 0; }
+  gmic_image<char> _command, _message;
   gmic_exception(const char *const command, const char *const message) {
-    if (command) std::strcpy(_command,command); else *_command = 0;
-    if (message) std::strcpy(_message,message); else *_message = 0;
+    if (command) _command.assign(command,std::strlen(command)+1);
+    if (message) _message.assign(message,std::strlen(message)+1);
   }
-  const char *what()    const { return _message; }   // Give the error message returned by the G'MIC interpreter.
-  const char *command() const { return _command; }
+  const char *what()    const { return _message?_message.data():""; }  // Give the error message returned by the G'MIC interpreter.
+  const char *command() const { return _command?_command.data():""; }
 };
 
 // Define the G'MIC interpreter class.
@@ -144,7 +142,6 @@ struct gmic {
   int verbosity, render3d, renderd3d;
   volatile int _cancel, *cancel;
   unsigned int nb_carriages, position;
-  char *tmpstr, *_tmpstr;
 
   // Constructors - Destructors.
   // Use them to run the G'MIC interpreter from your C++ source.
@@ -156,7 +153,6 @@ struct gmic {
   template<typename T> gmic(const char *const command_line, gmic_list<T>& images,
                             const char *const custom_commands=0, const bool default_commands=true,
                             float *const p_progress=0, int *const p_cancel=0);
-  ~gmic();
 
   // All functions below should be considered as 'private' and thus, should not be used
   // in your own C++ source code. Use them at your own risk.
@@ -179,8 +175,8 @@ struct gmic {
                          const bool display_selection) const;
 
   template<typename T>
-  bool substitute_item(const char *const source, char *const destination, const gmic_list<T>& images,
-                       const gmic_list<char>& filenames, const gmic_list<unsigned int>& repeatdones);
+  gmic_image<char> substitute_item(const char *const source, const gmic_list<T>& images,
+                                   const gmic_list<char>& filenames, const gmic_list<unsigned int>& repeatdones);
 
   gmic& print(const char *format, ...);
   template<typename T>

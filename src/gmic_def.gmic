@@ -118,6 +118,10 @@
 #
 #--------------------------------------------------
 
+#@gmic ow : eq. to '-outputw'.
+ow :
+  -outputw
+
 #@gmic outputw : : Output selected images by overwritting their original location (eq. to '-ow').
 outputw :
   -if {@#>1} -e[0--3] "Output image$? as their initial location."
@@ -130,9 +134,9 @@ outputw :
     -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic ow : eq. to '-outputw'. :
-ow :
-  -outputw
+#@gmic op : eq. to '-outputp'.
+op : -skip ${1="_"}
+  -outputp $1
 
 #@gmic outputp : prefix : Output selected images as prefixed versions of their original filenames (eq. to '-op').
 outputp : -skip ${1="_"}
@@ -146,9 +150,9 @@ outputp : -skip ${1="_"}
     -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic op : eq. to '-outputp'. :
-op : -skip ${1="_"}
-  -outputp $1
+#@gmic on : eq. to '-outputn'.
+on :
+  -outputn $1
 
 #@gmic outputn : filename : Output selected images as automatically numbered filenames in repeat..done loops (eq. to '-or').
 outputn :
@@ -156,9 +160,9 @@ outputn :
   -e[^-1] "Output image$? as file '"~0"'."
   -v - -o ~0 -pp[-1] -v +
 
-#@gmic on : eq. to '-outputn'. :
-on :
-  -outputn $1
+#@gmic d0 : eq. to '-display0'.
+d0 :
+  -display0
 
 #@gmic display0 : : Display selected images with value normalization off (eq. to '-d0').
 display0 :
@@ -177,10 +181,6 @@ display0 :
   -pp[0-3]
   -v + -d
   -v - -w[] 0 -v +
-
-#@gmic d0 : eq. to '-display0'. :
-d0 :
-  -display0
 
 # Function useful to display help of commands, in interactive shell mode (linux only).
 help : -skip ${1=""}
@@ -336,6 +336,10 @@ ifftpolar :
     -polar2complex[-2,-1] -ifft[-2,-1] -rm[-1]
   -mv[-1] 0 -done -v +
 
+#@gmic dfft : eq. to '-display_fft'.
+dfft :
+  -display_fft
+
 #@gmic display_fft : : Display Fourier transform of selected images, with centered log-module and argument (eq. to '-dfft').
 display_fft :
   -e[^-1] "Render Fourier transform of image$? with centered log-module and argument."
@@ -343,9 +347,9 @@ display_fft :
     -fftpolar[-1] -+[-2] 1 -log[-2] -n[-2,-1] 0,255 -a[-2,-1] x
   -mv[-1] 0 -done -s x,2 -v +
 
-#@gmic dfft : eq. to '-display_fft'. :
-dfft :
-  -display_fft
+#@gmic drgba : eq. to '-display_rgba'.
+drgba :
+  -display_rgba
 
 #@gmic display_rgba : : Render selected RGBA images over a checkerboard background (eq. to '-drgba').
 display_rgba :
@@ -354,9 +358,9 @@ display_rgba :
     -i[-2] (160,128;128,160) -r[-2] 16,16 -r[-2] [-1],[-1],1,3,0,2 -compose_rgba[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic drgba : eq. to '-display_rgba'. :
-drgba :
-  -display_rgba
+#@gmic drgba : eq. to '-display_histogram'.
+dh :
+  -display_histogram ${^0}
 
 #@gmic display_histogram : _width>0,_height>0,_clusters>0,_max_value>0,_show_axes={ 0 | 1 } : Render a channel-by-channel histogram (eq. to '-dh').
 display_histogram : -check "${1=512}>0 && ${2=200}>0 && ${3=256}>0 && ${4=255}" -skip ${5=1}
@@ -376,8 +380,6 @@ display_histogram : -check "${1=512}>0 && ${2=200}>0 && ${3=256}>0 && ${4=255}" 
     -+[-1] 255
   -mv[-1] 0 -done -v +
 
-dh :
-  -display_histogram ${^0}
 
 #--------------------------------------------------
 #
@@ -835,6 +837,9 @@ tones : -skip ${1=3}
     -repeat $1 --t2[{-1-@{>,-1}}] {@{>,-1}*100.01/$1}%,{(@{>,-1}+1)*100.01/$1}% -done -rm[-{$1+1}]
   -mv[-$1--1] 0 -done -v +
 
+#@gmic t2 : eq. to '-threshold2'.
+t2 : -threshold2 ${^0}
+
 #@gmic threshold2 : _min,_max : Threshold selected images between the two given values (eq. to '-t2').
 threshold2 : -skip ${1=0%},${2=100%}
   -e[^-1] "Hard-threshold image$? between values $1 and $2."
@@ -843,14 +848,15 @@ threshold2 : -skip ${1=0%},${2=100%}
     --t[-1] $1 -t[-2] $2 -xor[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic t2 : eq. to '-threshold2'. :
-t2 : -threshold2 ${^0}
-
 #-----------------------------
 #
 # Image resizing
 #
 #-----------------------------
+
+#@gmic r2dx : eq. to '-resize2dx'.
+r2dx :
+  -resize2dx ${^0}
 
 #@gmic resize2dx : width>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the X-axis, preserving 2d ratio (eq. to '-r2dx').
 resize2dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
@@ -860,8 +866,9 @@ resize2dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
     -r[-2] $1,@-1,[-2],[-2],$2 -rm[-1]
   -mv[-1] 0 -done -v +
 
-r2dx :
-  -resize2dx ${^0}
+#@gmic r3dx : eq. to '-resize3dx'.
+r3dx :
+  -resize3dx ${^0}
 
 #@gmic resize3dx : width>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the X-axis, preserving 3d ratio (eq. to '-r3dx').
 resize3dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
@@ -871,8 +878,9 @@ resize3dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
     -r[-2] $1,@-1,[-2],$2 -rm[-1]
   -mv[-1] 0 -done -v +
 
-r3dx :
-  -resize3dx ${^0}
+#@gmic r2dy : eq. to '-resize2dy'.
+r2dy :
+  -resize2dy ${^0}
 
 #@gmic resize2dy : height>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Y-axis, preserving 2d ratio (eq. to '-r2dy').
 resize2dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
@@ -882,8 +890,9 @@ resize2dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
     -r[-2] @-1,$1,[-2],[-2],$2 -rm[-1]
   -mv[-1] 0 -done -v +
 
-r2dy :
-  -resize2dy ${^0}
+#@gmic r3dy : eq. to '-resize3dy'.
+r3dy :
+  -resize3dy ${^0}
 
 #@gmic resize3dy : height>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Y-axis, preserving 3d ratio (eq. to '-r3dy').
 resize3dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
@@ -893,8 +902,9 @@ resize3dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
     -r[-2] @{-1,0},$1,@{-1,1},[-2],$2 -rm[-1]
   -mv[-1] 0 -done -v +
 
-r3dy :
-  -resize3dy ${^0}
+#@gmic r3dz : eq. to '-resize3dz'.
+r3dz :
+  -resize3dz ${^0}
 
 #@gmic resize3dz : depth>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Z-axis, preserving 3d ratio (eq. to '-r3dz').
 resize3dz : -check "$1>0 && ${2=2}>=0 && $2<=5"
@@ -903,9 +913,6 @@ resize3dz : -check "$1>0 && ${2=2}>=0 && $2<=5"
     ({w},{h}) -*[-1] $1 -/[-1] @{-2,d} -c[-1] 1,100%
     -r[-2] @-1,$1,[-2],$2 -rm[-1]
   -mv[-1] 0 -done -v +
-
-r3dz :
-  -resize3dz ${^0}
 
 #@gmic upscale_smart : width,height,_depth,smoothness>=0,_anisotropy=[0,1],sharpening>=0 : Upscale selected images with an edge-preserving algorithm.
 upscale_smart : -skip ${2=100%},${3=100%} -check "${4=2}>=0 && ${5=0.4}>=0 && $5<=1 && ${6=10}>=0"
@@ -1602,7 +1609,7 @@ mosaic_texture : -skip ${1=0.2},${2=40},${3=0}
 #-------------------------
 
 #@gmic apply_channels : "command",_channels={All,RGBA,RGB,Y,CbCr,Cb,Cr,L,ab,a,b,H,S,V,K,A},_normalize={0=cut|1=normalize} : Apply specified command on chosen normalized channels of each selected images.
-apply_channels :
+apply_channels : -skip ${3=0}
 
   # Process all channels.
   -if {$2==0}
@@ -1781,33 +1788,33 @@ to_graya :
   -e[^-1] "Force image$? to be in GRAYA mode."
   -v - -repeat @#
     -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
-    -elif {s==4} --channels[-1] 3 -r[-2] 100%,100%,100%,3,0 -luminance[-2] -a[-2,-1] c
-    -elif {s==3} -luminance[-1] 100%,100%,100%,1,255 -a[-2,-1] c
-    -elif {s==1} 100%,100%,100%,1,255 -a[-2,-1] c
+    -elif {s==4} --channels[-1] 3 -channels[-2] 0,2 -luminance[-2] -a[-2,-1] c
+    -elif {s==3} -luminance[-1] -channels[-1] 0,1 --shared[-1] 1,1 -f[-1] 255 -rm[-1]
+    -elif {s==1} -channels[-1] 0,1 --shared[-1] 1,1 -f[-1] 255 -rm[-1]
     -endif
   -mv[-1] 0 -done -v +
 
 #@gmic to_rgb : : Force selected images to be in RGB mode.
 to_rgb :
-  -e[^-1] "Force image$? to be in RGB mode."
-  -v - -repeat @#
-    -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
-    -elif {s==4} -channels[-1] 0,2
-    -elif {s==2} -r[-1] 100%,100%,100%,1,0 -r[-1] 100%,100%,100%,3
-    -elif {s==1} -r[-1] 100%,100%,1,3
-    -endif
-  -mv[-1] 0 -done -v +
+   -e[^-1] "Force image$? to be in RGB mode."
+   -v - -repeat @#
+     -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
+     -elif {s==4} -channels[-1] 0,2
+     -elif {s==2} -channels[-1] 0,0 -r[-1] 100%,100%,100%,3
+     -elif {s==1} -r[-1] 100%,100%,1,3
+     -endif
+   -mv[-1] 0 -done -v +
 
 #@gmic to_rgba : : Force selected images to be in RGBA mode.
 to_rgba :
-  -e[^-1] "Force image$? to be in RGBA mode."
-  -v - -repeat @#
-    -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
-    -elif {s==3} 100%,100%,1,1,255 -a[-2,-1] c
-    -elif {s==2} -s[-1] c -r[-2] 100%,100%,100%,3 -a[-2,-1] c
-    -elif {s==1} -r[-1] 100%,100%,1,3 100%,100%,1,1,255 -a[-2,-1] c
-    -endif
-  -mv[-1] 0 -done -v +
+   -e[^-1] "Force image$? to be in RGBA mode."
+   -v - -repeat @#
+     -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
+     -elif {s==3} -channels[-1] 0,3 --shared[-1] 3,3 -f[-1] 255 -rm[-1]
+     -elif {s==2} -r[-1] 100%,100%,100%,4 --shared[-1] 2,2 -f[-1] [-2] -rm[-1]
+     -elif {s==1} -r[-1] 100%,100%,1,4 --shared[-1] 3,3 -f[-1] 255 -rm[-1]
+     -endif
+   -mv[-1] 0 -done -v +
 
 #@gmic to_colormode : mode={0=adaptive,1=G,2=GA,3=RGB,4=RGBA} : Force selected images to be in a given color mode.
 to_colormode : -skip ${1=0}
@@ -3205,7 +3212,7 @@ gimp_logo_ca :
 #@gimp : - <b>2009/08/10</b> : version <i>1.3.2.0</i>.\n
 #@gimp : - <b>2009/11/23</b> : version <i>1.3.3.0</i>.\n
 #@gimp : - <b>2010/03/05</b> : version <i>1.3.4.0</i>.\n
-#@gimp : - <span foreground="purple"><b>2010/05/16</b> : version <i>1.3.5.0</i> (Current).</span>\n
+#@gimp : - <span foreground="purple"><b>2010/05/26</b> : version <i>1.3.5.1</i> (Current).</span>\n
 #@gimp : "}
 
 #@gimp Contributors : _none_, _none_
@@ -3350,7 +3357,7 @@ gimp_shift_tiles :
 #@gimp Tiled parameterization : gimp_parameterize_tiles, gimp_parameterize_tiles(1)
 #@gimp : X-tiles = int(10,1,30)
 #@gimp : Y-tiles = int(10,1,30)
-#@gimp : Fitting function = choice("Linear","Quadtratic")
+#@gimp : Fitting function = choice("Linear","Quadratic")
 gimp_parameterize_tiles :
   -if $3
     -quadratize_tiles $1,$2
@@ -4309,6 +4316,18 @@ gimp_blur_radial :
 #@gimp : Value range = choice("Cut","Normalize")
 gimp_blur_angular :
   -apply_channels "-blur_angular $1%,$2,$3",$4,$5
+
+#@gimp Bandpass filter : gimp_bandpass, gimp_bandpass_preview(0)
+#@gimp : Low frequency = float(0,0,100)
+#@gimp : High frequency = float(100,0,100)
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Value range = choice(1,"Cut","Normalize")
+#@gimp : note = note(), sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_bandpass :
+  -apply_channels "-bandpass $1%,$2%",$3,$4
+
+gimp_bandpass_preview :
+  -gimp_split_preview "-gimp_bandpass ${1--2}",$-1
 
 #@gimp RGB Bayer mask : rgb2bayer, rgb2bayer(0)
 #@gimp : Starting pattern = choice(0,"Red-Green","Blue-Green","Green-Red","Green-Blue")
@@ -5516,4 +5535,5 @@ gimp_unsharp16_preview :
 #
 # (End of G'MIC custom commands)
 
-
+toto :
+  -echo $0
