@@ -3,8 +3,10 @@ gmic (1.3.5.1+dfsg-1) unstable; urgency=low
   * [97366020] Use -O0 in case the system we build on has less than 1GB
     RAM.
   * [6aca1038] Merge commit 'upstream/1.3.5.1+dfsg'
+  * [fe6b2057] Fix awk call to evaluate the available memory.
+  * [6806172f] Updating patches.
 
- -- Bernd Zeimetz <bzed@debian.org>  Wed, 26 May 2010 11:32:09 +0200
+ -- Bernd Zeimetz <bzed@debian.org>  Wed, 26 May 2010 12:13:50 +0200
 
 gmic (1.3.5.0+dfsg-1) unstable; urgency=low
 
