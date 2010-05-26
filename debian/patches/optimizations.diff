@@ -2,12 +2,12 @@ Description: Turn off exaggerated optimizations.
 
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -162,7 +162,7 @@ STD_LIB_LDFLAGS = $(FFTW_LDFLAGS)
+@@ -81,7 +81,7 @@ DEBUG_CFLAGS = -Dcimg_use_vt100 -Dcimg_v
+ 
+ # Flags to enable optimizations.
  ifeq ($(CC),g++)
- MANDATORY_CFLAGS += -Wall -W -I$(LIBDIR)/include
- MANDATORY_LDFLAGS = -lm -L$(LIBDIR)/lib
 -OPT_CFLAGS = -O3 -fno-tree-pre
 +OPT_CFLAGS = -fno-tree-pre
  endif
- 
  ifeq ($(CC),icc)
+ OPT_CFLAGS = -O3 -ipo -no-prec-div
