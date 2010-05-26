@@ -1,3 +1,11 @@
+gmic (1.3.5.1+dfsg2-1) unstable; urgency=low
+
+  * Upstream released a bugfix-release for 1.3.5.1 - unfortunately with the
+    same version number.
+  * [0e506788] Merge commit 'upstream/1.3.5.1+dfsg2'
+
+ -- Bernd Zeimetz <bzed@debian.org>  Wed, 26 May 2010 16:48:40 +0200
+
 gmic (1.3.5.1+dfsg-1) unstable; urgency=low
 
   * [97366020] Use -O0 in case the system we build on has less than 1GB
