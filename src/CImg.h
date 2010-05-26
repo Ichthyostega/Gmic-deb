@@ -35411,7 +35411,7 @@ namespace cimg_library {
 
     //! Save the image as a video sequence file, using FFMPEG library.
     const CImg<T>& save_ffmpeg(const char *const filename, const unsigned int first_frame=0, const unsigned int last_frame=~0U,
-                               const unsigned int fps=25) const {
+                               const unsigned int fps=25, const unsigned int bitrate=2048) const {
       if (!filename)
         throw CImgArgumentException(_cimg_instance
                                     "save_ffmpeg() : Specified filename is (null).",
@@ -35428,9 +35428,9 @@ namespace cimg_library {
                                     filename);
 
 #ifndef cimg_use_ffmpeg
-      return save_ffmpeg_external(filename,first_frame,last_frame);
+      return save_ffmpeg_external(filename,first_frame,last_frame,"mpeg2video",fps,bitrate);
 #else
-      get_split('z').save_ffmpeg(filename,first_frame,last_frame,fps);
+      get_split('z').save_ffmpeg(filename,first_frame,last_frame,fps,bitrate);
 #endif
       return *this;
     }
@@ -35525,7 +35525,7 @@ namespace cimg_library {
 
     //! Save the image as a video sequence file, using the external tool 'ffmpeg'.
     const CImg<T>& save_ffmpeg_external(const char *const filename, const unsigned int first_frame=0, const unsigned int last_frame=~0U,
-                                        const char *const codec="mpeg2video") const {
+                                        const char *const codec="mpeg2video", const unsigned int fps=25, const unsigned int bitrate=2048) const {
       if (!filename)
         throw CImgArgumentException(_cimg_instance
                                     "save_ffmpeg_external() : Specified filename is (null).",
@@ -35536,7 +35536,7 @@ namespace cimg_library {
                                     cimg_instance,
                                     filename);
 
-      get_split('z').save_ffmpeg_external(filename,first_frame,last_frame,codec);
+      get_split('z').save_ffmpeg_external(filename,first_frame,last_frame,codec,fps,bitrate);
       return *this;
     }
 
@@ -38432,7 +38432,7 @@ namespace cimg_library {
     //! Save an image sequence, using FFMPEG library.
     // This piece of code has been originally written by David. G. Starkweather.
     const CImgList<T>& save_ffmpeg(const char *const filename, const unsigned int first_frame=0, const unsigned int last_frame=~0U,
-                                   const unsigned int fps=25) const {
+                                   const unsigned int fps=25, const unsigned int bitrate=2048) const {
       if (!filename)
         throw CImgArgumentException(_cimglist_instance
                                     "save_ffmpeg() : Specified filename is (null).",
@@ -38462,7 +38462,7 @@ namespace cimg_library {
                                     filename);
 
 #ifndef cimg_use_ffmpeg
-      return save_ffmpeg_external(filename,first_frame,last_frame);
+      return save_ffmpeg_external(filename,first_frame,last_frame,"mpeg2video",fps,bitrate);
 #else
       avcodec_register_all();
       av_register_all();
@@ -38530,7 +38530,7 @@ namespace cimg_library {
       AVCodecContext *c = video_str->codec;
       c->codec_id = fmt->video_codec;
       c->codec_type = CODEC_TYPE_VIDEO;
-      c->bit_rate = 400000;
+      c->bit_rate = 1024*bitrate;
       c->width = frame_dimx;
       c->height = frame_dimy;
       c->time_base.num = 1;
@@ -39087,7 +39087,7 @@ namespace cimg_library {
 
     //! Save an image sequence using the external tool 'ffmpeg'.
     const CImgList<T>& save_ffmpeg_external(const char *const filename, const unsigned int first_frame=0, const unsigned int last_frame=~0U,
-                                            const char *const codec="mpeg2video") const {
+                                            const char *const codec="mpeg2video", const unsigned int fps=25, const unsigned int bitrate=2048) const {
       if (!filename)
         throw CImgArgumentException(_cimglist_instance
                                     "save_ffmpeg_external() : Specified filename is (null).",
@@ -39123,11 +39123,10 @@ namespace cimg_library {
         else _data[l].save_pnm(filetmp2);
       }
 #if cimg_OS!=2
-      cimg_snprintf(command,sizeof(command),"ffmpeg -i %s_%%6d.ppm -vcodec %s -sameq -y \"%s\" >/dev/null 2>&1",filetmp,codec,filename);
+      cimg_snprintf(command,sizeof(command),"ffmpeg -i %s_%%6d.ppm -vcodec %s -b %uk -r %u -y \"%s\" >/dev/null 2>&1",filetmp,codec,bitrate,fps,filename);
 #else
-      cimg_snprintf(command,sizeof(command),"\"ffmpeg -i %s_%%6d.ppm -vcodec %s -sameq -y \"%s\"\" >NUL 2>&1",filetmp,codec,filename);
+      cimg_snprintf(command,sizeof(command),"\"ffmpeg -i %s_%%6d.ppm -vcodec %s -b %uk -r %u -y \"%s\"\" >NUL 2>&1",filetmp,codec,bitrate,fps,filename);
 #endif
-
       cimg::system(command);
       file = std::fopen(filename,"rb");
       if (!file)
@@ -39135,10 +39134,8 @@ namespace cimg_library {
                               "save_ffmpeg_external() : Failed to save file '%s' with external command 'ffmpeg'.",
                               cimglist_instance,
                               filename);
-
       else cimg::fclose(file);
       cimglist_for(*this,lll) { cimg_snprintf(filetmp2,sizeof(filetmp2),"%s_%.6u.ppm",filetmp,lll+1); std::remove(filetmp2); }
-
       return *this;
     }
 

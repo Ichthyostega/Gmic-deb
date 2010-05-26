@@ -1553,7 +1553,7 @@ CImg<char> gmic::substitute_item(const char *const source, const CImgList<T>& im
           cimg_snprintf(substr,substr.width(),"%s",cimg::split_filename(filenames[nind].data()));
           if (*substr) CImg<char>(substr.data(),std::strlen(substr)).move_to(substituted_items);
         } else if (*subset=='f' && l==1) { // Substitute by image folder name.
-          CImg<char> _substr(filenames[nind].data());
+          CImg<char> _substr(filenames[nind]);
           char *const basename = const_cast<char*>(cimg::basename(_substr));
           *basename = 0;
           if (*_substr) CImg<char>(_substr.data(),std::strlen(_substr)).move_to(substituted_items);
@@ -6794,7 +6794,7 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position, CI
                           filename,options)!=2) std::strncpy(filename,argument,sizeof(filename)-1);
           gmic_strreplace(filename); gmic_strreplace(options);
           const char *const ext = cimg::split_filename(filename);
-          if (!cimg::strcasecmp("off",ext)) {
+          if (!cimg::strcasecmp(ext,"off")) {
             static char nfilename[4096];
             *nfilename = 0;
             std::strncpy(nfilename,filename,sizeof(nfilename)-1);
@@ -6813,13 +6813,12 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position, CI
               CImg<float> vertices(images[ind]);
               vertices.CImg3dtoobject3d(primitives,colors,opacities).save_off(nfilename,primitives,colors);
             }
-          } else if (!cimg::strcasecmp("jpeg",ext) || !cimg::strcasecmp("jpg",ext)) {
+          } else if (!cimg::strcasecmp(ext,"jpeg") || !cimg::strcasecmp(ext,"jpg")) {
             int quality = 100;
             if (std::sscanf(options,"%d%c",&quality,&end)!=1) quality = 100;
             if (quality<0) quality = 0; else if (quality>100) quality = 100;
             CImgList<T> output_images;
             cimg_forY(selection,l) output_images.insert(images[selection[l]],~0U,true);
-
             if (output_images.size()==1)
               print(images,"Output image%s as file '%s', with quality %u%% (1 image %dx%dx%dx%d).",
                     gmic_selection,
@@ -6841,6 +6840,27 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position, CI
                 output_images[l].save_jpeg(nfilename,quality);
               }
             }
+          } else if (!cimg::strcasecmp(ext,"avi") || !cimg::strcasecmp(ext,"mov") || !cimg::strcasecmp(ext,"asf") ||
+                     !cimg::strcasecmp(ext,"divx") || !cimg::strcasecmp(ext,"flv") || !cimg::strcasecmp(ext,"mpg") ||
+                     !cimg::strcasecmp(ext,"m1v") || !cimg::strcasecmp(ext,"m2v") || !cimg::strcasecmp(ext,"m4v") ||
+                     !cimg::strcasecmp(ext,"mjp") || !cimg::strcasecmp(ext,"mkv") || !cimg::strcasecmp(ext,"mpe") ||
+                     !cimg::strcasecmp(ext,"movie") || !cimg::strcasecmp(ext,"ogm") || !cimg::strcasecmp(ext,"qt") ||
+                     !cimg::strcasecmp(ext,"rm") || !cimg::strcasecmp(ext,"vob") || !cimg::strcasecmp(ext,"wmv") ||
+                     !cimg::strcasecmp(ext,"xvid") || !cimg::strcasecmp(ext,"mpeg")) {
+            unsigned int fps = 0, bitrate = 0;
+            std::sscanf(options,"%u,%u",&fps,&bitrate);
+            if (!fps) fps = 25;
+            if (!bitrate) bitrate = 2048;
+            CImgList<T> output_images;
+            cimg_forY(selection,l) output_images.insert(images[selection[l]],~0U,true);
+            print(images,"Output image%s as file '%s', with %u fps and bitrate %uk.",
+                  gmic_selection,
+                  filename,
+                  fps,bitrate);
+            if (!output_images) throw CImgInstanceException("CImgList<%s>::save() : File '%s, instance list (%u,%p) is empty.",
+                                                            output_images.pixel_type(),filename,
+                                                            output_images.size(),output_images.data());
+            output_images.save_ffmpeg(filename,0,~0U,fps,bitrate);
           } else {
             CImgList<T> output_images;
             cimg_forY(selection,l) output_images.insert(images[selection[l]],~0U,true);
@@ -7796,12 +7816,14 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("  - Options for specific file formats :");
   gmic_help("    _ For video files : Only sub-frames of the image sequence may be loaded, using the input");
   gmic_help("       expression 'video.ext,[first_frame[%][,last_frame[%][,step]]]'.");
+  gmic_help("       Output framerate and quality can be also set by using the output expression");
+  gmic_help("       'file.mpg,25,1024' (here, for a 25 fps and 1024k bitrate).");
   gmic_help("    _ For .raw binary files : Image dimensions must be specified, using the input expression");
   gmic_help("       'file.raw,width[,height[,depth[,dim]]]]'.");
   gmic_help("    _ For .yuv files : Image dimensions must be specified, and only sub-frames of the image");
   gmic_help("       sequence may be loaded, using the input expression");
   gmic_help("      'file.yuv,width,height[,first_frame[,last_frame[,step]]]'.");
-  gmic_help("    _ For .jpeg files : The output quality may be specified (in %), using the input expression");
+  gmic_help("    _ For .jpeg files : The output quality may be specified (in %), using the output expression");
   gmic_help("       'file.jpg,30' (here, to get a 30% quality output).");
   gmic_help("    _ Filenames with extension '.gmic' are read as G'MIC custom command files.");
   gmic_help("  - Note that some formats or options may be not supported by your current version of 'gmic',");

@@ -252,7 +252,8 @@ apply_pose3d :
 
 #@gmic push_filename : "filename",_number1,_number2 : Push a numbered version of the specified filename on the global stack.
 push_filename : -skip ${1="gmic"},${2=""},${3=""}
-  -v - 1 -name[-1] $1 -p @{-1,f}@{-1,b}
+  -v - 1 -name[-1] $1
+  -p @{-1,f}@{-1,b}
   -if {narg($2)}
     -pr[-1] ~-1_{(($2/100000)>>0)%10}{(($2/10000)>>0)%10}{(($2/1000)>>0)%10}{(($2/100)>>0)%10}{(($2/10)>>0)%10}{$2%10}
   -endif
