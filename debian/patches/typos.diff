@@ -2,7 +2,7 @@ Description: Fix a typo.
 
 --- a/src/gmic_def.gmic
 +++ b/src/gmic_def.gmic
-@@ -4805,7 +4805,7 @@ gimp_compose_freq :
+@@ -5100,7 +5100,7 @@ gimp_compose_freq :
  #@gimp Frequency splitting : gimp_split_freq, gimp_split_freq_preview(1)
  #@gimp : Smoothness = float(3,0,20)
  #@gimp : Note = note{"<small><b>Note :</b>

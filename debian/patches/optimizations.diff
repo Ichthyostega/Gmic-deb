@@ -10,4 +10,4 @@ Description: Turn off exaggerated optimizations.
 +OPT_CFLAGS = -fno-tree-pre
  endif
  ifeq ($(CC),icc)
- OPT_CFLAGS = -O3 -ipo -no-prec-div
+ OPT_CFLAGS = -O3 -ipo -no-prec-div -override-limits
