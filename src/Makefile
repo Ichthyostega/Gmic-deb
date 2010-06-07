@@ -79,7 +79,7 @@ ifeq ($(CC),g++)
 OPT_CFLAGS = -O3 -fno-tree-pre
 endif
 ifeq ($(CC),icc)
-OPT_CFLAGS = -O3 -ipo -no-prec-div
+OPT_CFLAGS = -O3 -ipo -no-prec-div -override-limits
 endif
 
 # Flags to enable image display, using X11.
@@ -287,7 +287,7 @@ install:
 	cp -f ../man/gmic.1.gz $(DESTDIR)/usr/share/man/man1/gmic.1.gz
 	cp -f ../man/gmic.1.gz $(DESTDIR)/usr/share/man/fr/man1/gmic.1.gz
 	mkdir -p $(DESTDIR)/usr/share/doc/gmic/html/img/
-#	if test -d /etc/bash_completion.d/; then mkdir -p $(DESTDIR)/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/etc/bash_completion.d/gmic; fi
+	if test -d /etc/bash_completion.d/; then mkdir -p $(DESTDIR)/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/etc/bash_completion.d/gmic; fi
 	for pixmap in ../html/*.*; do \
 	  if test -f $$pixmap; then \
 	    cp -f  $$pixmap  $(DESTDIR)/usr/share/doc/gmic/html/; \

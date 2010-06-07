@@ -695,6 +695,7 @@ bool update_filters_definition(const bool network_update) {
     while (*data!='\n' && *data && _line<line+sizeof(line)) *(_line++) = *(data++); *_line = 0;       // Read new line.
     while (*data=='\n') ++data;                                                                       // Skip next '\n'.
     _line = line; while ((_line=std::strchr(_line,'\t'))!=0) *_line=' ';                              // Replace all tabs by spaces.
+    _line = line; while ((_line=std::strchr(_line,13))!=0) *_line=' ';                                // Replace all CR by spaces.
     if (line[0]!='#' || line[1]!='@' || line[2]!='g' ||                                               // Check for a '#@gimp' line.
         line[3]!='i' || line[4]!='m' || line[5]!='p') continue;
     if (line[6]=='_') {                                                                               // Check for a localized filter.
@@ -1962,13 +1963,6 @@ void create_parameters_gui(const bool reset_params) {
             gtk_table_attach(GTK_TABLE(table),separator,0,3,current_table_line,current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_SHRINK,0,0);
             found_valid_argument = true;
-          }
-
-          // Check for a value.
-          if (!found_valid_argument && !cimg::strcasecmp(argument_type,"value")) {
-            cimg::strpare(argument_arg,' ',false,true); cimg::strpare(argument_arg,'\"',true);
-            set_filter_parameter(filter,current_argument,argument_arg);
-            found_valid_argument = true; ++current_argument;
           }
 
           if (!found_valid_argument) {

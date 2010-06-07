@@ -52,31 +52,36 @@
 #  knowledge of the CeCILL license and that you accept its terms.
 #
 
-#--- General syntax rules for a G'MIC command file : ---------------------------------------------------------------------
+#------ Syntax rules for a G'MIC command file :
 #
+#*** General syntax :
+#
+# - Each line starting with 'command_name :' starts a new G'MIC custom command definition.
 # - Each line starting with '#' is a comment line.
+# - Any other line is considered as the continuation of a previously started G'MIC custom command.
 #
-# - Each line starting with 'command_name : ' starts a new G'MIC custom command.
+#*** Rules for 'gmic' (command-line interpreter) :
 #
-# - Any other line is considered as the continuation of the previous started G'MIC custom command.
+# - A comment line starting with '#@gmic' will be parsed by 'gmic' in order to display help for
+#    G'MIC custom commands (when invoked with option '-h'). More precisely :
 #
-# - A comment line as '#@gmic command_name : arguments : description' will be used in the command line
-#   version of G'MIC as the helper for this command (displayed when invoking 'gmic -help').
+#      _ '#@gmic :: section' puts a new section separator in the displayed help.
+#      _ '#@gmic command : arguments : description' starts a new command description
+#      _ '#@gmic : description' add a new line to the last command description.
 #
-# - A comment line starting with '#@gimp' will be used to in the GIMP plug-in version of G'MIC to define
-#   a new filter entry.
+#*** Rules for 'gmic_gimp' (plug-in for GIMP) :
 #
-# - Same rules apply for comment line starting with '#@gimp_xx' to define filters translated in language
-#   'xx' (e.g. 'en','fr'...).
+# - A comment line starting with '#@gimp' will be parsed by the GIMP plug-in to define the filter tree.
+# - A comment line starting with '#@gimp_xx' will define a filter only for a specific language 'xx'
+#    (e.g. 'en','fr'...).
+# - More precisely, the syntax of a '#@gimp' comment line is be :
 #
-#   More precisely, the syntax of a '#@gimp' comment line can be :
-#
-#   '#@gimp Group name'
+#    '#@gimp Group name'
 #
 # or
 #
-#   '#@gimp Command name : command, preview_command, parameter = typedef, parameter2 = typedef'
-#   '#@gimp : parameter3 = typedef, parameter4 = typedef ...., parameterN = typedef'
+#    '#@gimp Command name : command, preview_command, parameter = typedef, parameter2 = typedef'
+#    '#@gimp : parameter3 = typedef, parameter4 = typedef ...., parameterN = typedef'
 #
 #   where :
 #
@@ -92,37 +97,337 @@
 #
 #           'typedef' can be :
 #
-#      - 'float(default_value,min_value,max_value)'       : Add a float-valued parameter (as a GUI float slider).
-#      - 'int(default_value,min_value,max_value)'         : Add a integer parameter (as a GUI integer slider).
-#      - 'bool(default_value={0,1,false,true})'           : Add a boolean parameter (0 or 1) (as a GUI checkbutton).
-#      - 'choice(_default_indice,Choice0,..,ChoiceN)'     : Add a integer parameter (as a GUI combobox).
-#      - 'text(_default text)'                            : Add a text parameter (as a GUI text entry).
-#      - 'file(_default_filename)'                        : Add a filename parameter (as a GUI filechooser).
-#      - 'folder(_default_foldername)'                    : Add a foldername parameter (as a GUI folderchooser).
-#      - 'color(defaultR,defaultG,defaultB,_defaultA)'    : Add R,G,B[,A] parameters (as a GUI colorchooser).
-#      - 'note(_Comment)'                                 : Display a label, but do not add a new parameter.
-#      - 'link(_alignement,_Comment,URL)'                 : Display a label that link to a specified URL.
-#      - 'value(value)'                                   : Do not display a GUI widget, but set a parameter value.
+#      _ 'float(default_value,min_value,max_value)'       : Add a float-valued parameter (as a GUI float slider).
+#      _ 'int(default_value,min_value,max_value)'         : Add a integer parameter (as a GUI integer slider).
+#      _ 'bool(default_value={0,1,false,true})'           : Add a boolean parameter (0 or 1) (as a GUI checkbutton).
+#      _ 'choice(_default_indice,Choice0,..,ChoiceN)'     : Add a integer parameter (as a GUI combobox).
+#      _ 'text(_default text)'                            : Add a text parameter (as a GUI text entry).
+#      _ 'file(_default_filename)'                        : Add a filename parameter (as a GUI filechooser).
+#      _ 'folder(_default_foldername)'                    : Add a foldername parameter (as a GUI folderchooser).
+#      _ 'color(defaultR,defaultG,defaultB,_defaultA)'    : Add R,G,B[,A] parameters (as a GUI colorchooser).
+#      _ 'note(_Comment)'                                 : Display a label, but do not add a new parameter.
+#      _ 'link(_alignement,_Comment,URL)'                 : Display a label that link to a specified URL.
+#      _ 'separator()'                                    : Display an horizontal separator.
 #
 #   Type separators '()' can be replaced by '[]' or '{}' if necessary (for instance if parentheses are required in
 #   an argument of the typedef, e.g in a text). You can also replace 'typedef' by '_typedef' to tell the plug-in not
 #   to update the image preview when the corresponding parameter is modified.
 #
-#   Use '_none_' as a special command or preview_command to tell the plug-in that nothing has to be done.
+#   Use '_none_' as a special command or preview_command to tell the plug-in that the entry requires no G'MIC call.
 #
 #-----------------------------------------------------------------------------------------------------------------------
 
-#--------------------------------------------------
+#---------------------------------
 #
-# Useful global tools
+#@gmic :: Basic pixel manipulation
 #
-#--------------------------------------------------
+#---------------------------------
+
+#@gmic replace_nan : _expression
+#@gmic : Replace all NaN values in selected images by specified expression.
+replace_nan : -skip ${1=0}
+  -e[^-1] "Replace all NaN in image$? by expression $1"
+  -v - -f if(i==i,i,$1) -v +
+
+#@gmic replace_inf : _expression
+#@gmic : Replace all infinite values in selected images by specified expression.
+replace_inf : -skip ${1=0}
+  -e[^-1] "Replace all infinite values in image$? by expression $1"
+  -v - -f if(i==i+1,$1,i) -v +
+
+#@gmic roundify : _gamma>=0
+#@gmic : Apply roundify transformation on float-valued data, with specified gamma.
+roundify : -check "$1>=0"
+  -e[^-1] "Roundify image$?, with gamma $1."
+  -if {$1==1} -return -endif
+  -v - -repeat @#
+    --round[-1] 1 --[-2] [-1]
+    --*[-2] 2 -abs[-1] -pow[-1] $1 -sign[-3] -*[-3,-1] -*[-2] 0.5 -+[-2,-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic complex2polar
+#@gmic : Compute complex to polar transforms of selected images.
+complex2polar :
+  -e[^-1] "Compute complex to polar transforms of image$?."
+  -v - -repeat {@#/2}
+    -r[-1] [-2],3 --atan2[-1] [-2] -sqr[-3,-2] -+[-3,-2] -sqrt[-2]
+  -mv[-2,-1] 0 -done -v +
+
+#@gmic polar2complex
+#@gmic : Compute polar to complex transforms of selected images.
+polar2complex :
+  -e[^-1] "Compute polar to complex transforms of image$?."
+  -v - -repeat {@#/2}
+    -r[-1] [-2],3 --sin[-1] -cos[-2] -*[-1] [-3] -*[-3,-2]
+  -mv[-2,-1] 0 -done -v +
+
+#@gmic transfer_histogram
+#@gmic : Transfer histogram of the last selected image to the other ones.
+transfer_histogram :
+  -e[^-1] "Transfer histogram of the last selected image to image$?."
+  -v - -to_rgb -c 0,255 -equalize[0--2] 256 --histogram_cumul[-1] 256 -/[-1] @{-3,#} -*[-1] 255
+  -repeat @#-2
+    -s[-3] c -index[-5--3] [-1] -a[-5--3] c
+  -mv[-3] 0 -done -rm[-1] -v +
+
+#@gmic normalize_sum
+#@gmic : Normalize selected images with a unitary sum.
+normalize_sum :
+  -e[^-1] "Normalize image$? with a unitary sum."
+  -v - -repeat @#
+    (@{-1,+}) -if {@-1>0} -/[-2] @-1 -endif -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic apply_gamma : gamma
+#@gmic : Apply gamma correction to selected images.
+apply_gamma : -skip ${1=1.2}
+  -e[^-1] "Apply Gamma-correction to image$?, with gamma $1."
+  -if {$1==1} -return -endif
+  -v - -repeat @#
+    (@{-1,m},@{-1,M}) -n[-2] 0,1 -pow[-2] {1/$1} -n[-2] @-1 -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic negative
+#@gmic : Compute negative of selected images.
+negative :
+  -e[^-1] "Compute negative of image$?."
+  -v - -repeat @#
+    --[-1] @{-1,M} -*[-1] -1
+  -mv[-1] 0 -done -v +
+
+#@gmic tones : N>0
+#@gmic : Get N tones masks from selected images.
+tones : -skip ${1=3}
+  -e[^-1] "Get $1 tones masks from image$?."
+  -v - -norm -repeat @#
+    -repeat $1 --t2[{-1-@{>,-1}}] {@{>,-1}*100.01/$1}%,{(@{>,-1}+1)*100.01/$1}% -done -rm[-{$1+1}]
+  -mv[-$1--1] 0 -done -v +
+
+#@gmic t2 : eq. to '-threshold2'.
+t2 : -threshold2 ${^0}
+
+#@gmic threshold2 : _min,_max
+#@gmic : Threshold selected images between the two given values (eq. to '-t2').
+threshold2 : -skip ${1=0%},${2=100%}
+  -e[^-1] "Hard-threshold image$? between values $1 and $2."
+  -v -
+  -repeat @#
+    --t[-1] $1 -t[-2] $2 -xor[-2,-1]
+  -mv[-1] 0 -done -v +
+
+#---------------------------------
+#
+#@gmic :: Geometric manipulation
+#
+#---------------------------------
+
+#@gmic split_tiles : M!=0,_N!=0,_is_homogeneous={ 0 | 1 }
+#@gmic : Split selected images as a MxN array of tiles.
+split_tiles : -skip $1,${2=$1},${3=0}
+  -if $3 -e[^-1] "Split image$? as an array of homogeneous tiles, with (M,N) = ($1,$2)."
+  -else -e[^-1] "Split image$? as an array of tiles, with (M,N) = ($1,$2)."
+  -endif
+  -v - -repeat @#
+    -l[-1] -s y,$2 -s x,$1 -if $3 -r [0],[0],100%,100%,0 -endif -endl
+  -mv[{-$1*$2}--1] 0 -done -v +
+
+#@gmic append_tiles : M>0,_N>0
+#@gmic : Append MxN selected tiles as a new image.
+append_tiles : -skip $1,${2=$1}
+  -e[^-1] "Append $1x$2 tile$? as new image(s)."
+  -v - -repeat {@#/($1*$2)} -l[{-$1*$2}--1]
+    -repeat $2 -a[-$1--1] x -mv[-1] 0 -done -a y
+  -endl -mv[-1] 0 -done -v +
+
+#@gmic r2dx : eq. to '-resize2dx'.
+r2dx :
+  -resize2dx ${^0}
+
+#@gmic resize2dx : width>0,_interpolation_type={0,1,2,3,4,5}
+#@gmic : Resize selected images along the X-axis, preserving 2d ratio (eq. to '-r2dx').
+resize2dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
+  -e[^-1] "Resize 2d image$? to $1 pixels along the X-axis, preserving 2d ratio."
+  -v - -repeat @#
+    ({h}) -*[-1] $1 -/[-1] @{-2,w} -c[-1] 1,100%
+    -r[-2] $1,@-1,[-2],[-2],$2 -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic r3dx : eq. to '-resize3dx'.
+r3dx :
+  -resize3dx ${^0}
+
+#@gmic resize3dx : width>0,_interpolation_type={0,1,2,3,4,5}
+#@gmic : Resize selected images along the X-axis, preserving 3d ratio (eq. to '-r3dx').
+resize3dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
+  -e[^-1] "Resize 3d image$? to $1 pixels along the X-axis, preserving 3d ratio."
+  -v - -repeat @#
+    ({h},{d}) -*[-1] $1 -/[-1] @{-2,w} -c[-1] 1,100%
+    -r[-2] $1,@-1,[-2],$2 -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic r2dy : eq. to '-resize2dy'.
+r2dy :
+  -resize2dy ${^0}
+
+#@gmic resize2dy : height>0,_interpolation_type={0,1,2,3,4,5}
+#@gmic : Resize selected images along the Y-axis, preserving 2d ratio (eq. to '-r2dy').
+resize2dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
+  -e[^-1] "Resize 2d image$? to $1 pixels along the Y-axis, preserving 2d ratio."
+  -v - -repeat @#
+    ({w}) -*[-1] $1 -/[-1] @{-2,h} -c[-1] 1,100%
+    -r[-2] @-1,$1,[-2],[-2],$2 -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic r3dy : eq. to '-resize3dy'.
+r3dy :
+  -resize3dy ${^0}
+
+#@gmic resize3dy : height>0,_interpolation_type={0,1,2,3,4,5}
+#@gmic : Resize selected images along the Y-axis, preserving 3d ratio (eq. to '-r3dy').
+resize3dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
+  -e[^-1] "Resize 3d image$? to $1 pixels along the Y-axis, preserving 3d ratio."
+  -v - -repeat @#
+    ({w},{h}) -*[-1] $1 -/[-1] @{-2,h} -c[-1] 1,100%
+    -r[-2] @{-1,0},$1,@{-1,1},[-2],$2 -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic r3dz : eq. to '-resize3dz'.
+r3dz :
+  -resize3dz ${^0}
+
+#@gmic resize3dz : depth>0,_interpolation_type={0,1,2,3,4,5}
+#@gmic : Resize selected images along the Z-axis, preserving 3d ratio (eq. to '-r3dz').
+resize3dz : -check "$1>0 && ${2=2}>=0 && $2<=5"
+  -e[^-1] "Resize 3d image$? to $1 pixels along the Z-axis, preserving 3d ratio."
+  -v - -repeat @#
+    ({w},{h}) -*[-1] $1 -/[-1] @{-2,d} -c[-1] 1,100%
+    -r[-2] @-1,$1,[-2],$2 -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic upscale_smart : width,height,_depth,smoothness>=0,_anisotropy=[0,1],sharpening>=0
+#@gmic : Upscale selected images with an edge-preserving algorithm.
+upscale_smart : -skip ${2=100%},${3=100%} -check "${4=2}>=0 && ${5=0.4}>=0 && $5<=1 && ${6=10}>=0"
+  -e[^-1] "Upscale image$? to $1x$2x$3, with smoothness $4, anisotropy $5 and sharpening $6."
+  -v - -repeat @#
+    -p {w} -p {h}
+    --edgetensors 0,$5,1.2,1.2
+    -r[-2,-1] $1,$2,$3,100%,5
+    -if {w<~-2" || "h<~-1}  # Test for downscaling
+      -rm[-1] -f[-1] 0
+    -else
+      -smooth[-2] [-1],$4 -rm[-1]
+      -apply_channels "-sharpen[-1] $6,1,10",3,0
+    -endif
+    -pp[-2,-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic expand_x : size_x>=0,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Expand selected images along the X-axis.
+expand_x : -check "$1>=0 && ${2=1}>=0 && $2<=2"
+  -e[^-1] "Expand image$? along the X-axis with size $1 and border conditions $2."
+  -v - -repeat @#
+    -if {$2==0} $1,100%,100%,100% -i[-3] [-1] -a[-3--1] x
+    -elif {$2==1} --columns[-1] 0 --columns[-2] 100% -r[-2,-1] $1 -mv[-2] -3 -a[-3--1] x
+    -else ({w}) -+[-1] $1 -+[-1] $1 -r[-2] @-1,[-2],[-2],[-2],0,2,0.5,0.5 -rm[-1]
+    -endif
+  -mv[-1] 0 -done -v +
+
+#@gmic expand_y : size_y>=0,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Expand selected images along the Y-axis.
+expand_y : -check "$1>=0 && ${2=1}>=0 && $2<=2"
+  -e[^-1] "Expand image$? along the Y-axis with size $1 and border conditions $2."
+  -v - -repeat @#
+    -if {$2==0} 100%,$1,100%,100% -i[-3] [-1] -a[-3--1] y
+    -elif {$2==1} --lines[-1] 0 --lines[-2] 100% -r[-2,-1] 100%,$1 -mv[-2] -3 -a[-3--1] y
+    -else ({h}) -+[-1] $1 -+[-1] $1 -r[-2] [-2],@-1,[-2],[-2],0,2,0.5,0.5 -rm[-1]
+    -endif
+  -mv[-1] 0 -done -v +
+
+#@gmic expand_z : size_z>=0,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Expand selected images along the Z-axis.
+expand_z : -check "$1>=0 && ${2=1}>=0 && $2<=2"
+  -e[^-1] "Expand image$? along the Z-axis with size $1 and border conditions $2."
+  -v - -repeat @#
+    -if {$2==0} 100%,100%,$1,100% -i[-3] [-1] -a[-3--1] z
+    -elif {$2==1} --slices[-1] 0 --slices[-2] 100% -r[-2,-1] 100%,100%,$1 -mv[-2] -3 -a[-3--1] z
+    -else ({d}) -+[-1] $1 -+[-1] $1 -r[-2] [-2],[-2],@-1,[-2],0,2,0.5,0.5 -rm[-1]
+    -endif
+  -mv[-1] 0 -done -v +
+
+#@gmic expand_xy : size>=0,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Expand selected images along the XY-axes.
+expand_xy : -check "$1>=0 && ${2=1}>=0 && $2<=2"
+  -e[^-1] "Expand image$? along the XY-axes with size $1 and border conditions $2."
+  -v - -expand_x $1,$2 -expand_y $1,$2 -v +
+
+#@gmic expand_xyz : size>=0,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Expand selected images along the XYZ-axes.
+expand_xyz : -check "$1>=0 && ${2=1}>=0 && $2<=2"
+  -e[^-1] "Expand image$? along the XYZ-axes with size $1 and border conditions $2."
+  -v - -expand_x $1,$2 -expand_y $1,$2 -expand_z $1,$2 -v +
+
+#@gmic shrink_x : size_x>=0
+#@gmic : Shrink selected images along the X-axis.
+shrink_x : -check "$1>=0"
+  -e[^-1] "Shrink image$? along the X-axis with size $1."
+  -v - -repeat @#
+    ({w}) --[-1] $1 --[-1] 1 -crop[-2] $1,@-1 -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic shrink_y : size_y>=0
+#@gmic : Shrink selected images along the Y-axis.
+shrink_y : -check "$1>=0"
+  -e[^-1] "Shrink image$? along the Y-axis with size $1."
+  -v - -repeat @#
+    ({h}) --[-1] $1 --[-1] 1 -crop[-2] 0,$1,100%,@-1 -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic shrink_z : size_z>=0
+#@gmic : Shrink selected images along the Z-axis.
+shrink_z : -check "$1>=0"
+  -e[^-1] "Shrink image$? along the Z-axis with size $1."
+  -v - -repeat @#
+    ({d}) --[-1] $1 --[-1] 1 -crop[-2] 0,0,$1,100%,100%,@-1 -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic shrink_xy : size>=0
+#@gmic : Shrink selected images along the XY-axes.
+shrink_xy : -check "$1>=0"
+  -e[^-1] "Shrink image$? along the XY-axes with size $1."
+  -v - -shrink_x $1 -shrink_y $1 -v +
+
+#@gmic elevate : _depth,_is_plain,_is_colored
+#@gmic : Elevate selected 2d images into 3d volumes.
+elevate : -check "${1=64}>0" -skip ${2=1},${3=1}
+  -e[^-1] "Elevate 2d image$? into $1-slices volume(s)."
+  -v - -r 100%,100%,1,100%
+  -repeat @# -l[-1]
+  --norm[0] -i 100%,100%,$1,{if($3,@{0,s},1)}
+    -p @{-2,m} -p {@{-2,M}-~-1}
+    -repeat $1
+      -if $2
+        --t[1] {~-2+~-1*(@{>,-1}+1)/$1}
+      -else
+        --t2[1] {~-2+~-1*@{>,-1}/$1},{~-2+~-1*(@{>,-1}+1)/$1}
+      -endif
+      -r[-1] 100%,100%,1,[-2] -if $3 -*[-1] [0] -endif
+      -image[-2] [-1],0,0,@{>,-1} -rm[-1]
+    -done
+    -pp[-2,-1] -rm[0,1]
+  -endl -mv[-1] 0 -done -v +
+
+#-----------------------
+#
+#@gmic :: Input-Output
+#
+#-----------------------
 
 #@gmic ow : eq. to '-outputw'.
 ow :
   -outputw
 
-#@gmic outputw : : Output selected images by overwritting their original location (eq. to '-ow').
+#@gmic outputw
+#@gmic : Output selected images by overwritting their original location (eq. to '-ow').
 outputw :
   -if {@#>1} -e[0--3] "Output image$? as their initial location."
   -else -e[0--3] "Output image$? as its initial location."
@@ -138,7 +443,8 @@ outputw :
 op : -skip ${1="_"}
   -outputp $1
 
-#@gmic outputp : prefix : Output selected images as prefixed versions of their original filenames (eq. to '-op').
+#@gmic outputp : prefix
+#@gmic : Output selected images as prefixed versions of their original filenames (eq. to '-op').
 outputp : -skip ${1="_"}
   -if {@#>1} -e[0--3] "Output image$? as their initial locations, prefixed by '$1'."
   -else -e[0--3] "Output image$? as its initial location, prefixed by '$1'."
@@ -154,7 +460,8 @@ outputp : -skip ${1="_"}
 on :
   -outputn $1
 
-#@gmic outputn : filename : Output selected images as automatically numbered filenames in repeat..done loops (eq. to '-or').
+#@gmic outputn : filename
+#@gmic : Output selected images as automatically numbered filenames in repeat..done loops (eq. to '-or').
 outputn :
   -v - -push_filename "$1",@{>} -v +
   -e[^-1] "Output image$? as file '"~0"'."
@@ -164,7 +471,8 @@ outputn :
 d0 :
   -display0
 
-#@gmic display0 : : Display selected images with value normalization off (eq. to '-d0').
+#@gmic display0
+#@gmic : Display selected images with value normalization off (eq. to '-d0').
 display0 :
   -v -
   -p[0] 0 -p[1] 0 -p[2] 0 -p[3] 0
@@ -182,166 +490,12 @@ display0 :
   -v + -d
   -v - -w[] 0 -v +
 
-# Function useful to display help of commands, in interactive shell mode (linux only).
-help : -skip ${1=""}
-  -v -
-  -if {narg($1)}
-    -x "gmic -h $1 | tail -n +6 | head -n -1"
-  -else
-    -x "gmic -h | head -n 5"
-  -endif
-  -v +
-h :
-  -help ${^0}
-
-#@gmic split_tiles : M!=0,_N!=0,_is_homogeneous={ 0 | 1 } : Split selected images as a MxN array of tiles.
-split_tiles : -skip $1,${2=$1},${3=0}
-  -if $3 -e[^-1] "Split image$? as an array of homogeneous tiles, with (M,N) = ($1,$2)."
-  -else -e[^-1] "Split image$? as an array of tiles, with (M,N) = ($1,$2)."
-  -endif
-  -v - -repeat @#
-    -l[-1] -s y,$2 -s x,$1 -if $3 -r [0],[0],100%,100%,0 -endif -endl
-  -mv[{-$1*$2}--1] 0 -done -v +
-
-#@gmic append_tiles : M>0,_N>0 : Append MxN selected tiles as a new image.
-append_tiles : -skip $1,${2=$1}
-  -e[^-1] "Append $1x$2 tile$? as new image(s)."
-  -v - -repeat {@#/($1*$2)} -l[{-$1*$2}--1]
-    -repeat $2 -a[-$1--1] x -mv[-1] 0 -done -a y
-  -endl -mv[-1] 0 -done -v +
-
-#@gmic replace_nan : _expression : Replace all NaN values in selected images by specified expression.
-replace_nan : -skip ${1=0}
-  -e[^-1] "Replace all NaN in image$? by expression $1"
-  -v - -f if(i==i,i,$1) -v +
-
-#@gmic replace_inf : _expression : Replace all infinite values in selected images by specified expression.
-replace_inf : -skip ${1=0}
-  -e[^-1] "Replace all infinite values in image$? by expression $1"
-  -v - -f if(i==i+1,$1,i) -v +
-
-#@gmic roundify : _gamma>=0 : Apply roundify transformation on float-valued data, with specified gamma.
-roundify : -check "$1>=0"
-  -e[^-1] "Roundify image$?, with gamma $1."
-  -if {$1==1} -return -endif
-  -v - -repeat @#
-    --round[-1] 1 --[-2] [-1]
-    --*[-2] 2 -abs[-1] -pow[-1] $1 -sign[-3] -*[-3,-1] -*[-2] 0.5 -+[-2,-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic strcmp : string1,string2 : Compare two strings and push resulting boolean on the global stack.
-strcmp :
-  -v - (0,{"$1_"}) ({w},{"$2_"}) -=[-2] {w} --[-2,-1] -abs[-1] -p {!@{-1,+}} -rm[-1] -v +
-
-#@gmic apply_pose3d : p1,..,p12 : Apply 3d pose matrix to selected 3d objects.
-apply_pose3d :
-  -e[^-1] "Apply 3d pose matrix [ $1,$2,$3,$4; $5,$6,$7,$8; $9,$10,$11,$12 ] to 3d object$?."
-  -v - -repeat @# -l[-1] -s3d
-    -r[2] 3,{@{2,#}/3},1,1,-1 -s[2] x
-    --*[2] $5 --*[3] $6 --*[4] $7 -+[-3--1] -+[-1] $8
-    --*[2] $9 --*[3] $10 --*[4] $11 -+[-3--1] -+[-1] $12
-    -*[2] $1 -*[3] $2 -*[4] $3 -+[2-4] -+[2] $4
-    -a[2,-2,-1] x -r[2] 1,{@{2,#}},1,1,-1
-  -a y -endl -mv[-1] 0 -done -v +
-
-#--------------------------------------------------
-#
-# Image characteristics
-#
-#--------------------------------------------------
-
-#@gmic push_filename : "filename",_number1,_number2 : Push a numbered version of the specified filename on the global stack.
-push_filename : -skip ${1="gmic"},${2=""},${3=""}
-  -v - 1 -name[-1] $1
-  -p @{-1,f}@{-1,b}
-  -if {narg($2)}
-    -pr[-1] ~-1_{(($2/100000)>>0)%10}{(($2/10000)>>0)%10}{(($2/1000)>>0)%10}{(($2/100)>>0)%10}{(($2/10)>>0)%10}{$2%10}
-  -endif
-  -if {narg($3)}
-    -pr[-1] ~-1_{(($3/100000)>>0)%10}{(($3/10000)>>0)%10}{(($3/1000)>>0)%10}{(($3/100)>>0)%10}{(($3/10)>>0)%10}{$3%10}
-  -endif
-  -if {narg(@{-1,x})}
-    -pr[-1] ~-1.@{-1,x}
-  -endif
-  -rm[-1] -v +
-
-#@gmic push_maxsize : : Push the maximal size of selected images on the global stack.
-push_maxsize :
-  -v - -p[0] 0 -p[1] 0 -p[2] 0 -p[3] 0
-  -repeat @#
-    -pr[0] {max(~0,w)}
-    -pr[1] {max(~1,h)}
-    -pr[2] {max(~2,d)}
-    -pr[3] {max(~3,s)}
-  -mv[-1] 0 -done
-  -p ~0,~1,~2,~3
-  -pp[0-3]
-  -v +
-
-#@gmic push_minsize : : Push the minimal size of selected images on the global stack.
-push_minsize :
-  -v - -p[0] 0 -p[1] 0 -p[2] 0 -p[3] 0
-  -repeat @#
-    -pr[0] {max(~0,w)}
-    -pr[1] {max(~1,h)}
-    -pr[2] {max(~2,d)}
-    -pr[3] {max(~3,s)}
-  -mv[-1] 0 -done
-  -p ~0,~1,~2,~3
-  -pp[0-3]
-  -v +
-
-#@gmic histogram_cumul : _nb_levels>0,_is_normalized={ 0 | 1 } : Compute cumulative histogram of selected images.
-histogram_cumul : -check "isint(${1=256}) && $1>0 && isbool(${2=0})"
-  -if $2 -e[^-1] "Compute normalized cumulative histogram of image$?, using $1 levels."
-  -else -e[^-1] "Compute cumulative histogram of image$?, using $1 levels." -endif
-  -v - -histogram $1 -repeat @#
-    -i[-2] [-1],1,1,1,0 -repeat {w} -+[-2] [-1] -shift[-1] 1 -done -rm[-1]
-    -if $2 -/[-1] @{-1,M} -endif
-  -mv[-1] 0 -done -v +
-
-#@gmic direction2rgb : : Compute RGB representation of selected 2d direction fields.
-direction2rgb :
-  -e[^-1] "Compute RGB representation of 2d direction field$?."
-  -v - -repeat @#
-    -channels[-1] 0,1 -s[-1] c -complex2polar[-2,-1]
-    -*[-1] 128 -/[-1] 3.14159265359 -+[-1] 256 -mod[-1] 256 -map[-1] 1
-    -to_rgb[-2] -n[-2] 0,1 -*[-2,-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic vector2tensor : : Convert selected vector fields to corresponding diffusion tensor fields.
-vector2tensor :
-  -e[^-1] "Convert vector field$? to diffusion tensor field$?."
-  -v - -repeat @# -l[-1]
-    -s c
-    -if {@#==2} --sqr[-1] -*[-2] [-3] -sqr[-3]
-    -elif {@#==3} --sqr[-2] --*[-3] [-2] --sqr[-3] -*[-5,-4] [-6] -sqr[-6]
-    -else -error "Invalid image : Dimensions "{w}","{h}","{d}","{s}" does not represent a field of 2d or 3d vectors."
-    -endif
-    -a c
-  -endl -mv[-1] 0 -done -v +
-
-#@gmic fftpolar : : Compute Fourier transform of selected images, as centered magnitude/phase images.
-fftpolar :
-  -e[^-1] "Compute Fourier transform of image$?, as centered magnitude/phase images."
-  -v - -repeat @#
-    -fft[-1] -complex2polar[-2,-1]
-    -shift[-2,-1] 50%,50%,50%,0,2
-  -mv[-2,-1] 0 -done -v +
-
-#@gmic ifftpolar : : Compute inverse Fourier transform of selected images, from centered magnitude/phase images.
-ifftpolar :
-  -e[^-1] "Compute inverse Fourier transform of image$?, from centered magnitude/phase images."
-  -v - -repeat {@#/2}
-    -shift[-2,-1] -50%,-50%,-50%,0,2
-    -polar2complex[-2,-1] -ifft[-2,-1] -rm[-1]
-  -mv[-1] 0 -done -v +
-
 #@gmic dfft : eq. to '-display_fft'.
 dfft :
   -display_fft
 
-#@gmic display_fft : : Display Fourier transform of selected images, with centered log-module and argument (eq. to '-dfft').
+#@gmic display_fft
+#@gmic : Display Fourier transform of selected images, with centered log-module and argument (eq. to '-dfft').
 display_fft :
   -e[^-1] "Render Fourier transform of image$? with centered log-module and argument."
   -v - -repeat @#
@@ -352,7 +506,8 @@ display_fft :
 drgba :
   -display_rgba
 
-#@gmic display_rgba : : Render selected RGBA images over a checkerboard background (eq. to '-drgba').
+#@gmic display_rgba
+#@gmic : Render selected RGBA images over a checkerboard background (eq. to '-drgba').
 display_rgba :
   -e[^-1] "Render RGBA image$? over a checkerboard background."
   -v - -repeat @#
@@ -363,7 +518,8 @@ display_rgba :
 dh :
   -display_histogram ${^0}
 
-#@gmic display_histogram : _width>0,_height>0,_clusters>0,_max_value>0,_show_axes={ 0 | 1 } : Render a channel-by-channel histogram (eq. to '-dh').
+#@gmic display_histogram : _width>0,_height>0,_clusters>0,_max_value>0,_show_axes={ 0 | 1 }
+#@gmic : Render a channel-by-channel histogram (eq. to '-dh').
 display_histogram : -check "${1=512}>0 && ${2=200}>0 && ${3=256}>0 && ${4=255}" -skip ${5=1}
   -e[^-1] "Render $1x$2 channel-by-channel histogram of image$?, with $3 clusters and maximum value $4."
   -v -
@@ -381,268 +537,59 @@ display_histogram : -check "${1=512}>0 && ${2=200}>0 && ${3=256}>0 && ${4=255}" 
     -+[-1] 255
   -mv[-1] 0 -done -v +
 
-
-#--------------------------------------------------
+#-------------------------------------
 #
-# Contours and value variations
+#@gmic :: Image creation and drawing
 #
-#--------------------------------------------------
+#-------------------------------------
 
-#@gmic gradient_norm : : Compute gradient norm of selected images.
-gradient_norm :
-  -e[^-1] "Compute gradient norm of image$?."
-  -v - -repeat @#
-    --gradient[-1] x -sqr[-1]
-    --gradient[-2] y -sqr[-1] -+[-2,-1]
-    -gradient[-2] z -sqr[-2] -+[-2,-1]
-    -p {s} -s[-1] c -+[-~-1--1] -pp[-1]
-    -sqrt[-1]
+#@gmic text_outline : text,_x[%],_y[%],_font_height>0,_outline>=0,_opacity,_color1,..
+#@gmic : Draw specified colored and outlined text string on selected images.
+text_outline : -skip ${2=2},${3=2},${4=13},${5=2},${6=1},${7=255},${8=$-1},${9=$-1}
+  -e[^-1] "Draw outlined text '$1' at position ($2,$3) on image$?, with font height $4, outline $5, opacity $6 and color ${7--1}."
+  -v - -if $5
+    -repeat @#
+      --f[-1] 1 -text[-1] "$1",${2-4},1,0 -erode[-1] {2*$5+1} -*[-2,-1] -text[-1] "$1",${2-4},${6--1}
+    -mv[-1] 0 -done
+  -else
+    -text "$1",${2-4},${6--1}
+  -endif -v +
+
+#@gmic histogram_cumul : _nb_levels>0,_is_normalized={ 0 | 1 }
+#@gmic : Compute cumulative histogram of selected images.
+histogram_cumul : -check "isint(${1=256}) && $1>0 && isbool(${2=0})"
+  -if $2 -e[^-1] "Compute normalized cumulative histogram of image$?, using $1 levels."
+  -else -e[^-1] "Compute cumulative histogram of image$?, using $1 levels." -endif
+  -v - -histogram $1 -repeat @#
+    -i[-2] [-1],1,1,1,0 -repeat {w} -+[-2] [-1] -shift[-1] 1 -done -rm[-1]
+    -if $2 -/[-1] @{-1,M} -endif
   -mv[-1] 0 -done -v +
 
-#@gmic gradient_orientation : _dimension={1,2,3} : Compute N-D gradient orientation of selected images.
-gradient_orientation : -check "${1=3}==1 || $1==2 || $1==3"
-  -e[^-1] "Compute $1-D gradient orientation of image$?."
+#@gmic direction2rgb
+#@gmic : Compute RGB representation of selected 2d direction fields.
+direction2rgb :
+  -e[^-1] "Compute RGB representation of 2d direction field$?."
   -v - -repeat @#
-    -if {$1==1} -gradient[-1] x --abs[-1] -+[-1] 1e-8 -/[-2,-1]
-    -elif {$1==2} -gradient[-1] xy --sqr[-2--1] -+[-2,-1] -+[-1] 1e-8 -sqrt[-1] -/[-3] [-1] -/[-2,-1]
-    -else -gradient[-1] xyz --sqr[-3--1] -+[-3--1] -+[-1] 1e-8 -sqrt[-1] -/[-4,-3] [-1] -/[-2,-1]
+    -channels[-1] 0,1 -s[-1] c -complex2polar[-2,-1]
+    -*[-1] 128 -/[-1] 3.14159265359 -+[-1] 256 -mod[-1] 256 -map[-1] 1
+    -to_rgb[-2] -n[-2] 0,1 -*[-2,-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic vector2tensor
+#@gmic : Convert selected vector fields to corresponding diffusion tensor fields.
+vector2tensor :
+  -e[^-1] "Convert vector field$? to diffusion tensor field$?."
+  -v - -repeat @# -l[-1]
+    -s c
+    -if {@#==2} --sqr[-1] -*[-2] [-3] -sqr[-3]
+    -elif {@#==3} --sqr[-2] --*[-3] [-2] --sqr[-3] -*[-5,-4] [-6] -sqr[-6]
+    -else -error "Invalid image : Dimensions "{w}","{h}","{d}","{s}" does not represent a field of 2d or 3d vectors."
     -endif
-  -mv[-$1--1] 0 -done -v +
-
-#@gmic gradient2rgb : _orientation={ 0 | 1 } : Compute RGB representation of 2d gradient of selected images.
-gradient2rgb : -check "isbool(${1=0})"
-  -if $1 -e[^-1] "Compute RGB representation of 2d gradient orientation of image$?."
-  -else -e[^-1] "Compute RGB representation of 2d gradient of image$?." -endif
-  -v - -repeat @#
-    -norm[-1]
-    -if $1 -gradient_orientation[-1] 2 -else -gradient[-1] xy -endif
-    -a[-2,-1] c -direction2rgb[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic laplacian : : Compute Laplacian of selected images.
-laplacian :
-  -e[^-1] "Compute Laplacian of image $?."
-  -v - -repeat @#
-    -hessian[-1] xxyyzz -+[-3--1]
-  -mv[-1] 0 -done -v +
-
-#@gmic gradient_derivative2 : : Compute gradient-directed 2nd derivative of image(s).
-gradient_derivative2 :
-  -e[^-1] "Compute gradient-directed 2nd derivative of image$?."
-  -v - -repeat @#
-    --gradient[-1] xyz -hessian[-4] xxxyxzyyyzzz
-    --sqr[-3] -*[-10,-1] --sqr[-2] -*[-7,-1] --sqr[-1] -*[-5,-1]
-    -*[-8,-7,-5] 2 -*[-8] [-3] -*[-8] [-2] -*[-7] [-3] -*[-7] [-1] -*[-5] [-2] -*[-5] [-1]
-    -+[-9--4] -sqr[-3--1] -+[-3--1] -+[-1] 1e-8 -/[-2,-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic curvature : : Compute isophote curvatures on selected images.
-curvature :
-  -e[^-1] "Compute isophote curvatures on image$?."
-  -v - -repeat @#
-    [-1]x2 -laplacian[-3] -gradient_derivative2[-2] --[-3,-2] -gradient_norm[-1] -+[-1] 1e-8 -/[-2,-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic edges : _threshold>=0 : Estimate contours of selected images.
-edges : -skip ${1=15}
-  -e[^-1] "Estimate image contours of image$?, with threshold $1."
-  -v - -repeat @#
-    -gradient_norm[-1] -blur[-1] 0.5 -t[-1] $1% -distance[-1] 0 -equalize[-1] 256
-    -negative[-1] -c[-1] 30%,70% -n[-1] 0,1
-  -mv[-1] 0 -done -v +
-
-#@gmic isophotes : _nb_levels>0 : Render isophotes of selected images on a transparent background.
-isophotes : -skip ${1=64}
-  -e[^-1] "Render isophote maps from images$?, with $1 levels."
-  -v - -to_rgba -repeat @# -l[-1]
-    --luminance -repeat $1 --isoline3d[1] {@{>,-1}*255/($1-1)} -done -rm[1] -+3d[1--1] -col3d[-1] 1,1,1
-    [0],[0] -object3d[-1] [-2],0,0 -rm[-2] -*[-2,-1]
+    -a c
   -endl -mv[-1] 0 -done -v +
 
-#@gmic topographic_map : _nb_levels>0,_smoothness : Render selected images as topographic maps.
-topographic_map : -skip ${1=16},${2=2}
-  -e[^-1] "Render topographic maps from image$?, with $1 levels and smoothness $2."
-  -v - -to_rgb -repeat @#
-    --blur[-1] $2 -isophotes[-1] $1 -t[-1] 0.1 -to_rgb[-1] --norm[-1]
-    -line[-2,-1] 100%,0,100%,100%,1,1 -line[-2,-1] 0,100%,100%,100%,1,1
-    -line[-2,-1] 0,0,100%,0,1,1 -line[-2,-1] 0,0,0,100%,1,1
-    -_topographic_map0[-3--1]
-    -_topographic_map[-3--1]
-    -rm[-3,-1]
-  -mv[-1] 0 -done -v +
-
-_topographic_map0 :
-  -repeat 4000
-    -p {?(w)},{?(h)}
-    -if {@{-1,(~-1)}==0}
-      -flood[-2] ~-1,0,0,1,@{-3,(~-1,0,0)},@{-3,(~-1,0,1)},@{-3,(~-1,0,2)}
-      -flood[-1] ~-1,0,0,1,1
-    -endif
-    -pp[-1]
-  -done
-
-_topographic_map :
-  -do
-    (@{-1,c}) -p @{-1,0},@{-1,1} -rm[-1]
-    -if {@{-1,(~-1)}==0}
-      -flood[-2] ~-1,0,0,1,@{-3,(~-1,0,0)},@{-3,(~-1,0,1)},@{-3,(~-1,0,2)}
-      -flood[-1] ~-1,0,0,1,1
-      -pp[-1]
-    -else -pp[-1] -return
-    -endif
-  -while 1
-
-#@gmic segment_watershed : _threshold>=0 : Apply watershed segmentation on selected images.
-segment_watershed : -check "${1=2}>=0 && ${2=11}>0"
-  -e[^-1] "Apply watershed segmentation on image$?, with edge threshold $1."
-  -v - -repeat @#
-    -p[0] {1+@{-1,m}} -+[-1] ~0
-    --gradient_norm[-1]
-    -if {d>1}
-      --f[-1] "if(i<$1 && i<i(x+1) && i<i(x-1) && i<i(x,y+1) && i<i(x,y-1) && i<i(x,y,z+1) && i<i(x,y,z-1),1,0)"
-    -else
-      --f[-1] "if(i<$1 && i<i(x+1) && i<i(x-1) && i<i(x,y+1) && i<i(x,y-1),1,0)"
-    -endif
-    -*[-3,-1] -*[-1] -1
-    -watershed[-2] [-1],1 -rm[-1]
-    -pp[0]
-  -mv[-1] 0 -done -v +
-
-#--------------------------------------------------
-#
-# Spatial filtering
-#
-#--------------------------------------------------
-
-#@gmic blur_x : _amplitude,_borders={ 0 | 1 } : Blur selected images along the X-axis.
-blur_x : -skip ${1=10},${2=1}
-  -_blur_n $1,$2,X,y,z
-
-#@gmic blur_y : _amplitude,_borders={ 0 | 1 } : Blur selected images along the Y-axis.
-blur_y : -skip ${1=10},${2=1}
-  -_blur_n $1,$2,Y,x,z
-
-#@gmic blur_z : _amplitude,_borders={ 0 | 1 } : Blur selected images along the Z-axis.
-blur_z : -skip ${1=10},${2=1}
-  -_blur_n $1,$2,Z,x,y
-
-_blur_n :
-  -e[^-1] "Blur image$? along the $3-axis, with amplitude $1 and border conditions $2."
-  -v - -repeat @#
-    -l[-1] -s $5 -repeat @#
-      -l[-1] -s $4 -blur $1,$2 -a $4 -endl
-    -mv[-1] 0 -done -a $5 -endl
-  -mv[-1] 0 -done -v +
-
-#@gmic blur_angular : _amplitude,_cx,_cy : Apply angular blur on selected images.
-blur_angular : -skip ${1=10},${2=0.5},${3=0.5}
-  -e[^-1] "Apply angular blur on image$?, with amplitude $1 and center ($2,$3)."
-  -v - -euclidean2polar $2,$3,1.3,1 -expand_y 16,2 -blur_y $1 -shrink_y 16 -polar2euclidean $2,$3,1.3,1 -v +
-
-#@gmic blur_radial : _amplitude,_cx,_cy : Apply radial blur on selected images.
-blur_radial : -skip ${1=0.1},${2=0.5},${3=0.5}
-  -e[^-1] "Apply radial blur on image$?, with amplitude $1 and center ($2,$3)."
-  -v - -euclidean2polar $2,$3,5,1 -blur_x $1 -polar2euclidean $2,$3,5,1 -v +
-
-#@gmic blur_linear : _amplitude1,_amplitude2,_angle=0,_borders={ 0 | 1 } : Apply linear blur on selected images, with specified angle and amplitudes.
-blur_linear : -skip ${1=0.2},${2=0.02},${3=0},${4=1}
-  -e[^-1] "Apply linear blur on image$?, with angle $3 and amplitudes ($1,$2)."
-  -v - -repeat @#
-    -if {$4==1} -expand_x[-1] 16 -expand_y[-1] 16 -else -frame 16,16,0 -endif
-    ($3,$3) -+[-1] 90 -=[-1] $3,1 -/[-1] 180 -*[-1] 3.14159265359 -sin[-1]
-    (-1,1) (-1;1) -r[-2,-1] [-4],[-4],[-4],1,3
-    --*[-1] @{-3,0} --*[-3] @{-4,1} --[-2,-1] -/[-1] $2 -sqr[-1]
-    -*[-3] @{-4,0} -*[-2] @{-4,1} -+[-3,-2] -/[-2] $1 -sqr[-2]
-    -+[-2,-1] -*[-1] -1 -exp[-1] -normalize_sum[-1] -rm[-2]
-    -convolve_fft[-2,-1] -shrink_x[-1] 16 -shrink_y[-1] 16
-  -mv[-1] 0 -done -v +
-
-#@gmic dog : _sigma1>=0[%],_sigma2>=0[%] : Compute difference of gaussian on selected images.
-dog : -skip ${1=2%},${2=3%}
-  -e[^-1] "Compute difference of gaussian on image$?, with standard deviations $1 and $2."
-  -v - -repeat @#
-    --blur[-1] $1 -blur[-2] $2 --[-2,-1] -norm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic split_freq : smoothness>0[%] : Split selected images into low and high frequency parts.
-split_freq : -skip ${1=2%}
-  -e[^-1] "Split image$? into low and high frequency parts, with smoothness $1."
-  -v - -repeat @#
-    --blur[-1] $1 --[-2] [-1] -reverse[-2,-1]
-  -mv[-2,-1] 0 -done -v +
-
-#@gmic compose_freq : : Compose selected low and high frequency parts into new images.
-compose_freq :
-  -e[^-1] "Compose low and high frequency part$? into new images."
-  -v - -repeat {@#/2}
-    -+[-2,-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic normalize_local : _amplitude>=0,_radius>0,_n_smooth>=0[%],_a_smooth>=0[%],_cut={ 0 | 1 },_min=0,_max=255 : Normalize selected images locally.
-normalize_local :
-  -check "${1=3}>=0 && isint(${2=16}) && $2>0 && isbool(${5=1}) && isval(${6=0}) && isval(${7=255})" -skip ${3=4%},${4=2%}
-  -e[^-1] "Normalize image$? locally, with amplitude $1, radius $2, neighborhood smoothness $3 and average smoothness $4."
-  -v - -repeat @#
-    --l[-1] -erode {2*$2+1} -s c -min -endl
-    --l[-2] -dilate {2*$2+1} -s c -max -endl
-    --blur[-3] $4 -blur[-3,-2] $3
-    ---[-2] [-3] -+[-1] 0.01 --[-5] [-4] -/[-5,-1]
-    -*[-3,-2] {$1+1} -*[-1] -$1 -+[-3] [-1] -+[-2,-1]
-    -if $5 -max[-2] $6 -min[-1] $7 -endif
-    --[-1] [-2] -*[-3,-1] -+[-2,-1]
-    -if $5 -c[-1] $6,$7 -endif
-  -mv[-1] 0 -done -v +
-
-#@gmic unsharp : _radius[%]>=0,_amount>=0,_threshold[%]>=0 : Apply unsharp mask on selected images.
-unsharp : -check "${2=2}>=0" -skip ${1=1},${3=0}
-  -e[^-1] "Apply unsharp mask on image$?, with radius $1, amount $2 and threshold $3."
-  -v - -repeat @#
-    --blur[-1] $1 --[-1] [-2]
-    -if $3 --norm[-1] -t[-1] $3 -*[-2,-1] -endif
-    -*[-1] $2 --[-2,-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic unsharp_octave : _nb_scales>0,_radius[%]>=0,_amount>=0,threshold[%]>=0 : Apply octave sharpening on selected images.
-unsharp_octave : -check "isint(${1=4}) && $1>0 && ${3=2}>=0" -skip ${2=1},${4=0}
-  -e[^-1] "Apply octave sharpening on image$?, with $1 scales, radius $2, amount $3 and threshold $4."
-  -v - -repeat @#
-    -l[-1] --f 0 -p 0 -repeat $1
-      --unsharp[0] {$2*2^-@{<,-1}},$3,$4 -*[-1] {2^-@{>,-1}} -pr[-1] {~-1+2^-@{>,-1}} -+[1,-1]
-    -done -rm[0] -/[-1] ~-1 -pp[-1] -endl
-  -mv[-1] 0 -done -v +
-
-#@gmic convolve_fft : : Convolve selected images two-by-two through Fourier transforms.
-convolve_fft :
-  -e[^-1] "Convolve image$? two-by-two through Fourier transforms."
-  -v - -repeat {@#/2}
-    -r[-1] 100%,100%,100%,[-2],1 -r[-1] [-2],0,0,0.5,0.5,0.5,0.5 -shift[-1] -50%,-50%,-50%,0,2
-    -fft[-2] -fft[-1] -shift[-1] -50%,-50%,-50%,0,2
-    --*[-4] [-1] --*[-4] [-3] -+[-2,-1]
-    -*[-5,-3] -*[-3,-2] --[-3,-2]
-    -ifft[-2,-1] -rm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic deconvolve_fft : : Deconvolve selected images two-by-two through Fourier transforms.
-deconvolve_fft :
-  -e[^-1] "Deconvolve image$? two-by-two through Fourier transforms."
-  -v - -repeat {@#/2}
-    -r[-1] 100%,100%,100%,[-2],1 -r[-1] [-2],0,0,0.5,0.5,0.5,0.5 -shift[-1] -50%,-50%,-50%,0,2
-    -fft[-2] -fft[-1] -shift[-1] -50%,-50%,-50%,0,2
-    --sqr[-2] --sqr[-2] -+[-2,-1] -+[-1] 0.0001 -/[-5--2] [-1] -rm[-1]
-    --*[-3] [-2] --*[-5] [-2] --[-2,-1]
-    -*[-5,-3] -*[-3,-2] -+[-3,-2]
-    -ifft[-2,-1] -rm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic bandpass : _min_freq[%],_max_freq[%] : Apply bandpass filter to selected images.
-bandpass : -skip ${1=0},${2=20%}
-  -e[^-1] "Apply bandpass filter [$1,$2] to image$?."
-  -v - -repeat @#
-    100%,100%,100% -f[-1] "sqrt((x/w-0.5)^2 + (y/h-0.5)^2 + (z/d-0.5)^2)" -n[-1] 0,1 -t2[-1] $1,$2 -shift[-1] 50%,50%,50%,0,2
-    -fft[-2] -*[-3] [-1] -*[-2,-1] -ifft[-2,-1] -rm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic rgb2bayer : _start_pattern=0,_color=0 : Transform selected color images to RGB-Bayer sampled images.
+#@gmic rgb2bayer : _start_pattern=0,_color=0
+#@gmic : Transform selected color images to RGB-Bayer sampled images.
 rgb2bayer : -skip ${1=0},${2=0}
   -if $2 -e[^-1] "Transform image$? to a RGB-Bayer color grid, starting from pattern '$1'."
   -else -e[^-1] "Transform image$? to a RGB-Bayer monochrome grid, starting from pattern '$1'."
@@ -657,7 +604,8 @@ _rgb2bayer1 : (0,0;0,1^0,1;1,0^1,0;0,0)
 _rgb2bayer2 : (0,0;1,0^1,0;0,1^0,1;0,0)
 _rgb2bayer3 : (0,1;0,0^1,0;0,1^0,0;1,0)
 
-#@gmic bayer2rgb : _GM_smoothness,_RB_smoothness1,_RB_smoothness2 : Transform selected RGB-Bayer sampled images to color images.
+#@gmic bayer2rgb : _GM_smoothness,_RB_smoothness1,_RB_smoothness2
+#@gmic : Transform selected RGB-Bayer sampled images to color images.
 bayer2rgb : -skip ${1=1},${2=1},${3=0.5}
   -e[^-1] "Transform RGB-Bayer image$? to color images, with smoothness ($1,$2,$3)."
   -v - -channels 0 -repeat @#
@@ -703,7 +651,97 @@ bayer2rgb : -skip ${1=1},${2=1},${3=0.5}
 
   -mv[-1] 0 -done -v +
 
-#@gmic pde_flow : _nb_iter>=0,_dt,_velocity_command,_sequence_flag={ 0 | 1 } : Apply iterations of a generic PDE flow on selected images.
+
+#@gmic lic : _amplitude>0,_channels>0
+#@gmic : Generate LIC representation of vector field.
+lic : -skip ${1=30},${2=1}
+  -e[^-1] "Generate LIC representation of 2d vector field$?, with amplitude $1 and $2 channel(s)."
+  -v - -repeat @#
+     -channels[-1] 0,1 -/[-1] {max(abs(@{-1,m}),abs(@{-1,M}))} -vector2tensor[-1]
+     100%,100%,100%,$2 -rand[-1] 0,255 -smooth[-1] [-2],$1 -rm[-2]
+     -equalize[-1] 256
+  -mv[-1] 0 -done -v +
+
+#@gmic gaussian : _sigma1[%],_sigma2[%],_angle
+#@gmic : Draw a centered gaussian on selected images, with specified standard deviations and orientation.
+gaussian : -skip ${1=3},${2=$1},${3=0}
+  -e[^-1] "Draw centered gaussian on image$? with standard deviations ($1,$2) and angle $3°."
+  -v -
+  -p[0] {cos($3*pi/180)} -p[1] {sin($3*pi/180)}         # Push unit direction vector in stack (~0,~1).
+  -if {isval($1)} -p[2] {-1/(0.1+2*$1^2)}               # Push opposite and inverse of standard deviation 1 in ~2.
+  -else -p[2] {-1/(0.1+2*((${1}10000)*max(w,h)/100)^2)}
+  -endif
+  -if {isval($2)} -p[3] {-1/(0.1+2*$2^2)}               # Push opposite and inverse of standard deviation 2 in ~3.
+  -else -p[3] {-1/(0.1+2*((${2}10000)*max(w,h)/100)^2)}
+  -endif
+  -repeat @#
+    -p {w} -p {h} -rm[-1]
+    (-~-2,~-2) (-~-1;~-1) -/[-2,-1] 2
+    -r[-2,-1] ~-2,~-1,1,1,3 -pp[-2,-1]                  # x y
+    --*[-2,-1] -sqr[-3,-2]                              # x^2 y^2 xy
+    -*[-3] {(~0)^2*~2+(~1)^2*~3}                        # x^2(u^2/s1+v^2/s2) y^2 xy
+    -*[-2] {(~1)^2*~2+(~0)^2*~3}                        # x^2(u^2/s1+v^2/s2) y^2(v^2/s1+u^2/s2) xy
+    -*[-1] {2*(~0)*(~1)*(~2-~3)}                        # x^2(u^2/s1+v^2/s2) y^2(v^2/s1+u^2/s2) 2uvxy(1/s1-1/s2)
+    -+[-3--1] -exp[-1]
+  -mv[-1] 0 -done -pp[0-3] -v +
+
+#-------------------------
+#
+#@gmic :: Image filtering
+#
+#-------------------------
+
+#@gmic blur_x : amplitude,_borders={ 0 | 1 }
+#@gmic : Blur selected images along the X-axis.
+blur_x : -skip ${2=1}
+  -deriche $1,0,x,$2
+
+#@gmic blur_y : amplitude,_borders={ 0 | 1 }
+#@gmic : Blur selected images along the Y-axis.
+blur_y : -skip ${2=1}
+  -deriche $1,0,y,$2
+
+#@gmic blur_z : amplitude,_borders={ 0 | 1 }
+#@gmic : Blur selected images along the Z-axis.
+blur_z : -skip ${2=1}
+  -deriche $1,0,z,$2
+
+#@gmic blur_angular : _amplitude,_cx,_cy
+#@gmic : Apply angular blur on selected images.
+blur_angular : -skip ${1=10},${2=0.5},${3=0.5}
+  -e[^-1] "Apply angular blur on image$?, with amplitude $1 and center ($2,$3)."
+  -v - -euclidean2polar $2,$3,1.3,1 -expand_y 16,2 -blur_y $1 -shrink_y 16 -polar2euclidean $2,$3,1.3,1 -v +
+
+#@gmic blur_radial : _amplitude,_cx,_cy
+#@gmic : Apply radial blur on selected images.
+blur_radial : -skip ${1=0.1},${2=0.5},${3=0.5}
+  -e[^-1] "Apply radial blur on image$?, with amplitude $1 and center ($2,$3)."
+  -v - -euclidean2polar $2,$3,5,1 -blur_x $1 -polar2euclidean $2,$3,5,1 -v +
+
+#@gmic blur_linear : _amplitude1[%],_amplitude2[%],_angle=0,_borders={ 0=dirichlet | 1=neumann }
+#@gmic : Apply linear blur on selected images, with specified angle and amplitudes.
+blur_linear : -skip ${1=30%},${2=$1},${3=0},${4=1}
+  -e[^-1] "Apply linear blur on image$?, with angle $3 and amplitudes ($1,$2)."
+  -v -
+  -if {isval($1)} -p $1 -else -p {(${1}10000)*max(w,h)/100} -endif
+  -if {isval($2)} -p $2 -else -p {(${2}10000)*max(w,h)/100} -endif
+  -p[0] {(1.75*max(~-1,~-2))>>0} -pp[-2,-1]
+  -repeat @#
+    -if {$4==1} -expand_xy[-1] ~0,1 -else -expand_xy[-1] ~0,0 -endif
+    {2*~0},{2*~0} -gaussian[-1] $1,$2,$3 -normalize_sum[-1]
+    -convolve_fft[-2,-1] -shrink_xy[-1] ~0
+  -mv[-1] 0 -done -pp[0] -v +
+
+#@gmic dog : _sigma1>=0[%],_sigma2>=0[%]
+#@gmic : Compute difference of gaussian on selected images.
+dog : -skip ${1=2%},${2=3%}
+  -e[^-1] "Compute difference of gaussian on image$?, with standard deviations $1 and $2."
+  -v - -repeat @#
+    --blur[-1] $1 -blur[-2] $2 --[-2,-1] -norm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic pde_flow : _nb_iter>=0,_dt,_velocity_command,_sequence_flag={ 0 | 1 }
+#@gmic : Apply iterations of a generic PDE flow on selected images.
 pde_flow : -skip ${1=10},${2=30},${3=laplacian},${4=0}
   -e[^-1] "Apply $1 iterations of the velocity flow '$3' on image$?, with time step $2."
   -v - -repeat @# -l[-1] -repeat $1
@@ -712,27 +750,26 @@ pde_flow : -skip ${1=10},${2=30},${3=laplacian},${4=0}
   -done -if $4 -rm[0] -endif -a x -endl
   -mv[-1] 0 -done -if $4 -s x,$1 -endif -v +
 
-#@gmic heat_flow : _nb_iter>=0,_dt,_sequence_flag={ 0 | 1 } : Apply iterations of the heat flow on selected images.
+#@gmic heat_flow : _nb_iter>=0,_dt,_sequence_flag={ 0 | 1 }
+#@gmic : Apply iterations of the heat flow on selected images.
 heat_flow : -skip ${1=10},${2=30},${3=0}
   -e[^-1] "Apply $1 iterations of the heat flow on image$?, with time step $2."
   -v - -pde_flow $1,$2,laplacian,$3 -v +
 
-#@gmic meancurvature_flow : _nb_iter>=0,_dt,_sequence_flag={ 0 | 1 } : Apply iterations of the mean curvature flow on selected images.
+#@gmic meancurvature_flow : _nb_iter>=0,_dt,_sequence_flag={ 0 | 1 }
+#@gmic : Apply iterations of the mean curvature flow on selected images.
 meancurvature_flow : -skip ${1=5},${2=30},${3=0}
   -e[^-1] "Apply $1 iterations of the mean curvature flow on image$?, with time step $2."
-  -v - -pde_flow $1,$2,meancurvature_flow_velocity,$3 -v +
-meancurvature_flow_velocity :
-  --gradient_derivative2[-1] -laplacian[-2] --[-2,-1]
+  -v - -pde_flow $1,$2,Iee,$3 -v +
 
-#@gmic tv_flow : _nb_iter>=0,_dt,_sequence_flag={ 0 | 1 } : Apply iterations of the total variation flow on selected images.
+#@gmic tv_flow : _nb_iter>=0,_dt,_sequence_flag={ 0 | 1 }
+#@gmic : Apply iterations of the total variation flow on selected images.
 tv_flow : -skip ${1=5},${2=30},${3=0}
   -e[^-1] "Apply $1 iterations of the total variation flow on image$?, with time step $2."
-  -v - -pde_flow $1,$2,tv_flow_velocity,$3 -v +
+  -v - -pde_flow $1,$2,curvature,$3 -v +
 
-tv_flow_velocity :
-  --gradient[-1] xyz -sqr[-3--1] -+[-3--1] -sqrt[-1] -+[-1] 0.1 -meancurvature_flow_velocity[-2] -/[-2,-1]
-
-#@gmic inpaint_flow : _nb_iter1>=0,_nb_iter2>=0,_dt>=0,_alpha,_sigma : Apply iteration of the inpainting flow on selected images.
+#@gmic inpaint_flow : _nb_iter1>=0,_nb_iter2>=0,_dt>=0,_alpha,_sigma
+#@gmic : Apply iteration of the inpainting flow on selected images.
 inpaint_flow : -skip ${1=4},${2=15},${3=15},${4=1},${5=3}
   -e[^-1] "Apply $1 iteration of the inpainting flow on image$?."
   -v - -norm[0] -quantize[0] 2 -n[0] 0,1 -repeat @# -if @{>,-1} -l[0,@{>,-1}]
@@ -742,15 +779,26 @@ inpaint_flow : -skip ${1=4},${2=15},${3=15},${4=1},${5=3}
   -done
   -endl -endif -done -v +
 
-#@gmic richardson_lucy : amplitude>=0,_nb_iter>=0,_dt>=0,_regul>=0,_regul_type={ 0=Tikhonov | 1=meancurv. | 2=TV }
+#@gmic remove_hotpixels : _mask_size>0, _threshold[%]>0
+#@gmic : Remove hot pixels in selected images.
+remove_hotpixels : -check "isint(${1=3}) && $1>0" -skip ${2=10%}
+  -e[^-1] "Remove hot pixels in image$?, with mask size $1 and threshold $2."
+  -v - -repeat @#
+    --median[-1] $1 ---[-1,-2] -abs[-1] -t[-1] $2
+    -*[-2] [-1]
+    -*[-1] -1 -+[-1] 1
+    -*[-3,-1] -+[-2,-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic richardson_lucy : amplitude[%]>=0,_nb_iter>=0,_dt>=0,_regul>=0,_regul_type={ 0=Tikhonov | 1=meancurv. | 2=TV }
 #@gmic : Deconvolve image with the iterative Richardson-Lucy algorithm.
-richardson_lucy : -check "$1>=0 && ${2=10}>=0 && ${3=20}>=0 && ${4=0.7}>=0" -skip ${5=1}
+richardson_lucy : -check "${2=10}>=0 && ${3=20}>=0 && ${4=0.7}>=0" -skip ${1=2},${5=1}
   -e[^-1] "Deconvove image$? with the Richardson-Lucy algorithm, with sigma $1, $2 iterations, time step $3 and regularization $4."
   -v - -repeat @#
     [-1]
     -repeat $2
-      -if {$5>=2} --tv_flow_velocity[-1]                  # TV regularization.
-      -elif {$5>=1} --meancurvature_flow_velocity[-1]     # Meancurv. regularization.
+      -if {$5>=2} --curvature[-1]                         # TV regularization.
+      -elif {$5>=1} --Iee[-1]                             # Meancurv. regularization.
       -else --laplacian[-1]                               # Tikhonov regularization.
       -endif
       -*[-1] $4
@@ -762,267 +810,313 @@ richardson_lucy : -check "$1>=0 && ${2=10}>=0 && ${3=20}>=0 && ${4=0.7}>=0" -ski
     -rm[-2]
   -mv[-1] 0 -done -v +
 
-#@gmic remove_hotpixels : _mask_size>0, _threshold[%]>0 : Remove hot pixels in selected images.
-remove_hotpixels : -check "isint(${1=3}) && $1>0" -skip ${2=10%}
-  -e[^-1] "Remove hot pixels in image$?, with mask size $1 and threshold $2."
+#@gmic oriented_richardson_lucy : amplitude1[%]>=0,_amplitude2[%]>=0,_angle,_nb_iter>=0,_dt>=0,_regul>=0,_regul_type={ 0=Tikhonov | 1=meancurv. | 2=TV }
+#@gmic : Deconvolve image with the iterative Richardson-Lucy algorithm for oriented kernels.
+oriented_richardson_lucy : -check "${2=$1}>=0 && ${4=10}>=0 && ${5=20}>=0 && ${6=0.7}>=0" -skip ${1=2},${3=0},${7=1}
+  -e[^-1] "Deconvove image$? with the oriented Richardson-Lucy algorithm, with sigma ($1,$2), angle $3°, $4 iterations, time step $5 and regularization $6."
   -v - -repeat @#
-    --median[-1] $1 ---[-1,-2] -abs[-1] -t[-1] $2
-    -*[-2] [-1]
-    -*[-1] -1 -+[-1] 1
-    -*[-3,-1] -+[-2,-1]
+    [-1]
+    -repeat $4
+      -if {$7>=2} --curvature[-1]                         # TV regularization.
+      -elif {$7>=1} --Iee[-1]                             # Meancurv. regularization.
+      -else --laplacian[-1]                               # Tikhonov regularization.
+      -endif
+      -*[-1] $6
+      --blur_linear[-2] $1,$2,$3 --[-1] [-4]              # Data fidelity term.
+      --[-2,-1]
+      -*[-1] {$5/(0.0001+max(abs(@{-1,m}),abs(@{-1,M})))} # Adaptive time step.
+      -+[-2,-1]                                           # Update image.
+    -done
+    -rm[-2]
   -mv[-1] 0 -done -v +
 
-#@gmic lic : _amplitude>0,_channels>0 : Generate LIC representation of vector field.
-lic : -skip ${1=30},${2=1}
-  -e[^-1] "Generate LIC representation of 2d vector field$?, with amplitude $1 and $2 channel(s)."
+#@gmic unsharp : _radius[%]>=0,_amount>=0,_threshold[%]>=0
+#@gmic : Apply unsharp mask on selected images.
+unsharp : -check "${2=2}>=0" -skip ${1=1},${3=0}
+  -e[^-1] "Apply unsharp mask on image$?, with radius $1, amount $2 and threshold $3."
   -v - -repeat @#
-     -channels[-1] 0,1 -/[-1] {max(abs(@{-1,m}),abs(@{-1,M}))} -vector2tensor[-1]
-     100%,100%,100%,$2 -rand[-1] 0,255 -smooth[-1] [-2],$1 -rm[-2]
-     -equalize[-1] 256
+    --blur[-1] $1 --[-1] [-2]
+    -if $3 --norm[-1] -t[-1] $3 -*[-2,-1] -endif
+    -*[-1] $2 --[-2,-1]
   -mv[-1] 0 -done -v +
 
-#--------------------------------------------------
-#
-# Value manipulation
-#
-#--------------------------------------------------
+#@gmic unsharp_octave : _nb_scales>0,_radius[%]>=0,_amount>=0,threshold[%]>=0
+#@gmic : Apply octave sharpening on selected images.
+unsharp_octave : -check "isint(${1=4}) && $1>0 && ${3=2}>=0" -skip ${2=1},${4=0}
+  -e[^-1] "Apply octave sharpening on image$?, with $1 scales, radius $2, amount $3 and threshold $4."
+  -v - -repeat @#
+    -l[-1] --f 0 -p 0 -repeat $1
+      --unsharp[0] {$2*2^-@{<,-1}},$3,$4 -*[-1] {2^-@{>,-1}} -pr[-1] {~-1+2^-@{>,-1}} -+[1,-1]
+    -done -rm[0] -/[-1] ~-1 -pp[-1] -endl
+  -mv[-1] 0 -done -v +
 
-#@gmic complex2polar : : Compute complex to polar transforms of selected images.
-complex2polar :
-  -e[^-1] "Compute complex to polar transforms of image$?."
-  -v - -repeat {@#/2}
-    -r[-1] [-2],3 --atan2[-1] [-2] -sqr[-3,-2] -+[-3,-2] -sqrt[-2]
+#@gmic normalize_local : _amplitude>=0,_radius>0,_n_smooth>=0[%],_a_smooth>=0[%],_cut={ 0 | 1 },_min=0,_max=255
+#@gmic : Normalize selected images locally.
+normalize_local :
+  -check "${1=3}>=0 && isint(${2=16}) && $2>0 && isbool(${5=1}) && isval(${6=0}) && isval(${7=255})" -skip ${3=4%},${4=2%}
+  -e[^-1] "Normalize image$? locally, with amplitude $1, radius $2, neighborhood smoothness $3 and average smoothness $4."
+  -v - -repeat @#
+    --l[-1] -erode {2*$2+1} -s c -min -endl
+    --l[-2] -dilate {2*$2+1} -s c -max -endl
+    --blur[-3] $4 -blur[-3,-2] $3
+    ---[-2] [-3] -+[-1] 0.01 --[-5] [-4] -/[-5,-1]
+    -*[-3,-2] {$1+1} -*[-1] -$1 -+[-3] [-1] -+[-2,-1]
+    -if $5 -max[-2] $6 -min[-1] $7 -endif
+    --[-1] [-2] -*[-3,-1] -+[-2,-1]
+    -if $5 -c[-1] $6,$7 -endif
+  -mv[-1] 0 -done -v +
+
+#@gmic fftpolar
+#@gmic : Compute Fourier transform of selected images, as centered magnitude/phase images.
+fftpolar :
+  -e[^-1] "Compute Fourier transform of image$?, as centered magnitude/phase images."
+  -v - -repeat @#
+    -fft[-1] -complex2polar[-2,-1]
+    -shift[-2,-1] 50%,50%,50%,0,2
   -mv[-2,-1] 0 -done -v +
 
-#@gmic polar2complex : : Compute polar to complex transforms of selected images.
-polar2complex :
-  -e[^-1] "Compute polar to complex transforms of image$?."
+#@gmic ifftpolar
+#@gmic : Compute inverse Fourier transform of selected images, from centered magnitude/phase images.
+ifftpolar :
+  -e[^-1] "Compute inverse Fourier transform of image$?, from centered magnitude/phase images."
   -v - -repeat {@#/2}
-    -r[-1] [-2],3 --sin[-1] -cos[-2] -*[-1] [-3] -*[-3,-2]
+    -shift[-2,-1] -50%,-50%,-50%,0,2
+    -polar2complex[-2,-1] -ifft[-2,-1] -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic convolve_fft
+#@gmic : Convolve selected images two-by-two through Fourier transforms.
+convolve_fft :
+  -e[^-1] "Convolve image$? two-by-two through Fourier transforms."
+  -v - -repeat {@#/2}
+    -r[-1] 100%,100%,100%,[-2],1 -r[-1] [-2],0,0,0.5,0.5,0.5,0.5 -shift[-1] -50%,-50%,-50%,0,2
+    -fft[-2] -fft[-1] -shift[-1] -50%,-50%,-50%,0,2
+    --*[-4] [-1] --*[-4] [-3] -+[-2,-1]
+    -*[-5,-3] -*[-3,-2] --[-3,-2]
+    -ifft[-2,-1] -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic deconvolve_fft
+#@gmic : Deconvolve selected images two-by-two through Fourier transforms.
+deconvolve_fft :
+  -e[^-1] "Deconvolve image$? two-by-two through Fourier transforms."
+  -v - -repeat {@#/2}
+    -r[-1] 100%,100%,100%,[-2],1 -r[-1] [-2],0,0,0.5,0.5,0.5,0.5 -shift[-1] -50%,-50%,-50%,0,2
+    -fft[-2] -fft[-1] -shift[-1] -50%,-50%,-50%,0,2
+    --sqr[-2] --sqr[-2] -+[-2,-1] -+[-1] 0.0001 -/[-5--2] [-1] -rm[-1]
+    --*[-3] [-2] --*[-5] [-2] --[-2,-1]
+    -*[-5,-3] -*[-3,-2] -+[-3,-2]
+    -ifft[-2,-1] -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic bandpass : _min_freq[%],_max_freq[%]
+#@gmic : Apply bandpass filter to selected images.
+bandpass : -skip ${1=0},${2=20%}
+  -e[^-1] "Apply bandpass filter [$1,$2] to image$?."
+  -v - -repeat @#
+    100%,100%,100% -f[-1] "sqrt((x/w-0.5)^2 + (y/h-0.5)^2 + (z/d-0.5)^2)" -n[-1] 0,1 -t2[-1] $1,$2 -shift[-1] 50%,50%,50%,0,2
+    -fft[-2] -*[-3] [-1] -*[-2,-1] -ifft[-2,-1] -rm[-1]
+  -mv[-1] 0 -done -v +
+
+#@gmic split_freq : smoothness>0[%]
+#@gmic : Split selected images into low and high frequency parts.
+split_freq : -skip ${1=2%}
+  -e[^-1] "Split image$? into low and high frequency parts, with smoothness $1."
+  -v - -repeat @#
+    --blur[-1] $1 --[-2] [-1] -reverse[-2,-1]
   -mv[-2,-1] 0 -done -v +
 
-#@gmic transfer_histogram : : Transfer histogram of the last selected image to the other ones.
-transfer_histogram :
-  -e[^-1] "Transfer histogram of the last selected image to image$?."
-  -v - -to_rgb -c 0,255 -equalize[0--2] 256 --histogram_cumul[-1] 256 -/[-1] @{-3,#} -*[-1] 255
-  -repeat @#-2
-    -s[-3] c -index[-5--3] [-1] -a[-5--3] c
-  -mv[-3] 0 -done -rm[-1] -v +
-
-#@gmic normalize_sum : : Normalize selected images with a unitary sum.
-normalize_sum :
-  -e[^-1] "Normalize image$? with a unitary sum."
-  -v - -repeat @#
-    (@{-1,+}) -if {@-1>0} -/[-2] @-1 -endif -rm[-1]
+#@gmic compose_freq
+#@gmic : Compose selected low and high frequency parts into new images.
+compose_freq :
+  -e[^-1] "Compose low and high frequency part$? into new images."
+  -v - -repeat {@#/2}
+    -+[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic apply_gamma : gamma : Apply gamma correction to selected images.
-apply_gamma : -skip ${1=1.2}
-  -e[^-1] "Apply Gamma-correction to image$?, with gamma $1."
-  -if {$1==1} -return -endif
+#----------------------------------
+#
+#@gmic :: Contours and variations
+#
+#----------------------------------
+
+#@gmic gradient_norm
+#@gmic : Compute gradient norm of selected images.
+gradient_norm :
+  -e[^-1] "Compute gradient norm of image$?."
   -v - -repeat @#
-    (@{-1,m},@{-1,M}) -n[-2] 0,1 -pow[-2] {1/$1} -n[-2] @-1 -rm[-1]
+    --gradient[-1] x -sqr[-1]
+    --gradient[-2] y -sqr[-1] -+[-2,-1]
+    -gradient[-2] z -sqr[-2] -+[-2,-1]
+    -p {s} -s[-1] c -+[-~-1--1] -pp[-1]
+    -sqrt[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic negative : : Compute negative of selected images.
-negative :
-  -e[^-1] "Compute negative of image$?."
+#@gmic gradient_orientation : _dimension={1,2,3}
+#@gmic : Compute N-D gradient orientation of selected images.
+gradient_orientation : -check "${1=3}==1 || $1==2 || $1==3"
+  -e[^-1] "Compute $1-D gradient orientation of image$?."
   -v - -repeat @#
-    --[-1] @{-1,M} -*[-1] -1
-  -mv[-1] 0 -done -v +
-
-#@gmic tones : N>0 : Get N tones masks from selected images.
-tones : -skip ${1=3}
-  -e[^-1] "Get $1 tones masks from image$?."
-  -v - -norm -repeat @#
-    -repeat $1 --t2[{-1-@{>,-1}}] {@{>,-1}*100.01/$1}%,{(@{>,-1}+1)*100.01/$1}% -done -rm[-{$1+1}]
+    -if {$1==1} -gradient[-1] x --abs[-1] -+[-1] 1e-8 -/[-2,-1]
+    -elif {$1==2} -gradient[-1] xy --sqr[-2--1] -+[-2,-1] -+[-1] 1e-8 -sqrt[-1] -/[-3] [-1] -/[-2,-1]
+    -else -gradient[-1] xyz --sqr[-3--1] -+[-3--1] -+[-1] 1e-8 -sqrt[-1] -/[-4,-3] [-1] -/[-2,-1]
+    -endif
   -mv[-$1--1] 0 -done -v +
 
-#@gmic t2 : eq. to '-threshold2'.
-t2 : -threshold2 ${^0}
-
-#@gmic threshold2 : _min,_max : Threshold selected images between the two given values (eq. to '-t2').
-threshold2 : -skip ${1=0%},${2=100%}
-  -e[^-1] "Hard-threshold image$? between values $1 and $2."
-  -v -
-  -repeat @#
-    --t[-1] $1 -t[-2] $2 -xor[-2,-1]
+#@gmic gradient2rgb : _orientation={ 0 | 1 }
+#@gmic : Compute RGB representation of 2d gradient of selected images.
+gradient2rgb : -check "isbool(${1=0})"
+  -if $1 -e[^-1] "Compute RGB representation of 2d gradient orientation of image$?."
+  -else -e[^-1] "Compute RGB representation of 2d gradient of image$?." -endif
+  -v - -repeat @#
+    -norm[-1]
+    -if $1 -gradient_orientation[-1] 2 -else -gradient[-1] xy -endif
+    -a[-2,-1] c -direction2rgb[-1]
   -mv[-1] 0 -done -v +
 
-#-----------------------------
-#
-# Image resizing
-#
-#-----------------------------
-
-#@gmic r2dx : eq. to '-resize2dx'.
-r2dx :
-  -resize2dx ${^0}
-
-#@gmic resize2dx : width>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the X-axis, preserving 2d ratio (eq. to '-r2dx').
-resize2dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 2d image$? to $1 pixels along the X-axis, preserving 2d ratio."
+#@gmic laplacian
+#@gmic : Compute Laplacian of selected images.
+laplacian :
+  -e[^-1] "Compute Laplacian of image $?."
   -v - -repeat @#
-    ({h}) -*[-1] $1 -/[-1] @{-2,w} -c[-1] 1,100%
-    -r[-2] $1,@-1,[-2],[-2],$2 -rm[-1]
+    -if {d==1} -hessian[-1] xxyy -+[-2,-1]
+    -else -hessian[-1] xxyyzz -+[-3--1]
+    -endif
   -mv[-1] 0 -done -v +
 
-#@gmic r3dx : eq. to '-resize3dx'.
-r3dx :
-  -resize3dx ${^0}
-
-#@gmic resize3dx : width>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the X-axis, preserving 3d ratio (eq. to '-r3dx').
-resize3dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 3d image$? to $1 pixels along the X-axis, preserving 3d ratio."
+#@gmic inn
+#@gmic : Compute gradient-directed 2nd derivative of image(s).
+Inn :
+  -e[^-1] "Compute gradient-directed 2nd derivative of image$?."
   -v - -repeat @#
-    ({h},{d}) -*[-1] $1 -/[-1] @{-2,w} -c[-1] 1,100%
-    -r[-2] $1,@-1,[-2],$2 -rm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic r2dy : eq. to '-resize2dy'.
-r2dy :
-  -resize2dy ${^0}
-
-#@gmic resize2dy : height>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Y-axis, preserving 2d ratio (eq. to '-r2dy').
-resize2dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 2d image$? to $1 pixels along the Y-axis, preserving 2d ratio."
-  -v - -repeat @#
-    ({w}) -*[-1] $1 -/[-1] @{-2,h} -c[-1] 1,100%
-    -r[-2] @-1,$1,[-2],[-2],$2 -rm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic r3dy : eq. to '-resize3dy'.
-r3dy :
-  -resize3dy ${^0}
-
-#@gmic resize3dy : height>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Y-axis, preserving 3d ratio (eq. to '-r3dy').
-resize3dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 3d image$? to $1 pixels along the Y-axis, preserving 3d ratio."
-  -v - -repeat @#
-    ({w},{h}) -*[-1] $1 -/[-1] @{-2,h} -c[-1] 1,100%
-    -r[-2] @{-1,0},$1,@{-1,1},[-2],$2 -rm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic r3dz : eq. to '-resize3dz'.
-r3dz :
-  -resize3dz ${^0}
-
-#@gmic resize3dz : depth>0,_interpolation_type={0,1,2,3,4,5} : Resize selected images along the Z-axis, preserving 3d ratio (eq. to '-r3dz').
-resize3dz : -check "$1>0 && ${2=2}>=0 && $2<=5"
-  -e[^-1] "Resize 3d image$? to $1 pixels along the Z-axis, preserving 3d ratio."
-  -v - -repeat @#
-    ({w},{h}) -*[-1] $1 -/[-1] @{-2,d} -c[-1] 1,100%
-    -r[-2] @-1,$1,[-2],$2 -rm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic upscale_smart : width,height,_depth,smoothness>=0,_anisotropy=[0,1],sharpening>=0 : Upscale selected images with an edge-preserving algorithm.
-upscale_smart : -skip ${2=100%},${3=100%} -check "${4=2}>=0 && ${5=0.4}>=0 && $5<=1 && ${6=10}>=0"
-  -e[^-1] "Upscale image$? to $1x$2x$3, with smoothness $4, anisotropy $5 and sharpening $6."
-  -v - -repeat @#
-    -p {w} -p {h}
-    --edgetensors 0,$5,1.2,1.2
-    -r[-2,-1] $1,$2,$3,100%,5
-    -if {w<~-2" || "h<~-1}  # Test for downscaling
-      -rm[-1] -f[-1] 0
+    -if {d==1}
+      --gradient[-1] xy,0 -hessian[-3] xxxyyy                 # ixx ixy iyy ix iy
+      -*[-5] [-2] -*[-4] [-1] -*[-4] 2                        # ixixx 2iyixy iyy ix iy
+      -+[-5,-4] -*[-4] [-2]                                   # ix^2ixx+2ixiyixy iyy ix iy
+      -sqr[-2,-1] -*[-3] [-1] -+[-4,-3]                       # ix^2ixx+2ixiyixy+iy^2iyy ix^2 iy^2
+      -+[-2,-1] -+[-1] 1e-8 -/[-2,-1]                         # (ix^2ixx+2ixiyixy+iy^2iyy)/(ix^2+iy^2)
     -else
-      -smooth[-2] [-1],$4 -rm[-1]
-      -apply_channels "-sharpen[-1] $6,1,10",3,0
-    -endif
-    -pp[-2,-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic expand_x : size_x>=0,_borders={0,1,2} : Expand selected images along the X-axis.
-expand_x : -check "$1>=0 && ${2=1}>=0 && $2<=2"
-  -e[^-1] "Expand image$? along the X-axis with size $1 and border conditions $2."
-  -v - -repeat @#
-    -if {$2==0} $1,100%,100%,100% -i[-3] [-1] -a[-3--1] x
-    -elif {$2==1} --columns[-1] 0 --columns[-2] 100% -r[-2,-1] $1 -mv[-2] -3 -a[-3--1] x
-    -else ({w}) -+[-1] $1 -+[-1] $1 -r[-2] @-1,[-2],[-2],[-2],0,2,0.5,0.5 -rm[-1]
+      --gradient[-1] xyz,0 -hessian[-4] xxxyxzyyyzzz          # ixx ixy ixz iyy iyz izz ix iy iz
+      -*[-9] [-3] -*[-8] [-2] -*[-8] 2 -*[-7] [-1] -*[-7] 2   # ixixx 2iyixy 2izixz iyy iyz izz ix iy iz
+      -+[-9--7] -*[-7] [-3]                                   # ix^2ixx+2ixiyixy+2ixizixy iyy iyz izz ix iy iz
+      -*[-6] [-2] -*[-5] [-1] -*[-5] 2                        # ix^2ixx+2ixiyixy+2ixizixy iyiyy 2iziyz izz ix iy iz
+      -+[-6,-5] -*[-5] [-2] -+[-6,-5]                         # ix^2ixx+2ixiyixy+2ixizixy+iy^2iyy+2iyiziyz izz ix iy iz
+      -sqr[-3--1] -*[-4] [-1] -+[-5,-4]                       # ix^2ixx+2ixiyixy+2ixizixy+iy^2iyy+2iyiziyz+iz^2izz ix^2 iy^2 iz^2
+      -+[-3--1] -+[-1] 1e-8 -/[-2,-1]                         # (ix^2ixx+2ixiyixy+2ixizixy+iy^2iyy+2iyiziyz+iz^2izz)/(ix^2+iy^2+iz^2)
     -endif
   -mv[-1] 0 -done -v +
 
-#@gmic expand_y : size_y>=0,borders={0,1,2} : Expand selected images along the Y-axis.
-expand_y : -check "$1>=0 && ${2=1}>=0 && $2<=2"
-  -e[^-1] "Expand image$? along the Y-axis with size $1 and border conditions $2."
+#@gmic iee
+#@gmic : Compute gradient-orthogonal-directed 2nd derivative of image(s).
+Iee :
+  -e[^-1] "Compute gradient-orthogonal-directed 2nd derivative of image$?."
   -v - -repeat @#
-    -if {$2==0} 100%,$1,100%,100% -i[-3] [-1] -a[-3--1] y
-    -elif {$2==1} --lines[-1] 0 --lines[-2] 100% -r[-2,-1] 100%,$1 -mv[-2] -3 -a[-3--1] y
-    -else ({h}) -+[-1] $1 -+[-1] $1 -r[-2] [-2],@-1,[-2],[-2],0,2,0.5,0.5 -rm[-1]
+    -if {d==1}
+      --gradient[-1] xy,0 -hessian[-3] xxxyyy                 # ixx ixy iyy ix iy
+      -*[-3] [-2] -*[-4] [-1] -*[-4] -2                       # ixx -2iyixy ixiyy ix iy
+      -+[-4,-3] -*[-3] [-2]                                   # ixx -2ixiyixy+ix^2iyy ix iy
+      -sqr[-2,-1] -*[-4] [-1] -+[-4,-3]                       # iy^2ixx-2ixiyixy+ix^2iyy ix^2 iy^2
+      -+[-2,-1] -+[-1] 1e-8 -/[-2,-1]                         # (iy^2ixx+2ixiyixy+ix^2iyy)/(ix^2+iy^2)
+    -else
+      --Inn[-1] -laplacian[-2] --[-2,-1]
     -endif
   -mv[-1] 0 -done -v +
 
-#@gmic expand_z : size_z>=0,borders={0,1,2} : Expand selected images along the Z-axis.
-expand_z : -check "$1>=0 && ${2=1}>=0 && $2<=2"
-  -e[^-1] "Expand image$? along the Z-axis with size $1 and border conditions $2."
+#@gmic curvature
+#@gmic : Compute isophote curvatures on selected images.
+curvature :
+  -e[^-1] "Compute isophote curvatures on image$?."
   -v - -repeat @#
-    -if {$2==0} 100%,100%,$1,100% -i[-3] [-1] -a[-3--1] z
-    -elif {$2==1} --slices[-1] 0 --slices[-2] 100% -r[-2,-1] 100%,100%,$1 -mv[-2] -3 -a[-3--1] z
-    -else ({d}) -+[-1] $1 -+[-1] $1 -r[-2] [-2],[-2],@-1,[-2],0,2,0.5,0.5 -rm[-1]
+    -if {d==1}
+      --gradient[-1] xy,0 -hessian[-3] xxxyyy                 # ixx ixy iyy ix iy
+      -*[-3] [-2] -*[-4] [-1] -*[-4] -2                       # ixx -2iyixy ixiyy ix iy
+      -+[-4,-3] -*[-3] [-2]                                   # ixx -2ixiyixy+ix^2iyy ix iy
+      -sqr[-2,-1] -*[-4] [-1] -+[-4,-3]                       # iy^2ixx-2ixiyixy+ix^2iyy ix^2 iy^2
+      -+[-2,-1] -+[-1] 0.1 -pow[-1] 1.5 -/[-2,-1]             # (iy^2ixx+2ixiyixy+ix^2iyy)/(ix^2+iy^2)
+    -else
+      --Inn[-1] --gradient_norm[-2] -laplacian[-3]            # inn+iee inn in
+      --[-3,-2] -+[-1] 0.1 -/[-2,-1]                          # iee in
+      --Inn[-1] -laplacian[-2] --[-2,-1]                      # iee/in
     -endif
   -mv[-1] 0 -done -v +
 
-#@gmic expand_xy : size>=0,borders={0,1,2} : Expand selected images along the XY-axes.
-expand_xy : -check "$1>=0 && ${2=1}>=0 && $2<=2"
-  -e[^-1] "Expand image$? along the XY-axes with size $1 and border conditions $2."
-  -v - -expand_x $1,$2 -expand_y $1,$2 -v +
-
-#@gmic expand_xyz : size>=0,borders={0,1,2} : Expand selected images along the XYZ-axes.
-expand_xyz : -check "$1>=0 && ${2=1}>=0 && $2<=2"
-  -e[^-1] "Expand image$? along the XYZ-axes with size $1 and border conditions $2."
-  -v - -expand_x $1,$2 -expand_y $1,$2 -expand_z $1,$2 -v +
-
-#@gmic shrink_x : size_x>=0 : Shrink selected images along the X-axis.
-shrink_x : -check "$1>=0"
-  -e[^-1] "Shrink image$? along the X-axis with size $1."
+#@gmic edges : _threshold>=0
+#@gmic : Estimate contours of selected images.
+edges : -skip ${1=15}
+  -e[^-1] "Estimate image contours of image$?, with threshold $1."
   -v - -repeat @#
-    ({w}) --[-1] $1 --[-1] 1 -crop[-2] $1,@-1 -rm[-1]
+    -gradient_norm[-1] -blur[-1] 0.5 -t[-1] $1% -distance[-1] 0 -equalize[-1] 256
+    -negative[-1] -c[-1] 30%,70% -n[-1] 0,1
   -mv[-1] 0 -done -v +
 
-#@gmic shrink_y : size_y>=0 : Shrink selected images along the Y-axis.
-shrink_y : -check "$1>=0"
-  -e[^-1] "Shrink image$? along the Y-axis with size $1."
-  -v - -repeat @#
-    ({h}) --[-1] $1 --[-1] 1 -crop[-2] 0,$1,100%,@-1 -rm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic shrink_z : size_z>=0 : Shrink selected images along the Z-axis.
-shrink_z : -check "$1>=0"
-  -e[^-1] "Shrink image$? along the Z-axis with size $1."
-  -v - -repeat @#
-    ({d}) --[-1] $1 --[-1] 1 -crop[-2] 0,0,$1,100%,100%,@-1 -rm[-1]
-  -mv[-1] 0 -done -v +
-
-#@gmic shrink_xy : size>=0 : Shrink selected images along the XY-axes.
-shrink_xy : -check "$1>=0"
-  -e[^-1] "Shrink image$? along the XY-axes with size $1."
-  -v - -shrink_x $1 -shrink_y $1 -v +
-
-#@gmic elevate : _depth,_is_plain,_is_colored : Elevate selected 2d images into 3d volumes.
-elevate : -check "${1=64}>0" -skip ${2=1},${3=1}
-  -e[^-1] "Elevate 2d image$? into $1-slices volume(s)."
-  -v - -r 100%,100%,1,100%
-  -repeat @# -l[-1]
-  --norm[0] -i 100%,100%,$1,{if($3,@{0,s},1)}
-    -p @{-2,m} -p {@{-2,M}-~-1}
-    -repeat $1
-      -if $2
-        --t[1] {~-2+~-1*(@{>,-1}+1)/$1}
-      -else
-        --t2[1] {~-2+~-1*@{>,-1}/$1},{~-2+~-1*(@{>,-1}+1)/$1}
-      -endif
-      -r[-1] 100%,100%,1,[-2] -if $3 -*[-1] [0] -endif
-      -image[-2] [-1],0,0,@{>,-1} -rm[-1]
-    -done
-    -pp[-2,-1] -rm[0,1]
+#@gmic isophotes : _nb_levels>0
+#@gmic : Render isophotes of selected images on a transparent background.
+isophotes : -skip ${1=64}
+  -e[^-1] "Render isophote maps from images$?, with $1 levels."
+  -v - -to_rgba -repeat @# -l[-1]
+    --luminance -repeat $1 --isoline3d[1] {@{>,-1}*255/($1-1)} -done -rm[1] -+3d[1--1] -col3d[-1] 1,1,1
+    [0],[0] -object3d[-1] [-2],0,0 -rm[-2] -*[-2,-1]
   -endl -mv[-1] 0 -done -v +
 
-#--------------------------------------------------
-#
-# Arrays and frames
-#
-#--------------------------------------------------
+#@gmic topographic_map : _nb_levels>0,_smoothness
+#@gmic : Render selected images as topographic maps.
+topographic_map : -skip ${1=16},${2=2}
+  -e[^-1] "Render topographic maps from image$?, with $1 levels and smoothness $2."
+  -v - -to_rgb -repeat @#
+    --blur[-1] $2 -isophotes[-1] $1 -t[-1] 0.1 -to_rgb[-1] --norm[-1]
+    -line[-2,-1] 100%,0,100%,100%,1,1 -line[-2,-1] 0,100%,100%,100%,1,1
+    -line[-2,-1] 0,0,100%,0,1,1 -line[-2,-1] 0,0,0,100%,1,1
+    -_topographic_map0[-3--1]
+    -_topographic_map[-3--1]
+    -rm[-3,-1]
+  -mv[-1] 0 -done -v +
 
-#@gmic array : _M>0,_N>0,_expand_type={0,1,2} : Create MxN array from selected images.
+_topographic_map0 :
+  -repeat 4000
+    -p {?(w)},{?(h)}
+    -if {@{-1,(~-1)}==0}
+      -flood[-2] ~-1,0,0,1,@{-3,(~-1,0,0)},@{-3,(~-1,0,1)},@{-3,(~-1,0,2)}
+      -flood[-1] ~-1,0,0,1,1
+    -endif
+    -pp[-1]
+  -done
+
+_topographic_map :
+  -do
+    (@{-1,c}) -p @{-1,0},@{-1,1} -rm[-1]
+    -if {@{-1,(~-1)}==0}
+      -flood[-2] ~-1,0,0,1,@{-3,(~-1,0,0)},@{-3,(~-1,0,1)},@{-3,(~-1,0,2)}
+      -flood[-1] ~-1,0,0,1,1
+      -pp[-1]
+    -else -pp[-1] -return
+    -endif
+  -while 1
+
+#@gmic segment_watershed : _threshold>=0
+#@gmic : Apply watershed segmentation on selected images.
+segment_watershed : -check "${1=2}>=0 && ${2=11}>0"
+  -e[^-1] "Apply watershed segmentation on image$?, with edge threshold $1."
+  -v - -repeat @#
+    -p[0] {1+@{-1,m}} -+[-1] ~0
+    --gradient_norm[-1]
+    -if {d>1}
+      --f[-1] "if(i<$1 && i<i(x+1) && i<i(x-1) && i<i(x,y+1) && i<i(x,y-1) && i<i(x,y,z+1) && i<i(x,y,z-1),1,0)"
+    -else
+      --f[-1] "if(i<$1 && i<i(x+1) && i<i(x-1) && i<i(x,y+1) && i<i(x,y-1),1,0)"
+    -endif
+    -*[-3,-1] -*[-1] -1
+    -watershed[-2] [-1],1 -rm[-1]
+    -pp[0]
+  -mv[-1] 0 -done -v +
+
+#-------------------------------
+#
+#@gmic :: Arrays and frames
+#
+#-------------------------------
+
+#@gmic array : _M>0,_N>0,_expand_type={0,1,2}
+#@gmic : Create MxN array from selected images.
 array : -skip ${1=3},${2=$1},${3=0}
   -e[^-1] "Create $1x$2 array from image$?, with expand type $3."
   -v - -repeat @#
@@ -1035,14 +1129,16 @@ array_expand1 :
 array_expand2 :
   -skip ${^0}
 
-#@gmic array_fade : _M>0,_N>0,0<=_fade_start<=100,0<=_fade_end<=100,_expand_type={0,1,2} : Create MxN array from selected images.
+#@gmic array_fade : _M>0,_N>0,0<=_fade_start<=100,0<=_fade_end<=100,_expand_type={0,1,2}
+#@gmic : Create MxN array from selected images.
 array_fade : -skip ${1=3},${2=$1},${3=60},${4=90},${5=1}
   -e[^-1] "Create $1x$2 array of ($3%,$4%) faded tiles from image$?, with expand type $5."
   -v - -repeat @#
     --shift[-1] 50%,50%,1,1,2 -mv[-1] -2 -fade_diamond[-2,-1] $3,$4 -array[-1] $1,$2,$5
   -mv[-1] 0 -done -v +
 
-#@gmic array_mirror : _N>=0,_dir={0,1,2},_expand_type={ 0 | 1 } : Create 2^Nx2^N array from selected images.
+#@gmic array_mirror : _N>=0,_dir={0,1,2},_expand_type={ 0 | 1 }
+#@gmic : Create 2^Nx2^N array from selected images.
 array_mirror : -skip ${1=2},${2=2},${3=0}
   -e[^-1] "Create a 2^$1x2^$1 mirrored-array from image$?, with expand type $2."
   -v - -repeat $1
@@ -1055,7 +1151,8 @@ array_mirror : -skip ${1=2},${2=2},${3=0}
     -mv[-1] 0 -done
   -done -v +
 
-#@gmic array_random : _Ms>0,_Ns>0,_Md>0,_Nd>0 : Create MdxNd array of tiles from selected MsxNs source arrays.
+#@gmic array_random : _Ms>0,_Ns>0,_Md>0,_Nd>0
+#@gmic : Create MdxNd array of tiles from selected MsxNs source arrays.
 array_random : -skip ${1=5},${2=$1},${3=$1},${4=$2}
   -e[^-1] "Create $3x$4 array of tiles from $1x$2 array$?."
   -v - -repeat @#
@@ -1064,7 +1161,8 @@ array_random : -skip ${1=5},${2=$1},${3=$1},${4=$2}
     -rm[0-{$1*$2-1}] -append_tiles $3,$4
   -endl -mv[-1] 0 -done -v +
 
-#@gmic array_pattern : _M>0,_N>0,_density>=0,_angle>=0,_zoom>=0,_opacity,_expand_type={0,1,2} : Create random MxN array from selected images.
+#@gmic array_pattern : _M>0,_N>0,_density>=0,_angle>=0,_zoom>=0,_opacity,_expand_type={0,1,2}
+#@gmic : Create random MxN array from selected images.
 array_pattern : -skip ${1=10},${2=10},${3=80},${4=180},${5=30},${6=1},${7=0}
   -e[^-1] "Create $1x$2 pattern array from image$?, with density $3, angle $4, zoom $5, opacity $6 and expand type $7."
   -v - -repeat @#
@@ -1081,14 +1179,16 @@ array_pattern : -skip ${1=10},${2=10},${3=80},${4=180},${5=30},${6=1},${7=0}
     -shift[-1] 0,-1 -done -done -rm[-3,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic taquin : _M>0,_N>0 : Create MxN taquin puzzle from selected images.
+#@gmic taquin : _M>0,_N>0
+#@gmic : Create MxN taquin puzzle from selected images.
 taquin : -skip ${1=4},${2=$1}
  -e[^-1] "Create $1x$2 taquin puzzle from image $?."
  -v - -repeat @# -l[-1]
    -split_tiles $1,$2,1 -repeat {$1*$2} -mv[@{>,-1}] {?(0,@#)} -done -append_tiles $1,$2
  -endl -mv[-1] 0 -done -v +
 
-#@gmic grid : _M>0,_N>0 : Create MxN image grid from selected images.
+#@gmic grid : _M>0,_N>0
+#@gmic : Create MxN image grid from selected images.
 grid : -skip ${1=10},${2=$1}
   -e[^-1] "Create $1x$2 image grid from image$?."
   -v - -repeat @#
@@ -1097,7 +1197,8 @@ grid : -skip ${1=10},${2=$1}
     $1,$2,1,[-1],1 -shift[-1] 1,1 -r[-1] [-2],0,2 -*[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic frame : _size_x>=0,_size_y>=0,_R,_G,_B,_A : Insert RGBA-colored frame in selected images.
+#@gmic frame : _size_x>=0,_size_y>=0,_R,_G,_B,_A
+#@gmic : Insert RGBA-colored frame in selected images.
 frame : -skip ${1=20},${2=$1},${3=255},${4=$3},${5=$4},${6=255}
   -e[^-1] "Insert $1x$2 frame with RGBA color ($3,$4,$5,$6) in image$?."
   -v - -to_rgba -repeat @#
@@ -1105,7 +1206,8 @@ frame : -skip ${1=20},${2=$1},${3=255},${4=$3},${5=$4},${6=255}
     ($3^$4^$5^$6) -r[-1] [-2],$2,[-2],[-2],1 -i[-3] [-1] -a[-3--1] y
   -mv[-1] 0 -done -v +
 
-#@gmic frame_fuzzy : _size_x>=0,_size_y>=0,_fuzzyness>=0,_smoothness>=0,_R,_G,_B,_A : Draw RGBA-colored fuzzy frame in selected images.
+#@gmic frame_fuzzy : _size_x>=0,_size_y>=0,_fuzzyness>=0,_smoothness>=0,_R,_G,_B,_A
+#@gmic : Draw RGBA-colored fuzzy frame in selected images.
 frame_fuzzy : -skip ${1=20},${2=$1},${3=5},${4=1},${5=255},${6=$5},${7=$6},${8=255}
   -e[^-1] "Draw $1x$2 fuzzy frame on image$?, with fuzzyness $3, smoothness $4 and RGBA color ($5,$6,$7,$8)."
   -v - -to_rgba -repeat @#
@@ -1115,7 +1217,8 @@ frame_fuzzy : -skip ${1=20},${2=$1},${3=5},${4=1},${5=255},${6=$5},${7=$6},${8=2
     -rm[0] -shift[-1] -$1,-$2,0,0,2 -spread[-1] $3 -blur[-1] $4 -_fade 50,80
   -mv[-1] 0 -done -v +
 
-#@gmic frame_round : _sharpness>0,_size>=0,_smoothness,_R,_G,_B,_A : Draw RGBA-colored round frame in selected images.
+#@gmic frame_round : _sharpness>0,_size>=0,_smoothness,_R,_G,_B,_A
+#@gmic : Draw RGBA-colored round frame in selected images.
 frame_round : -skip ${1=3},${2=10},${3=0},${4=255},${5=$4},${6=$5},${7=255}
   -e[^-1] "Draw round frame on image$?, with sharpness $1, size $2, smoothness $3 and RGBA color ($4,$5,$6,$7)."
   -v - -to_rgba -repeat @#
@@ -1124,19 +1227,22 @@ frame_round : -skip ${1=3},${2=10},${3=0},${4=255},${5=$4},${6=$5},${7=255}
     --*[-1] $5 --*[-2] $6 --*[-3] $7 -*[-4] $4 -a[-4--1] c -+[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic rotate_tiles : _angle,_M>0,N>0 : Apply MxN tiled-rotation effect on selected images.
+#@gmic rotate_tiles : _angle,_M>0,N>0
+#@gmic : Apply MxN tiled-rotation effect on selected images.
 rotate_tiles : -skip ${1=5},${2=8},${3=$2}
   -e[^-1] "Apply $2x$3 tiled-rotation effect on image$?, with angle $1."
   -v - -split_tiles $2,$3,1 -rotate $1 -append_tiles $2,$3 -v +
 
-#@gmic shift_tiles : _M>0,_N>0,_amplitude : Apply MxN tiled-shift effect on selected images.
+#@gmic shift_tiles : _M>0,_N>0,_amplitude
+#@gmic : Apply MxN tiled-shift effect on selected images.
 shift_tiles : -skip ${1=8},${2=8},${3=20}
   -e[^-1] "Apply $1x$2 tiled-shift effect on image$?, with amplitude $3."
   -v - -repeat @#
     $1,$2,1,2 -noise[-1] $3 -r[-1] [-2],[-2],1,2 -warp[-2] [-1],1,1,0 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic linearize_tiles : _M>0,_N>0 : Linearize MxN tiles on selected images.
+#@gmic linearize_tiles : _M>0,_N>0
+#@gmic : Linearize MxN tiles on selected images.
 linearize_tiles : -check "${1=10}>0 && ${2=$1}>0"
   -e[^-1] "Linearize $1x$2 tiles on image$?."
   -v -
@@ -1152,7 +1258,8 @@ linearize_tiles : -check "${1=10}>0 && ${2=$1}>0"
     -repeat {@#/~-1} -a[-~-1--1] c -mv[-1] 0 -done -append_tiles $1,$2 -pp[-1]
   -endl -mv[-1] 0 -done -v +
 
-#@gmic quadratize_tiles : _M>0,_N>0 : Quadratize MxN tiles on selected images.
+#@gmic quadratize_tiles : _M>0,_N>0
+#@gmic : Quadratize MxN tiles on selected images.
 quadratize_tiles : -check "${1=10}>0 && ${2=$1}>0"
   -e[^-1] "Quadratize $1x$2 tiles on image$?."
   -v -
@@ -1168,25 +1275,28 @@ quadratize_tiles : -check "${1=10}>0 && ${2=$1}>0"
     -repeat {@#/~-1} -a[-~-1--1] c -mv[-1] 0 -done -append_tiles $1,$2 -pp[-1]
   -endl -mv[-1] 0 -done -v +
 
-#--------------------------------------------------
+#-----------------------------
 #
-# Artistic effects
+#@gmic :: Artistic effects
 #
-#--------------------------------------------------
+#-----------------------------
 
-#@gmic polaroid : _size1>=0,_size2>=0 : Create polaroid effect in selected images.
+#@gmic polaroid : _size1>=0,_size2>=0
+#@gmic : Create polaroid effect in selected images.
 polaroid : -skip ${1=10},${2=20}
   -e[^-1] "Create polaroid effect in image$?, with borders sizes $1 and $2."
   -v - -- 255 -r {100+$1}%,{100+$1}%,1,100%,0,0,0.5,0.5 -r 100%,{100+$2}%,1,100%,0,0,0 -+ 255 -v +
 
-#@gmic drop_shadow : _offset_x[%],_offset_y[%],_smoothness[%] : Drop shadow behind selected images.
+#@gmic drop_shadow : _offset_x[%],_offset_y[%],_smoothness[%]
+#@gmic : Drop shadow behind selected images.
 drop_shadow : -skip ${1=20},${2=$1},${3=5}
   -e[^-1] "Drop shadow behind image$?, with offsets ($1,$2) and smoothness $3."
   -v - -to_rgba -repeat @#
     -r[-1] 150%,150%,1,100%,0,0,0.5,0.5 -s[-1] c --blur[-1] $3 -shift[-1] $1,$2 -or[-2,-1] -a[-4--1] c -autocrop 0,0,0,0
   -mv[-1] 0 -done -v +
 
-#@gmic tetris : _scale>0 : Apply tetris effect on selected images.
+#@gmic tetris : _scale>0
+#@gmic : Apply tetris effect on selected images.
 tetris : -skip ${1=10}
   -e[^-1] "Apply tetris effect on image$?, with scale $1."
   -v - -repeat @#
@@ -1194,7 +1304,8 @@ tetris : -skip ${1=10}
     -r[-1] [-2] -rm[-2] -blur[-1] 2 -sharpen[-1] 300,1
   -mv[-1] 0 -done -v +
 
-#@gmic mosaic : _density>=0,_edges={ 0 | 1 } : Create random mosaic from selected images.
+#@gmic mosaic : _density>=0,_edges={ 0 | 1 }
+#@gmic : Create random mosaic from selected images.
 mosaic : -skip ${1=0.8},${2=1}
   -e[^-1] "Apply mosaic effect on image$?, with density $1."
   -v - -repeat @#
@@ -1204,7 +1315,8 @@ mosaic : -skip ${1=0.8},${2=1}
     -pp[0]
   -mv[-1] 0 -done -v +
 
-#@gmic puzzle : _scale>=0 : Apply puzzle effect on selected images.
+#@gmic puzzle : _scale>=0
+#@gmic : Apply puzzle effect on selected images.
 puzzle : -skip ${1=5}
   -e[^-1] "Apply puzzle effect on image$?, with scale $1%."
   -v - -repeat @#
@@ -1214,7 +1326,8 @@ puzzle : -skip ${1=5}
     -r[-1] [-2],[-2],1,2,5 -warp[-2] [-1],1,1,1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic sponge : _size>0 : Apply sponge effect on selected images.
+#@gmic sponge : _size>0
+#@gmic : Apply sponge effect on selected images.
 sponge : -skip ${1=13}
   -e[^-1] "Apply sponge filter on image$?, with brush size $1."
   -v - -repeat @#
@@ -1224,7 +1337,8 @@ sponge : -skip ${1=13}
 _circle :
   -i 1 -+[-1] 1 -r[-1] $1,$1,1,1,0,0,0.5,0.5 -distance[-1] 1 -n[-1] 0,1 -sqrt[-1] -c[-1] 0.85,0.86 -*[-1] -1 -n[-1] 0,1
 
-#@gmic hearts : _density>=0 : Apply heart effect on selected images.
+#@gmic hearts : _density>=0
+#@gmic : Apply heart effect on selected images.
 hearts : -skip ${1=10}
   -e[^-1] "Apply heart filter on image$?, with density $1."
   -v - -repeat @#
@@ -1235,14 +1349,16 @@ hearts : -skip ${1=10}
 _heart9x7 :
   (0,1,1,0,0,0,1,1,0;1,1,1,1,0,1,1,1,1;1,1,1,1,1,1,1,1,1;0,1,1,1,1,1,1,1,0;0,0,1,1,1,1,1,0,0;0,0,0,1,1,1,0,0,0;0,0,0,0,1,0,0,0,0)
 
-#@gmic color_ellipses : _count>0,_radius>=0,_opacity>=0 : Add random color ellipses to selected images.
+#@gmic color_ellipses : _count>0,_radius>=0,_opacity>=0
+#@gmic : Add random color ellipses to selected images.
 color_ellipses : -skip ${1=1400},${2=5},${3=0.1}
   -e[^-1] "Add $1 random color ellipses to image$?, with maximum radius $2 and opacity $1."
   -v - -repeat @#
     -repeat $1 -ellipse[-1] {?(0,100)}%,{?(0,100)}%,{?(0,$2)}%,{?(0,$2)}%,{?(0,360)},$3,{?(60,255)},{?(60,255)},{?(60,255)} -done
   -mv[-1] 0 -done -v +
 
-#@gmic whirls : _texture>=0,_smoothness>=0,_darkness>=0,_lightness>=0 : Add random whirl texture to selected images.
+#@gmic whirls : _texture>=0,_smoothness>=0,_darkness>=0,_lightness>=0
+#@gmic : Add random whirl texture to selected images.
 whirls : -skip ${1=3},${2=6},${3=0.5},${4=1.8}
   -e[^-1] "Add random whirl texture to image$?, with texture $1, smoothness $2, darkness $3 and lightness $4."
   -v - -repeat @#
@@ -1250,7 +1366,8 @@ whirls : -skip ${1=3},${2=6},${3=0.5},${4=1.8}
     -n[-1] $3,$4 -r[-1] [-2] -*[-2,-1] -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic cartoon : _smoothness,_sharpening,_threshold>=0,_thickness>=0,_color>=0,quantization>0 : Apply cartoon effect on selected images.
+#@gmic cartoon : _smoothness,_sharpening,_threshold>=0,_thickness>=0,_color>=0,quantization>0
+#@gmic : Apply cartoon effect on selected images.
 cartoon : -skip ${1=2},${2=200},${3=15},${4=0.25},${5=1.5},${6=8}
   -e[^-1] "Apply cartoon effect on image$?, with smoothness $1, sharpening $2, threshold $3, thickness $4, color $5 and quantization $6."
   -v - -to_rgb -blur $1 -sharpen $2,1 -c 0,255 -n 0,255 -repeat @#
@@ -1259,7 +1376,8 @@ cartoon : -skip ${1=2},${2=200},${3=15},${4=0.25},${5=1.5},${6=8}
     -*[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic drawing : _amplitude>=0 : Apply drawing effect on selected images.
+#@gmic drawing : _amplitude>=0
+#@gmic : Apply drawing effect on selected images.
 drawing : -skip ${1=200}
   -e[^-1] "Apply drawing effect on image$? with amplitude $1."
   -v - -repeat @#
@@ -1267,7 +1385,8 @@ drawing : -skip ${1=200}
     -r[-2] 20,20,1,3,2 -equalize[-2] 256 -index[-1] [-2],1,1 -rm[-2]
   -mv[-1] 0 -done -v +
 
-#@gmic draw_whirl : _amplitude>=0 : Apply whirl drawing effect on selected images.
+#@gmic draw_whirl : _amplitude>=0
+#@gmic : Apply whirl drawing effect on selected images.
 draw_whirl : -skip ${1=100}
   -e[^-1] "Apply whirl drawing effect on image$? with amplitude $1."
   -v - -repeat @#
@@ -1275,14 +1394,16 @@ draw_whirl : -skip ${1=100}
     -sqrt[-1] -n[-1] 0,255 -equalize[-1] 256
   -mv[-1] 0 -done -v +
 
-#@gmic stencil : _radius[%]>=0,_smoothness>=0,_iterations>=0 : Apply stencil filter on selected images.
+#@gmic stencil : _radius[%]>=0,_smoothness>=0,_iterations>=0
+#@gmic : Apply stencil filter on selected images.
 stencil : -check "${1=3}>=0 && ${2=1}>=0 && ${3=8}>=0"
   -e[^-1] "Apply stencil filter on image$?, with radius $1, smoothness $2 and $3 iterations."
   -v -
   -n 0,1 -repeat $3 -blur $1 -unsharp {$1+$2},1000 -c 0,255 -done
   -v +
 
-#@gmic stencilbw : _edges>=0,_smoothness>=0 : Apply B&W stencil effect on selected images.
+#@gmic stencilbw : _edges>=0,_smoothness>=0
+#@gmic : Apply B&W stencil effect on selected images.
 stencilbw : -skip ${1=15},${2=10}
   -e[^-1] "Apply B&W stencil effect on image$?, with edges $1 and smoothness $2."
   -v - -repeat @#
@@ -1290,7 +1411,8 @@ stencilbw : -skip ${1=15},${2=10}
     -sharpen[-2] 1000000 -norm[-2] -n[-2] 0,1 -*[-1,-2] -n[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic pencilbw : _size>=0,_amplitude>=0 : Apply B&W pencil effect on selected images.
+#@gmic pencilbw : _size>=0,_amplitude>=0
+#@gmic : Apply B&W pencil effect on selected images.
 pencilbw : -skip ${1=0.3},${2=60}
   -e[^-1] "Apply B&W pencil effect on image$?, with size $1 and amplitude $2."
   -v - -repeat @#
@@ -1299,14 +1421,16 @@ pencilbw : -skip ${1=0.3},${2=60}
     -to_colormode[-1] ~-1 -pp[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic ditheredbw : : Create dithered B&W version of selected images.
+#@gmic ditheredbw
+#@gmic : Create dithered B&W version of selected images.
 ditheredbw :
   -e[^-1] "Create dithered B&W version of image$?."
   -v - -repeat @#
     -n[-1] 0,255 -r[-1] 100%,100%,100%,3 2,1,1,3,0,255 -index[-2] [-1],1,1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic dotsbw : : Apply B&W dots effect on selected images.
+#@gmic dotsbw
+#@gmic : Apply B&W dots effect on selected images.
 dotsbw :
   -e[^-1] "Apply B&W dots effect on image$?."
   -v - -repeat @#
@@ -1318,7 +1442,8 @@ dotsbw :
     -rm[-1] -or[-5--1] -n[-1] 0,255 -r[-1] 100%,100%,1,3
   -mv[-1] 0 -done -v +
 
-#@gmic warhol : _M>0,_N>0,_smoothness>=0,_color>=0 : Create MxN Andy Warhol-like artwork from selected images.
+#@gmic warhol : _M>0,_N>0,_smoothness>=0,_color>=0
+#@gmic : Create MxN Andy Warhol-like artwork from selected images.
 warhol : -skip ${1=3},${2=$1},${3=2},${4=20}
   -e[^-1] "Create $1x$2 Andy Warhol-like artwork from image$?."
   -v - -repeat @#
@@ -1328,7 +1453,8 @@ warhol : -skip ${1=3},${2=$1},${3=2},${4=20}
     -done -done -append_tiles[1--1] $1,$2 -rm[0] -endl
   -mv[-1] 0 -done -v +
 
-#@gmic cubism : _nb_iter>=0,_bloc_size>0,_max_angle,_opacity,_smoothness>=0 : Apply cubism effect on selected images.
+#@gmic cubism : _nb_iter>=0,_bloc_size>0,_max_angle,_opacity,_smoothness>=0
+#@gmic : Apply cubism effect on selected images.
 cubism : -skip ${1=160},${2=10},${3=75},${4=0.7},${5=0}
   -e[^-1] "Apply cubism effect on image$?, with $1 iterations, bloc size $2%, maximum angle $3, opacity $4 and smoothness $5."
   -v - -repeat @#
@@ -1342,25 +1468,28 @@ cubism : -skip ${1=160},${2=10},${3=75},${4=0.7},${5=0}
     -pp[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic glow : _amplitude>=0 : Add soft glow on selected images.
+#@gmic glow : _amplitude>=0
+#@gmic : Add soft glow on selected images.
 glow : -skip ${1=-1}
   -e[^-1] "Add soft glow on image$?, with amplitude $1."
   -v - -repeat @#
     --blur[-1] $1 -n[-1] [-2] -compose_edges[-2,-1] 1
   -mv[-1] 0 -done -v +
 
-#@gmic old_photo : : Apply old photo effect on selected images.
+#@gmic old_photo
+#@gmic : Apply old photo effect on selected images.
 old_photo :
   -e[^-1] "Apply old photo effect on image$?."
   -v - -noise 20 -bilateral 30,60 -blur 2 -sharpen 100 -frame_fuzzy 20,20,6,3 -shadow_patch 0.75 -n 0,255 -sepia -v +
 
 #------------------------------------
 #
-# Spatial warping
+#@gmic :: Spatial warping
 #
 #------------------------------------
 
-#@gmic euclidean2polar : _cx,_cx,_n>0,_borders={0,1,2} : Apply euclidean to polar transform on selected images.
+#@gmic euclidean2polar : _cx,_cx,_n>0,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Apply euclidean to polar transform on selected images.
 euclidean2polar : -skip ${1=0.5},${2=0.5},${3=1},${4=1}
   -e[^-1] "Apply euclidean to polar transform on image$?."
   -v - -repeat @#
@@ -1371,7 +1500,8 @@ euclidean2polar : -skip ${1=0.5},${2=0.5},${3=1},${4=1}
     -rm[-3] -a[-2,-1] c -warp[-2] [-1],0,1,$4 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic warp_perspective : _x-angle,_y-angle,_zoom>0,_x-center,_y-center,_borders={0,1,2} : Warp selected images with perspective deformation.
+#@gmic warp_perspective : _x-angle,_y-angle,_zoom>0,_x-center,_y-center,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Warp selected images with perspective deformation.
 warp_perspective : -skip ${1=1.5},${2=0},${3=1},${4=50},${5=50},${6=2}
   -e[^-1] "Apply perspective warp on image$?, with angles ($1,$2), zoom $3 and offsets ($4,$5)."
   -v - -repeat @#
@@ -1382,7 +1512,8 @@ warp_perspective : -skip ${1=1.5},${2=0},${3=1},${4=50},${5=50},${6=2}
     -a[-2,-1] c -warp[-2] [-1],0,1,$6 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic polar2euclidean : _cx,_cy,_n>0,_borders={0,1,2} : Apply polar to euclidean transform on selected images.
+#@gmic polar2euclidean : _cx,_cy,_n>0,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Apply polar to euclidean transform on selected images.
 polar2euclidean : -skip ${1=0.5},${2=0.5},${3=1},${4=1}
   -e[^-1] "Apply polar to euclidean transform on image$?."
   -v - -repeat @#
@@ -1393,14 +1524,16 @@ polar2euclidean : -skip ${1=0.5},${2=0.5},${3=1},${4=1}
     -rm[-3] -a[-2,-1] c -warp[-2] [-1],0,1,$4 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic water : _amplitude>=0,_smoothness>=0 : Apply water deformation on selected images.
+#@gmic water : _amplitude>=0,_smoothness>=0
+#@gmic : Apply water deformation on selected images.
 water : -skip ${1=30},${2=1.5}
   -e[^-1] "Apply water deformation on image$?, with amplitude $1 and smoothness $2."
   -v - -repeat @#
     25%,25%,25%,1 -noise[-1] $1 -gradient[-1] xyz -+[-1,-2,-3] -blur[-1] $2 -*[-1] 2 -r[-1] [-2],[-2],1,2,3 -warp[-2] [-1],1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic wave : _amplitude>=0,_frequency>=0,_center_x,_center_y : Apply wave deformation on selected images.
+#@gmic wave : _amplitude>=0,_frequency>=0,_center_x,_center_y
+#@gmic : Apply wave deformation on selected images.
 wave : -skip ${1=4},${2=0.4},${3=50},${4=50}
   -e[^-1] "Apply wave deformation on image$?, with amplitude $1, frequency $2 and center at ($3%,$4%)."
   -v - -repeat @#
@@ -1409,7 +1542,8 @@ wave : -skip ${1=4},${2=0.4},${3=50},${4=50}
     -warp[-2] [-1],1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic twirl : _amplitude,_cx,_cy,_borders={0,1,2} : Apply twirl deformation on selected images.
+#@gmic twirl : _amplitude,_cx,_cy,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Apply twirl deformation on selected images.
 twirl : -skip ${1=1},${2=0.5},${3=0.5},${4=1}
   -e[^-1] "Apply twirl deformation on image$?, with amplitude $1 and center at ($2%,$3%)."
   -v - -repeat @#
@@ -1417,7 +1551,8 @@ twirl : -skip ${1=1},${2=0.5},${3=0.5},${4=1}
     -warp[-2] [-1],1,1,2 -rm[-1] -polar2euclidean[-1] $2,$3,1,1
   -mv[-1] 0 -done -v +
 
-#@gmic map_sphere : _width>0,_height>0,_radius,_dilation>0 : Map selected images on a sphere.
+#@gmic map_sphere : _width>0,_height>0,_radius,_dilation>0
+#@gmic : Map selected images on a sphere.
 map_sphere : -skip ${1=512},${2=512},${3=100},${4=0.5}
    -e[^-1] "Map image$? on spheres in $1x$2 images, with radius $3 and dilation $4."
    -v -
@@ -1432,7 +1567,8 @@ map_sphere : -skip ${1=512},${2=512},${3=100},${4=0.5}
    -mv[-1] 0 -done
    -pp[-1] -v +
 
-#@gmic flower : _amplitude,_frequency,_offset_r[%],_angle,_cx,_cy,_borders={0,1,2} : Apply flower deformation on selected images.
+#@gmic flower : _amplitude,_frequency,_offset_r[%],_angle,_cx,_cy,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Apply flower deformation on selected images.
 flower : -skip ${1=30},${2=6},${3=0},${4=0},${5=0.5},${6=0.5},${7=2}
   -e[^-1] "Apply flower deformation on image$?, with amplitude $1, frequency $2, offset $3, angle $4 and center ($1,$2)."
   -v - -repeat @#
@@ -1443,7 +1579,8 @@ flower : -skip ${1=30},${2=6},${3=0},${4=0},${5=0.5},${6=0.5},${7=2}
     -polar2euclidean[-1] $5,$6,1,1
   -mv[-1] 0 -done -v +
 
-#@gmic zoom : _factor,_cx,_cy,_cz,_borders={0,1,2} : Apply zoom factor to selected images.
+#@gmic zoom : _factor,_cx,_cy,_cz,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Apply zoom factor to selected images.
 zoom : -skip ${1=2},${2=0.5},${3=0.5},${4=0.5},${5=0}
   -e[^-1] "Apply zoom effect on image$?, with factor $1 and center ($2,$3)."
   -v - -repeat @#
@@ -1460,14 +1597,16 @@ zoom : -skip ${1=2},${2=0.5},${3=0.5},${4=0.5},${5=0}
     -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic deform : _amplitude>=0 : Apply random smooth deformation on selected images.
+#@gmic deform : _amplitude>=0
+#@gmic : Apply random smooth deformation on selected images.
 deform : -skip ${1=10}
   -e[^-1] "Apply random smooth deformation on image$?, with amplitude $1."
   -v - -repeat @#
     2%,2%,1,2 -noise[-1] $1 -r[-1] [-2],[-2],1,2,5 -warp[-2] [-1],1,1,1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic fish_eye : _x,_y,0<=_radius<=100,_amplitude>=0 : Apply fish-eye deformation on selected images.
+#@gmic fish_eye : _x,_y,0<=_radius<=100,_amplitude>=0
+#@gmic : Apply fish-eye deformation on selected images.
 fish_eye : -skip ${1=50},${2=50},${3=50},${4=1.2}
   -if {$4==0} -return -endif
   -e[^-1] "Apply Fish-eye effect on image$?, centered at ($1%,$2%) with radius $3% and amplitude $4."
@@ -1478,7 +1617,7 @@ fish_eye : -skip ${1=50},${2=50},${3=50},${4=1.2}
     -warp[-2] [-1],1,1,1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic transform_polar : "expr_radius",_"expr_angle",_x_center,_y_center,_borders={ 0 | 1 } :
+#@gmic transform_polar : "expr_radius",_"expr_angle",_x_center,_y_center,_borders={ 0 | 1 }
 #@gmic : Apply user-defined transform on polar representation of selected images.
 transform_polar : -skip "${1=R-r}","${2=a}",${3=50},${4=50},${5=1}
   -e[^-1] "Apply custom polar transform with 'new_r = $1', 'new_a = $2', centered at ($3%,$4%)."
@@ -1496,27 +1635,30 @@ transform_polar : -skip "${1=R-r}","${2=a}",${3=50},${4=50},${5=1}
   -pp[-3--1]
   -mv[-1] 0 -done -v +
 
-#@gmic kaleidoscope : _cx,_cy,_radius,_angle,_borders={0,1,2} : Create kaleidoscope effect from selected images.
+#@gmic kaleidoscope : _cx,_cy,_radius,_angle,_borders={ 0=dirichlet | 1=neumann | 2=cyclic }
+#@gmic : Create kaleidoscope effect from selected images.
 kaleidoscope : -skip ${1=0.5},${2=0.5},${3=100},${4=30},${5=1}
   -e[^-1] "Create kaleidoscope effect from image$?, with center ($1,$2) radius $3, angle $4."
   -v - -euclidean2polar $1,$2,1,$5 -repeat @#
     --columns[-1] 0,$3% -lines[-1] 0,$4% -r[-1] [-2],0,2 -rm[-2]
   -mv[-1] 0 -done -polar2euclidean $1,$2,1,$5 -v +
 
-#------------------------------------
+#-----------------------------
 #
-# Image degradation
+#@gmic :: Image degradation
 #
-#------------------------------------
+#-----------------------------
 
-#@gmic spread : _dx>=0,_dy>=0,_dz>=0 : Spread pixel values of selected images randomly along x,y and z.
+#@gmic spread : _dx>=0,_dy>=0,_dz>=0
+#@gmic : Spread pixel values of selected images randomly along x,y and z.
 spread : -skip ${1=3},${2=$1},${3=0}
   -e[^-1] "Spread pixel of image$? randomly, with amplitudes ($1,$2,$3)."
   -v - -repeat @#
     100%,100%,100%,1 [-1]x2 -noise[-3] $1,0 -noise[-2] $2,0 -noise[-1] $3,0 -a[-3--1] c -warp[-2] [-1],1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic shade_stripes : _frequency>=0,_direction={ 0 | 1 },_darkness>=0,_lightness>=0 : Add shade stripes to selected images.
+#@gmic shade_stripes : _frequency>=0,_direction={ 0 | 1 },_darkness>=0,_lightness>=0
+#@gmic : Add shade stripes to selected images.
 shade_stripes : -skip ${1=5},${2=1},${3=0.8},${4=2}
   -v - -repeat @#
     -n[-1] 0,255
@@ -1527,7 +1669,8 @@ shade_stripes : -skip ${1=5},${2=1},${3=0.8},${4=2}
     -r[-1] [-2] -n[-1] $3,$4 -*[-1,-2] -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic stripes_y : _frequency>=0 : Add vertical stripes to selected images.
+#@gmic stripes_y : _frequency>=0
+#@gmic : Add vertical stripes to selected images.
 stripes_y : -skip ${1=10}
   -e[^-1] "Add vertical stripes to image$?, with frequency $1."
   -v - -repeat @#
@@ -1535,7 +1678,8 @@ stripes_y : -skip ${1=10}
     -*[-1] 0.15 -+[-1,-2] -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic shadow_patch : _opacity>=0 : Add shadow patches to selected images.
+#@gmic shadow_patch : _opacity>=0
+#@gmic : Add shadow patches to selected images.
 shadow_patch : -skip ${1=0.7}
   -e[^-1] "Apply shadow patches to image$?, with opacity $1."
   -v - -repeat @#
@@ -1544,7 +1688,8 @@ shadow_patch : -skip ${1=0.7}
     -n[-1] $1,1 -*[-1,-2]
   -mv[-1] 0 -done -v +
 
-#@gmic light_patch : _density>0,_darkness>=0,_lightness>=0 : Add light patches to selected images.
+#@gmic light_patch : _density>0,_darkness>=0,_lightness>=0
+#@gmic : Add light patches to selected images.
 light_patch : -skip ${1=10},${2=0.9},${3=1.7}
   -e[^-1] "Apply light patches to image$?, with density $1, darkness $2 and lightness $3."
   -v - -repeat @#
@@ -1552,7 +1697,7 @@ light_patch : -skip ${1=10},${2=0.9},${3=1.7}
     -n[-1] $2,$3 -*[-2,-1] -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic light_relief : _ambient_light,_specular_light,_specular_size,_darkness,_xl,_yl,_zl,_zscale,_opacity_bumpmap={ 0 | 1 } :
+#@gmic light_relief : _ambient_light,_specular_light,_specular_size,_darkness,_xl,_yl,_zl,_zscale,_opacity_bumpmap={ 0 | 1 }
 #@gmic : Apply relief light to selected images.
 light_relief : -skip ${1=0.3},${2=0.5},${3=0.2},${4=0},${5=0.2},${6=0.5},${7=0.5},${8=1},${9=1},${10=0}
   -e[^-1] "Apply relief light to image$?."
@@ -1569,7 +1714,8 @@ light_relief : -skip ${1=0.3},${2=0.5},${3=0.2},${4=0},${5=0.2},${6=0.5},${7=0.5
     -reverse -a c -endl
   -mv[-1] 0 -done -v +
 
-#@gmic noise_hurl : _amplitude>=0 : Add hurl noise to selected images.
+#@gmic noise_hurl : _amplitude>=0
+#@gmic : Add hurl noise to selected images.
 noise_hurl : -skip ${1=10}
   -e[^-1] "Add hurl noise to image$?, with amplitude $1%."
   -v - -repeat @#
@@ -1578,14 +1724,16 @@ noise_hurl : -skip ${1=10}
     -*[-2] [-1] -*[-1] -1 -+[-1] 1 -*[-3,-1] -+[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic pixelize : _scale_x>0,_scale_y>0,_scale_z>0 : Pixelize selected images with specified scales.
+#@gmic pixelize : _scale_x>0,_scale_y>0,_scale_z>0
+#@gmic : Pixelize selected images with specified scales.
 pixelize : -skip ${1=20},${2=$1},${3=$1}
   -e[^-1] "Pixelize image$? with scales ($1%,$2%,$3%)."
   -v - -repeat @#
     ({w},{h},{d}) -r[-2] $1%,$2%,$3%,[-2],2 -r[-2] @-1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic paper_texture : : Add paper texture to selected images.
+#@gmic paper_texture
+#@gmic : Add paper texture to selected images.
 paper_texture :
   -e[^-1] "Add paper texture to image$?."
   -v - -repeat @#
@@ -1594,7 +1742,8 @@ paper_texture :
     -*[-2,-1] -c[-1] [-2],[-2] -rm[-2]
   -mv[-1] 0 -done -v +
 
-#@gmic mosaic_texture : _density>=0,_amplitude,_relief={ 0 | 1 } : Add random mosaic texture to selected images.
+#@gmic mosaic_texture : _density>=0,_amplitude,_relief={ 0 | 1 }
+#@gmic : Add random mosaic texture to selected images.
 mosaic_texture : -skip ${1=0.2},${2=40},${3=0}
   -e[^-1] "Add random mosaic texture to image$?, with density $1."
   -v - -repeat @#
@@ -1603,13 +1752,14 @@ mosaic_texture : -skip ${1=0.2},${2=40},${3=0}
     -*[-1] $2 -+[-3,-1] -c[-2] @-1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#-------------------------
+#--------------------------------
 #
-# Color-related filters
+#@gmic :: Color-related filters
 #
-#-------------------------
+#--------------------------------
 
-#@gmic apply_channels : "command",_channels={All,RGBA,RGB,Y,CbCr,Cb,Cr,L,ab,a,b,H,S,V,K,A},_normalize={0=cut|1=normalize} : Apply specified command on chosen normalized channels of each selected images.
+#@gmic apply_channels : "command",_channels={All,RGBA,RGB,Y,CbCr,Cb,Cr,L,ab,a,b,H,S,V,K,A},_normalize={ 0=cut | 1=normalize }
+#@gmic : Apply specified command on chosen normalized channels of each selected images.
 apply_channels : -skip ${3=0}
 
   # Process all channels.
@@ -1774,7 +1924,8 @@ apply_channels : -skip ${3=0}
 _apply_channels :
   ${^0} -k[0]
 
-#@gmic to_gray : : Force selected images to be in GRAY mode.
+#@gmic to_gray
+#@gmic : Force selected images to be in GRAY mode.
 to_gray :
   -e[^-1] "Force image$? to be in GRAY mode."
   -v - -repeat @#
@@ -1784,7 +1935,8 @@ to_gray :
     -endif
   -mv[-1] 0 -done -v +
 
-#@gmic to_graya : : Force selected images to be in GRAYA mode.
+#@gmic to_graya
+#@gmic : Force selected images to be in GRAYA mode.
 to_graya :
   -e[^-1] "Force image$? to be in GRAYA mode."
   -v - -repeat @#
@@ -1795,7 +1947,8 @@ to_graya :
     -endif
   -mv[-1] 0 -done -v +
 
-#@gmic to_rgb : : Force selected images to be in RGB mode.
+#@gmic to_rgb
+#@gmic : Force selected images to be in RGB mode.
 to_rgb :
    -e[^-1] "Force image$? to be in RGB mode."
    -v - -repeat @#
@@ -1806,7 +1959,8 @@ to_rgb :
      -endif
    -mv[-1] 0 -done -v +
 
-#@gmic to_rgba : : Force selected images to be in RGBA mode.
+#@gmic to_rgba
+#@gmic : Force selected images to be in RGBA mode.
 to_rgba :
    -e[^-1] "Force image$? to be in RGBA mode."
    -v - -repeat @#
@@ -1817,7 +1971,8 @@ to_rgba :
      -endif
    -mv[-1] 0 -done -v +
 
-#@gmic to_colormode : mode={0=adaptive,1=G,2=GA,3=RGB,4=RGBA} : Force selected images to be in a given color mode.
+#@gmic to_colormode : mode={ 0=adaptive | 1=G | 2=GA | 3=RGB | 4=RGBA }
+#@gmic : Force selected images to be in a given color mode.
 to_colormode : -skip ${1=0}
   -if {$1==1} -to_gray
   -elif {$1==2} -to_graya
@@ -1831,7 +1986,8 @@ to_colormode : -skip ${1=0}
     -done -to_colormode ~-1 -pp[-1]
   -endif
 
-#@gmic remove_opacity : : Remove opacity channel of selected images.
+#@gmic remove_opacity
+#@gmic : Remove opacity channel of selected images.
 remove_opacity :
   -e[^-1] "Remove opacity channel of image$?."
   -v - -repeat @#
@@ -1840,14 +1996,16 @@ remove_opacity :
     -endif
   -mv[-1] 0 -done -v +
 
-#@gmic select_color : _tolerance[%]>=0,col1,..,colN : Select pixels with specified color in selected images.
+#@gmic select_color : _tolerance[%]>=0,col1,..,colN
+#@gmic : Select pixels with specified color in selected images.
 select_color :
   -e[^-1] "Select color (${2--1}) in image$?, with tolerance $1."
   -v - -repeat @#
     (${2--1}) -unroll[-1] c -r[-1] [-2] --[-2,-1] -norm[-1] -t[-1] $1 -*[-1] -1 -+[-1] 1
   -mv[-1] 0 -done -v +
 
-#@gmic replace_color : _tolerance[%]>=0,_smoothness[%]>=0,src1,...,srcN,dest1,...,destN : Replace pixels from/to specified colors in selected images.
+#@gmic replace_color : _tolerance[%]>=0,_smoothness[%]>=0,src1,...,srcN,dest1,...,destN
+#@gmic : Replace pixels from/to specified colors in selected images.
 replace_color :
   -v - (${3--1}) -unroll[-1] c -s[-1] c,2
   -v + -e[^-1] "Replace color ("@-2") to color ("@-1") in image$?, with tolerance $1 and smoothness $2." -v -
@@ -1857,7 +2015,8 @@ replace_color :
     -mv[-2] @# -r[-2] [-1],[-1] -*[-2,-1] -+[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic fill_color : col1,...,colN : Fill selected images with specified color.
+#@gmic fill_color : col1,...,colN
+#@gmic : Fill selected images with specified color.
 fill_color :
   -e[^-1] "Fill image$? with color (${^0})."
   -v - -repeat @#
@@ -1865,12 +2024,14 @@ fill_color :
     (@{-2,w},@{-2,h},@{-2,d}) -rm[-3] -r[-2] @-1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic luminance : : Compute luminance of selected images.
+#@gmic luminance
+#@gmic : Compute luminance of selected images.
 luminance :
   -e[^-1] "Compute luminance of image$?."
   -v - -to_rgb -rgb2ycbcr -channels 0 -v +
 
-#@gmic mix_rgb : a11,a12,a13,a21,a22,a23,a31,a32,a33 : Apply 3x3 specified matrix to RGB colors of selected images.
+#@gmic mix_rgb : a11,a12,a13,a21,a22,a23,a31,a32,a33
+#@gmic : Apply 3x3 specified matrix to RGB colors of selected images.
 mix_rgb : -skip ${1=1},${2=0},${3=0},${4=0},${5=1},${6=0},${7=0},${8=0},${9=1}
   -e[^-1] "Apply matrix [ $1 $2 $3 ; $4 $5 $6 ; $7 $8 $9 ] to RGB colors of image$?."
   -v - -repeat @#
@@ -1880,7 +2041,8 @@ mix_rgb : -skip ${1=1},${2=0},${3=0},${4=0},${5=1},${6=0},${7=0},${8=0},${9=1}
     -*[-5] $1 -*[-4] $2 -*[-3] $3 -+[-5--3] -a[-3--1] c
   -mv[-1] 0 -done -v +
 
-#@gmic mix_channels : "(a00,...,aMN)" : Apply specified matrix to channels of selected images.
+#@gmic mix_channels : (a00,...,aMN)
+#@gmic : Apply specified matrix to channels of selected images.
 mix_channels :
   -e[^-1] "Apply matrix $1 to channels of image$?."
   -v - -repeat @#
@@ -1890,18 +2052,21 @@ mix_channels :
     -r[-1] ~-1,{h},-1 -pp[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic solarize : : Solarize selected images.
+#@gmic solarize
+#@gmic : Solarize selected images.
 solarize :
   -e[^-1] "Solarize image$?."
   -v - -luminance -n 0,128 -map 1 -v +
 
-#@gmic sepia : : Apply sepia tones effect on selected images.
+#@gmic sepia
+#@gmic : Apply sepia tones effect on selected images.
 sepia :
   -e[^-1] "Apply sepia tones effect on image$?."
   -v - -luminance (0,44,115,143,196,244^0,20,84,119,184,235^0,5,44,73,144,200)
   -r[-1] 256,1,1,3,3 -map[0--2] [-1] -rm[-1] -v +
 
-#@gmic split_opacity : : Split color and opacity parts of selected images.
+#@gmic split_opacity
+#@gmic : Split color and opacity parts of selected images.
 split_opacity :
   -e[^-1] "Split color and opacity parts of image$?."
   -v - -repeat @#
@@ -1911,7 +2076,8 @@ split_opacity :
     -endif
   -done -v +
 
-#@gmic red_eye : 0<=_threshold<=100,_smoothness>=0,0<=attenuation<=1 : Attenuate red-eye effect in selected images.
+#@gmic red_eye : 0<=_threshold<=100,_smoothness>=0,0<=attenuation<=1
+#@gmic : Attenuate red-eye effect in selected images.
 red_eye : -skip ${1=75},${2=3.5},${3=0.1}
   -e[^-1] "Attenuate red-eye effect in image$?, with threshold $1, smoothness $2 and attenuation $3."
   -v - -to_rgb -rgb2ycbcr -repeat @#
@@ -1919,48 +2085,54 @@ red_eye : -skip ${1=75},${2=3.5},${3=0.1}
     -n[-1] $3,1 -*[-2,-1] -+[-1] 128 -a[-3--1] c -ycbcr2rgb[-1]
   -mv[-1] 0 -done -v +
 
-#-------------------------------
+#--------------------------------------
 #
-# Image fading and composition
+#@gmic :: Image fading and composition
 #
-#-------------------------------
+#--------------------------------------
 
-#@gmic fade_x : 0<=_start<=100,0<=_end<=100 : Create horizontal fading from selected images.
+#@gmic fade_x : 0<=_start<=100,0<=_end<=100
+#@gmic : Create horizontal fading from selected images.
 fade_x : -skip ${1=30},${2=70}
   -e[^-1] "Create ($1%,$2%) horizontal fading from image$?."
   -v - -repeat {@#/2}
     (0,1) -_fade $1,$2
   -mv[-1] 0 -done -v +
 
-#@gmic fade_y : 0<=_start<=100,0<=_end<=100 : Create vertical fading from selected images.
+#@gmic fade_y : 0<=_start<=100,0<=_end<=100
+#@gmic : Create vertical fading from selected images.
 fade_y : -skip ${1=30},${2=70}
   -e[^-1] "Create ($1%,$2%) vertical fading from image$?."
   -v - -repeat {@#/2}
     (0;1) -_fade $1,$2
   -mv[-1] 0 -done -v +
 
-#@gmic fade_z : 0<=_start<=100,0<=_end<=100 : Create transversal fading from selected images.
+#@gmic fade_z : 0<=_start<=100,0<=_end<=100
+#@gmic : Create transversal fading from selected images.
 fade_z : -skip ${1=30},${2=70}
   -e[^-1] "Create ($1%,$2%) transversal fading from image$?."
   -v - -repeat {@#/2}
     (0/1) -_fade $1,$2
   -mv[-1] 0 -done -v +
 
-#@gmic fade_radial : 0<=_start<=100,0<=_end<=100 : Create radial fading from selected images.
+#@gmic fade_radial : 0<=_start<=100,0<=_end<=100
+#@gmic : Create radial fading from selected images.
 fade_radial : -skip ${1=30},${2=70}
   -e[^-1] "Create ($1%,$2%) radial fading from image$?."
   -v - -repeat {@#/2}
     100%,100% -point 50%,50%,0,1,1 -distance[-1] 1 -_fade $1,$2
   -mv[-1] 0 -done -v +
 
-#@gmic fade_diamond : 0<=_start<=100,0<=_end<=100 : Create diamond fading from selected images.
+#@gmic fade_diamond : 0<=_start<=100,0<=_end<=100
+#@gmic : Create diamond fading from selected images.
 fade_diamond : -skip ${1=70},${2=90}
   -e[^-1] "Create ($1%,$2%) diamond-shaped fading from image$?."
   -v - -repeat {@#/2}
     (0,1,0;1,1,1;0,1,0) -_fade $1,$2
   -mv[-1] 0 -done -v +
 
-#@gmic fade_linear : _angle,0<=_start<=100,0<=_end<=100 : Create linear fading from selected images.
+#@gmic fade_linear : _angle,0<=_start<=100,0<=_end<=100
+#@gmic : Create linear fading from selected images.
 fade_linear : -skip ${1=45},${2=30},${3=70}
   -e[^-1] "Create ($2%,$3%) linear fading from image$?, with angle $1."
   -v - -repeat {@#/2}
@@ -1970,7 +2142,8 @@ fade_linear : -skip ${1=45},${2=30},${3=70}
 _fade :
   -r[-2] [-3],5 -r[-1] [-2],3 -c[-1] $1%,$2% -n[-1] 0,1 --*[-1] -1 -+[-1] 1 -*[-4,-1] -*[-2,-1] -+[-2,-1]
 
-#@gmic compose_rgba : : Compose selected RGBA images two-by-two, over RGB background.
+#@gmic compose_rgba
+#@gmic : Compose selected RGBA images two-by-two, over RGB background.
 compose_rgba :
   -e[^-1] "Compose RGBA image$? two-by-two, over RGB background."
   -v - -repeat {@#/2}
@@ -1979,63 +2152,72 @@ compose_rgba :
     -*[-4,-1] -*[-2,-1] -+[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic compose_average : : Compose selected images two-by-two, using average mode.
+#@gmic compose_average
+#@gmic : Compose selected images two-by-two, using average mode.
 compose_average :
   -e[^-1] "Compose image$? two-by-two, using average mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -+[-2,-1] -/[-1] 2
   -mv[-1] 0 -done -v +
 
-#@gmic compose_multiply : : Compose selected images two-by-two, using multiply mode.
+#@gmic compose_multiply
+#@gmic : Compose selected images two-by-two, using multiply mode.
 compose_multiply :
   -e[^-1] "Compose image$? two-by-two, using multiply mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -*[-2,-1] -/[-1] 256
   -mv[-1] 0 -done -v +
 
-#@gmic compose_screen : : Compose selected images two-by-two, using screen mode.
+#@gmic compose_screen
+#@gmic : Compose selected images two-by-two, using screen mode.
 compose_screen :
   -e[^-1] "Compose image$? two-by-two, using screen mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 --[-2,-1] 255 -*[-2,-1] -/[-1] 256 --[-1] 255 -*[-1] -1
   -mv[-1] 0 -done -v +
 
-#@gmic compose_darken : : Compose selected images two-by-two, using darken mode.
+#@gmic compose_darken
+#@gmic : Compose selected images two-by-two, using darken mode.
 compose_darken :
   -e[^-1] "Compose image$? two-by-two, using darken mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -min[-2] [-1] -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic compose_lighten : : Compose selected images two-by-two, using lighten mode.
+#@gmic compose_lighten
+#@gmic : Compose selected images two-by-two, using lighten mode.
 compose_lighten :
   -e[^-1] "Compose image$? two-by-two, using lighten mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -max[-2] [-1] -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic compose_difference : : Compose selected images two-by-two, using difference mode.
+#@gmic compose_difference
+#@gmic : Compose selected images two-by-two, using difference mode.
 compose_difference :
   -e[^-1] "Compose image$? two-by-two, using difference mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 --[-2,-1] -abs[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic compose_negation : : Compose selected images two-by-two, using negation mode.
+#@gmic compose_negation
+#@gmic : Compose selected images two-by-two, using negation mode.
 compose_negation :
   -e[^-1] "Compose image$? two-by-two, using negation mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -+[-2,-1] --[-1] 255 -abs[-1] --[-1] 255 -*[-1] -1
   -mv[-1] 0 -done -v +
 
-#@gmic compose_exclusion : : Compose selected images two-by-two, using exclusion mode.
+#@gmic compose_exclusion
+#@gmic : Compose selected images two-by-two, using exclusion mode.
 compose_exclusion :
   -e[^-1] "Compose image$? two-by-two, using exclusion mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 --*[-2] [-1] -/[-1] -128 -+[-3--1]
   -mv[-1] 0 -done -v +
 
-#@gmic compose_overlay : : Compose selected images two-by-two, using overlay mode.
+#@gmic compose_overlay
+#@gmic : Compose selected images two-by-two, using overlay mode.
 compose_overlay :
   -e[^-1] "Compose image$? two-by-two, using overlay mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
@@ -2047,7 +2229,8 @@ compose_overlay :
     -+[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic compose_hardlight : : Compose selected images two-by-two, using hard light mode.
+#@gmic compose_hardlight
+#@gmic : Compose selected images two-by-two, using hard light mode.
 compose_hardlight :
   -e[^-1] "Compose image$? two-by-two, using hard light mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
@@ -2059,70 +2242,80 @@ compose_hardlight :
     -+[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic compose_softlight : : Compose selected images two-by-two, using soft light mode.
+#@gmic compose_softlight
+#@gmic : Compose selected images two-by-two, using soft light mode.
 compose_softlight :
   -e[^-1] "Compose image$? two-by-two, using soft light mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -/[-2,-1] 256 --*[-2] [-1] -*[-1] 2 -sqr[-3] -*[-2] [-3] -*[-2] -2 -+[-3--1] -*[-1] 256
   -mv[-1] 0 -done -v +
 
-#@gmic compose_dodge : : Compose selected images two-by-two, using dodge mode.
+#@gmic compose_dodge
+#@gmic : Compose selected images two-by-two, using dodge mode.
 compose_dodge :
   -e[^-1] "Compose image$? two-by-two, using dodge mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 --[-1] 255.1 -/[-2,-1] -*[-1] -256 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic compose_colorburn : : Compose selected images two-by-two, using color burn mode.
+#@gmic compose_colorburn
+#@gmic : Compose selected images two-by-two, using color burn mode.
 compose_colorburn :
   -e[^-1] "Compose image$? two-by-two, using colorburn mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 --[-2] 255 -+[-1] 0.1 -/[-2,-1] -*[-1] 256 -+[-1] 255 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic compose_reflect : : Compose selected images two-by-two, using reflect mode.
+#@gmic compose_reflect
+#@gmic : Compose selected images two-by-two, using reflect mode.
 compose_reflect :
   -e[^-1] "Compose image$? two-by-two, using reflect mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -sqr[-2] --[-1] 255.1 -/[-2,-1] -*[-1] -1 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic compose_freeze : : Compose selected images two-by-two, using freeze mode.
+#@gmic compose_freeze
+#@gmic : Compose selected images two-by-two, using freeze mode.
 compose_freeze :
   -e[^-1] "Compose image$? two-by-two, using freeze mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 --[-2] 255 -sqr[-2] -+[-1] 0.1 -/[-2,-1] --[-1] 255 -*[-1] -1 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic compose_stamp : : Compose selected images two-by-two, using stamp mode.
+#@gmic compose_stamp
+#@gmic : Compose selected images two-by-two, using stamp mode.
 compose_stamp :
   -e[^-1] "Compose image$? two-by-two, using stamp mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -*[-1] 2 -+[-2,-1] --[-1] 255 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
-#@gmic compose_interpolation : : Compose selected images two-by-two, using interpolation mode.
+#@gmic compose_interpolation
+#@gmic : Compose selected images two-by-two, using interpolation mode.
 compose_interpolation :
   -e[^-1] "Compose image$? two-by-two, using interpolation mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -*[-2,-1] 0.012271846 -cos[-2,-1] -/[-2,-1] -4 -+[-2,-1] -+[-1] 0.5 -*[-1] 256
   -mv[-1] 0 -done -v +
 
-#@gmic compose_xor : : Compose selected images two-by-two, using xor mode.
+#@gmic compose_xor
+#@gmic : Compose selected images two-by-two, using xor mode.
 compose_xor :
   -e[^-1] "Compose image$? two-by-two, using xor mode."
   -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
     -r[-1] [-2],0 -xor[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic compose_edges : smoothness=0.8 : Compose selected images togethers using edge composition.
+#@gmic compose_edges : _smoothness
+#@gmic : Compose selected images togethers using edge composition.
 compose_edges : -skip ${1=0.8}
   -e[^-1] "Compose image$? using edge composition, with smoothness $1."
   -if {@#>1} -v - -to_rgb -repeat @#
     --gradient_norm[-1] -+[-1] 1 -blur[-1] $1 -n[-1] 1,10 -sqr[-1] -s[-2] c -*[-4--2] [-1] -a[-4--1] c
   -mv[-1] 0 -done -r[1--1] [0],0,0,0.5,0.5 -+ -s[-1] c -/[-4--2] [-1] -rm[-1] -a[-3--1] c -v + -endif
 
-#@gmic compose_fade : : Compose selected images togethers using a given fading (defined as the latest image).
+#@gmic compose_fade
+#@gmic : Compose selected images togethers using a given fading (defined as the latest image).
 compose_fade :
   -e[^-1] "Compose image$? using fading composition."
   -v - -r[1--1] [0],[0],[0],100%,3
@@ -2132,7 +2325,16 @@ compose_fade :
   -done
   -rm[-1] -+ -v +
 
-#@gmic compose_shapeaverage : : Compose selected images two-by-two, using shape average mode.
+#@gmic compose_shapeaverage
+#@gmic : Compose selected images two-by-two, using shape average mode.
+compose_shapeaverage :
+  -e[^-1] "Compose image$? two-by-two, using shape average mode."
+  -v - -repeat {@#/2} -l[-2,-1]
+    -to_colormode[-1] @{-2,s} -r[-1] [-2],1 -t[-1] 50% -s c
+    -p[0] {@#/2} -repeat ~0 -_compose_shapeaverage[0,~0] -pr[0] {~0-1} -mv[0] @# -done -pp[0]
+    -a c
+  -endl -mv[-1] 0 -done -v +
+
 _compose_shapeaverage :
   -+[-2] 1000 -*[-2,-1]
   -repeat {sqrt(w*h*d)/2} # Start with random filling (fast).
@@ -2156,21 +2358,14 @@ _compose_shapeaverage :
     -endif
   -while 1
 
-compose_shapeaverage :
-  -e[^-1] "Compose image$? two-by-two, using shape average mode."
-  -v - -repeat {@#/2} -l[-2,-1]
-    -to_colormode[-1] @{-2,s} -r[-1] [-2],1 -t[-1] 50% -s c
-    -p[0] {@#/2} -repeat ~0 -_compose_shapeaverage[0,~0] -pr[0] {~0-1} -mv[0] @# -done -pp[0]
-    -a c
-  -endl -mv[-1] 0 -done -v +
-
-#--------------------------------------
+#---------------------------------------------
 #
-# Motion-related and video processing
+#@gmic :: Motion-related and video processing
 #
-#--------------------------------------
+#---------------------------------------------
 
-#@gmic cross_correlation : : Compute cross-correlation using two-by-two selected images.
+#@gmic cross_correlation
+#@gmic : Compute cross-correlation using two-by-two selected images.
 cross_correlation :
   -e[^-1] "Compute cross-correlation using two-by-two image$?."
   -v - -repeat {@#/2}
@@ -2178,7 +2373,8 @@ cross_correlation :
     --[-2,-1] -*[-5,-3] -*[-3,-2] -+[-3,-2] -ifft[-2,-1] -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic normalized_cross_correlation : : Compute normalized cross-correlation using two-by-two selected images.
+#@gmic normalized_cross_correlation
+#@gmic : Compute normalized cross-correlation using two-by-two selected images.
 normalized_cross_correlation :
   -e[^-1] "Compute normalized cross-correlation using two-by-two image$?."
   -v - -repeat {@#/2}
@@ -2187,7 +2383,8 @@ normalized_cross_correlation :
     -/[-3] [-1] -/[-2,-1] -ifft[-2,-1] -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic phase_correlation : : Estimate translation vector using two-by-two selected images.
+#@gmic phase_correlation
+#@gmic : Estimate translation vector using two-by-two selected images.
 phase_correlation :
   -e[^-1] "Estimate translation vector using two-by-two image$?."
   -v - -repeat {@#/2}
@@ -2199,7 +2396,8 @@ phase_correlation :
     -a[-3--1] c -/[-1] 2 -*[-1] -1 -rm[-2]
   -mv[-1] 0 -done -v +
 
-#@gmic morph : nb_frames>0,_smoothness>=0,_precision>0 : Create morphing sequence between selected images.
+#@gmic morph : nb_frames>0,_smoothness>=0,_precision>0
+#@gmic : Create morphing sequence between selected images.
 morph : -skip $1,${2=0.2},${3=0.1}
   -e[^-1] "Create morphing sequence between image$?, with $1 intra-frames, smoothness $2 and precision $3.\n"
   -v - -r[1--1] [0],3 -i[0] (@#) --[0] 1 -repeat @0
@@ -2211,7 +2409,8 @@ morph : -skip $1,${2=0.2},${3=0.1}
     -mv[-$1--1] 1 -mv[1] @#
   -done -mv[-1] 1 -rm[0] -v +
 
-#@gmic register_nonrigid : _smoothness>=0,_precision>0,_nb_scale>=0 : Register selected images with non-rigid warp.
+#@gmic register_nonrigid : _smoothness>=0,_precision>0,_nb_scale>=0
+#@gmic : Register selected images with non-rigid warp.
 register_nonrigid : -skip ${1=0.2},${2=0.1},${3=0}
   -e[^-1] "Register image$? with non-rigid warp, smoothness $1, precision $2 and $3 scale(s)."
   -v - --equalize[0] 256 -n[-1] 0,255 -mv[-1] 1
@@ -2220,7 +2419,8 @@ register_nonrigid : -skip ${1=0.2},${2=0.1},${3=0}
     -warp[-2] [-1],1,1,1 -rm[-1]
   -mv[-1] 2 -endif -done -rm[1] -v +
 
-#@gmic register_rigid : _smoothness>=0 : Register selected images with rigid warp.
+#@gmic register_rigid : _smoothness>=0
+#@gmic : Register selected images with rigid warp.
 register_rigid : -skip ${1=1}
   -e[^-1] "Register image$? with rigid warp and smoothness $1."
   -v - --equalize[0] 256 -blur[-1] $1 -n[-1] 0,255 -mv[-1] 1
@@ -2229,7 +2429,8 @@ register_rigid : -skip ${1=1}
     -shift[-2] @-1,0,1 -rm[-1]
   -mv[-1] 2 -endif -done -rm[1] -v +
 
-#@gmic deinterlace : _method={ 0 | 1 } : Deinterlace selected images ('method' can be { 0=standard or 1=motion-compensated }).
+#@gmic deinterlace : _method={ 0 | 1 }
+#@gmic : Deinterlace selected images ('method' can be { 0=standard or 1=motion-compensated }).
 deinterlace : -skip ${1=0}
   -if $1 -e[^-1] "Deinterlace image$? with motion-compensated method."
   -else  -e[^-1] "Deinterlace image$? with standard method."
@@ -2245,7 +2446,8 @@ deinterlace : -skip ${1=0}
     -r[-1] @-2 -rm[-2]
   -mv[-1] 0 -done -v +
 
-#@gmic animate : filter_name,(params_start;..;..),(params_end;..;..),nb_frames>=0,_output_frames={ 0 | 1 },_filename : Animate filter from starting parameters to ending parameters.
+#@gmic animate : filter_name,(params_start;..;..),(params_end;..;..),nb_frames>=0,_output_frames={ 0 | 1 },_filename
+#@gmic : Animate filter from starting parameters to ending parameters.
 animate : -skip ${1=30},${2=0},${3=""},${4=0},${5=1},${6=""}
   -if {isval($1)}
     -if $2 -e[0--4] "Animate image$?, with a delay of $1 ms, and ping-pong mode."
@@ -2292,13 +2494,26 @@ animate : -skip ${1=30},${2=0},${3=""},${4=0},${5=1},${6=""}
     -endl -rm[1] -done -rm[0] -v +
   -endif
 
-#-------------------------
+#------------------------------
 #
-#  3d-related filters
+#@gmic ::  3d-related filters
 #
-#-------------------------
+#------------------------------
 
-#@gmic animate3d : _width>0,_height>0,_dx,_dy,_dz,_zoom>=0,_filename : Animate selected 3d objects in a window.
+#@gmic apply_pose3d : p1,..,p12
+#@gmic : Apply 3d pose matrix to selected 3d objects.
+apply_pose3d :
+  -e[^-1] "Apply 3d pose matrix [ $1,$2,$3,$4; $5,$6,$7,$8; $9,$10,$11,$12 ] to 3d object$?."
+  -v - -repeat @# -l[-1] -s3d
+    -r[2] 3,{@{2,#}/3},1,1,-1 -s[2] x
+    --*[2] $5 --*[3] $6 --*[4] $7 -+[-3--1] -+[-1] $8
+    --*[2] $9 --*[3] $10 --*[4] $11 -+[-3--1] -+[-1] $12
+    -*[2] $1 -*[3] $2 -*[4] $3 -+[2-4] -+[2] $4
+    -a[2,-2,-1] x -r[2] 1,{@{2,#}},1,1,-1
+  -a y -endl -mv[-1] 0 -done -v +
+
+#@gmic animate3d : _width>0,_height>0,_dx,_dy,_dz,_zoom>=0,_filename
+#@gmic : Animate selected 3d objects in a window.
 animate3d : -skip ${1=640},${2=480},${3=0},${4=10},${5=0},${7=""} -check ${6=1}>=0
   -e[^-1] "Animate 3d object$?, in a $1x$2 window with angle velocities ($3,$4,$5)."
   -v - -repeat @#
@@ -2313,7 +2528,8 @@ animate3d : -skip ${1=640},${2=480},${3=0},${4=10},${5=0},${7=""} -check ${6=1}>
     -pp[0]
   -done -v +
 
-#@gmic imagecube3d : : Create 3d mapped cubes from selected images.
+#@gmic imagecube3d
+#@gmic : Create 3d mapped cubes from selected images.
 imagecube3d :
   -e[^-1] "Generated 3d mapped cube frome image$?."
   -v - -repeat @#
@@ -2340,7 +2556,8 @@ imagecube3d :
     -a[-3--1] y
   -mv[-1] 0 -done -v +
 
-#@gmic imagepyramid3d : : Create 3d mapped pyramides from selected images.
+#@gmic imagepyramid3d
+#@gmic : Create 3d mapped pyramides from selected images.
 imagepyramid3d :
   -e[^-1] "Generated 3d mapped pyramids frome image$?."
   -v - -repeat @#
@@ -2363,14 +2580,16 @@ imagepyramid3d :
     -a[-3--1] y
   -mv[-1] 0 -done -v +
 
-#@gmic text3d : "text",_font_height>0,_depth>0,_smoothness : Create a 3d text object from specified text.
+#@gmic text3d : text,_font_height>0,_depth>0,_smoothness
+#@gmic : Create a 3d text object from specified text.
 text3d : -skip ${2=57},${3=10},${4=1.5}
   -e[^-1] "Generate 3d text object '$1' with size $2, depth $3 and smoothness $4."
   -v - -i 1024,{10*$2},1,1 -text[-1] "$1",0,0,$2,1,1 -autocrop[-1] 0
   -r[-1] 100%,100%,$3 -r[-1] {w+12},{h+12},{d+12},1,0,0,0.5,0.5,0.5
   -blur[-1] $4 -n[-1] 0,1 -isosurface3d[-1] 0.5 -r3d[-1] -v +
 
-#@gmic gmic3d : : Create a 3d G'MIC logo.
+#@gmic gmic3d
+#@gmic : Create a 3d G'MIC logo.
 gmic3d :
   -e[^-1] "Generate 3d G'MIC logo."
   -v -
@@ -2389,7 +2608,8 @@ gmic3d :
   -+3d[-30--1] -+3d[-1] 0,5,30 -+3d[-2--1]
   -v +
 
-#@gmic snapshot3d : _size>0,_zoom>=0 : Create 2d snapshots of selected 3d objects.
+#@gmic snapshot3d : _size>0,_zoom>=0
+#@gmic : Create 2d snapshots of selected 3d objects.
 #@gmic : Set 'zoom' to 0 to disable object auto-scaling.
 snapshot3d : -check "${1=512}>0 && ${2=1}>=0" -skip ${3=""}
   -if {narg($3)}
@@ -2398,20 +2618,20 @@ snapshot3d : -check "${1=512}>0 && ${2=1}>=0" -skip ${3=""}
     -e[^-2,-1] "Create $1x$1 snapshot$? from 3d object$?, with zoom factor $2."
   -endif
   -v - -repeat @#
-    -c3d[-1]
-    -if {$2!=0} -n3d[-1] -*3d[-1] {3*$1*$2/4} -endif
+    -if {$2!=0} -c3d[-1] -n3d[-1] -*3d[-1] {3*$1*$2/4} -endif
     -if {narg($3)} (${3--1}) -unroll[-1] c -else 1,2,1,3,32,64,32,116,64,96 -endif -r[-1] $1,$1,1,3,3
     -object3d[-1] [-2],50%,50%,0,1,1 -name[-1] @{-2,n}
     -rm[-2]
   -mv[-1] 0 -done -v +
 
-#-------------------------
+#-----------------------------
 #
-# Interactive demos
+#@gmic :: Interactive demos
 #
-#-------------------------
+#-----------------------------
 
-#@gmic x_mandelbrot : _julia={ 0 | 1 },_c0r,_c0i : Launch Mandelbrot/Julia explorer.
+#@gmic x_mandelbrot : _julia={ 0 | 1 },_c0r,_c0i
+#@gmic : Launch Mandelbrot/Julia explorer.
 x_mandelbrot : -skip ${1=0},${2=0.317},${3=0.03}
   -e[] "\n
 ------ Mandelbrot/Julia explorer -----------------\n
@@ -2462,7 +2682,8 @@ _x_mandelbrot_coords :
 _x_mandelbrot_palette :
   6,1,1,3 -rand[-1] 20,255 -r[-1] 32,1,1,3,3 -r[-1] 1024,1,1,3,0,2 -=[-1] 0,0,0,0,0 -=[-1] 0,0,0,0,1 -=[-1] 0,0,0,0,2
 
-#@gmic x_fish_eye : : Launch fish-eye demo.
+#@gmic x_fish_eye
+#@gmic : Launch fish-eye demo.
 x_fish_eye :
   -e[] "\n
 ------ Fish-eye demo --------------------\n
@@ -2498,7 +2719,8 @@ x_fish_eye :
     -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,R}} -w[] @{0,w},@{0,h} -wait -1 -endif
   -done
 
-#@gmic x_spline : : Launch spline curve ditor.
+#@gmic x_spline
+#@gmic : Launch spline curve ditor.
 x_spline :
   -e[] "\n
 ------ Spline curve editor --------------------------\n
@@ -2614,7 +2836,8 @@ x_spline :
   # Exit properly.
   -pp[-4--1] -rm[0,1] -w 0 -v +
 
-#@gmic x_tictactoe : : Launch tic-tac-toe game.
+#@gmic x_tictactoe
+#@gmic : Launch tic-tac-toe game.
 x_tictactoe :
   -e[] "\n
 ------ Tic-Tac-Toe game -----------------\n
@@ -2722,7 +2945,8 @@ _x_tictactoe5 : # Generate a ++ diagonal stroke and his mask.
 _x_tictactoe6 : # Generate a +- diagonal stroke and his mask.
   421,421,1,1,1 -line[-1] 10%,90%,90%,10%,1,0 -erode[-1] 6 -_x_tictactoe -__x_tictactoe 180,10,10
 
-#@gmic x_fourier : : Launch Fourier filtering demo.
+#@gmic x_fourier
+#@gmic : Launch Fourier filtering demo.
 x_fourier :
   -e[] "\n
 ------ Fourier-filtering demo -----------------------------------\n
@@ -2804,7 +3028,8 @@ x_fourier :
     -rm[-3--1]  # Clean images.
   -endl -done -w 0 -v +
 
-#@gmic x_life : : Launch the Life Game.
+#@gmic x_life
+#@gmic : Launch the Life Game.
 x_life :
   -e[] "\n
 ------ The game of life --------------------------------------\n
@@ -2890,7 +3115,8 @@ x_life :
   # End game and quit properly.
   -rm[0-3] -pp[0-3] -w 0 -v +
 
-#@gmic x_fire : : Launch fire demo.
+#@gmic x_fire
+#@gmic : Launch fire demo.
 x_fire : -skip "${1=G'MIC}"
   -e[] "\n
 ------ Fire demo ------------------------\n
@@ -2924,6 +3150,74 @@ x_fire : -skip "${1=G'MIC}"
  # Exit properly.
  -rm[0-3] -pp[0] -w 0
  -v +
+
+#--------------------------
+#
+# 'Undocumented' commands
+#
+#--------------------------
+
+# strcmp : string1,string2
+# Compare two strings and push resulting boolean on the global stack.
+strcmp :
+  -v - (0,{"$1_"}) ({w},{"$2_"}) -=[-2] {w} --[-2,-1] -abs[-1] -p {!@{-1,+}} -rm[-1] -v +
+
+# Function useful to display help of commands, in interactive shell mode (linux only).
+help : -skip ${1=""}
+  -v -
+  -if {narg($1)}
+    -x "gmic -h $1 | tail -n +6 | head -n -1"
+  -else
+    -x "gmic -h | head -n 5"
+  -endif
+  -v +
+h :
+  -help ${^0}
+
+# push_filename : "filename",_number1,_number2
+# Push a numbered version of the specified filename on the global stack.
+push_filename : -skip ${1="gmic"},${2=""},${3=""}
+  -v - 1 -name[-1] $1
+  -p @{-1,f}@{-1,b}
+  -if {narg($2)}
+    -pr[-1] ~-1_{(($2/100000)>>0)%10}{(($2/10000)>>0)%10}{(($2/1000)>>0)%10}{(($2/100)>>0)%10}{(($2/10)>>0)%10}{$2%10}
+  -endif
+  -if {narg($3)}
+    -pr[-1] ~-1_{(($3/100000)>>0)%10}{(($3/10000)>>0)%10}{(($3/1000)>>0)%10}{(($3/100)>>0)%10}{(($3/10)>>0)%10}{$3%10}
+  -endif
+  -if {narg(@{-1,x})}
+    -pr[-1] ~-1.@{-1,x}
+  -endif
+  -rm[-1] -v +
+
+# push_maxsize
+# Push the maximal size of selected images on the global stack.
+push_maxsize :
+  -v - -p[0] 0 -p[1] 0 -p[2] 0 -p[3] 0
+  -repeat @#
+    -pr[0] {max(~0,w)}
+    -pr[1] {max(~1,h)}
+    -pr[2] {max(~2,d)}
+    -pr[3] {max(~3,s)}
+  -mv[-1] 0 -done
+  -p ~0,~1,~2,~3
+  -pp[0-3]
+  -v +
+
+# push_minsize
+# Push the minimal size of selected images on the global stack.
+push_minsize :
+  -v - -p[0] 0 -p[1] 0 -p[2] 0 -p[3] 0
+  -repeat @#
+    -pr[0] {max(~0,w)}
+    -pr[1] {max(~1,h)}
+    -pr[2] {max(~2,d)}
+    -pr[3] {max(~3,s)}
+  -mv[-1] 0 -done
+  -p ~0,~1,~2,~3
+  -pp[0-3]
+  -v +
+
 
 #--------------------------
 #
@@ -3213,7 +3507,7 @@ gimp_logo_ca :
 #@gimp : - <b>2009/08/10</b> : version <i>1.3.2.0</i>.\n
 #@gimp : - <b>2009/11/23</b> : version <i>1.3.3.0</i>.\n
 #@gimp : - <b>2010/03/05</b> : version <i>1.3.4.0</i>.\n
-#@gimp : - <span foreground="purple"><b>2010/05/26</b> : version <i>1.3.5.1</i> (Current).</span>\n
+#@gimp : - <span foreground="purple"><b>2010/06/03</b> : version <i>1.3.5.4</i> (Current).</span>\n
 #@gimp : "}
 
 #@gimp Contributors : _none_, _none_
@@ -3911,7 +4205,7 @@ gimp_select_color :
   -mv[-1] 0 -done
   -pp[-1]
 
-#@gimp Replace color : gimp_replace_color, gimp_replace_color(1)
+#@gimp Replace color : gimp_replace_color, gimp_replace_color(0)
 #@gimp : Tolerance = float(100,1,450)
 #@gimp : Smoothness = float(0,0,10)
 #@gimp : "Selected color    " = color(255,255,255,255)
@@ -4044,7 +4338,7 @@ gimp_laplacian :
 #@gimp : Absolute value = bool(0)
 #@gimp : Negative colors = bool(0)
 gimp_curvature :
-  -blur $1 -curvature
+  -blur $1 -Iee
   -if $4 -abs -endif
   -c $2%,$3%
   -if $5 -negative -endif
@@ -4287,15 +4581,15 @@ gimp_gaussian_blur_preview :
   -gimp_split_preview "-gimp_gaussian_blur ${1--2}",$-1
 
 #@gimp Linear blur : gimp_blur_linear, gimp_blur_linear_preview(1)
-#@gimp : Tangent amplitude = float(0.07,0.01,0.5)
-#@gimp : Orthogonal amplitude = float(0.01,0.005,0.1)
+#@gimp : Tangent radius = float(10,0,100)
+#@gimp : Orthogonal radius = float(0.5,0,100)
 #@gimp : Angle = float(0,0,180)
 #@gimp : Border conditions = choice(1,"Black","Nearest")
 #@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Value range = choice("Cut","Normalize")
 #@gimp : note = note(), sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_blur_linear :
-  -apply_channels "-blur_linear $1,$2,$3,$4",$5,$6
+  -apply_channels "-blur_linear $1,{$2*$1/100},$3,$4",$5,$6
 
 gimp_blur_linear_preview :
   -gimp_split_preview "-gimp_blur_linear ${1--2}",$-1
@@ -5536,5 +5830,3 @@ gimp_unsharp16_preview :
 #
 # (End of G'MIC custom commands)
 
-toto :
-  -echo $0
