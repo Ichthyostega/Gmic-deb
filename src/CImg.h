@@ -131,10 +131,9 @@
 #define cimg_vsnprintf _vsnprintf
 #endif
 #ifndef cimg_snprintf
-#define cimg_snprintf std::snprintf
-#endif
-#ifndef cimg_vsnprintf
-#define cimg_vsnprintf std::vsnprintf
+#include <stdio.h>
+#define cimg_snprintf snprintf
+#define cimg_vsnprintf vsnprintf
 #endif
 
 // Filename separator configuration.
@@ -29876,7 +29875,11 @@ namespace cimg_library {
             char filename[32] = { 0 };
             std::FILE *file;
             do {
+#ifdef cimg_use_zlib
+              cimg_snprintf(filename,sizeof(filename),"CImg_%.4u.cimgz",snap_number++);
+#else
               cimg_snprintf(filename,sizeof(filename),"CImg_%.4u.cimg",snap_number++);
+#endif
               if ((file=std::fopen(filename,"r"))!=0) std::fclose(file);
             } while (file);
             visu.draw_text(0,0," Saving instance... ",foreground_color,background_color,0.8f,13).display(disp);
@@ -30102,9 +30105,8 @@ namespace cimg_library {
                                 const char *const labely=0, const double ymin=0, const double ymax=0) const {
       if (is_empty())
         throw CImgInstanceException(_cimg_instance
-                                    "display_graph() : Empty instance.",
+                                    "select_graph() : Empty instance.",
                                     cimg_instance);
-
       const unsigned int siz = _width*_height*_depth, onormalization = disp.normalization();
       if (!disp) { char ntitle[64] = { 0 }; cimg_snprintf(ntitle,sizeof(ntitle),"CImg<%s>",pixel_type()); disp.assign(640,480,ntitle,0); }
       (disp.show().set_button().set_wheel())._normalization = 0;
@@ -30276,6 +30278,26 @@ namespace cimg_library {
           }
           disp.set_key(key,false); okey = 0;
         } break;
+        case cimg::keyO : if (disp.is_keyCTRLLEFT() || disp.is_keyCTRLRIGHT()) {
+            static unsigned int snap_number = 0;
+            if (visu || visu0) {
+              CImg<ucharT> &screen = visu?visu:visu0;
+              char filename[32] = { 0 };
+              std::FILE *file;
+              do {
+#ifdef cimg_use_zlib
+                cimg_snprintf(filename,sizeof(filename),"CImg_%.4u.cimgz",snap_number++);
+#else
+                cimg_snprintf(filename,sizeof(filename),"CImg_%.4u.cimg",snap_number++);
+#endif
+                if ((file=std::fopen(filename,"r"))!=0) std::fclose(file);
+              } while (file);
+              (+screen).draw_text(0,0," Saving instance... ",black,gray,1,13).display(disp);
+              save(filename);
+              screen.draw_text(0,0," Instance '%s' saved. ",black,gray,1,13,filename).display(disp);
+            }
+            disp.set_key(key,false); okey = 0;
+          } break;
         }
 
         // Handle mouse motion and mouse buttons
@@ -33359,8 +33381,8 @@ namespace cimg_library {
             pose0.resize(4,4,1,1,0); pose.resize(4,4,1,1,0);
             pose0(3,3) = pose(3,3) = 1;
             (pose0*pose).get_crop(0,0,3,2).move_to(pose);
-          }
-          Xoff = Yoff = Zoff = 0; sprite_scale = 1;
+            Xoff = pose_matrix[12]; Yoff = pose_matrix[13]; Zoff = pose_matrix[14]; sprite_scale = pose_matrix[15];
+          } else { Xoff = Yoff = Zoff = 0; sprite_scale = 1; }
           init_pose = false;
           redraw = true;
         }
@@ -33583,11 +33605,15 @@ namespace cimg_library {
             char filename[32] = { 0 };
             std::FILE *file;
             do {
+#ifdef cimg_use_zlib
+              cimg_snprintf(filename,sizeof(filename),"CImg_%.4u.cimgz",snap_number++);
+#else
               cimg_snprintf(filename,sizeof(filename),"CImg_%.4u.cimg",snap_number++);
+#endif
               if ((file=std::fopen(filename,"r"))!=0) std::fclose(file);
             } while (file);
             visu.draw_text(0,0," Saving object... ",foreground_color._data,background_color._data,1,13).display(disp);
-            vertices.get_object3dtoCImg3d(reverse_primitives?reverse_primitives:primitives,colors,opacities).save_cimg(filename);
+            vertices.get_object3dtoCImg3d(reverse_primitives?reverse_primitives:primitives,colors,opacities).save(filename);
             visu.draw_text(0,0," Object '%s' saved. ",foreground_color._data,background_color._data,1,13,filename).display(disp);
             disp.set_key(key,false); key = 0;
           } break;
@@ -33642,7 +33668,10 @@ namespace cimg_library {
           redraw = true;
         }
       }
-      if (pose_matrix) std::memcpy(pose_matrix,pose._data,12*sizeof(float));
+      if (pose_matrix) {
+        std::memcpy(pose_matrix,pose._data,12*sizeof(float));
+        pose_matrix[12] = Xoff; pose_matrix[13] = Yoff; pose_matrix[14] = Zoff; pose_matrix[15] = sprite_scale;
+      }
       disp.set_button().set_key(key);
       return *this;
     }
@@ -33656,7 +33685,6 @@ namespace cimg_library {
         throw CImgInstanceException(_cimg_instance
                                     "display_graph() : Empty instance.",
                                     cimg_instance);
-
       const unsigned int siz = _width*_height*_depth, onormalization = disp.normalization();
       if (!disp) { char ntitle[64] = { 0 }; cimg_snprintf(ntitle,sizeof(ntitle),"CImg<%s>",pixel_type()); disp.assign(640,480,ntitle,0); }
       disp.show().flush()._normalization = 0;

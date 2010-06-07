@@ -46,7 +46,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 1351
+#define gmic_version 1354
 
 // Define environment variables.
 #ifndef cimg_verbosity
@@ -193,6 +193,8 @@ struct gmic {
   gmic& error(const char *format, ...);
   template<typename T>
   gmic& error(const gmic_list<T>& list, const char *format, ...);
+  template<typename T>
+  gmic& error(const char *const command, const gmic_list<T>& list, const char *format, ...);
   template<typename T>
   gmic& error(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection, const char *format, ...);
   template<typename T>
