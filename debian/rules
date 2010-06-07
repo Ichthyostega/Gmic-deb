@@ -44,8 +44,10 @@ clean:
 
 .PHONY: install
 install: build
-	dh_installdirs
 	dh install
+	install -d $(CURDIR)/debian/gmic/etc/bash_completion.d
+	install -D -m644 src/gmic_bashcompletion.sh \
+	                 $(CURDIR)/debian/gmic/etc/bash_completion.d/gmic
 
 .PHONY: binary-indep
 binary-indep: install
