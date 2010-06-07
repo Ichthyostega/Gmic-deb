@@ -1,3 +1,10 @@
+gmic (1.3.5.4+dfsg-2) unstable; urgency=low
+
+  * [e14a94e2] Rise required amount of RAM to avoid FTBFS on s390.
+    (*sigh* - these machines should have neough RAM and swap....)
+
+ -- Bernd Zeimetz <bzed@debian.org>  Mon, 07 Jun 2010 19:37:02 +0200
+
 gmic (1.3.5.4+dfsg-1) unstable; urgency=low
 
   * [821186d5] Fix dversionmangle in watch file.
