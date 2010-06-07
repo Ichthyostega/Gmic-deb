@@ -46,7 +46,7 @@ clean:
 
 .PHONY: install
 install: build
-	for file in man/*.gz; do zcat $$file > $${file%.gz}; done
+	dh_installdirs
 	dh install
 
 .PHONY: binary-indep
