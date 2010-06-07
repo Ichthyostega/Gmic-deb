@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 BUILDD_MEM := $(shell awk '/^MemTotal:/ {print $$2}' /proc/meminfo)
-BUILDD_MEM_OK := $(strip $(shell test $(BUILDD_MEM) -gt 1000000 && echo yes))
+BUILDD_MEM_OK := $(strip $(shell test $(BUILDD_MEM) -gt 1800000 && echo yes))
 
 ifneq (,$(findstring arm,$(shell dpkg-architecture -qDEB_BUILD_GNU_CPU)))
   GMIC_CFLAGS = -g -O0
