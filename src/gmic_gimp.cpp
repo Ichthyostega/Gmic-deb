@@ -89,6 +89,7 @@ GtkWidget *gui_preview = 0;              // The preview window.
 GtkWidget *tree_mode_stockbutton = 0;    // A temporary stock button for the expand/collapse button.
 GtkWidget *tree_mode_button = 0;         // Expand/Collapse button for the treeview.
 GtkWidget *right_frame = 0;              // The right frame containing the filter parameters.
+GtkWidget *right_scrolledwindow = 0;     // The right scrolled window, containing the right frame.
 
 #define gmic_xstr(x) gmic_str(x)
 #define gmic_str(x) #x
@@ -282,9 +283,8 @@ const char *t(const char *const s) {
     _t("Debug mode","Mode d\303\251bogage");
     _t("Internet updates","Mises \303\240 jour Internet");
     _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
-    _t("Maximize prev_iew","Max_imiser l'aper\303\247u");
-    _t("Restore prev_iew","R\303\251du_ire l'aper\303\247u");
-    _t("_Manual preview","Aper\303\247u _manuel");
+    _t("_Maximize","_Maximiser");
+    _t("_Restore","_R\303\251duire");
   }
 
   // Catalan translation
@@ -335,9 +335,8 @@ const char *t(const char *const s) {
     _t("Debug mode","Depuraci\303\263");
     _t("Internet updates","Actualitzacions per Internet");
     _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
-    _t("Maximize prev_iew","Maximitzar la prev_isualitzaci\303\263");
-    _t("Restore prev_iew","Restaurar la prev_isualitzaci\303\263");
-    _t("_Manual preview","Previsualitzaci\303\263 _manual");
+    _t("_Maximize","_Maximitzar");
+    _t("_Restore","_Restaurar");
   }
 
   // Italian translation
@@ -387,9 +386,8 @@ const char *t(const char *const s) {
     _t("Debug mode","Debug Mode");
     _t("Internet updates","Aggiornamento via Internet");
     _t(" Available filters (%u) :"," Filtri disponibili (%u) :");
-    _t("Maximize prev_iew","Maximize prev_iew");
-    _t("Restore prev_iew","Restore prev_iew");
-    _t("_Manual preview","Preview _manuale");
+    _t("_Maximize","_Maximize");
+    _t("_Restore","_Restore");
   }
 
   // German translation
@@ -439,9 +437,8 @@ const char *t(const char *const s) {
     _t("Debug mode","Debug-Modus");
     _t("Internet updates","Internet-Updates");
     _t(" Available filters (%u) :"," Verf\303\274gbare Filter (%u) :");
-    _t("Maximize prev_iew","Max_imize Vorschau");
-    _t("Restore prev_iew","Restore Vorschau");
-    _t("_Manual preview","_Manuelle Vorschau");
+    _t("_Maximize","_Maximize");
+    _t("_Restore","_Restore");
   }
 
   // Dutch translation
@@ -489,9 +486,8 @@ const char *t(const char *const s) {
     _t("Debug mode","Debug mode");
     _t("Internet updates","Internet updates");
     _t(" Available filters (%u) :"," Beschikbare filters (%u) :");
-    _t("Maximize prev_iew","Max_imaliseren voorbeeld");
-    _t("Restore prev_iew","Verm_indering voorbeeld");
-    _t("_Manual preview","Hand_matig voorbeeld");
+    _t("_Maximize","_Maximaliseren");
+    _t("_Restore","_Vermindering");
   }
 
   // English translation (default)
@@ -682,27 +678,26 @@ bool update_filters_definition(const bool network_update) {
   // Parse filters definitions and create corresponding TreeView store.
   GtkTreeIter iter, parent[16];
   tree_view_store = gtk_tree_store_new(2,G_TYPE_UINT,G_TYPE_STRING);
-  char line[256*1024] = { 0 }, preview_command[256] = { 0 }, arguments[4096] = { 0 }, entry[256] = { 0 }, command[256] = { 0 }, locale[16] = { 0 }, *_line = 0;
+  char line[256*1024] = { 0 }, preview_command[256] = { 0 }, arguments[4096] = { 0 }, entry[256] = { 0 }, command[256] = { 0 }, locale[16] = { 0 };
   std::strcpy(locale,get_locale());
   int level = 0, err = 0;
   cimg_snprintf(line,sizeof(line),"#@gimp_%s ",locale);
 
   // Use English for default language if no translated filters found.
   if (!std::strstr(gmic_custom_commands,line)) { locale[0] = 'e'; locale[1] = 'n'; locale[2] = 0; }
-
   for (const char *data = gmic_custom_commands; *data; ) {
-    _line = line;
-    while (*data!='\n' && *data && _line<line+sizeof(line)) *(_line++) = *(data++); *_line = 0;       // Read new line.
-    while (*data=='\n') ++data;                                                                       // Skip next '\n'.
-    _line = line; while ((_line=std::strchr(_line,'\t'))!=0) *_line=' ';                              // Replace all tabs by spaces.
-    _line = line; while ((_line=std::strchr(_line,13))!=0) *_line=' ';                                // Replace all CR by spaces.
-    if (line[0]!='#' || line[1]!='@' || line[2]!='g' ||                                               // Check for a '#@gimp' line.
+    char *_line = line;
+    while (*data!='\n' && *data && _line<line+sizeof(line)) *(_line++) = *(data++); *_line = 0;  // Read new line.
+    while (*data=='\n') ++data;                                                                  // Skip next '\n'.
+    for (_line = line; *_line; ++_line) if (*_line<' ') *_line = ' ';                            // Replace non-usual characters by spaces.
+    if (line[0]!='#' || line[1]!='@' || line[2]!='g' ||                                          // Check for a '#@gimp' line.
         line[3]!='i' || line[4]!='m' || line[5]!='p') continue;
-    if (line[6]=='_') {                                                                               // Check for a localized filter.
-      if (line[7]==locale[0] && line[8]==locale[1] && line[9]==' ') _line = line + 10; else continue; // Weither the entry match current locale or not.
-    } else if (line[6]==' ') _line = line + 7; else continue;                                         // Check for a non-localized filter.
+    if (line[6]=='_') {                                                                          // Check for a localized filter.
+      if (line[7]==locale[0] && line[8]==locale[1] && line[9]==' ') _line = line + 10;           // Weither the entry match current locale or not.
+      else continue;
+    } else if (line[6]==' ') _line = line + 7; else continue;                                    // Check for a non-localized filter.
 
-    if (*_line!=':') {                                                                                // Check for a description of a possible filter or menu folder.
+    if (*_line!=':') {                                                                           // Check for a description of a possible filter or menu folder.
       *entry = *command = *preview_command = *arguments = 0;
       err = std::sscanf(_line," %4095[^:]: %4095[^,]%*c %4095[^,]%*c %4095[^\n]",
                         entry,command,preview_command,arguments);
@@ -1154,9 +1149,9 @@ void on_color_parameter_changed(GtkColorButton *const color_button, const void *
   char s_value[256] = { 0 };
   if (gtk_color_button_get_use_alpha(color_button))
     cimg_snprintf(s_value,sizeof(s_value),"%d,%d,%d,%d",
-                  color.red>>8,color.green>>8,color.blue>>8,gtk_color_button_get_alpha(color_button)>>8);
+                  color.red/257,color.green/257,color.blue/257,gtk_color_button_get_alpha(color_button)/257);
   else cimg_snprintf(s_value,sizeof(s_value),"%d,%d,%d",
-                     color.red>>8,color.green>>8,color.blue>>8);
+                     color.red/257,color.green/257,color.blue/257);
   set_filter_parameter(get_current_filter(),*(int*)event_infos,s_value);
   _create_dialog_gui = true;
 }
@@ -1203,24 +1198,13 @@ void on_dialog_maximize_button_clicked(GtkButton *const button) {
     gtk_window_get_size(GTK_WINDOW(dialog_window),&ow,&oh);
     gtk_window_resize(GTK_WINDOW(dialog_window),width,height);
     gtk_window_move(GTK_WINDOW(dialog_window),0,0);
-    gtk_button_set_label(button,t("Restore prev_iew"));
+    gtk_button_set_label(button,t("_Restore"));
   } else if (ow>0 && oh>0) {
     gtk_window_resize(GTK_WINDOW(dialog_window),ow,oh);
     ow = oh = 0;
-    gtk_button_set_label(button,t("Maximize prev_iew"));
+    gtk_button_set_label(button,t("_Maximize"));
   }
   _gimp_preview_invalidate();
-}
-
-void on_dialog_preview_button_clicked() {
-  GimpPreview *const preview = GIMP_PREVIEW(gui_preview);
-  const bool state = gimp_preview_get_update(preview);
-  gimp_preview_set_update(preview,false);
-  if (!state) {
-    preview->update_preview = true;
-    _gimp_preview_invalidate();
-    preview->update_preview = false;
-  }
 }
 
 void on_dialog_reset_clicked() {
@@ -1307,14 +1291,14 @@ void *process_thread(void *arg) {
     std::setlocale(LC_NUMERIC,"C");
     gmic(spt.command_line,spt.images,gmic_custom_commands,true,&spt.progress);
     if (spt.verbosity_mode>0) {
-      std::fprintf(cimg::output(),"\n*** Plug-in 'gmic_gimp' : G'MIC successfully returned !\n");
+      std::fprintf(cimg::output(),"*** Plug-in 'gmic_gimp' : G'MIC successfully returned !\n");
       std::fflush(cimg::output());
     }
   } catch (gmic_exception &e) {
     spt.images.assign();
     CImg<char>::string(e.what()).move_to(spt.error_message);
     if (spt.verbosity_mode>0) {
-      std::fprintf(cimg::output(),"\n*** Plug-in 'gmic_gimp' :\n %s\n",spt.error_message.data());
+      std::fprintf(cimg::output(),"*** Plug-in 'gmic_gimp' :\n%s\n",spt.error_message.data());
       std::fflush(cimg::output());
     }
   }
@@ -1906,15 +1890,18 @@ void create_parameters_gui(const bool reset_params) {
             gtk_widget_show(color_chooser);
             gtk_color_button_set_title(GTK_COLOR_BUTTON(color_chooser),argument_name);
             gtk_box_pack_start(GTK_BOX(hbox),color_chooser,false,false,0);
-            unsigned int red = 0, green = 0, blue = 0, alpha = 255;
-            const int err = std::sscanf(argument_arg,"%u%*c%u%*c%u%*c%u",&red,&green,&blue,&alpha);
-            if (!reset_params && std::sscanf(argument_value,"%u%*c%u%*c%u%*c%u",&red,&green,&blue,&alpha)==err) {}
-            GdkColor col;
-            col.pixel = 0; col.red = red<<8; col.green = green<<8; col.blue = blue<<8;
-            gtk_color_button_set_color(GTK_COLOR_BUTTON(color_chooser),&col);
+            float red = 0, green = 0, blue = 0, alpha = 255;
+            const int err = std::sscanf(argument_arg,"%f%*c%f%*c%f%*c%f",&red,&green,&blue,&alpha);
+            if (!reset_params && std::sscanf(argument_value,"%f%*c%f%*c%f%*c%f",&red,&green,&blue,&alpha)==err) {}
+            red = red<0?0:red>255?255:red;
+            green = green<0?0:green>255?255:green;
+            blue = blue<0?0:blue>255?255:blue;
+            GdkColor color;
+            color.pixel = 0; color.red = (unsigned int)(red*257); color.green = (unsigned int)(green*257); color.blue = (unsigned int)(blue*257);
+            gtk_color_button_set_color(GTK_COLOR_BUTTON(color_chooser),&color);
             if (err==4) {
               gtk_color_button_set_use_alpha(GTK_COLOR_BUTTON(color_chooser),true);
-              gtk_color_button_set_alpha(GTK_COLOR_BUTTON(color_chooser),alpha<<8);
+              gtk_color_button_set_alpha(GTK_COLOR_BUTTON(color_chooser),(unsigned int)(alpha*257));
             } else gtk_color_button_set_use_alpha(GTK_COLOR_BUTTON(color_chooser),false);
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
@@ -1981,7 +1968,7 @@ void create_parameters_gui(const bool reset_params) {
 
   // Take care that the size of the parameter table is right.
   GtkRequisition requisition; gtk_widget_size_request(table,&requisition);
-  gtk_widget_set_size_request(table,cimg::max(400,requisition.width),-1);
+  gtk_widget_set_size_request(right_scrolledwindow,cimg::max(490,requisition.width),-1);
   gtk_widget_show(dialog_window);
   set_preview_factor();
 }
@@ -2011,6 +1998,9 @@ bool create_dialog_gui() {
 
   GtkWidget *const reset_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),GIMP_STOCK_RESET,1);
   g_signal_connect(reset_button,"clicked",G_CALLBACK(on_dialog_reset_clicked),0);
+
+  GtkWidget *const maximize_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),t("_Maximize"),1);
+  g_signal_connect(maximize_button,"clicked",G_CALLBACK(on_dialog_maximize_button_clicked),0);
 
   GtkWidget *const apply_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),GTK_STOCK_APPLY,GTK_RESPONSE_APPLY);
   g_signal_connect(apply_button,"clicked",G_CALLBACK(on_dialog_apply_clicked),0);
@@ -2116,16 +2106,6 @@ bool create_dialog_gui() {
   gtk_table_attach_defaults(GTK_TABLE(left_table),preview_combobox,0,1,3,4);
   g_signal_connect(preview_combobox,"changed",G_CALLBACK(on_dialog_preview_mode_changed),0);
 
-  GtkWidget *const maximize_button = gtk_button_new_with_mnemonic(t("Maximize prev_iew"));
-  gtk_widget_show(maximize_button);
-  gtk_table_attach_defaults(GTK_TABLE(left_table),maximize_button,0,1,4,5);
-  g_signal_connect(maximize_button,"clicked",G_CALLBACK(on_dialog_maximize_button_clicked),0);
-
-  GtkWidget *const preview_button = gtk_button_new_with_mnemonic(t("_Manual preview"));
-  gtk_widget_show(preview_button);
-  gtk_table_attach_defaults(GTK_TABLE(left_table),preview_button,0,1,5,6);
-  g_signal_connect(preview_button,"clicked",G_CALLBACK(on_dialog_preview_button_clicked),0);
-
   drawable_preview = gimp_drawable_get(gimp_image_get_active_drawable(image_id));
   gui_preview = gimp_zoom_preview_new(drawable_preview);
   gtk_widget_show(gui_preview);
@@ -2184,10 +2164,15 @@ bool create_dialog_gui() {
   gtk_widget_show(right_pane);
   gtk_box_pack_start(GTK_BOX(dialog_hbox),right_pane,false,false,0);
 
+  right_scrolledwindow = gtk_scrolled_window_new(NULL,NULL);
+  gtk_widget_show(right_scrolledwindow);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(right_scrolledwindow),GTK_POLICY_AUTOMATIC,GTK_POLICY_AUTOMATIC);
+  gtk_box_pack_start(GTK_BOX(right_pane),right_scrolledwindow,true,true,0);
+
   right_frame = gtk_frame_new(NULL);
   gtk_widget_show(right_frame);
   gtk_container_set_border_width(GTK_CONTAINER(right_frame),4);
-  gtk_box_pack_start(GTK_BOX(right_pane),right_frame,true,true,0);
+  gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(right_scrolledwindow),right_frame);
 
   // Show dialog window and wait for user response.
   create_parameters_gui(false);
