@@ -10,5 +10,5 @@
 +endif
 +
  CC = g++
- BINDIR=/usr/bin
- PLUGINDIR=`gimptool-2.0 --gimpplugindir`/plug-ins
+ ifeq ($(OS),Darwin)
+ PLUGINDIR = ~/Library/Application\ Support/Gimp/plug-ins
