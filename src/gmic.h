@@ -46,7 +46,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 1354
+#define gmic_version 1357
 
 // Define environment variables.
 #ifndef cimg_verbosity
@@ -137,6 +137,7 @@ struct gmic {
   gmic_list<unsigned int> dowhiles, repeatdones;
   gmic_image<unsigned char> background3d, light3d;
   gmic_image<float> pose3d;
+  gmic_image<char> status;
   float focale3d, light3d_x, light3d_y, light3d_z, specular_light3d, specular_shine3d, _progress, *progress;
   bool is_released, is_debug, is_start, is_quit, is_double3d, check_elif;
   int verbosity, render3d, renderd3d;
@@ -175,8 +176,7 @@ struct gmic {
                          const bool display_selection) const;
 
   template<typename T>
-  gmic_image<char> substitute_item(const char *const source, const gmic_list<T>& images,
-                                   const gmic_list<char>& filenames, const gmic_list<unsigned int>& repeatdones);
+  gmic_image<char> substitute_item(const char *const source, gmic_list<T>& images, gmic_list<char>& filenames);
 
   gmic& print(const char *format, ...);
   template<typename T>

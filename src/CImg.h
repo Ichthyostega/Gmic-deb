@@ -2359,9 +2359,9 @@ namespace cimg_library {
       Display*         display;
       unsigned int     nb_bits;
       GC*              gc;
-      bool             blue_first;
+      bool             is_blue_first;
+      bool             is_shm_enabled;
       bool             byte_order;
-      bool             shm_enabled;
 #ifdef cimg_use_xrandr
       XRRScreenSize *resolutions;
       Rotation curr_rotation;
@@ -2369,7 +2369,7 @@ namespace cimg_library {
       unsigned int nb_resolutions;
 #endif
       X11_info():nb_wins(0),event_thread(0),display(0),
-                nb_bits(0),gc(0),blue_first(false),byte_order(false),shm_enabled(false) {
+                 nb_bits(0),gc(0),is_blue_first(false),is_shm_enabled(false),byte_order(false) {
 #ifdef cimg_use_xrandr
         resolutions = 0;
         curr_rotation = 0;
@@ -6851,12 +6851,12 @@ namespace cimg_library {
             if (nshminfo->shmaddr==(char*)-1) { shmctl(nshminfo->shmid,IPC_RMID,0); XDestroyImage(nimage); delete nshminfo; return; }
             else {
               nshminfo->readOnly = False;
-              cimg::X11_attr().shm_enabled = true;
+              cimg::X11_attr().is_shm_enabled = true;
               XErrorHandler oldXErrorHandler = XSetErrorHandler(_assign_xshm);
               XShmAttach(cimg::X11_attr().display, nshminfo);
               XSync(cimg::X11_attr().display, False);
               XSetErrorHandler(oldXErrorHandler);
-              if (!cimg::X11_attr().shm_enabled) {
+              if (!cimg::X11_attr().is_shm_enabled) {
                 shmdt(nshminfo->shmaddr);
                 shmctl(nshminfo->shmid,IPC_RMID,0);
                 XDestroyImage(nimage);
@@ -6978,7 +6978,7 @@ namespace cimg_library {
 
     static int _assign_xshm(Display *dpy, XErrorEvent *error) {
       dpy = 0; error = 0;
-      cimg::X11_attr().shm_enabled = false;
+      cimg::X11_attr().is_shm_enabled = false;
       return 0;
     }
 
@@ -7021,7 +7021,7 @@ namespace cimg_library {
         vtemplate.visualid = XVisualIDFromVisual(visual);
         int nb_visuals;
         XVisualInfo *vinfo = XGetVisualInfo(cimg::X11_attr().display,VisualIDMask,&vtemplate,&nb_visuals);
-        if (vinfo && vinfo->red_mask<vinfo->blue_mask) cimg::X11_attr().blue_first = true;
+        if (vinfo && vinfo->red_mask<vinfo->blue_mask) cimg::X11_attr().is_blue_first = true;
         cimg::X11_attr().byte_order = ImageByteOrder(cimg::X11_attr().display);
 	XFree(vinfo);
         XLockDisplay(cimg::X11_attr().display);
@@ -7089,12 +7089,12 @@ namespace cimg_library {
               _shminfo = 0;
             } else {
               _shminfo->readOnly = False;
-              cimg::X11_attr().shm_enabled = true;
+              cimg::X11_attr().is_shm_enabled = true;
               XErrorHandler oldXErrorHandler = XSetErrorHandler(_assign_xshm);
               XShmAttach(cimg::X11_attr().display, _shminfo);
               XSync(cimg::X11_attr().display, False);
               XSetErrorHandler(oldXErrorHandler);
-              if (!cimg::X11_attr().shm_enabled) {
+              if (!cimg::X11_attr().is_shm_enabled) {
                 shmdt(_shminfo->shmaddr);
                 shmctl(_shminfo->shmid,IPC_RMID,0);
                 XDestroyImage(_image);
@@ -7390,7 +7390,7 @@ namespace cimg_library {
         *data2 = (img._spectrum>1)?img.data(0,0,0,1):data1,
         *data3 = (img._spectrum>2)?img.data(0,0,0,2):data1;
 
-      if (cimg::X11_attr().blue_first) cimg::swap(data1,data3);
+      if (cimg::X11_attr().is_blue_first) cimg::swap(data1,data3);
       XLockDisplay(cimg::X11_attr().display);
 
       if (!_normalization || (_normalization==3 && cimg::type<T>::string()==cimg::type<unsigned char>::string())) {
@@ -7703,7 +7703,7 @@ namespace cimg_library {
         *data1 = img.data(0,0,0,0),
         *data2 = img.data(0,0,0,1),
         *data3 = img.data(0,0,0,2);
-      if (cimg::X11_attr().blue_first) cimg::swap(data1,data3);
+      if (cimg::X11_attr().is_blue_first) cimg::swap(data1,data3);
       switch (cimg::X11_attr().nb_bits) {
       case 8 : {
         for (unsigned int xy = img._width*img._height; xy>0; --xy) {
@@ -11586,10 +11586,17 @@ namespace cimg_library {
                                       pixel_type(),calling_function,
                                       expr._data);
         }
-        mem.assign(512); label.assign(512); // Init constant values.
-        mem[0] = 0; mem[1] = 1;
-        mem[2] = (double)reference._width; mem[3] = (double)reference._height; mem[4] = (double)reference._depth; mem[5] = (double)reference._spectrum;
-        mem[6] = cimg::PI; mem[7] = std::exp(1.0); // Then [8] = x, [9] = y, [10] = z, [11] = c
+        // Init constant values.
+        mem.assign(512);
+        label.assign(512);
+        mem[0] = 0;
+        mem[1] = 1;
+        mem[2] = (double)reference._width;
+        mem[3] = (double)reference._height;
+        mem[4] = (double)reference._depth;
+        mem[5] = (double)reference._spectrum;
+        mem[6] = cimg::PI;
+        mem[7] = std::exp(1.0); // Then [8] = x, [9] = y, [10] = z, [11] = c
         mempos = 12;
         result = compile(expr._data,expr._data+l); // Compile formula into a serie of opcodes.
       }
@@ -11716,7 +11723,7 @@ namespace cimg_library {
                    !std::strcmp(variable_name,"u") || !std::strcmp(variable_name,"g") || !std::strcmp(variable_name,"i") ||
                    !std::strcmp(variable_name,"pi") || !std::strcmp(variable_name,"im") || !std::strcmp(variable_name,"iM") ||
                    !std::strcmp(variable_name,"ia") || !std::strcmp(variable_name,"iv"))
-                 throw CImgArgumentException("[_cimg_math_parser] "
+                  throw CImgArgumentException("[_cimg_math_parser] "
                                              "CImg<%s>::%s() : Invalid assignment of reserved variable name '%s' in specified expression '%s'.",
                                              pixel_type(),calling_function,
                                              variable_name._data,expr._data);
@@ -11855,17 +11862,30 @@ namespace cimg_library {
             (opcode>'y').move_to(code);
             _cimg_mp_return(pos);
           }
-          if (!std::strncmp(ss,"narg(",5)) {
-            if (*ss5==')') _cimg_mp_return(0);
-            unsigned int nb = 0;
-            for (char *s = ss5; s<se; ++s) {
-              char *ns = s; while (ns<se && (*ns!=',' || level[ns-expr._data]!=clevel1) && (*ns!=')' || level[ns-expr._data]!=clevel)) ++ns;
-              ++nb; s = ns;
-            }
-            if (nb==0 || nb==1) _cimg_mp_return(nb);
+          if (!std::strncmp(ss,"arg(",4)) {
+            CImgList<uintT> opcode;
             if (mempos>=mem.size()) mem.resize(-200,1,1,1,0);
             const unsigned int pos = mempos++;
-            mem[pos] = nb;
+            CImg<uintT>::vector(69,pos).move_to(opcode);
+            for (char *s = ss4; s<se; ++s) {
+              char *ns = s; while (ns<se && (*ns!=',' || level[ns-expr._data]!=clevel1) && (*ns!=')' || level[ns-expr._data]!=clevel)) ++ns;
+              CImg<uintT>::vector(compile(s,ns)).move_to(opcode);
+              s = ns;
+            }
+            (opcode>'y').move_to(code);
+            _cimg_mp_return(pos);
+          }
+          if (!std::strncmp(ss,"narg(",5)) {
+            if (*ss5==')') _cimg_mp_return(0);
+            unsigned int nb_args = 0;
+            for (char *s = ss5; s<se; ++s) {
+              char *ns = s; while (ns<se && (*ns!=',' || level[ns-expr._data]!=clevel1) && (*ns!=')' || level[ns-expr._data]!=clevel)) ++ns;
+              ++nb_args; s = ns;
+            }
+            if (nb_args==0 || nb_args==1) _cimg_mp_return(nb_args);
+            if (mempos>=mem.size()) mem.resize(-200,1,1,1,0);
+            const unsigned int pos = mempos++;
+            mem[pos] = nb_args;
             _cimg_mp_return(pos);
           }
           if (!std::strncmp(ss,"isval(",6)) {
@@ -11889,7 +11909,7 @@ namespace cimg_library {
           }
 
           if (!std::strncmp(ss,"sinc(",5)) _cimg_mp_opcode1(56,compile(ss5,se1));
-
+          if (!std::strncmp(ss,"int(",4)) _cimg_mp_opcode1(70,compile(ss4,se1));
         }
 
         // No known item found, assuming this is an already initialize variable.
@@ -12146,6 +12166,15 @@ namespace cimg_library {
         if (!reference_stats) reference.get_stats().move_to(reference_stats);
         return reference_stats?reference_stats[11]:0;
       }
+      double mp_arg() {
+        const int _ind = (int)mem[opcode(2)];
+        const unsigned int nb_args = opcode._height-2, ind = _ind<0?_ind+nb_args:(unsigned int)_ind;
+        if (ind>=nb_args) return 0;
+        return mem[opcode(ind+2)];
+      }
+      double mp_int() {
+        return (double)(long)mem[opcode(2)];
+      }
 
       // Evaluation procedure, with image data.
       double eval(const double x, const double y, const double z, const double c) {
@@ -12219,7 +12248,9 @@ namespace cimg_library {
           &_cimg_math_parser::mp_xM,           // 65
           &_cimg_math_parser::mp_yM,           // 66
           &_cimg_math_parser::mp_zM,           // 67
-          &_cimg_math_parser::mp_cM            // 68
+          &_cimg_math_parser::mp_cM,           // 68
+          &_cimg_math_parser::mp_arg,          // 69
+          &_cimg_math_parser::mp_int           // 70
         };
 
         if (!mem) return 0;
@@ -14053,7 +14084,9 @@ namespace cimg_library {
     static CImg<T> dijkstra(const tf& distance, const unsigned int nb_nodes,
                             const unsigned int starting_node, const unsigned int ending_node,
                             CImg<t>& previous) {
-
+      if (starting_node>=nb_nodes)
+        throw CImgArgumentException("CImg<%s>::dijkstra() : Specified indice of starting node %u is higher than number of nodes %u.",
+                                    pixel_type(),starting_node,nb_nodes);
       CImg<T> dist(1,nb_nodes,1,1,cimg::type<T>::max());
       dist(starting_node) = 0;
       previous.assign(1,nb_nodes,1,1,(t)-1);
@@ -30836,7 +30869,7 @@ namespace cimg_library {
         const unsigned char *ptrs = buffer._data;
         switch (_spectrum) {
         case 1 : {
-          cimg_forX(*this,x) *(ptr_g++) = (T)*(ptrs++);
+          cimg_forX(*this,x) *(ptr_r++) = (T)*(ptrs++);
         } break;
         case 3 : {
           cimg_forX(*this,x) {
@@ -36221,15 +36254,13 @@ namespace cimg_library {
     //! Move the content of the instance image list into another one.
     template<typename t>
     CImgList<t>& move_to(CImgList<t>& list) {
-      list.assign(size());
-      cimglist_for(*this,l) _data[l].move_to(list[l]);
+      list.assign(_width);
+      bool is_one_shared_element = false;
+      cimglist_for(*this,l) is_one_shared_element|=_data[l]._is_shared;
+      if (is_one_shared_element) cimglist_for(*this,l) list[l].assign(_data[l]);
+      else cimglist_for(*this,l) _data[l].move_to(list[l]);
       assign();
       return list;
-    }
-
-    CImgList<T>& move_to(CImgList<T>& list) {
-      list.assign();
-      return swap(list);
     }
 
     template<typename t>
@@ -36237,7 +36268,10 @@ namespace cimg_library {
       if (is_empty()) return list;
       const unsigned int npos = pos>list._width?list._width:pos;
       list.insert(_width,npos);
-      cimglist_for(*this,l) (*this)[l].move_to(list.at(npos+l));
+      bool is_one_shared_element = false;
+      cimglist_for(*this,l) is_one_shared_element|=_data[l]._is_shared;
+      if (is_one_shared_element) cimglist_for(*this,l) list[npos+l].assign(_data[l]);
+      else cimglist_for(*this,l) _data[l].move_to(list[npos+l]);
       assign();
       return list;
     }

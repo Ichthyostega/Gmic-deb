@@ -48,15 +48,21 @@
 #---------------------------------
 OS := $(shell uname)
 CC = g++
-BINDIR=/usr/bin
-PLUGINDIR=`gimptool-2.0 --gimpplugindir`/plug-ins
 ifeq ($(OS),Darwin)
-LIBDIR = /opt/local
+PLUGINDIR = ~/Library/Application\ Support/Gimp/plug-ins
+USR = /opt/local
 else
-LIBDIR = /usr
+PLUGINDIR=`gimptool-2.0 --gimpplugindir`/plug-ins
+USR = /usr
 endif
 ifeq ($(OS),MINGW32_NT-5.1)
 EXE = .exe
+endif
+ifeq ($(CC),g++)
+IS_GCC = yes
+endif
+ifeq ($(CC),g++-4.5)
+IS_GCC = yes
 endif
 
 #---------------------------------------------------
@@ -64,18 +70,18 @@ endif
 #---------------------------------------------------
 
 # Flags that are mandatory to compile 'gmic'.
-MANDATORY_CFLAGS = -Dgmic_build -I$(LIBDIR)/include
-MANDATORY_LDFLAGS = -L$(LIBDIR)/lib
-ifeq ($(CC),g++)
-MANDATORY_CFLAGS += -Wall -W -I$(LIBDIR)/include
-MANDATORY_LDFLAGS = -lm -L$(LIBDIR)/lib
+MANDATORY_CFLAGS = -Dgmic_build -I$(USR)/include
+MANDATORY_LDFLAGS = -L$(USR)/lib
+ifeq ($(IS_GCC),yes)
+MANDATORY_CFLAGS += -Wall -W -I$(USR)/include
+MANDATORY_LDFLAGS = -lm -L$(USR)/lib
 endif
 
 # Flags to enable debugging.
 DEBUG_CFLAGS = -Dcimg_use_vt100 -Dcimg_verbosity=3 -g
 
 # Flags to enable optimizations.
-ifeq ($(CC),g++)
+ifeq ($(IS_GCC),yes)
 OPT_CFLAGS = -O3 -fno-tree-pre
 endif
 ifeq ($(CC),icc)
@@ -83,12 +89,12 @@ OPT_CFLAGS = -O3 -ipo -no-prec-div -override-limits
 endif
 
 # Flags to enable image display, using X11.
-X11_CFLAGS = -Dcimg_display=1 -Dcimg_use_xrandr -I/usr/X11R6/include
-X11_LDFLAGS = -L/usr/X11R6/lib -lX11 -lXrandr -lpthread
+X11_CFLAGS = -Dcimg_display=1 -Dcimg_use_xrandr -I$(USR)/X11R6/include
+X11_LDFLAGS = -L$(USR)/X11R6/lib -lX11 -lXrandr -lpthread
 
 # Flags to enable fast display, using XShm.
 XSHM_CFLAGS = -Dcimg_use_xshm
-XSHM_LDFLAGS = -L/usr/X11R6/lib -lXext
+XSHM_LDFLAGS = -L$(USR)/X11R6/lib -lXext
 
 # Flags to enable image display, using GDI32.
 GDI32_CFLAGS = -Dcimg_display=2
@@ -107,7 +113,7 @@ TIFF_CFLAGS = -Dcimg_use_tiff
 TIFF_LDFLAGS = -ltiff
 
 # Flags to enable native support for various video files, using the FFMPEG library.
-FFMPEG_CFLAGS = -Dcimg_use_ffmpeg -I/usr/include/libavcodec -I/usr/include/libavformat -I/usr/include/libswscale -I/usr/include/ffmpeg
+FFMPEG_CFLAGS = -Dcimg_use_ffmpeg -I$(USR)/include/libavcodec -I$(USR)/include/libavformat -I$(USR)/include/libswscale -I$(USR)/include/ffmpeg
 FFMPEG_LDFLAGS = -lavcodec -lavformat -lswscale
 
 # Flags to enable native support for compressed .cimgz files, using the Zlib library.
@@ -115,15 +121,15 @@ ZLIB_CFLAGS = -Dcimg_use_zlib
 ZLIB_LDFLAGS = -lz
 
 # Flags to enable native support of most classical image file formats, using the GraphicsMagick++ library.
-MAGICK_CFLAGS = -Dcimg_use_magick -I$(LIBDIR)/include/GraphicsMagick
+MAGICK_CFLAGS = -Dcimg_use_magick -I$(USR)/include/GraphicsMagick
 ifeq ($(OS),Darwin)
-MAGICK_LDFLAGS = -L$(LIBDIR)/lib -lGraphicsMagick++ -lGraphicsMagick -llcms -ltiff -lfreetype -ljpeg -lpng -lbz2 -lxml2 -lz -lm -lpthread -lltdl
+MAGICK_LDFLAGS = -L$(USR)/lib -lGraphicsMagick++ -lGraphicsMagick -llcms -ltiff -lfreetype -ljpeg -lpng -lbz2 -lxml2 -lz -lm -lpthread -lltdl
 else
 MAGICK_LDFLAGS = -lGraphicsMagick++
 endif
 
 # Flags to enable native support of EXR file format, using the OpenEXR library/
-EXR_CFLAGS = -Dcimg_use_openexr -I$(LIBDIR)/include/OpenEXR
+EXR_CFLAGS = -Dcimg_use_openexr -I$(USR)/include/OpenEXR
 EXR_LDFLAGS = -lIlmImf
 ifeq ($(OS),Darwin)
 EXR_LDFLAGS += -lHalf
@@ -150,10 +156,10 @@ STD_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) \
 
 CUST_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
-	           $(MAGICK_CFLAGS) $(FFTW_CFLAGS) $(EXR_CFLAGS) $(FFMPEG_CFLAGS) $(BOARD_CFLAGS)
+	           $(MAGICK_CFLAGS) $(FFTW_CFLAGS) # $(FFMPEG_CFLAGS) $(BOARD_CFLAGS) # $(EXR_CFLAGS)
 CUST_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
                     $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) \
-	    	    $(MAGICK_LDFLAGS) $(FFTW_LDFLAGS) $(EXR_LDFLAGS) $(FFMPEG_LDFLAGS) $(BOARD_LDFLAGS)
+	    	    $(MAGICK_LDFLAGS) $(FFTW_LDFLAGS) # $(FFMPEG_LDFLAGS) $(BOARD_LDFLAGS) # $(EXR_LDFLAGS)
 
 DEBUG_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
                     $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
@@ -226,7 +232,7 @@ custom:
 	$(MAKE) "CFLAGS+=$(CUST_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(CUST_UNIX_LDFLAGS)" "STRIP_EXE=1" gmic_gmic
 
 solaris:
-	$(MAKE) "CFLAGS+=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_UNIX_LDFLAGS) -R/usr/X11R6/lib -lrt -lnsl -lsocket" "STRIP_EXE=1" gmic_gmic
+	$(MAKE) "CFLAGS+=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_UNIX_LDFLAGS) -R$(USR)/X11R6/lib -lrt -lnsl -lsocket" "STRIP_EXE=1" gmic_gmic
 
 macosx:
 	$(MAKE) "CFLAGS+=$(STD_MACOSX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_MACOSX_LDFLAGS)" gmic_gmic
@@ -239,13 +245,13 @@ gmic_lib.o: gmic.cpp gmic_def.h
 	$(CC) -o gmic_lib.o -c gmic.cpp -fPIC -Dgmic_minimal -Dgmic_float $(CFLAGS)
 gmic_lib: gmic_lib.o
 	ar rcs libgmic.a gmic_lib.o
-	g++ -shared -Wl,-soname,libgmic.so.1 -o libgmic.so.1.3.2 gmic_lib.o $(LDFLAGS)
-	g++ -o gmic_use_lib gmic_use_lib.cpp -L. -lgmic -lfftw3
+	$(CC) -shared -Wl,-soname,libgmic.so.1 -o libgmic.so.1.3.2 gmic_lib.o $(LDFLAGS)
+	$(CC) -o gmic_use_lib gmic_use_lib.cpp -L. -lgmic -lfftw3
 
 gmic_gimp.o: gmic.cpp gmic_def.h
 	$(CC) -o gmic_gimp.o -c gmic.cpp -Dgmic_gimp -Dgmic_minimal -Dgmic_float $(CFLAGS)
 gmic_gimp : gmic_gimp.o gmic_gimp.cpp
-	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o $(CFLAGS) $(LDFLAGS) `gimptool-2.0$(EXE) --cflags` `gimptool-2.0$(EXE) --libs`
+	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o `gimptool-2.0$(EXE) --cflags` $(CFLAGS) `gimptool-2.0$(EXE) --libs` $(LDFLAGS)
 	strip gmic_gimp$(EXE)
 
 gmic_debug: gmic.cpp
@@ -280,34 +286,35 @@ def:
 install:
 	mkdir -p $(DESTDIR)$(PLUGINDIR)/
 	cp -f gmic_gimp $(DESTDIR)$(PLUGINDIR)/
-	mkdir -p $(DESTDIR)$(BINDIR)/
-	cp -f gmic $(DESTDIR)$(BINDIR)/
-	mkdir -p $(DESTDIR)/usr/share/man/man1/
-	mkdir -p $(DESTDIR)/usr/share/man/fr/man1/
-	cp -f ../man/gmic.1.gz $(DESTDIR)/usr/share/man/man1/gmic.1.gz
-	cp -f ../man/gmic.1.gz $(DESTDIR)/usr/share/man/fr/man1/gmic.1.gz
-	mkdir -p $(DESTDIR)/usr/share/doc/gmic/html/img/
+	mkdir -p $(DESTDIR)$(USR)/bin/
+	cp -f gmic $(DESTDIR)$(USR)/bin/
+	mkdir -p $(DESTDIR)$(USR)/share/man/man1/
+	mkdir -p $(DESTDIR)$(USR)/share/man/fr/man1/
+	cp -f ../man/gmic.1.gz $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
+	cp -f ../man/gmic.1.gz $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz
+	mkdir -p $(DESTDIR)$(USR)/share/doc/gmic/html/img/
 	if test -d /etc/bash_completion.d/; then mkdir -p $(DESTDIR)/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/etc/bash_completion.d/gmic; fi
+	if test -d /opt/local/etc/bash_completion.d/; then mkdir -p $(DESTDIR)/opt/local/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/opt/local/etc/bash_completion.d/gmic; fi
 	for pixmap in ../html/*.*; do \
 	  if test -f $$pixmap; then \
-	    cp -f  $$pixmap  $(DESTDIR)/usr/share/doc/gmic/html/; \
+	    cp -f  $$pixmap  $(DESTDIR)$(USR)/share/doc/gmic/html/; \
 	  fi \
 	done
 	for pixmap in ../html/img/*.*; do \
 	  if test -f $$pixmap; then \
-	    cp -f  $$pixmap  $(DESTDIR)/usr/share/doc/gmic/html/img/; \
+	    cp -f  $$pixmap  $(DESTDIR)$(USR)/share/doc/gmic/html/img/; \
 	  fi \
 	done
 
 uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/gmic
-	rm -rf $(DESTDIR)/usr/share/doc/gmic/
-	rm -f $(DESTDIR)/usr/share/man/man1/gmic.1.gz
-	rm -f $(DESTDIR)/usr/share/man/fr/man1/gmic.1.gz
+	rm -f $(DESTDIR)$(USR)/bin/gmic
+	rm -rf $(DESTDIR)$(USR)/share/doc/gmic/
+	rm -f $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
+	rm -f $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz
 
 distclean: clean
 
 clean:
-	rm -rf gmic*.o gmic gmic_gimp gmic_bashcompletion libgmic* *~
+	rm -rf gmic*.o gmic gmic_gimp gmic_use_lib gmic_bashcompletion libgmic* *~
 
 # End of Makefile
