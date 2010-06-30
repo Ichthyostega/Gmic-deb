@@ -445,7 +445,8 @@ const char *t(const char *const s) {
   if (!std::strcmp(get_locale(),"nl")) {
     if (!s) {
       static const char *const ns = "<b>Geen internet-update mogelijk !</b>\n\n"
-        "Controleer aub je verbinding. Je kunt handmatig bijwerken door het downloaden van het volgende bestand :\n\n"
+        "Controleer aub je verbinding. Je kunt handmatig bijwerken door het downloaden van het "
+        "volgende bestand :\n\n"
         "<u><small>%s%s</small></u>\n\n"
         "Vervolgens kopieer je het bestand naar folder met gebruikersinformatie.";
       return ns;
@@ -641,7 +642,9 @@ bool update_filters_definition(const bool network_update) {
         if (file_d &&
             std::fread(buffer,sizeof(char),size_s,file_s)==size_s &&
             std::sscanf(buffer,"#@gmi%c",&sep)==1 && sep=='c' &&
-            std::fwrite(buffer,sizeof(char),size_s,file_d)==size_s) { network_succeed = true; std::fclose(file_d); }
+            std::fwrite(buffer,sizeof(char),size_s,file_d)==size_s) {
+          network_succeed = true; std::fclose(file_d);
+        }
         delete[] buffer;
       }
       std::fclose(file_s);
@@ -678,7 +681,9 @@ bool update_filters_definition(const bool network_update) {
   // Parse filters definitions and create corresponding TreeView store.
   GtkTreeIter iter, parent[16];
   tree_view_store = gtk_tree_store_new(2,G_TYPE_UINT,G_TYPE_STRING);
-  char line[256*1024] = { 0 }, preview_command[256] = { 0 }, arguments[4096] = { 0 }, entry[256] = { 0 }, command[256] = { 0 }, locale[16] = { 0 };
+  char
+    line[256*1024] = { 0 }, preview_command[256] = { 0 }, arguments[4096] = { 0 }, entry[256] = { 0 },
+    command[256] = { 0 }, locale[16] = { 0 };
   std::strcpy(locale,get_locale());
   int level = 0, err = 0;
   cimg_snprintf(line,sizeof(line),"#@gimp_%s ",locale);
@@ -687,17 +692,19 @@ bool update_filters_definition(const bool network_update) {
   if (!std::strstr(gmic_custom_commands,line)) { locale[0] = 'e'; locale[1] = 'n'; locale[2] = 0; }
   for (const char *data = gmic_custom_commands; *data; ) {
     char *_line = line;
-    while (*data!='\n' && *data && _line<line+sizeof(line)) *(_line++) = *(data++); *_line = 0;  // Read new line.
-    while (*data=='\n') ++data;                                                                  // Skip next '\n'.
-    for (_line = line; *_line; ++_line) if (*_line<' ') *_line = ' ';                            // Replace non-usual characters by spaces.
-    if (line[0]!='#' || line[1]!='@' || line[2]!='g' ||                                          // Check for a '#@gimp' line.
+    // Read new line.
+    while (*data!='\n' && *data && _line<line+sizeof(line)) *(_line++) = *(data++); *_line = 0;
+    while (*data=='\n') ++data; // Skip next '\n'.
+    for (_line = line; *_line; ++_line) if (*_line<' ') *_line = ' '; // Replace non-usual characters by spaces.
+    if (line[0]!='#' || line[1]!='@' || line[2]!='g' || // Check for a '#@gimp' line.
         line[3]!='i' || line[4]!='m' || line[5]!='p') continue;
-    if (line[6]=='_') {                                                                          // Check for a localized filter.
-      if (line[7]==locale[0] && line[8]==locale[1] && line[9]==' ') _line = line + 10;           // Weither the entry match current locale or not.
+    if (line[6]=='_') { // Check for a localized filter.
+      // Weither the entry match current locale or not.
+      if (line[7]==locale[0] && line[8]==locale[1] && line[9]==' ') _line = line + 10;
       else continue;
-    } else if (line[6]==' ') _line = line + 7; else continue;                                    // Check for a non-localized filter.
+    } else if (line[6]==' ') _line = line + 7; else continue; // Check for a non-localized filter.
 
-    if (*_line!=':') {                                                                           // Check for a description of a possible filter or menu folder.
+    if (*_line!=':') { // Check for a description of a possible filter or menu folder.
       *entry = *command = *preview_command = *arguments = 0;
       err = std::sscanf(_line," %4095[^:]: %4095[^,]%*c %4095[^,]%*c %4095[^\n]",
                         entry,command,preview_command,arguments);
@@ -710,7 +717,8 @@ bool update_filters_definition(const bool network_update) {
           gtk_tree_store_append(tree_view_store,&parent[level],level?&parent[level-1]:0);
           gtk_tree_store_set(tree_view_store,&parent[level],0,0,1,nentry,-1);
           if (!level) {
-            const char *treepath = gtk_tree_model_get_string_from_iter(GTK_TREE_MODEL(tree_view_store),&parent[level]);
+            const char *treepath = gtk_tree_model_get_string_from_iter(GTK_TREE_MODEL(tree_view_store),
+                                                                       &parent[level]);
             CImg<char>::string(treepath).move_to(gmic_1stlevel_entries);
           }
           ++level;
@@ -727,7 +735,8 @@ bool update_filters_definition(const bool network_update) {
           char *const preview_mode = std::strchr(preview_command,'(');
           double factor = 1;
           char sep = 0;
-          if (preview_mode && std::sscanf(preview_mode+1,"%lf%c",&factor,&sep)==2 && factor>=0 && sep==')') *preview_mode = 0;
+          if (preview_mode && std::sscanf(preview_mode+1,"%lf%c",&factor,&sep)==2 && factor>=0 && sep==')')
+            *preview_mode = 0;
           else factor = -1;
           CImg<char>::string(preview_command).move_to(gmic_preview_commands);
           CImg<double>::vector(factor).move_to(gmic_preview_factors);
@@ -772,7 +781,8 @@ void convert_image_float2uchar(CImg<float>& img) {
     }
   } break;
   case 4 : {
-    const float *ptr0 = img.data(0,0,0,0), *ptr1 = img.data(0,0,0,1), *ptr2 = img.data(0,0,0,2), *ptr3 = img.data(0,0,0,3);
+    const float *ptr0 = img.data(0,0,0,0), *ptr1 = img.data(0,0,0,1),
+      *ptr2 = img.data(0,0,0,2), *ptr3 = img.data(0,0,0,3);
     for (unsigned int i = 0; i<siz; ++i) {
       *(ptrd++) = (unsigned char)*(ptr0++);
       *(ptrd++) = (unsigned char)*(ptr1++);
@@ -863,7 +873,8 @@ void calibrate_image(CImg<float>& img, const unsigned int channels, const bool p
       break;
     case 4: // from RGBA
       if (preview) {
-        float *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1), *ptr_b = img.data(0,0,0,2), *ptr_a = img.data(0,0,0,3);
+        float *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1),
+          *ptr_b = img.data(0,0,0,2), *ptr_a = img.data(0,0,0,3);
         cimg_forXY(img,x,y) {
           const unsigned int a = (unsigned int)*(ptr_a++), i = 96 + (((x^y)&8)<<3);
           *ptr_r = (float)((a*(unsigned int)*ptr_r + (255-a)*i)>>8);
@@ -971,22 +982,33 @@ CImg<int> get_input_layers(CImgList<T>& images) {
       T *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1);
       cimg_forY(img,y) {
         gimp_pixel_rgn_get_row(&region,ptrs=row,x1,y1+y,img.width());
-        cimg_forX(img,x) { *(ptr_r++) = (T)*(ptrs++); *(ptr_g++) = (T)*(ptrs++); }
+        cimg_forX(img,x) {
+          *(ptr_r++) = (T)*(ptrs++);
+          *(ptr_g++) = (T)*(ptrs++);
+        }
       }
     } break;
     case 3 : {
       T *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1), *ptr_b = img.data(0,0,0,2);
       cimg_forY(img,y) {
         gimp_pixel_rgn_get_row(&region,ptrs=row,x1,y1+y,img.width());
-        cimg_forX(img,x) { *(ptr_r++) = (T)*(ptrs++); *(ptr_g++) = (T)*(ptrs++); *(ptr_b++) = (T)*(ptrs++); }
+        cimg_forX(img,x) {
+          *(ptr_r++) = (T)*(ptrs++);
+          *(ptr_g++) = (T)*(ptrs++);
+          *(ptr_b++) = (T)*(ptrs++);
+        }
       }
     } break;
     case 4 : {
-      T *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1), *ptr_b = img.data(0,0,0,2), *ptr_a = img.data(0,0,0,3);
+      T *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1),
+        *ptr_b = img.data(0,0,0,2), *ptr_a = img.data(0,0,0,3);
       cimg_forY(img,y) {
         gimp_pixel_rgn_get_row(&region,ptrs=row,x1,y1+y,img.width());
         cimg_forX(img,x) {
-          *(ptr_r++) = (T)*(ptrs++); *(ptr_g++) = (T)*(ptrs++); *(ptr_b++) = (T)*(ptrs++); *(ptr_a++) = (T)*(ptrs++);
+          *(ptr_r++) = (T)*(ptrs++);
+          *(ptr_g++) = (T)*(ptrs++);
+          *(ptr_b++) = (T)*(ptrs++);
+          *(ptr_a++) = (T)*(ptrs++);
         }
       }
     } break;
@@ -1025,7 +1047,7 @@ const char* get_command_line(const bool preview) {
         const unsigned int l = std::strlen(ss);
         if (l>=2 && ss[0]=='\"' && ss[l-1]=='\"') { // Replace special characters in a string or a filename.
           ++ss; *(sd++) = '\"';
-          for (unsigned int i = 1; i<l-1; ++i, ++ss) { const char c = *ss; *(sd++) = c=='{'?_lbrace:c=='}'?_rbrace:c==','?_comma:c=='\"'?_dquote:c; }
+          for (unsigned int i = 1; i<l-1; ++i, ++ss) { const char c = *ss; *(sd++) = c=='\"'?_dquote:c; }
           *(sd++) = '\"'; *(sd++) = 0;
           CImg<char>(nparam,l+1).move_to(lres);
         } else CImg<char>(ss,l+1).move_to(lres);
@@ -1046,7 +1068,8 @@ void set_preview_factor() {
     if (factor>=0) {
       if (!factor) { // Compute factor so that 1:1 preview of the image is displayed.
         int _pw = 0, _ph = 0; gimp_preview_get_size(GIMP_PREVIEW(gui_preview),&_pw,&_ph);
-        const float pw = (float)_pw, ph = (float)_ph, dw = (float)drawable_preview->width, dh = (float)drawable_preview->height;
+        const float pw = (float)_pw, ph = (float)_ph,
+          dw = (float)drawable_preview->width, dh = (float)drawable_preview->height;
         factor = std::sqrt((dw*dw+dh*dh)/(pw*pw+ph*ph));
       }
       gimp_zoom_model_zoom(gimp_zoom_preview_get_model(GIMP_ZOOM_PREVIEW(gui_preview)),GIMP_ZOOM_TO,factor);
@@ -1191,12 +1214,18 @@ void on_dialog_preview_mode_changed(GtkComboBox *const combobox) {
 void on_dialog_maximize_button_clicked(GtkButton *const button) {
   static int ow = 0, oh = 0;
   GdkScreen* screen = gtk_window_get_screen(GTK_WINDOW(dialog_window));
-  const int
+  int
     width = gdk_screen_get_width(screen),
     height = gdk_screen_get_height(screen);
   if (width>0 && height>0 && !ow && !oh) {
     gtk_window_get_size(GTK_WINDOW(dialog_window),&ow,&oh);
-    gtk_window_resize(GTK_WINDOW(dialog_window),width,height);
+#if cimg_OS==2
+    // Subtract the height of the taskbar on windows.
+    RECT rect;
+    HWND taskBar = FindWindow("Shell_traywnd",NULL);
+    if (taskBar && GetWindowRect(taskBar,&rect)) height-=rect.bottom - rect.top;
+#endif
+    if (height>0) gtk_window_resize(GTK_WINDOW(dialog_window),width,height);
     gtk_window_move(GTK_WINDOW(dialog_window),0,0);
     gtk_button_set_label(button,t("_Restore"));
   } else if (ow>0 && oh>0) {
@@ -1235,8 +1264,9 @@ void on_dialog_tree_mode_clicked(GtkWidget *const tree_view) {
 
 void on_dialog_update_clicked(GtkWidget *const tree_view) {
   if (!update_filters_definition(get_net_update())) {
-    GtkWidget *const message = gtk_message_dialog_new_with_markup(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,
-                                                                  t(0),gmic_update_server,gmic_update_file,gmic_update_file);
+    GtkWidget *const
+      message = gtk_message_dialog_new_with_markup(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,
+                                                   t(0),gmic_update_server,gmic_update_file,gmic_update_file);
     gtk_widget_show(message);
     gtk_dialog_run(GTK_DIALOG(message));
     gtk_widget_destroy(message);
@@ -1285,7 +1315,10 @@ void *process_thread(void *arg) {
   st_process_thread &spt = *(st_process_thread*)arg;
   try {
     if (spt.verbosity_mode>0) {
-      std::fprintf(cimg::output(),"\n*** Plug-in 'gmic_gimp' : Run G'MIC, with command : '%s'\n",spt.command_line);
+      CImg<char> cl = CImg<char>::string(spt.command_line);
+      gmic_strreplace(cl);
+      std::fprintf(cimg::output(),"\n*** Plug-in 'gmic_gimp' : Run G'MIC, with command : '%s'\n",
+                   cl.data());
       std::fflush(cimg::output());
     }
     std::setlocale(LC_NUMERIC,"C");
@@ -1347,7 +1380,8 @@ void process_image(const char *const command_line) {
     pthread_mutex_lock(&spt.is_running);
     pthread_create(&(spt.thread),0,process_thread,(void*)&spt);
     while (pthread_mutex_trylock(&spt.is_running)) {
-      if (spt.progress>=0) gimp_progress_update(cimg::min(1.0,spt.progress/100.0)); else gimp_progress_pulse();
+      if (spt.progress>=0) gimp_progress_update(cimg::min(1.0,spt.progress/100.0));
+      else gimp_progress_pulse();
       cimg::wait(350);
     }
     gimp_progress_update(1.0);
@@ -1366,10 +1400,11 @@ void process_image(const char *const command_line) {
 
   // Check that everything went fine, else display an error dialog.
   if (spt.error_message) {
-    GtkWidget *const message = gtk_message_dialog_new_with_markup(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,
-                                                                  "<b>Filter processing error !</b>\n\n"
-                                                                  "Message returned by the G'MIC engine :\n\n"
-                                                                  "<i>%s</i>",spt.error_message.data());
+    GtkWidget *const
+      message = gtk_message_dialog_new_with_markup(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,
+                                                   "<b>G'MIC filter processing error !</b>\n\n"
+                                                   "Error message returned by the processing engine :\n\n"
+                                                   "<i>%s</i>",spt.error_message.data());
     gtk_widget_show(message);
     gtk_dialog_run(GTK_DIALOG(message));
     gtk_widget_destroy(message);
@@ -1416,7 +1451,8 @@ void process_image(const char *const command_line) {
         for (unsigned int i = 0; i<layers._height; ++i) gimp_image_remove_layer(image_id,layers[i]);
         cimglist_for(spt.images,p) {
           CImg<float> &img = spt.images[p];
-          if (gimp_image_base_type(image_id)==GIMP_GRAY) calibrate_image(img,(img.spectrum()==1 || img.spectrum()==3)?1:2,false);
+          if (gimp_image_base_type(image_id)==GIMP_GRAY) calibrate_image(img,(img.spectrum()==1 ||
+                                                                              img.spectrum()==3)?1:2,false);
           else calibrate_image(img,(img.spectrum()==1 || img.spectrum()==3)?3:4,false);
           gint layer_id = gimp_layer_new(image_id,"image",img.width(),img.height(),
                                          img.spectrum()==1?GIMP_GRAY_IMAGE:
@@ -1537,7 +1573,8 @@ void process_preview() {
           (input_mode==2 && nb_layers==1) ||
           (input_mode==3 && nb_layers==1 && gimp_drawable_get_visible(layers[0])) ||
           (input_mode==4 && nb_layers==1 && !gimp_drawable_get_visible(layers[0])) ||
-          (input_mode==5 && nb_layers==1)) { // If only one input layer, use the default thumbnail provided by GIMP.
+          (input_mode==5 && nb_layers==1)) {
+        // If only one input layer, use the default thumbnail provided by GIMP.
         spt.images.assign(1,w,h,1,channels);
         const int wh = w*h;
         switch (channels) {
@@ -1546,22 +1583,36 @@ void process_preview() {
           for (int xy = 0; xy<wh; ++xy) *(ptr_r++) = (float)*(ptrs++);
         } break;
         case 2 : {
-          float *ptr_r = spt.images[0].data(0,0,0,0), *ptr_g = spt.images[0].data(0,0,0,1);
-          for (int xy = 0; xy<wh; ++xy) { *(ptr_r++) = (float)*(ptrs++); *(ptr_g++) = (float)*(ptrs++);
+          float
+            *ptr_r = spt.images[0].data(0,0,0,0),
+            *ptr_g = spt.images[0].data(0,0,0,1);
+          for (int xy = 0; xy<wh; ++xy) {
+            *(ptr_r++) = (float)*(ptrs++);
+            *(ptr_g++) = (float)*(ptrs++);
           }
         } break;
         case 3 : {
-          float *ptr_r = spt.images[0].data(0,0,0,0), *ptr_g = spt.images[0].data(0,0,0,1), *ptr_b = spt.images[0].data(0,0,0,2);
+          float
+            *ptr_r = spt.images[0].data(0,0,0,0),
+            *ptr_g = spt.images[0].data(0,0,0,1),
+            *ptr_b = spt.images[0].data(0,0,0,2);
           for (int xy = 0; xy<wh; ++xy) {
-            *(ptr_r++) = (float)*(ptrs++); *(ptr_g++) = (float)*(ptrs++); *(ptr_b++) = (float)*(ptrs++);
+            *(ptr_r++) = (float)*(ptrs++);
+            *(ptr_g++) = (float)*(ptrs++);
+            *(ptr_b++) = (float)*(ptrs++);
           }
         } break;
         case 4 : {
           float
-            *ptr_r = spt.images[0].data(0,0,0,0), *ptr_g = spt.images[0].data(0,0,0,1),
-            *ptr_b = spt.images[0].data(0,0,0,2), *ptr_a = spt.images[0].data(0,0,0,3);
+            *ptr_r = spt.images[0].data(0,0,0,0),
+            *ptr_g = spt.images[0].data(0,0,0,1),
+            *ptr_b = spt.images[0].data(0,0,0,2),
+            *ptr_a = spt.images[0].data(0,0,0,3);
           for (int xy = 0; xy<wh; ++xy) {
-            *(ptr_r++) = (float)*(ptrs++); *(ptr_g++) = (float)*(ptrs++); *(ptr_b++) = (float)*(ptrs++); *(ptr_a++) = (float)*(ptrs++);
+            *(ptr_r++) = (float)*(ptrs++);
+            *(ptr_g++) = (float)*(ptrs++);
+            *(ptr_b++) = (float)*(ptrs++);
+            *(ptr_a++) = (float)*(ptrs++);
           }
         } break;
         }
@@ -1587,6 +1638,12 @@ void process_preview() {
 
     // Run G'MIC.
     process_thread(&spt);
+    if (spt.error_message) {
+      const float white[] = { 255,255,255 };
+      spt.images.assign(1).back().fill(0).draw_text(0,0," Preview \n  error ",white,0,1,57).
+        resize(-100,-100,1,4).get_shared_channel(3).dilate(5);
+      spt.images[0].resize(w,h,1,4,0,0,0.5,0.5);
+    }
 
     // Transfer the output layers back into GIMP preview.
     computed_preview.assign();
@@ -1627,7 +1684,10 @@ void process_preview() {
       (spt.images>'x').move_to(computed_preview);
     }
     spt.images.assign();
-    if (!computed_preview) { computed_preview.assign(w,h,1,4,0); calibrate_image(computed_preview,channels,true); }
+    if (!computed_preview) {
+      computed_preview.assign(w,h,1,4,0);
+      calibrate_image(computed_preview,channels,true);
+    }
     if (computed_preview.width()>computed_preview.height()) {
       const unsigned int _nh = computed_preview._height*w/computed_preview._width, nh = _nh?_nh:1;
       computed_preview.resize(w,nh,1,-100,2);
@@ -1635,7 +1695,8 @@ void process_preview() {
       const unsigned int _nw = computed_preview._width*h/computed_preview._height, nw = _nw?_nw:1;
       computed_preview.resize(nw,h,1,-100,2);
     }
-    if (computed_preview.width()!=w || computed_preview.height()!=h) computed_preview.resize(w,h,1,-100,0,0,0.5,0.5);
+    if (computed_preview.width()!=w || computed_preview.height()!=h)
+      computed_preview.resize(w,h,1,-100,0,0,0.5,0.5);
     convert_image_float2uchar(computed_preview);
     computed_preview.channel(0);
   }
@@ -1679,9 +1740,12 @@ void create_parameters_gui(const bool reset_params) {
     char argument_name[256] = { 0 }, _argument_type[32] = { 0 }, argument_arg[4096] = { 0 };
     unsigned int nb_arguments = 0;
     for (const char *argument = gmic_arguments[N].data(); *argument; ) {
-      int err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-z](%4095[^)]",argument_name,_argument_type,&(argument_arg[0]=0));
-      if (err!=3) err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-z]{%4095[^}]",argument_name,_argument_type,argument_arg);
-      if (err!=3) err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-z][%4095[^]]",argument_name,_argument_type,argument_arg);
+      int err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-z](%4095[^)]",
+                            argument_name,_argument_type,&(argument_arg[0]=0));
+      if (err!=3) err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-z]{%4095[^}]",
+                                    argument_name,_argument_type,argument_arg);
+      if (err!=3) err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-z][%4095[^]]",
+                                    argument_name,_argument_type,argument_arg);
       if (err>=2) {
         argument += std::strlen(argument_name) + std::strlen(_argument_type) + std::strlen(argument_arg) + 3;
         if (*argument) ++argument;
@@ -1714,13 +1778,18 @@ void create_parameters_gui(const bool reset_params) {
       if (event_infos) delete[] event_infos; event_infos = new void*[2*nb_arguments];
       int current_argument = 0, current_table_line = 0;
       for (const char *argument = gmic_arguments[N].data(); *argument; ) {
-        int err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-Z_](%4095[^)]",argument_name,_argument_type,&(argument_arg[0]=0));
-        if (err!=3) err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-Z_][%4095[^]]",argument_name,_argument_type,argument_arg);
-        if (err!=3) err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-Z_]{%4095[^}]",argument_name,_argument_type,argument_arg);
+        int err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-Z_](%4095[^)]",
+                              argument_name,_argument_type,&(argument_arg[0]=0));
+        if (err!=3) err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-Z_][%4095[^]]",
+                                      argument_name,_argument_type,argument_arg);
+        if (err!=3) err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-Z_]{%4095[^}]",
+                                      argument_name,_argument_type,argument_arg);
         if (err>=2) {
           argument += std::strlen(argument_name) + std::strlen(_argument_type) + std::strlen(argument_arg) + 3;
           if (*argument) ++argument;
-          cimg::strpare(argument_name,' ',false,true); cimg::strpare(argument_name,'\"',true); cimg::strescape(argument_name);
+          cimg::strpare(argument_name,' ',false,true);
+          cimg::strpare(argument_name,'\"',true);
+          cimg::strescape(argument_name);
           cimg::strpare(_argument_type,' ',false,true);
           const bool is_silent_argument = (*_argument_type=='_');
           char
@@ -1734,14 +1803,17 @@ void create_parameters_gui(const bool reset_params) {
             std::setlocale(LC_NUMERIC,"C");
             std::sscanf(argument_arg,"%f%*c%f%*c%f",&default_value,&min_value,&max_value);
             if (!reset_params && std::sscanf(argument_value,"%f",&default_value)) {}
-            GtkObject *const scale = gimp_scale_entry_new(GTK_TABLE(table),0,current_table_line,argument_name,50,6,
-                                                          (gdouble)default_value,(gdouble)min_value,(gdouble)max_value,
-                                                          0.1,0.1,2,true,0,0,0,0);
+            GtkObject *const
+              scale = gimp_scale_entry_new(GTK_TABLE(table),0,current_table_line,argument_name,50,6,
+                                           (gdouble)default_value,(gdouble)min_value,(gdouble)max_value,
+                                           0.1,0.1,2,true,0,0,0,0);
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_float_parameter_changed(GTK_ADJUSTMENT(scale),event_infos+2*current_argument);
-            g_signal_connect(scale,"value_changed",G_CALLBACK(on_float_parameter_changed),event_infos+2*current_argument);
-            if (!is_silent_argument) g_signal_connect(scale,"value_changed",G_CALLBACK(_gimp_preview_invalidate),0);
+            g_signal_connect(scale,"value_changed",G_CALLBACK(on_float_parameter_changed),
+                             event_infos+2*current_argument);
+            if (!is_silent_argument)
+              g_signal_connect(scale,"value_changed",G_CALLBACK(_gimp_preview_invalidate),0);
             found_valid_argument = true; ++current_argument;
           }
 
@@ -1751,16 +1823,19 @@ void create_parameters_gui(const bool reset_params) {
             std::setlocale(LC_NUMERIC,"C");
             std::sscanf(argument_arg,"%f%*c%f%*c%f",&default_value,&min_value,&max_value);
             if (!reset_params && std::sscanf(argument_value,"%f",&default_value)) {}
-            GtkObject *const scale = gimp_scale_entry_new(GTK_TABLE(table),0,current_table_line,argument_name,50,6,
-                                                          (gdouble)(int)cimg::round(default_value,1.0f),
-                                                          (gdouble)(int)cimg::round(min_value,1.0f),
-                                                          (gdouble)(int)cimg::round(max_value,1.0f),
-                                                          1,1,0,true,0,0,0,0);
+            GtkObject *const
+              scale = gimp_scale_entry_new(GTK_TABLE(table),0,current_table_line,argument_name,50,6,
+                                           (gdouble)(int)cimg::round(default_value,1.0f),
+                                           (gdouble)(int)cimg::round(min_value,1.0f),
+                                           (gdouble)(int)cimg::round(max_value,1.0f),
+                                           1,1,0,true,0,0,0,0);
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_int_parameter_changed(GTK_ADJUSTMENT(scale),event_infos+2*current_argument);
-            g_signal_connect(scale,"value_changed",G_CALLBACK(on_int_parameter_changed),event_infos+2*current_argument);
-            if (!is_silent_argument) g_signal_connect(scale,"value_changed",G_CALLBACK(_gimp_preview_invalidate),0);
+            g_signal_connect(scale,"value_changed",G_CALLBACK(on_int_parameter_changed),
+                             event_infos+2*current_argument);
+            if (!is_silent_argument)
+              g_signal_connect(scale,"value_changed",G_CALLBACK(_gimp_preview_invalidate),0);
             found_valid_argument = true; ++current_argument;
           }
 
@@ -1768,8 +1843,10 @@ void create_parameters_gui(const bool reset_params) {
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"bool")) {
             cimg::strpare(argument_arg,' ',false,true); cimg::strpare(argument_arg,'\"',true);
             const bool
-              default_value = !(!*argument_arg || !cimg::strcasecmp(argument_arg,"false") || (argument_arg[0]=='0' && argument_arg[1]==0)),
-              current_value = !(!*argument_value || !cimg::strcasecmp(argument_value,"false") || (argument_value[0]=='0' && argument_value[1]==0)),
+              default_value = !(!*argument_arg || !cimg::strcasecmp(argument_arg,"false") ||
+                                (argument_arg[0]=='0' && argument_arg[1]==0)),
+              current_value = !(!*argument_value || !cimg::strcasecmp(argument_value,"false") ||
+                                (argument_value[0]=='0' && argument_value[1]==0)),
               state = (reset_params || !*argument_value)?default_value:current_value;
             GtkWidget *const checkbutton = gtk_check_button_new_with_label(argument_name);
             gtk_widget_show(checkbutton);
@@ -1779,8 +1856,10 @@ void create_parameters_gui(const bool reset_params) {
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_bool_parameter_changed(GTK_CHECK_BUTTON(checkbutton),event_infos+2*current_argument);
-            g_signal_connect(checkbutton,"toggled",G_CALLBACK(on_bool_parameter_changed),event_infos+2*current_argument);
-            if (!is_silent_argument) g_signal_connect(checkbutton,"toggled",G_CALLBACK(_gimp_preview_invalidate),0);
+            g_signal_connect(checkbutton,"toggled",G_CALLBACK(on_bool_parameter_changed),
+                             event_infos+2*current_argument);
+            if (!is_silent_argument)
+              g_signal_connect(checkbutton,"toggled",G_CALLBACK(_gimp_preview_invalidate),0);
             found_valid_argument = true; ++current_argument;
           }
 
@@ -1788,7 +1867,8 @@ void create_parameters_gui(const bool reset_params) {
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"choice")) {
             GtkWidget *const label = gtk_label_new(argument_name);
             gtk_widget_show(label);
-            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,GTK_FILL,GTK_SHRINK,0,0);
+            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,
+                             GTK_FILL,GTK_SHRINK,0,0);
             gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
             GtkWidget *const combobox = gtk_combo_box_new_text();
             gtk_widget_show(combobox);
@@ -1811,8 +1891,10 @@ void create_parameters_gui(const bool reset_params) {
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_list_parameter_changed(GTK_COMBO_BOX(combobox),event_infos+2*current_argument);
-            g_signal_connect(combobox,"changed",G_CALLBACK(on_list_parameter_changed),event_infos+2*current_argument);
-            if (!is_silent_argument) g_signal_connect(combobox,"changed",G_CALLBACK(_gimp_preview_invalidate),0);
+            g_signal_connect(combobox,"changed",G_CALLBACK(on_list_parameter_changed),
+                             event_infos+2*current_argument);
+            if (!is_silent_argument)
+              g_signal_connect(combobox,"changed",G_CALLBACK(_gimp_preview_invalidate),0);
             found_valid_argument = true; ++current_argument;
           }
 
@@ -1820,7 +1902,8 @@ void create_parameters_gui(const bool reset_params) {
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"text")) {
             GtkWidget *const label = gtk_label_new(argument_name);
             gtk_widget_show(label);
-            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,GTK_FILL,GTK_SHRINK,0,0);
+            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,
+                             GTK_FILL,GTK_SHRINK,0,0);
             gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
             GtkWidget *const entry = gtk_entry_new_with_max_length(1023);
             gtk_widget_show(entry);
@@ -1836,12 +1919,15 @@ void create_parameters_gui(const bool reset_params) {
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
             GtkWidget *const button = gtk_button_new_with_label(t("Update"));
             gtk_widget_show(button);
-            gtk_table_attach(GTK_TABLE(table),button,2,3,current_table_line,current_table_line+1,GTK_FILL,GTK_SHRINK,0,0);
+            gtk_table_attach(GTK_TABLE(table),button,2,3,current_table_line,current_table_line+1,
+                             GTK_FILL,GTK_SHRINK,0,0);
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)entry;
             on_text_parameter_changed(event_infos+2*current_argument);
-            g_signal_connect_swapped(button,"clicked",G_CALLBACK(on_text_parameter_changed),event_infos+2*current_argument);
-            g_signal_connect_swapped(entry,"changed",G_CALLBACK(on_text_parameter_changed),event_infos+2*current_argument);
+            g_signal_connect_swapped(button,"clicked",G_CALLBACK(on_text_parameter_changed),
+                                     event_infos+2*current_argument);
+            g_signal_connect_swapped(entry,"changed",G_CALLBACK(on_text_parameter_changed),
+                                     event_infos+2*current_argument);
             if (!is_silent_argument) {
               g_signal_connect(button,"clicked",G_CALLBACK(_gimp_preview_invalidate),0);
               g_signal_connect(entry,"activate",G_CALLBACK(_gimp_preview_invalidate),0);
@@ -1854,11 +1940,14 @@ void create_parameters_gui(const bool reset_params) {
                                         !cimg::strcasecmp(argument_type,"folder"))) {
             GtkWidget *const label = gtk_label_new(argument_name);
             gtk_widget_show(label);
-            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,GTK_FILL,GTK_SHRINK,0,0);
+            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,
+                             GTK_FILL,GTK_SHRINK,0,0);
             gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-            GtkWidget *const file_chooser = gtk_file_chooser_button_new(argument_name,
-                                                                        cimg::uncase(argument_type[1])=='i'?GTK_FILE_CHOOSER_ACTION_OPEN:
-                                                                        GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
+            GtkWidget *const
+              file_chooser = gtk_file_chooser_button_new(argument_name,
+                                                         cimg::uncase(argument_type[1])=='i'?
+                                                         GTK_FILE_CHOOSER_ACTION_OPEN:
+                                                         GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
             gtk_widget_show(file_chooser);
             if (!reset_params && *argument_value) {
               const unsigned int l = std::strlen(argument_value);
@@ -1873,23 +1962,30 @@ void create_parameters_gui(const bool reset_params) {
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_file_parameter_changed(GTK_FILE_CHOOSER(file_chooser),event_infos+2*current_argument);
-            g_signal_connect(file_chooser,"selection-changed",G_CALLBACK(on_file_parameter_changed),event_infos+2*current_argument);
-            if (!is_silent_argument) g_signal_connect(file_chooser,"selection-changed",G_CALLBACK(_gimp_preview_invalidate),0);
+            g_signal_connect(file_chooser,"selection-changed",G_CALLBACK(on_file_parameter_changed),
+                             event_infos+2*current_argument);
+            if (!is_silent_argument)
+              g_signal_connect(file_chooser,"selection-changed",G_CALLBACK(_gimp_preview_invalidate),0);
             found_valid_argument = true; ++current_argument;
           }
 
           // Check for a color argument.
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"color")) {
-            GtkWidget *const hbox = gtk_hbox_new(false,6);
-            gtk_widget_show(hbox);
-            gtk_table_attach(GTK_TABLE(table),hbox,0,2,current_table_line,current_table_line+1,GTK_FILL,GTK_SHRINK,0,0);
             GtkWidget *const label = gtk_label_new(argument_name);
             gtk_widget_show(label);
-            gtk_box_pack_start(GTK_BOX(hbox),label,false,false,0);
+            gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,
+                             GTK_FILL,GTK_SHRINK,0,0);
+            GtkWidget *const hbox = gtk_hbox_new(false,6);
+            gtk_widget_show(hbox);
+            gtk_table_attach(GTK_TABLE(table),hbox,1,2,current_table_line,current_table_line+1,
+                             GTK_FILL,GTK_SHRINK,0,0);
             GtkWidget *const color_chooser = gtk_color_button_new();
             gtk_widget_show(color_chooser);
             gtk_color_button_set_title(GTK_COLOR_BUTTON(color_chooser),argument_name);
+            gtk_button_set_alignment(GTK_BUTTON(color_chooser),0,0.5);
             gtk_box_pack_start(GTK_BOX(hbox),color_chooser,false,false,0);
+
             float red = 0, green = 0, blue = 0, alpha = 255;
             const int err = std::sscanf(argument_arg,"%f%*c%f%*c%f%*c%f",&red,&green,&blue,&alpha);
             if (!reset_params && std::sscanf(argument_value,"%f%*c%f%*c%f%*c%f",&red,&green,&blue,&alpha)==err) {}
@@ -1897,7 +1993,10 @@ void create_parameters_gui(const bool reset_params) {
             green = green<0?0:green>255?255:green;
             blue = blue<0?0:blue>255?255:blue;
             GdkColor color;
-            color.pixel = 0; color.red = (unsigned int)(red*257); color.green = (unsigned int)(green*257); color.blue = (unsigned int)(blue*257);
+            color.pixel = 0;
+            color.red = (unsigned int)(red*257);
+            color.green = (unsigned int)(green*257);
+            color.blue = (unsigned int)(blue*257);
             gtk_color_button_set_color(GTK_COLOR_BUTTON(color_chooser),&color);
             if (err==4) {
               gtk_color_button_set_use_alpha(GTK_COLOR_BUTTON(color_chooser),true);
@@ -1906,14 +2005,18 @@ void create_parameters_gui(const bool reset_params) {
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_color_parameter_changed(GTK_COLOR_BUTTON(color_chooser),event_infos+2*current_argument);
-            g_signal_connect(color_chooser,"color-set",G_CALLBACK(on_color_parameter_changed),event_infos+2*current_argument);
-            if (!is_silent_argument) g_signal_connect(color_chooser,"color-set",G_CALLBACK(_gimp_preview_invalidate),0);
+            g_signal_connect(color_chooser,"color-set",G_CALLBACK(on_color_parameter_changed),
+                             event_infos+2*current_argument);
+            if (!is_silent_argument)
+              g_signal_connect(color_chooser,"color-set",G_CALLBACK(_gimp_preview_invalidate),0);
             found_valid_argument = true; ++current_argument;
           }
 
           // Check for a note.
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"note")) {
-            cimg::strpare(argument_arg,' ',false,true); cimg::strpare(argument_arg,'\"',true); cimg::strescape(argument_arg);
+            cimg::strpare(argument_arg,' ',false,true);
+            cimg::strpare(argument_arg,'\"',true);
+            cimg::strescape(argument_arg);
             GtkWidget *const label = gtk_label_new(NULL);
             gtk_label_set_markup(GTK_LABEL(label),argument_arg);
             gtk_label_set_line_wrap(GTK_LABEL(label),true);
@@ -1933,8 +2036,11 @@ void create_parameters_gui(const bool reset_params) {
             case 1 : cimg_snprintf(url,sizeof(url),"%g",alignment); break;
             case 0 : if (std::sscanf(argument_arg,"%1023[^,],%1023s",label,url)==1) std::strcpy(url,label); break;
             }
-            cimg::strpare(label,' ',false,true); cimg::strpare(label,'\"',true); cimg::strescape(label);
-            cimg::strpare(url,' ',false,true); cimg::strpare(url,'\"',true);
+            cimg::strpare(label,' ',false,true);
+            cimg::strpare(label,'\"',true);
+            cimg::strescape(label);
+            cimg::strpare(url,' ',false,true);
+            cimg::strpare(url,'\"',true);
             GtkWidget *const link = gtk_link_button_new_with_label(url,label);
             gtk_widget_show(link);
             gtk_button_set_alignment(GTK_BUTTON(link),alignment,0.5);
@@ -1954,7 +2060,8 @@ void create_parameters_gui(const bool reset_params) {
 
           if (!found_valid_argument) {
             if (get_verbosity_mode()>0) {
-              std::fprintf(cimg::output(),"\n*** Plug-in 'gmic_gimp' : Found invalid parameter type '%s' for argument '%s'.\n",
+              std::fprintf(cimg::output(),
+                           "\n*** Plug-in 'gmic_gimp' : Found invalid parameter type '%s' for argument '%s'.\n",
                            argument_type,argument_name);
               std::fflush(cimg::output());
             }
@@ -1993,7 +2100,8 @@ bool create_dialog_gui() {
   g_signal_connect(dialog_window,"close",G_CALLBACK(on_dialog_cancel_clicked),0);
   g_signal_connect(dialog_window,"delete-event",G_CALLBACK(on_dialog_cancel_clicked),0);
 
-  GtkWidget *const cancel_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),GTK_STOCK_CANCEL,GTK_RESPONSE_CANCEL);
+  GtkWidget *const cancel_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),
+                                                         GTK_STOCK_CANCEL,GTK_RESPONSE_CANCEL);
   g_signal_connect(cancel_button,"clicked",G_CALLBACK(on_dialog_cancel_clicked),0);
 
   GtkWidget *const reset_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),GIMP_STOCK_RESET,1);
@@ -2002,10 +2110,12 @@ bool create_dialog_gui() {
   GtkWidget *const maximize_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),t("_Maximize"),1);
   g_signal_connect(maximize_button,"clicked",G_CALLBACK(on_dialog_maximize_button_clicked),0);
 
-  GtkWidget *const apply_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),GTK_STOCK_APPLY,GTK_RESPONSE_APPLY);
+  GtkWidget *const apply_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),
+                                                        GTK_STOCK_APPLY,GTK_RESPONSE_APPLY);
   g_signal_connect(apply_button,"clicked",G_CALLBACK(on_dialog_apply_clicked),0);
 
-  GtkWidget *const ok_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),GTK_STOCK_OK,GTK_RESPONSE_OK);
+  GtkWidget *const ok_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),
+                                                     GTK_STOCK_OK,GTK_RESPONSE_OK);
   g_signal_connect(ok_button,"clicked",G_CALLBACK(gtk_main_quit),0);
 
   GtkWidget *const dialog_hbox = gtk_hbox_new(false,0);
@@ -2021,7 +2131,8 @@ bool create_dialog_gui() {
   gtk_widget_show(image_align);
   gtk_box_pack_end(GTK_BOX(left_pane),image_align,false,false,0);
   const unsigned int logo_width = 102, logo_height = 22;
-  GdkPixbuf *const pixbuf = gdk_pixbuf_new_from_data(data_gmic_logo,GDK_COLORSPACE_RGB,false,8,logo_width,logo_height,3*logo_width,0,0);
+  GdkPixbuf *const pixbuf = gdk_pixbuf_new_from_data(data_gmic_logo,GDK_COLORSPACE_RGB,
+                                                     false,8,logo_width,logo_height,3*logo_width,0,0);
   GtkWidget *const image = gtk_image_new_from_pixbuf(pixbuf);
   gtk_widget_show(image);
   gtk_container_add(GTK_CONTAINER(image_align),image);
@@ -2166,7 +2277,8 @@ bool create_dialog_gui() {
 
   right_scrolledwindow = gtk_scrolled_window_new(NULL,NULL);
   gtk_widget_show(right_scrolledwindow);
-  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(right_scrolledwindow),GTK_POLICY_AUTOMATIC,GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(right_scrolledwindow),
+                                 GTK_POLICY_AUTOMATIC,GTK_POLICY_AUTOMATIC);
   gtk_box_pack_start(GTK_BOX(right_pane),right_scrolledwindow,true,true,0);
 
   right_frame = gtk_frame_new(NULL);
@@ -2187,7 +2299,8 @@ bool create_dialog_gui() {
 
 // 'Run' function, required by the GIMP plug-in API.
 //--------------------------------------------------
-void gmic_run(const gchar *name, gint nparams, const GimpParam *param, gint *nreturn_vals, GimpParam **return_vals) {
+void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
+              gint *nreturn_vals, GimpParam **return_vals) {
 
   // Init plug-in variables.
   cimg::output(stderr);
@@ -2244,7 +2357,9 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param, gint *nre
     // Free plug-in resources.
     delete[] gmic_custom_commands;
   } catch (CImgException &e) {
-    std::fprintf(cimg::output(),"\n*** Plug-in 'gmic_gimp' : Execution error in plug-in code :\n*** %s\n",e.what());
+    std::fprintf(cimg::output(),
+                 "\n*** Plug-in 'gmic_gimp' : Execution error in plug-in code :\n*** %s\n",
+                 e.what());
     std::fflush(cimg::output());
   }
 }

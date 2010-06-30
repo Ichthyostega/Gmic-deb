@@ -99,14 +99,14 @@
 #
 #      _ 'float(default_value,min_value,max_value)'       : Add a float-valued parameter (as a GUI float slider).
 #      _ 'int(default_value,min_value,max_value)'         : Add a integer parameter (as a GUI integer slider).
-#      _ 'bool(default_value={0,1,false,true})'           : Add a boolean parameter (0 or 1) (as a GUI checkbutton).
+#      _ 'bool(default_value={ 0 | 1 | false | true })'   : Add a boolean parameter (0 or 1) (as a GUI checkbutton).
 #      _ 'choice(_default_indice,Choice0,..,ChoiceN)'     : Add a integer parameter (as a GUI combobox).
 #      _ 'text(_default text)'                            : Add a text parameter (as a GUI text entry).
 #      _ 'file(_default_filename)'                        : Add a filename parameter (as a GUI filechooser).
 #      _ 'folder(_default_foldername)'                    : Add a foldername parameter (as a GUI folderchooser).
 #      _ 'color(defaultR,defaultG,defaultB,_defaultA)'    : Add R,G,B[,A] parameters (as a GUI colorchooser).
-#      _ 'note(_Comment)'                                 : Display a label, but do not add a new parameter.
-#      _ 'link(_alignement,_Comment,URL)'                 : Display a label that link to a specified URL.
+#      _ 'note(_label)'                                   : Display a label, but do not add a new parameter.
+#      _ 'link(_alignement,_label,URL)'                   : Display a label that link to a specified URL.
 #      _ 'separator()'                                    : Display an horizontal separator.
 #
 #   Type separators '()' can be replaced by '[]' or '{}' if necessary (for instance if parentheses are required in
@@ -161,6 +161,15 @@ polar2complex :
     -r[-1] [-2],3 --sin[-1] -cos[-2] -*[-1] [-3] -*[-3,-2]
   -mv[-2,-1] 0 -done -v +
 
+#@gmic plot2value
+#@gmic : Retrieve values from selected 2d graph plots.
+plot2value :
+  -e[^-1] "Retrieve values from 2d graph plot$?."
+  -v - -t 50%
+  -repeat @#
+    (1,{w}) -r[-1] [-2],3 -*[-2,-1] -histogram[-1] {w},1,{w}
+  -mv[-1] 0 -done -v +
+
 #@gmic transfer_histogram
 #@gmic : Transfer histogram of the last selected image to the other ones.
 transfer_histogram :
@@ -187,6 +196,24 @@ apply_gamma : -skip ${1=1.2}
     (@{-1,m},@{-1,M}) -n[-2] 0,1 -pow[-2] {1/$1} -n[-2] @-1 -rm[-1]
   -mv[-1] 0 -done -v +
 
+#@gmic apply_curve : 0<smoothness<1,y0,x1,y1,x2,y2,...,xN-1,yN-1,yN
+#@gmic : Apply curve transformation to image values.
+apply_curve : -check "${1=0.5}>0 && $1<1" -skip ${2=0},${3=100}
+  -e[^-1] "Apply intensity curve with control points (0,${2--2},100,$-1) on image$?."
+  -v -
+  (0,${2--2},101,$-1) -r[-1] 2,{w/2},1,1,-1 -sort[-1] +,y           # Set point coordinates.
+  --shift[-1] 0,-1,0,0,1 --shift[-2] 0,1,0,0,1 --[-2,-1] -*[-1] $1  # Compute point tangents.
+  -a[-2,-1] x
+  512,512
+  -repeat {@{-2,h}-1}
+    -spline[-1] @{-2,0}%,@{-2,1}%,@{-2,2}%,@{-2,3}%,@{-2,4}%,@{-2,5}%,@{-2,6}%,@{-2,7}%,1,1
+    -shift[-2] 0,-1,0,0,2
+  -done
+  -rm[-2] -flood[-1] 100%,0,0,0,1,1
+  -plot2value[-1] -r[-1] 256,1,1,1,2 -/[-1] 2 -mv[-1] 0
+  -repeat {@#-1} -map[-1] [0] -mv[-1] 1 -done -rm[0]
+  -v +
+
 #@gmic negative
 #@gmic : Compute negative of selected images.
 negative :
@@ -200,7 +227,7 @@ negative :
 tones : -skip ${1=3}
   -e[^-1] "Get $1 tones masks from image$?."
   -v - -norm -repeat @#
-    -repeat $1 --t2[{-1-@{>,-1}}] {@{>,-1}*100.01/$1}%,{(@{>,-1}+1)*100.01/$1}% -done -rm[-{$1+1}]
+    -repeat $1 --t2[{-1-~>}] {~>*100.01/$1}%,{(~>+1)*100.01/$1}% -done -rm[-{$1+1}]
   -mv[-$1--1] 0 -done -v +
 
 #@gmic t2 : eq. to '-threshold2'.
@@ -248,8 +275,7 @@ r2dx :
 resize2dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
   -e[^-1] "Resize 2d image$? to $1 pixels along the X-axis, preserving 2d ratio."
   -v - -repeat @#
-    ({h}) -*[-1] $1 -/[-1] @{-2,w} -c[-1] 1,100%
-    -r[-2] $1,@-1,[-2],[-2],$2 -rm[-1]
+    -r[-1] $1,{max(1,int(h*$1/w))},100%,100%,$2
   -mv[-1] 0 -done -v +
 
 #@gmic r3dx : eq. to '-resize3dx'.
@@ -261,8 +287,7 @@ r3dx :
 resize3dx : -check "$1>0 && ${2=2}>=0 && $2<=5"
   -e[^-1] "Resize 3d image$? to $1 pixels along the X-axis, preserving 3d ratio."
   -v - -repeat @#
-    ({h},{d}) -*[-1] $1 -/[-1] @{-2,w} -c[-1] 1,100%
-    -r[-2] $1,@-1,[-2],$2 -rm[-1]
+    -r[-1] $1,{max(1,int(h*$1/w))},{max(1,int(d*$1/w))},100%,$2
   -mv[-1] 0 -done -v +
 
 #@gmic r2dy : eq. to '-resize2dy'.
@@ -274,8 +299,7 @@ r2dy :
 resize2dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
   -e[^-1] "Resize 2d image$? to $1 pixels along the Y-axis, preserving 2d ratio."
   -v - -repeat @#
-    ({w}) -*[-1] $1 -/[-1] @{-2,h} -c[-1] 1,100%
-    -r[-2] @-1,$1,[-2],[-2],$2 -rm[-1]
+    -r[-1] {max(1,int(w*$1/h))},$1,100%,100%,$2
   -mv[-1] 0 -done -v +
 
 #@gmic r3dy : eq. to '-resize3dy'.
@@ -287,8 +311,7 @@ r3dy :
 resize3dy : -check "$1>0 && ${2=2}>=0 && $2<=5"
   -e[^-1] "Resize 3d image$? to $1 pixels along the Y-axis, preserving 3d ratio."
   -v - -repeat @#
-    ({w},{h}) -*[-1] $1 -/[-1] @{-2,h} -c[-1] 1,100%
-    -r[-2] @{-1,0},$1,@{-1,1},[-2],$2 -rm[-1]
+    -r[-1] {max(1,int(w*$1/h))},$1,{max(1,int(d*$1/h))},100%,$2
   -mv[-1] 0 -done -v +
 
 #@gmic r3dz : eq. to '-resize3dz'.
@@ -300,8 +323,7 @@ r3dz :
 resize3dz : -check "$1>0 && ${2=2}>=0 && $2<=5"
   -e[^-1] "Resize 3d image$? to $1 pixels along the Z-axis, preserving 3d ratio."
   -v - -repeat @#
-    ({w},{h}) -*[-1] $1 -/[-1] @{-2,d} -c[-1] 1,100%
-    -r[-2] @-1,$1,[-2],$2 -rm[-1]
+    -r[-1] {max(1,int(w*$1/d))},{max(1,int(h*$1/d))},$1,100%,$2
   -mv[-1] 0 -done -v +
 
 #@gmic upscale_smart : width,height,_depth,smoothness>=0,_anisotropy=[0,1],sharpening>=0
@@ -406,12 +428,12 @@ elevate : -check "${1=64}>0" -skip ${2=1},${3=1}
     -p @{-2,m} -p {@{-2,M}-~-1}
     -repeat $1
       -if $2
-        --t[1] {~-2+~-1*(@{>,-1}+1)/$1}
+        --t[1] {~-2+~-1*(~>+1)/$1}
       -else
-        --t2[1] {~-2+~-1*@{>,-1}/$1},{~-2+~-1*(@{>,-1}+1)/$1}
+        --t2[1] {~-2+~-1*~>/$1},{~-2+~-1*(~>+1)/$1}
       -endif
       -r[-1] 100%,100%,1,[-2] -if $3 -*[-1] [0] -endif
-      -image[-2] [-1],0,0,@{>,-1} -rm[-1]
+      -image[-2] [-1],0,0,~> -rm[-1]
     -done
     -pp[-2,-1] -rm[0,1]
   -endl -mv[-1] 0 -done -v +
@@ -433,10 +455,7 @@ outputw :
   -else -e[0--3] "Output image$? as its initial location."
   -endif
   -v - -repeat @#
-    ({@{-1,n}})
-    -if {@{-1,{w-1}}=={*}} -columns[-1] 0,{w-2} -endif # Remove ending '*' if necessary.
-    -o[-2] @{-1,t}
-    -rm[-1]
+    ({@{-1,n}}) -o[-2] @{-1,t} -rm[-1]
   -mv[-1] 0 -done -v +
 
 #@gmic op : eq. to '-outputp'.
@@ -450,10 +469,7 @@ outputp : -skip ${1="_"}
   -else -e[0--3] "Output image$? as its initial location, prefixed by '$1'."
   -endif
   -v - -repeat @#
-    ({@{-1,f}$1@{-1,b}.@{-1,x}})
-    -if {@{-1,{w-1}}=={*}} -columns[-1] 0,{w-2} -endif # Remove ending '*' if necessary.
-    -o[-2] @{-1,t}
-    -rm[-1]
+    ({@{-1,f}$1@{-1,b}.@{-1,x}}) -o[-2] @{-1,t} -rm[-1]
   -mv[-1] 0 -done -v +
 
 #@gmic on : eq. to '-outputn'.
@@ -477,10 +493,10 @@ display0 :
   -v -
   -p[0] 0 -p[1] 0 -p[2] 0 -p[3] 0
   -repeat @#
-    -pr[0] {~0+w}
-    -pr[1] {max(~1,h)}
-    -pr[2] {max(~2,d)}
-    -pr[3] {max(~3,s)}
+    -p=[0] {~0+w}
+    -p=[1] {max(~1,h)}
+    -p=[2] {max(~2,d)}
+    -p=[3] {max(~3,s)}
   -mv[-1] 0 -done
   -if {@#==1} -w -1,-1,0,0,@{0,n}\ (~0x~1x~2x~3)
   -elif {@#==2} -w -1,-1,0,0,@{0,n},@{-1,n}\ (~0x~1x~2x~3)
@@ -542,6 +558,35 @@ display_histogram : -check "${1=512}>0 && ${2=200}>0 && ${3=256}>0 && ${4=255}" 
 #@gmic :: Image creation and drawing
 #
 #-------------------------------------
+
+#@gmic ball : _R,_G,_B
+#@gmic : Draw a colored RGBA ball sprite on selected images.
+ball : -skip ${1=255},${2=$1},${3=$2}
+  -e[^-1] "Draw ball sprite on image$?, with color ($1,$2,$3)."
+  -v - -to_rgba
+  -repeat @#
+    -p[0] {min(w,h)}
+    --shared[-1] 3,3 -f[-1] 0 -rm[-1]
+    -ellipse[-1] {0.5*~0},{0.5*~0},{0.5*~0-4},{0.5*~0-4},0,1,$1,$2,$3,1
+    --shared[-1] 0,2 -*[-1] '(~0+y-x)/(2*w)' -rm[-1]
+    -ellipse[-1] {~0*0.7},{~0*0.3},{min(30,~0*~0/512)},{min(30,~0*~0/512)},0,{min(~0/64,1)},255,255,255,1
+    --sh[-1] 0,2 -blur[-1] {0.02*~0} -rm[-1]
+    --sh[-1] 3,3 -*[-2] [-1] -dilate[-1] 3 -rm[-1]
+    --sh[-1] 0,2 -+[-1] 'if(i&&(!i(x-1)||!i(x+1)||!i(x,y-1)||!i(x,y+1)),if(c==0,$1,if(c==1,$2,$3))/6,0)' -rm[-1]
+    -pp[0]
+  -mv[-1] 0 -done -v +
+
+#@gmic sierpinski : recursion_level>=0
+#@gmic : Draw Sierpinski triangle on selected images.
+sierpinski : -check "isint(${1=7}) && $1>=0" -skip ${2=50},${3=0},${4=0},${5=100},${6=100},${7=100}
+  -e[^-1] "Draw Sierpinski triangle of degree $1 on image$?."
+  -v - -_sierpinski ${2-7},$1  -v +
+
+_sierpinski :
+  -if {$7<=0} -polygon 3,$1%,$2%,$3%,$4%,$5%,$6%,1,255 -return -endif
+  -_sierpinski $1,$2,{($1+$3)/2},{($2+$4)/2},{($1+$5)/2},{($2+$6)/2},{$7-1}
+  -_sierpinski {($1+$3)/2},{($2+$4)/2},$3,$4,{($3+$5)/2},{($4+$6)/2},{$7-1}
+  -_sierpinski {($1+$5)/2},{($2+$6)/2},$5,$6,{($3+$5)/2},{($4+$6)/2},{$7-1}
 
 #@gmic text_outline : text,_x[%],_y[%],_font_height>0,_outline>=0,_opacity,_color1,..
 #@gmic : Draw specified colored and outlined text string on selected images.
@@ -658,7 +703,7 @@ lic : -skip ${1=30},${2=1}
   -e[^-1] "Generate LIC representation of 2d vector field$?, with amplitude $1 and $2 channel(s)."
   -v - -repeat @#
      -channels[-1] 0,1 -/[-1] {max(abs(@{-1,m}),abs(@{-1,M}))} -vector2tensor[-1]
-     100%,100%,100%,$2 -rand[-1] 0,255 -smooth[-1] [-2],$1 -rm[-2]
+     100%,100%,100%,$2 -rand[-1] 255 -smooth[-1] [-2],$1 -rm[-2]
      -equalize[-1] 256
   -mv[-1] 0 -done -v +
 
@@ -705,6 +750,16 @@ blur_y : -skip ${2=1}
 #@gmic : Blur selected images along the Z-axis.
 blur_z : -skip ${2=1}
   -deriche $1,0,z,$2
+
+#@gmic blur_xy : amplitude_x,amplitude_y,_borders={ 0 | 1 }
+#@gmic : Blur selected images along the X and Y axes.
+blur_xy : -skip ${3=1}
+  -deriche $1,0,x,$3 -deriche $2,0,y,$3
+
+#@gmic blur_xyz : amplitude_x,amplitude_y,amplitude_z,_borders={ 0 | 1 }
+#@gmic : Blur selected images along the X, Y and Z axes.
+blur_xyz : -skip ${4=1}
+  -deriche $1,0,x,$4 -deriche $2,0,y,$4 -deriche $3,0,z,$4
 
 #@gmic blur_angular : _amplitude,_cx,_cy
 #@gmic : Apply angular blur on selected images.
@@ -772,7 +827,7 @@ tv_flow : -skip ${1=5},${2=30},${3=0}
 #@gmic : Apply iteration of the inpainting flow on selected images.
 inpaint_flow : -skip ${1=4},${2=15},${3=15},${4=1},${5=3}
   -e[^-1] "Apply $1 iteration of the inpainting flow on image$?."
-  -v - -norm[0] -quantize[0] 2 -n[0] 0,1 -repeat @# -if @{>,-1} -l[0,@{>,-1}]
+  -v - -norm[0] -quantize[0] 2 -n[0] 0,1 -repeat @# -if ~> -l[0,~>]
   -r[0] [1] -inpaint[1] [0]
   -repeat $1
      --edgetensors[1] 0,1,$4,$5,0 -*[2] [0] -smooth[1] [2],$2,$3,0 -rm[2]
@@ -846,7 +901,7 @@ unsharp_octave : -check "isint(${1=4}) && $1>0 && ${3=2}>=0" -skip ${2=1},${4=0}
   -e[^-1] "Apply octave sharpening on image$?, with $1 scales, radius $2, amount $3 and threshold $4."
   -v - -repeat @#
     -l[-1] --f 0 -p 0 -repeat $1
-      --unsharp[0] {$2*2^-@{<,-1}},$3,$4 -*[-1] {2^-@{>,-1}} -pr[-1] {~-1+2^-@{>,-1}} -+[1,-1]
+      --unsharp[0] {$2*2^-@{<,-1}},$3,$4 -*[-1] {2^-~>} -p=[-1] {~-1+2^-~>} -+[1,-1]
     -done -rm[0] -/[-1] ~-1 -pp[-1] -endl
   -mv[-1] 0 -done -v +
 
@@ -923,7 +978,7 @@ bandpass : -skip ${1=0},${2=20%}
 split_freq : -skip ${1=2%}
   -e[^-1] "Split image$? into low and high frequency parts, with smoothness $1."
   -v - -repeat @#
-    --blur[-1] $1 --[-2] [-1] -reverse[-2,-1]
+    --blur[-1] $1 --[-2] [-1] -rv[-2,-1]
   -mv[-2,-1] 0 -done -v +
 
 #@gmic compose_freq
@@ -1054,7 +1109,7 @@ edges : -skip ${1=15}
 isophotes : -skip ${1=64}
   -e[^-1] "Render isophote maps from images$?, with $1 levels."
   -v - -to_rgba -repeat @# -l[-1]
-    --luminance -repeat $1 --isoline3d[1] {@{>,-1}*255/($1-1)} -done -rm[1] -+3d[1--1] -col3d[-1] 1,1,1
+    --luminance -repeat $1 --isoline3d[1] {~>*255/($1-1)} -done -rm[1] -+3d[1--1] -col3d[-1] 1,1,1
     [0],[0] -object3d[-1] [-2],0,0 -rm[-2] -*[-2,-1]
   -endl -mv[-1] 0 -done -v +
 
@@ -1184,7 +1239,7 @@ array_pattern : -skip ${1=10},${2=10},${3=80},${4=180},${5=30},${6=1},${7=0}
 taquin : -skip ${1=4},${2=$1}
  -e[^-1] "Create $1x$2 taquin puzzle from image $?."
  -v - -repeat @# -l[-1]
-   -split_tiles $1,$2,1 -repeat {$1*$2} -mv[@{>,-1}] {?(0,@#)} -done -append_tiles $1,$2
+   -split_tiles $1,$2,1 -repeat {$1*$2} -mv[~>] {int(?(0,@#))} -done -append_tiles $1,$2
  -endl -mv[-1] 0 -done -v +
 
 #@gmic grid : _M>0,_N>0
@@ -1244,6 +1299,33 @@ frame_blur : -skip ${1=10},${2=30},${3=0},${4=1},${5=3%}
     --blur[-2] $5 -mv[-1] -3
     -compose_fade[-3--1]
   -mv[-1] 0 -done -v +
+
+#@gmic frame_pattern : _M>=3,_pattern = { 0=first image | 1=self },_constraint_size = { 0 | 1 }
+#@gmic : Insert selected pattern frame in selected images.
+frame_pattern : -check "${1=10}>=3" -skip ${2=0},${3=0}
+  -v - -to_colormode 0
+  -if {@#==1||$2} # Self-framing
+    -v + -e[^-1] "Insert $1x$1 self-pattern frame on image$?." -v -
+    -repeat @#
+      -p[0] {w},{h}
+      --r[-1] {int(w/{round($1)-2})},{int(h/{round($1)-2})},1,100%,2
+      -r[-2] {$1*w},{$1*h},1,100%,0,0,0.5,0.5
+      [-1]x{$1+2} -a[{-$1-2}--1] x -image[-3] [-1],0,0 -image[-3] [-1],0,{@{-3,h}-1-h} -rm[-1]
+      [-1]x{$1+1} -a[{-$1-2}--1] y -image[-2] [-1],0,0 -image[-2] [-1],{@{-2,w}-1-w} -rm[-1]
+      -if $3 -r[-1] ~0,1,100%,2 -endif -pp[0]
+    -mv[-1] 0 -done
+  -else # Frame from image[0]
+    -v + -e[^-1] "Insert $1x$1 pattern frame on image$?, using first image." -v -
+    -repeat {@#-1}
+    -p[0] {w},{h}
+      --r[0] {int(w/{round($1)-2})},{int(h/{round($1)-2})},1,100%,2
+      -r[-2] {@{-2,w}+2*w},{@{-2,h}+2*h},1,100%,0,0,0.5,0.5
+      [-1]x{$1+2} -a[{-$1-2}--1] x -image[-3] [-1],0,0 -image[-3] [-1],0,{@{-3,h}-1-h} -rm[-1]
+      [-1]x{$1+1} -a[{-$1-2}--1] y -image[-2] [-1],0,0 -image[-2] [-1],{@{-2,w}-1-w} -rm[-1]
+      -if $3 -r[-1] ~0,1,100%,2 -endif -pp[0]
+    -mv[-1] 1 -done
+  -endif
+  -v +
 
 #@gmic rotate_tiles : _angle,_M>0,N>0
 #@gmic : Apply MxN tiled-rotation effect on selected images.
@@ -1456,9 +1538,9 @@ dotsbw : -check "${1=4}>=0 && ${2=10}>0 && ${3=3}>=0"
   -repeat @#
     -p[0] {int(w*100/$2)},{int(h*100/$2)} ~0,1,100%
     -repeat $1
-      --t[-2] {100*(@{>,-1}+1)/($1+1)}%
+      --t[-2] {100*(~>+1)/($1+1)}%
       -r[-1] ~0,1,100%,4,0,0.5,0.5
-      -blur[-1] {$3*(@{>,-1}+1)/($1+1)},0
+      -blur[-1] {$3*(~>+1)/($1+1)},0
       -t[-1] 20%
       -or[-2,-1]
     -done
@@ -1732,9 +1814,9 @@ light_relief : -skip ${1=0.3},${2=0.5},${3=0.2},${4=0},${5=0.2},${6=0.5},${7=0.5
     100%,100% -=[-1] 1,{$6*100}%,{$7*100}% -distance[-1] 1 -sqr[-1] -*[-1] -1                 # Compute specular attenuation.
     -/[-1] {($3*max(w,h))^2} -exp[-1] -*[-1] $2 -+[-1] $1
     -*[-2,-1] --[-1] $4 -*[-1] @{-2,M}
-    -l[-2,-1] -split_opacity -reverse[0--2]                                                   # Add light property to non-opaque part of the image.
+    -l[-2,-1] -split_opacity -rv[0--2]                                                        # Add light property to non-opaque part of the image.
     -+[-2,-1] -c[-1] 0,255
-    -reverse -a c -endl
+    -rv -a c -endl
   -mv[-1] 0 -done -v +
 
 #@gmic noise_hurl : _amplitude>=0
@@ -1965,8 +2047,8 @@ to_graya :
   -v - -repeat @#
     -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
     -elif {s==4} --channels[-1] 3 -channels[-2] 0,2 -luminance[-2] -a[-2,-1] c
-    -elif {s==3} -luminance[-1] -channels[-1] 0,1 --shared[-1] 1,1 -f[-1] 255 -rm[-1]
-    -elif {s==1} -channels[-1] 0,1 --shared[-1] 1,1 -f[-1] 255 -rm[-1]
+    -elif {s==3} -luminance[-1] -channels[-1] 0,1 --sh[-1] 1,1 -f[-1] 255 -rm[-1]
+    -elif {s==1} -channels[-1] 0,1 --sh[-1] 1,1 -f[-1] 255 -rm[-1]
     -endif
   -mv[-1] 0 -done -v +
 
@@ -1988,9 +2070,9 @@ to_rgba :
    -e[^-1] "Force image$? to be in RGBA mode."
    -v - -repeat @#
      -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
-     -elif {s==3} -channels[-1] 0,3 --shared[-1] 3,3 -f[-1] 255 -rm[-1]
-     -elif {s==2} -r[-1] 100%,100%,100%,4 --shared[-1] 2,2 -f[-1] [-2] -rm[-1]
-     -elif {s==1} -r[-1] 100%,100%,1,4 --shared[-1] 3,3 -f[-1] 255 -rm[-1]
+     -elif {s==3} -channels[-1] 0,3 --sh[-1] 3,3 -f[-1] 255 -rm[-1]
+     -elif {s==2} -r[-1] 100%,100%,100%,4 --sh[-1] 2,2 -f[-1] [-2] -rm[-1]
+     -elif {s==1} -r[-1] 100%,100%,1,4 --sh[-1] 3,3 -f[-1] 255 -rm[-1]
      -endif
    -mv[-1] 0 -done -v +
 
@@ -2003,8 +2085,8 @@ to_colormode : -skip ${1=0}
   -elif {$1==4} -to_rgba
   -else
     -p 0 -repeat @#
-      -if {@{@{>,-1},s}>4} -error "Image ["@{>,-1}"] is not a G,GA,RGB or RGBA image."
-      -else -pr[-1] {max(~-1,@{@{>,-1},s})}
+      -if {@{~>,s}>4} -error "Image ["~>"] is not a G,GA,RGB or RGBA image."
+      -else -p=[-1] {max(~-1,@{~>,s})}
       -endif
     -done -to_colormode ~-1 -pp[-1]
   -endif
@@ -2046,7 +2128,7 @@ fc : -fill_color ${^0}
 fill_color :
   -e[^-1] "Fill image$? with color (${^0})."
   -v - -repeat @#
-    -repeat {s} --shared[-1] @{>,-1},@{>,-1} -f[-1] {arg(1+@{>,-1},${1--1})} -rm[-1] -done
+    -repeat {s} --sh[-1] ~>,~> -f[-1] {arg(1+~>,${1--1})} -rm[-1] -done
   -mv[-1] 0 -done -v +
 
 #@gmic luminance
@@ -2210,8 +2292,8 @@ compose_rgba :
 compose_channels : -skip ${1="+"}
   -e[^-1] "Compose all channels of image$?, with operator '$1'."
   -v - -repeat @#
-    --shared[-1] 0,0
-    -repeat {@{-2,s}-1} --shared[-2] {@{>,-1}+1},{@{>,-1}+1} -$1[-2,-1] -done
+    --sh[-1] 0,0
+    -repeat {@{-2,s}-1} --sh[-2] {~>+1},{~>+1} -$1[-2,-1] -done
     -rm[-1] -r[-1] 100%,100%,100%,1,-1
   -mv[-1] 0 -done -v +
 
@@ -2384,7 +2466,7 @@ compose_fade :
   -v - -r[1--1] @{"-max_whd"},100%,3
   -r[1--2] 100%,100%,100%,@{"-max_s"} -channels[-1] 0
   -repeat {@#-1}
-    ---[-1] @{>,-1} -abs[-1] --[-1] 1 -*[-1] -1 -max[-1] 0 -*[@{>,-1},-1]
+    ---[-1] ~> -abs[-1] --[-1] 1 -*[-1] -1 -max[-1] 0 -*[~>,-1]
   -done
   -rm[-1] -+ -v +
 
@@ -2394,7 +2476,7 @@ compose_shapeaverage :
   -e[^-1] "Compose image$? two-by-two, using shape average mode."
   -v - -repeat {@#/2} -l[-2,-1]
     -to_colormode[-1] @{-2,s} -r[-1] [-2],1 -t[-1] 50% -s c
-    -p[0] {@#/2} -repeat ~0 -_compose_shapeaverage[0,~0] -pr[0] {~0-1} -mv[0] @# -done -pp[0]
+    -p[0] {@#/2} -repeat ~0 -_compose_shapeaverage[0,~0] -p=[0] {~0-1} -mv[0] @# -done -pp[0]
     -a c
   -endl -mv[-1] 0 -done -v +
 
@@ -2417,7 +2499,7 @@ _compose_shapeaverage :
       -t[-1] 9999 -p[0] @{-1,+} -*[-1] [-3]
       -flood[-3] @{-2,0-2},256,1,{@{-1,+}/~0-1000}
       -rm[-2,-1] -pp[0]
-    -else -rm[-1] -break
+    -else -rm[-1] -b
     -endif
   -while 1
 
@@ -2464,7 +2546,7 @@ phase_correlation :
 morph : -skip $1,${2=0.2},${3=0.1}
   -e[^-1] "Create morphing sequence between image$?, with $1 intra-frames, smoothness $2 and precision $3.\n"
   -v - -r[1--1] [0],3 -i[0] (@#) --[0] 1 -repeat @0
-   -v + -e[] "\r > Morph image "@{>,-1}" to image "{@{>,-1}+1}".    " -v -
+   -v + -e[] "\r > Morph image "~>" to image "{~>+1}".    " -v -
     --equalize[-2,-1] 256 -n[-2,-1] 0,255
     --displacement[-2] [-1],$2,$3 --warp[-5] [-1],1,1,1,$1 -a[-$1--1] z -rm[-2]
     --displacement[-2] [-3],$2,$3 --warp[-5] [-1],1,1,1,$1 -a[-$1--1] z -rm[-7--4,-2]
@@ -2477,7 +2559,7 @@ morph : -skip $1,${2=0.2},${3=0.1}
 register_nonrigid : -skip ${1=0.2},${2=0.1},${3=0}
   -e[^-1] "Register image$? with non-rigid warp, smoothness $1, precision $2 and $3 scale(s)."
   -v - --equalize[0] 256 -n[-1] 0,255 -mv[-1] 1
-  -repeat @# -if {@{>,-1}>1}
+  -repeat @# -if {~>>1}
     --equalize[-1] 256 -n[-1] 0,255 -displacement[-1] [1],$1,$2,$3
     -warp[-2] [-1],1,1,1 -rm[-1]
   -mv[-1] 2 -endif -done -rm[1] -v +
@@ -2487,7 +2569,7 @@ register_nonrigid : -skip ${1=0.2},${2=0.1},${3=0}
 register_rigid : -skip ${1=1}
   -e[^-1] "Register image$? with rigid warp and smoothness $1."
   -v - --equalize[0] 256 -blur[-1] $1 -n[-1] 0,255 -mv[-1] 1
-  -repeat @# -if {@{>,-1}>1}
+  -repeat @# -if {~>>1}
     --equalize[-1] 256 -blur[-1] $1 -n[-1] 0,255 --phase_correlation[1,-1] -rm[-2] -*[-1] -1
     -shift[-2] @-1,0,1 -rm[-1]
   -mv[-1] 2 -endif -done -rm[1] -v +
@@ -2523,19 +2605,19 @@ animate : -skip ${1=30},${2=0},${3=""},${4=0},${5=1},${6=""}
     -p 0     # Current frame.
     -do
       -w[~-1] -1,-1,1,0,@{~-1,b}.@{~-1,x}
-      -pr[-1] {~-1+~-2}
+      -p=[-1] {~-1+~-2}
       -if $2
-        -if {~-1==-1} -pr[-1] 0 -pr[-2] 1
-        -elif {~-1==@#} -pr[-1] {@#-1} -pr[-2] -1
+        -if {~-1==-1} -p=[-1] 0 -p=[-2] 1
+        -elif {~-1==@#} -p=[-1] {@#-1} -p=[-2] -1
         -endif
-      -else -pr[-1] {~-1%@#}
+      -else -p=[-1] {~-1%@#}
       -endif
       -wait ~-3
       -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,D}} -w[] {round(@{!,w}*1.5)},{round(@{!,h}*1.5)} -wait -1 -endif # Increase window size.
       -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,C}} -w[] {round(@{!,w}/1.5)},{round(@{!,h}/1.5)} -wait -1 -endif # Decrease window size.
       -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,R}} -w[] @{0,w},@{0,h} -wait -1 -endif                           # Reset window size.
-      -if @{!,o} -pr[-3] {min(500,max(10,~-3+10*@{!,o}))} -wait -1 -endif
-    -while {@!&&!@{!,Q}&&!@{!,ESC}}
+      -if @{!,o} -p=[-3] {min(500,max(10,~-3+10*@{!,o}))} -wait -1 -endif
+    -while {@!" && "!@{!,Q}" && "!@{!,ESC}}
     -pp[-3--1] -v +
   -else
     -e[0--3] "Compute animated version of filter '$1', from parameters $2 to $3 with $4 frames."
@@ -2546,13 +2628,13 @@ animate : -skip ${1=30},${2=0},${3=""},${4=0},${5=1},${6=""}
       -v + -e[] "" -v -
       --l[0,1]
       -repeat $4
-        --columns[0] @{>,-1} -mv[-1] 0
+        --columns[0] ~> -mv[-1] 0
         --l[0,2] -$1[1] @0 -rm[0]
-        -if {narg("$6")} -o[-1] @{"-filename \"$6\",@{>,-2},@{>,-1}"} -endif
+        -if {narg("$6")} -o[-1] @{"-filename \"$6\",@{>,-2},~>"} -endif
         -endl -rm[0]
         -if {!$5} -rm[-1] -endif
-        -progress {100*(@{>,-1}+1)/$4}
-        -v + -e[] "\r > Animate image "@{>,-2}" : Frame "{@{>,-1}+1}"/$4    " -v -
+        -progress {100*(~>+1)/$4}
+        -v + -e[] "\r > Animate image "@{>,-2}" : Frame "{~>+1}"/$4    " -v -
       -done -rm[0] -if $5 -rm[0] -endif
     -endl -rm[1] -done -rm[0] -v +
   -endif
@@ -2580,16 +2662,46 @@ apply_pose3d :
 animate3d : -skip ${1=640},${2=480},${3=0},${4=10},${5=0},"${7=""}" -check ${6=1}>=0
   -e[^-1] "Animate 3d object$?, in a $1x$2 window with angle velocities ($3,$4,$5)."
   -v - -repeat @#
-    --n3d[@{>,-1}] -*3d[-1] {$6*min($1,$2)/1.5} -c3d[-1] (0,0,0)
+    --n3d[~>] -*3d[-1] {$6*min($1,$2)/1.5} -c3d[-1] (0,0,0)
     -p[0] 0
     -do
        --rot3d[-2] 1,0,0,@{-1,0} -rot3d[-1] 0,1,0,@{-2,1} -rot3d[-1] 0,0,1,@{-2,2} ($3,$4,$5) -+[-3,-1]
        $1,$2,1,3,64 -object3d[-1] [-2],50%,50%,0,1
-       -if {narg("$7")} -o[-1] @{"-filename \"$7\",@{>,-1},~0"} -pr[0] {~0+1} -endif
-       -w[-1] {w},{h},0,0,@{@{>,-1},n} -wait 20 -rm[-2,-1]
+       -if {narg("$7")} -o[-1] @{"-filename \"$7\",~>,~0"} -p=[0] {~0+1} -endif
+       -w[-1] {w},{h},0,0,@{~>,n} -wait 20 -rm[-2,-1]
     -while {@!" && "!@{!,ESC}" && "!@{!,Q}} -rm[-1] -w 0
     -pp[0]
   -done -v +
+
+#@gmic balls3d : _size>0,_R,_G,_B,_opacity
+#@gmic : Convert selected 3d objects into 3d ball sets.
+balls3d : -check "${1=32}>0" -skip ${2=255},${3=$2},${4=$3},${5=1}
+  -e[^-1] "Convert 3d object$? into 3d ball sets, with size $1 and color ($2,$3,$4)."
+  -v - -repeat @#
+    -p[0] @{-1,6}
+    $1,$1,1,4 -ball[-1] $2,$3,$4
+
+    # Create object header.
+    -i (@{-2,0-5},~0,~0)
+
+    # Create vertices.
+    -lines[-3] 8,{7+~0*3} -mv[-3] @#
+
+    # Create point primitives.
+    -i 1,~0,1,1,1 (0;{~0-1}) -r[-1] 1,~0,1,1,3 -a[-2,-1] x
+
+    # Create colored sprites.
+    (-128;$1;$1;3) --to_rgb[0] -unroll[-1] y
+    -i 1,{4*(~0-1)} -f[-1] -128,0,0,0 -a[-3--1] y
+
+    # Create opacity.
+    (-128;$1;$1;1) -channels[-6] 3,3 -mv[-6] @# -unroll[-1] y -*[-1] $5
+    -i 1,{4*(~0-1)} -f[-1] -128,0,0,0 -a[-3--1] y
+
+    # Append all data into a CImg3d object.
+    -unroll[-5,-3] y -a[-5--1] y -pp[0]
+
+  -mv[-1] 0 -done -v +
 
 #@gmic imagecube3d
 #@gmic : Create 3d mapped cubes from selected images.
@@ -2637,11 +2749,31 @@ imagepyramid3d :
             9;1;4;0;0;~1;~2;0;~0;~1;\
             9;2;4;1;0;~1;~2;0;~0;~1;\
             9;3;4;2;0;~1;~2;0;~0;~1;\
-            -128;{w};{h};{s})       # Texture map for the first face.
+            -128;{w};{h};{s})                   # Texture map for the first face.
     -pp[0-2] -unroll[-1] y
     (-128;0;0;0;-128;0;0;0;-128;0;0;0;-128;0;0;0;1;1;1;1;1)  # Other faces and opacities.
     -a[-3--1] y
   -mv[-1] 0 -done -v +
+
+#@gmic pyramid3d : _width,_height
+#@gmic : Create 3d pyramid at (0,0,0), with specified geometry.
+pyramid3d : -skip ${1=1},${2=1}
+  -e[^-1] "Create new 3d pyramid, with width $1 and height $2."
+  -v -
+  (67.5;73.5;109.5;103.5;51.5;100.5;\  # Magick number for CImg3d.
+   5;5;\                               # Number of vertices and primitives.
+   {-$1/2};{-$1/2};{-$2/2};\           # Vertex coordinates.
+   {$1/2};{-$1/2};{-$2/2};\
+   {$1/2};{$1/2};{-$2/2};\
+   {-$1/2};{$1/2};{-$2/2};\
+   0;0;{$2/2};\
+   4;0;3;2;1;\                         # Primitives description.
+   3;0;4;3;\
+   3;1;4;0;\
+   3;2;4;1;\
+   3;3;4;2)
+  1,15,1,1,200 1,5,1,1,1 -a[-3--1] y
+  -v +
 
 #@gmic text3d : text,_font_height>0,_depth>0,_smoothness
 #@gmic : Create a 3d text object from specified text.
@@ -2649,7 +2781,7 @@ text3d : -skip ${2=57},${3=10},${4=1.5}
   -e[^-1] "Generate 3d text object '$1' with size $2, depth $3 and smoothness $4."
   -v - -i 1024,{10*$2},1,1 -text[-1] "$1",0,0,$2,1,1 -autocrop[-1] 0
   -r[-1] 100%,100%,$3 -r[-1] {w+12},{h+12},{d+12},1,0,0,0.5,0.5,0.5
-  -blur[-1] $4 -n[-1] 0,1 -isosurface3d[-1] 0.5 -r3d[-1] -v +
+  -blur[-1] $4 -n[-1] 0,1 -isosurface3d[-1] 0.5 -rv3d[-1] -v +
 
 #@gmic gmic3d
 #@gmic : Create a 3d G'MIC logo.
@@ -2664,12 +2796,65 @@ gmic3d :
   -sphere3d 8 -+3d[-1] 85,-10,15 -col3d[-1] 192,128,255
   -+3d[-6--1] -c3d[-1]
   -repeat 30
-    -box3d {min(3+@{<,-1}/2,10)} -col3d[-1] {30*@{>,-1}},{20+80*@{>,-1}},{10*@{>,-1}},0.5
-    -rot3d[-1] 1,1,1,{@{>,-1}*12}
-    -+3d[-1] {80*cos(0.5+1.02*@{>,-1}*12*pi/180)},{30*sin(0.8+@{>,-1}*12*pi/180)},{2*@{>,-1}-75}
+    -box3d {min(3+@{<,-1}/2,10)} -col3d[-1] {30*~>},{20+80*~>},{10*~>},0.5
+    -rot3d[-1] 1,1,1,{~>*12}
+    -+3d[-1] {80*cos(0.5+1.02*~>*12*pi/180)},{30*sin(0.8+~>*12*pi/180)},{2*~>-75}
   -done
   -+3d[-30--1] -+3d[-1] 0,5,30 -+3d[-2--1]
   -v +
+
+#@gmic sierpinski3d : _recursion_level>=0,_width,_height
+#@gmic : Create new 3d Sierpinski pyramid.
+sierpinski3d : -check "isint(${1=4}) && $1>=0" -skip ${2=1},${3=1}
+  -e[^-1] "Create new 3d Sierpinski pyramid of degree $1, with width $2 and height $3."
+  -v - -l[] -_sierpinski3d {-$2/2},{-$2/2},{-$3/2},{$2/2},{-$2/2},{-$3/2},{$2/2},{$2/2},{-$3/2},{-$2/2},{$2/2},{-$3/2},0,0,{$3/2},$1 -+3d -endl -v +
+
+_sierpinski3d :
+  -if {$16<=0}
+    (67.5;73.5;109.5;103.5;51.5;100.5;\
+     5;5;\
+     $1;$2;$3;\
+     $4;$5;$6;\
+     $7;$8;$9;\
+     $10;$11;$12;\
+     $13;$14;$15;\
+     4;0;3;2;1;\
+     3;0;4;3;\
+     3;1;4;0;\
+     3;2;4;1;\
+     3;3;4;2)
+    1,15,1,1,200 1,5,1,1,1 -a[-3--1] y
+  -return -endif
+  -_sierpinski3d $1,$2,$3,\
+                 {($1+$4)/2},{($2+$5)/2},{($3+$6)/2},\
+                 {($1+$4+$7+$10)/4},{($2+$5+$8+$11)/4},{($3+$6+$9+$12)/4},\
+                 {($1+$10)/2},{($2+$11)/2},{($3+$12)/2},\
+                 {($1+$13)/2},{($2+$14)/2},{($3+$15)/2},\
+                 {$16-1}
+  -_sierpinski3d {($1+$4)/2},{($2+$5)/2},{($3+$6)/2},\
+                 $4,$5,$6,\
+                 {($4+$7)/2},{($5+$8)/2},{($6+$9)/2},\
+                 {($1+$4+$7+$10)/4},{($2+$5+$8+$11)/4},{($3+$6+$9+$12)/4},\
+                 {($4+$13)/2},{($5+$14)/2},{($6+$15)/2},\
+                 {$16-1}
+  -_sierpinski3d {($1+$4+$7+$10)/4},{($2+$5+$8+$11)/4},{($3+$6+$9+$12)/4},\
+                 {($4+$7)/2},{($5+$8)/2},{($6+$9)/2},\
+                 $7,$8,$9,\
+                 {($7+$10)/2},{($8+$11)/2},{($9+$12)/2},\
+                 {($7+$13)/2},{($8+$14)/2},{($9+$15)/2},\
+                 {$16-1}
+  -_sierpinski3d {($1+$10)/2},{($2+$11)/2},{($3+$12)/2},\
+                 {($1+$4+$7+$10)/4},{($2+$5+$8+$11)/4},{($3+$6+$9+$12)/4},\
+                 {($7+$10)/2},{($8+$11)/2},{($9+$12)/2},\
+                 $10,$11,$12,\
+                 {($10+$13)/2},{($11+$14)/2},{($12+$15)/2},\
+                 {$16-1}
+  -_sierpinski3d {($1+$13)/2},{($2+$14)/2},{($3+$15)/2},\
+                 {($4+$13)/2},{($5+$14)/2},{($6+$15)/2},\
+                 {($7+$13)/2},{($8+$14)/2},{($9+$15)/2},\
+                 {($10+$13)/2},{($11+$14)/2},{($12+$15)/2},\
+                 $13,$14,$15,\
+                 {$16-1}
 
 #@gmic snapshot3d : _size>0,_zoom>=0
 #@gmic : Create 2d snapshots of selected 3d objects.
@@ -2759,7 +2944,7 @@ x_fish_eye :
 
   -v -
   -if {@#>0} -a x -n 0,255 -r2dy 220 -else
-  120,90,1,3 -rand[-1] 0,255 -plasma[-1] 0.3,3 -n 0,255
+  120,90,1,3 -rand[-1] 255 -plasma[-1] 0.3,3 -n 0,255
   -text "  G'MIC\nFISH-EYE\n  DEMO",15,13,24,1,255 -resize2x -blur 5 -sharpen 1000
   -f i+150-4*abs(y-h/2) -c[-1] 0,255 -frame_fuzzy[-1] 15,10,15,1.5,0 -to_rgb[-1]
   -endif
@@ -2769,9 +2954,9 @@ x_fish_eye :
   -w[-2] {2*@{-2,w}},{2*@{-2,h}},0,0,"Fish-Eye Demo"
   -repeat 100000
     -wait 40
-    -if {@{!,b}==1} -pr[0] {min(80,~0+8)} -endif
-    -if {@{!,b}==2} -pr[0] {max(3,~0-8)} -endif
-    --object3d[-2] [-1],{50+30*cos(@{>,-1}/20)}%,{50+30*sin(@{>,-1}/31)}%,{50+330*sin(@{>,-1}/19)},0.7,0 -rot3d[-2] 1,0.2,0.6,3
+    -if {@{!,b}==1} -p=[0] {min(80,~0+8)} -endif
+    -if {@{!,b}==2} -p=[0] {max(3,~0-8)} -endif
+    --object3d[-2] [-1],{50+30*cos(~>/20)}%,{50+30*sin(~>/31)}%,{50+330*sin(~>/19)},0.7,0 -rot3d[-2] 1,0.2,0.6,3
     -if {@{!,x}>=0}
     -fish_eye[-1] {@{!,x}*100/@{!,w}},{@{!,y}*100/@{!,h}},~0
     -endif
@@ -2783,7 +2968,7 @@ x_fish_eye :
   -done
 
 #@gmic x_spline
-#@gmic : Launch spline curve ditor.
+#@gmic : Launch spline curve editor.
 x_spline :
   -e[] "\n
 ------ Spline curve editor --------------------------\n
@@ -2816,7 +3001,7 @@ x_spline :
 
     # Init coordinates [1] if necessary.
     -if {@{1,#}==1}
-      -rm[1] -pr[-4] 0.5 -pr[-2] -1 -pr[-1] -1
+      -rm[1] -p=[-4] 0.5 -p=[-2] -1 -p=[-1] -1
       -i[1] ({0.2*w},{0.2*h};\
              {0.2*w},{0.8*h};\
              {0.8*w},{0.8*h};\
@@ -2825,34 +3010,34 @@ x_spline :
 
     # Estimate screen-normalized coordinates [2], curve tangents [3] and tangent orientations [4].
     [1] ({@{!,w}/@{0,w}},{@{!,h}/@{0,h}}) -*[-2,-1]                       # Normalized coordinates.
-    --shift[2] 0,-1,0,0,2 --shift[2] 0,1,0,0,2 --[-2,-1] -*[-1] ~-4   # Curve tangents.
+    --shift[2] 0,-1,0,0,2 --shift[2] 0,1,0,0,2 --[-2,-1] -*[-1] ~-4       # Curve tangents.
     --s[-1] x -sqr[-2,-1] -+[-2,-1] -sqrt[-1] -r[-1] 2 --/[-2,-1] -rm[-2] # Tangent orientations.
 
     # Display curve, control points, polygon and tangents.
     --r[0] @{!,w},@{!,h},1,3
-    -if {~-3&4} -polygon[-1] @{2,h},@2,0.3,128,200,255 -endif
+    -if {~-3"&4"} -polygon[-1] @{2,h},@2,0.3,128,200,255 -endif
     -repeat @{1,h}
       -line[-1] @{2,0-3},0.3,255,255,0
-      -if {~-3&1} -spline[-1] @{2,0-1},@{3,0-1},@{2,2-3},@{3,2-3},1,255 -endif
-      -if {~-3&8} -line[-1] {@{2,0}-@{4,0}*20},{@{2,1}-@{4,1}*20},{@{2,0}+@{4,0}*20},{@{2,1}+@{4,1}*20},1,0,255,0 -endif
-      -if {~-3&16} -text[-1] @{>,-1},{@{2,0}-3},{@{2,1}-18},13,1,255,255,0 -endif
-      -if {~-3&32} -text[-1] "("{round(@{1,0})}","{round(@{1,1})}")",{@{2,0}-16},{@{2,1}+10},13,1,100,200,255 -endif
+      -if {~-3"&1"} -spline[-1] @{2,0-1},@{3,0-1},@{2,2-3},@{3,2-3},1,255 -endif
+      -if {~-3"&8"} -line[-1] {@{2,0}-@{4,0}*20},{@{2,1}-@{4,1}*20},{@{2,0}+@{4,0}*20},{@{2,1}+@{4,1}*20},1,0,255,0 -endif
+      -if {~-3"&16"} -text[-1] ~>,{@{2,0}-3},{@{2,1}-18},13,1,255,255,0 -endif
+      -if {~-3"&32"} -text[-1] "("{round(@{1,0})}","{round(@{1,1})}")",{@{2,0}-16},{@{2,1}+10},13,1,100,200,255 -endif
       -shift[1-4] 0,-1,0,0,2
     -done
-    -if {~-3&2} -repeat @{1,h}
+    -if {~-3"&2"} -repeat @{1,h}
       -ellipse[-1] @{2,0-1},4,4,0,1,0,0,0 -ellipse[-1] @{2,0-1},2,2,0,1,255,100,155 -shift[2] 0,1,0,0,2
     -done -endif
     -w[-1] -rm[3,4,-1] -wait
 
     # Handle key events.
-    -if @{!,SPACE} -pr[-3] {~-3+if(~-3&1,-1,1)} -wait -1 -endif  # Show/hide spline.
-    -if @{!,P} -pr[-3] {~-3+if(~-3&2,-2,2)} -wait -1 -endif      # Show/hide points.
-    -if @{!,ENTER} -pr[-3] {~-3+if(~-3&4,-4,4)} -wait -1 -endif  # Show/hide polygon.
-    -if @{!,T} -pr[-3] {~-3+if(~-3&8,-8,8)} -wait -1 -endif      # Show/hide tangents.
-    -if @{!,I} -pr[-3] {~-3+if(~-3&16,-16,16)} -wait -1 -endif   # Show/hide indices.
-    -if {@{!,C}" && "!@{!,CTRLLEFT}" && "!@{!,CTRLRIGHT}} -pr[-3] {~-3+if(~-3&32,-32,32)} -wait -1 -endif # Show/hide coordinates.
-    -if {@{!,PADADD}" && "~-4<1} -pr[-4] {~-4*1.1} -wait -1 -endif       # Increase roundness.
-    -if {@{!,PADSUB}" && "~-4>0.1} -pr[-4] {~-4*0.9} -wait -1 -endif     # Decrease roundness.
+    -if @{!,SPACE} -p=[-3] {~-3"+if("~-3"&1,-1,1)"} -wait -1 -endif  # Show/hide spline.
+    -if @{!,P} -p=[-3] {~-3"+if("~-3"&2,-2,2)"} -wait -1 -endif      # Show/hide points.
+    -if @{!,ENTER} -p=[-3] {~-3"+if("~-3"&4,-4,4)"} -wait -1 -endif  # Show/hide polygon.
+    -if @{!,T} -p=[-3] {~-3"+if("~-3"&8,-8,8)"} -wait -1 -endif      # Show/hide tangents.
+    -if @{!,I} -p=[-3] {~-3"+if("~-3"&16,-16,16)"} -wait -1 -endif   # Show/hide indices.
+    -if {@{!,C}" && "!@{!,CTRLLEFT}" && "!@{!,CTRLRIGHT}} -p=[-3] {~-3"+if("~-3"&32,-32,32)"} -wait -1 -endif # Show/hide coordinates.
+    -if {@{!,PADADD}" && "~-4<1} -p=[-4] {~-4*1.1} -wait -1 -endif       # Increase roundness.
+    -if {@{!,PADSUB}" && "~-4>0.1} -p=[-4] {~-4*0.9} -wait -1 -endif     # Decrease roundness.
     -if {@{!,R}" && "!@{!,CTRLLEFT}" && "!@{!,CTRLRIGHT}} -rm[-1] -i[1] 1 -wait -1 -endif # Reset curve.
     -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,D}} -w[] {round(@{!,w}*1.5)},{round(@{!,h}*1.5)} -endif # Increase window size.
     -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,C}} -w[] {round(@{!,w}/1.5)},{round(@{!,h}/1.5)} -endif # Decrease window size.
@@ -2860,26 +3045,26 @@ x_spline :
     -if @{!,r} -w[] -endif # Resize window if necessary.
 
     # Set/unset active point.
-    -if {@{!,b}==0} -pr[-1] -1                                      # Unset active point if mouse button is released.
+    -if {@{!,b}==0} -p=[-1] -1                                      # Unset active point if mouse button is released.
     -elif {@{!,x}>=0" && "@{!,b}" && "~-1==-1}                  # Find new active point.
       [2] (@{!,x},@{!,y}) --[-2,-1] -sqr[-1] -s[-1] x -+[-2,-1]     # Compute distance vector to points.
-      (@{-1,c}) -pr[-2] @{-1,1} -rm[-1]                             # Set nearest point.
-      -if {@{-1,m}<64} -pr[-1] ~-2 -endif                       # Set it as active point, if near enough.
+      (@{-1,c}) -p=[-2] @{-1,1} -rm[-1]                             # Set nearest point.
+      -if {@{-1,m}<64} -p=[-1] ~-2 -endif                       # Set it as active point, if near enough.
       -rm[-1]
     -endif
     -rm[2]
 
     # Move active point.
-    -if {@{!,b}&1" && "@{!,x}>=0" && "~-1!=-1}
+    -if {@{!,b}"&1 && "@{!,x}>=0" && "~-1!=-1}
       -=[1] {@{!,x}*@{0,w}/@{!,w}},0,~-1
       -=[1] {@{!,y}*@{0,h}/@{!,h}},1,~-1
 
     # Delete nearest point.
-    -elif {@{!,b}&2" && "@{!,x}>=0" && "@{1,h}>3}
+    -elif {@{!,b}"&2 && "@{!,x}>=0" && "@{1,h}>3}
       -l[1] -s y -rm[~-2] -a y -endl -wait -1
 
     # Insert new active point.
-    -elif {@{!,b}&1" && "@{!,x}>=0}
+    -elif {@{!,b}"&1 && "@{!,x}>=0}
       -p ({@{!,x}*@{0,w}/@{!,w}},{@{!,y}*@{0,h}/@{!,h}})              # Point coordinates in the image basis.
       --shift[1] 0,-1,0,0,2 -+[-1] [1] -/[-1] 2                       # Compute center of segments.
       ~-1 --[-2,-1] -sqr[-1] -s[-1] x -+[-2,-1]                   # Compute distance vector to segments.
@@ -2926,20 +3111,20 @@ x_tictactoe :
   -do
 
     # Set state message depending on the current player.
-    -if ~-5 -pr[-7] "Tic-Tac-Toe (O to play)"
-    -else -pr[-7] "Tic-Tac-Toe (X to play)"
+    -if ~-5 -p=[-7] "Tic-Tac-Toe (O to play)"
+    -else -p=[-7] "Tic-Tac-Toe (X to play)"
     -endif
 
     # Select position by the user.
     -do                                                                       # Enter event loop.
       -w[] {w},{h},0,0,~-7 -wait                                              # Wait for events and force window size if necessary.
       -if {!@!} -pp[-7--1] -w[] 0 -v + -return -endif                           # Quit properly if window has been closed.
-      -if {@{!,b}&1" && "@{!,x}>20" && "@{!,y}>20" && "@{!,x}<400" && "@{!,y}<400} # If mouse button has been pressed on the board area.
-        -pr[-3] {int((@{!,x}-15)/130)}                                          # Get x-coord of the selected position (0,1 or 2).
-        -pr[-2] {int((@{!,y}-15)/130)}                                          # Get y-coord of the selected position (0,1 or 2).
-        -pr[-1] {4^(~-2*3+~-3)}                                                 # Get state code of the selected position.
-        -if {int(~-4/~-1)%4} -pr[-1] -1 -endif                                  # Check availability of the selected position.
-      -else -pr[-1] -1 -endif                                                   # If no mouse button, do nothing but loop.
+      -if {@{!,b}"&1 && "@{!,x}>20" && "@{!,y}>20" && "@{!,x}<400" && "@{!,y}<400} # If mouse button has been pressed on the board area.
+        -p=[-3] {int((@{!,x}-15)/130)}                                          # Get x-coord of the selected position (0,1 or 2).
+        -p=[-2] {int((@{!,y}-15)/130)}                                          # Get y-coord of the selected position (0,1 or 2).
+        -p=[-1] {4^(~-2*3+~-3)}                                                 # Get state code of the selected position.
+        -if {int(~-4/~-1)%4} -p=[-1] -1 -endif                                  # Check availability of the selected position.
+      -else -p=[-1] -1 -endif                                                   # If no mouse button, do nothing but loop.
     -while {~-1<0}                                                            # Go on until a valid position has been selected.
 
     # Draw symbol on selected position and update board state.
@@ -2948,7 +3133,7 @@ x_tictactoe :
                     {"130*"~-2" + 15+?(-5,5)"},0,0,1,[-1]
     -rm[-2--1]                                                                # Delete the sprite and the mask (not needed anymore).
     -w[-1]                                                                    # Update display window.
-    -pr[-4] {~-4+(1+~-5)*~-1}                                                 # Update the board state.
+    -p=[-4] {~-4+(1+~-5)*~-1}                                                 # Update the board state.
 
     # Check for a winning configuration.
     (21,1344,86016,4161,16644,66576,65793,4368;\                              # The list of winning configurations.
@@ -2956,12 +3141,12 @@ x_tictactoe :
      0,1,2,0,0,0,0,0;\                                                        # Corresponding Y coords for the stroke.
      3,3,3,4,4,4,5,6)                                                         # Corresponding indice of the stroke sprite.
     -repeat {w}                                                               # Start to check configurations.
-      -pr[-1] @{-1,@{>,-1}}                                                     # Save the current configuration code (used several times).
-      -if {(~-4&~-1)==~-1||(~-4&(2*~-1))==2*~-1}                                # If a winner has been found.
-        -_x_tictactoe@{-1,(@{>,-1},3)}                                            # Generate the stroke symbol and his mask.
-        -image[-4] [-2],{130*@{-3,(@{>,-1},1)}+?(-5,5)},\                         # And display it on the board at its position.
-                        {130*@{-3,(@{>,-1},2)}+?(-5,5)},0,0,1,[-1] -rm[-2--1]
-        -if {(~-4&~-1)==~-1} -w[-2] -1,-1,0,0,"Tic-Tac-Toe (X won !)"
+      -p=[-1] @{-1,~>}                                                        # Save the current configuration code (used several times).
+      -if {(~-4" & "~-1)==~-1||(~-4" & "(2*~-1))==2*~-1}                        # If a winner has been found.
+        -_x_tictactoe@{-1,(~>,3)}                                               # Generate the stroke symbol and his mask.
+        -image[-4] [-2],{130*@{-3,(~>,1)}+?(-5,5)},\                            # And display it on the board at its position.
+                        {130*@{-3,(~>,2)}+?(-5,5)},0,0,1,[-1] -rm[-2--1]
+        -if {(~-4" & "~-1)==~-1} -w[-2] -1,-1,0,0,"Tic-Tac-Toe (X won !)"
         -else -w[-2] -1,-1,0,0,"Tic-Tac-Toe (O won !)"                            # Update display window.
         -endif
         -do -wait -w[] @{!,w},@{!,h} -while @!                                    # Wait for the window to be closed.
@@ -2970,8 +3155,8 @@ x_tictactoe :
     -done                                                                     # Go on until all configurations have been checked.
     -rm[-1]                                                                   # Delete winning configuration data.
 
-    -pr[-5] {(~-5+1)%2}                                                     # Select next player.
-    -pr[-6] {~-6+1}                                                         # Increment turn counter.
+    -p=[-5] {(~-5+1)%2}                                                     # Select next player.
+    -p=[-6] {~-6+1}                                                         # Increment turn counter.
   -while {~-6<9}                                                            # Loop to next move until all positions have been filled.
 
   # Here, the game has been ended without winners.
@@ -3021,7 +3206,7 @@ x_fourier :
 
   -if {!@#} -e[] "\n No images have been specified. At least one image is required.\n" -return -endif
   -v -
-  -repeat @# -l[@{>,-1}]
+  -repeat @# -l[~>]
 
     # Init variables.
     -p[0] 1               # need_update (boolean)
@@ -3059,12 +3244,12 @@ x_fourier :
         -ifft[5,6] -rm[-1] -n[-1] 0,255
 
         # Display filtered image.
-        -reverse[-2,-1]
+        -rv[-2,-1]
         -if @! -r[-2,-1] {@{!,w}/2},@{!,h} -endif
         -text[-1] "Freq. Min/Max = "{int(~1)}"% / "{int(~2)}"%",5,5,13,1,255
         -w[-2,-1] -1,-1,0,0,"Fourier Filtering Demo"
         -rm[-2,-1]
-        -pr[0] 0
+        -p=[0] 0
 
       -endif
 
@@ -3073,18 +3258,18 @@ x_fourier :
       -if {@{!,b}" && "@{!,x}>=@{!,w}/2}  # If mouse button pressed on the right pane.
         -p {200*sqrt((@{!,x}-3*@{!,w}/4)^2+(@{!,y}-@{!,h}/2)^2)/\ # Compute selected radius (in %).
             sqrt((@{!,w}/2)^2+@{!,h}^2)}
-        -if {@{!,b}&1} -pr[2] ~-1                       # Update max freq. if left button.
-        -else -pr[1] {max(0,~-1-3)}                     # Update min freq. if other button.
+        -if {@{!,b}" & "1} -p=[2] ~-1                   # Update max freq. if left button.
+        -else -p=[1] {max(0,~-1-3)}                     # Update min freq. if other button.
         -endif
         -pp[-1]
-        -if {~1>=~2} -pr[1] ~2 -endif                   # Check that the min/max freq. are ordered.
-        -pr[0] 1                                        # Tell that the image must be updated.
+        -if {~1>=~2} -p=[1] ~2 -endif                   # Check that the min/max freq. are ordered.
+        -p=[0] 1                                        # Tell that the image must be updated.
       -endif
 
-      -if @{!,r} -pr[0] 1 -endif
-      -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,D}} -w[] {round(@{!,w}*1.5)},{round(@{!,h}*1.5)} -pr[0] 1 -endif # Increase window size.
-      -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,C}} -w[] {round(@{!,w}/1.5)},{round(@{!,h}/1.5)} -pr[0] 1 -endif # Decrease window size.
-      -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,R}} -w[] {2*@{0,w}},@{0,h} -pr[0] 1 -endif                       # Reset window size.
+      -if @{!,r} -p=[0] 1 -endif
+      -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,D}} -w[] {round(@{!,w}*1.5)},{round(@{!,h}*1.5)} -p=[0] 1 -endif # Increase window size.
+      -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,C}} -w[] {round(@{!,w}/1.5)},{round(@{!,h}/1.5)} -p=[0] 1 -endif # Decrease window size.
+      -if {(@{!,CTRLLEFT}" || "@{!,CTRLRIGHT})" && "@{!,R}} -w[] {2*@{0,w}},@{0,h} -p=[0] 1 -endif                       # Reset window size.
 
     -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
     -pp[0-2]    # Clean global stack.
@@ -3092,7 +3277,7 @@ x_fourier :
   -endl -done -w 0 -v +
 
 #@gmic x_life
-#@gmic : Launch the Life Game.
+#@gmic : Launch the game of life.
 x_life :
   -e[] "\n
 ------ The game of life --------------------------------------\n
@@ -3124,7 +3309,7 @@ x_life :
   -do
     (1,1,1;1,0,1;1,1,1) --correlate[0] [-1],0 -rm[-2]           # Count numbers of neighboring living cells.
     --t2[-1] 2,2.1 -and[-1] [0] -t2[-2] 3,3.1 -or[-2,-1]        # Make the game evolve (kill or create cells).
-    -reverse[0,-1]                                              # Update game state.
+    -rv[0,-1]                                                   # Update game state.
     -if {@{!,x}>0" && "@{!,b}==1" && "~3>0}                     # Add random cells to the game if user presses mouse button.
       -p {int(?*7)}
       -repeat ~-1
@@ -3135,16 +3320,16 @@ x_life :
         -point[2] {~-2*@{2,w}/@{0,w}},{~-1*@{2,h}/@{0,h}},0,0.8,255
         -pp[-2,-1]
       -done
-      -pr[3] {max(0,~3-~-1)} -pp[-1]
+      -p=[3] {max(0,~3-~-1)} -pp[-1]
     -endif
 
     --[-1] [0] -*[-1] -1                                        # Compute difference between consecutive states.
-    -pr[3] {~3-2*(min(0,int(@{-1,+}/16*~1/150)))}               # Increment available cells if the evolution is fast.
+    -p=[3] {~3-2*(min(0,int(@{-1,+}/16*~1/150)))}               # Increment available cells if the evolution is fast.
     -+[1] [0]                                                   # Increment generation counter for still existing cells.
     -min[-1] 0 -+[-1] 1 -*[1,-1]                                # Reset generation counter for died cells.
 
     -if {@{!,b}==2}                                             # Reset game if right mouse button has been pressed.
-      -f[0-2] 0 -pr[0-2] 0 -pr[3] 500 -rm[3] -i[3] 1
+      -f[0-2] 0 -p=[0-2] 0 -p=[3] 500 -rm[3] -i[3] 1
     -endif
 
     -if {@{3,w}==1}                                             # Create color palette if necessary.
@@ -3170,16 +3355,16 @@ x_life :
     -if @{!,S} -o[-1] gmic_life.png -endif                      # Save snapshot if requested.
     -rm[-1]
 
-    -if {!(~0%10)} -pr[1] @{0,+} -pr[2] {max(~1,~2)} -endif     # Re-compute current and best scores, every 10th iterations.
+    -if {!(~0%10)} -p=[1] @{0,+} -p=[2] {max(~1,~2)} -endif     # Re-compute current and best scores, every 10th iterations.
     -wait 60
-    -pr[0] {~0+1}
+    -p=[0] {~0+1}
   -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
 
   # End game and quit properly.
   -rm[0-3] -pp[0-3] -w 0 -v +
 
 #@gmic x_fire
-#@gmic : Launch fire demo.
+#@gmic : Launch the fire demo.
 x_fire : -skip "${1=G'MIC}"
   -e[] "\n
 ------ Fire demo ------------------------\n
@@ -3194,7 +3379,7 @@ x_fire : -skip "${1=G'MIC}"
  -i[1] (0,255,255,255,255^0,0,255,255,255^0,0,0,128,255) -r[1] 256,1,1,3,3
  -i[2] (0,0,0;0,0,0;1,1,1;0,1,0) -*[2] 0.23
  -text3d "$1",34,3,1 -mv[-1] 3 -c3d[3] -n3d[3] -*3d[3] 320 -col3d[3] 255,205,130 -db3d 0 -f3d 300
- 100,100 -rand[-1] 0,255 -ellipse[-1] 50%,50%,5,5,0,1,300 -blur[-1] 10
+ 100,100 -rand[-1] 255 -ellipse[-1] 50%,50%,5,5,0,1,300 -blur[-1] 10
  -sharpen[-1] 1000 -shrink_xy[-1] 1 -n[-1] 0,255 -to_rgb[-1] -light3d [-1] -rm[-1]
 
  # Start animation loop.
@@ -3206,13 +3391,145 @@ x_fire : -skip "${1=G'MIC}"
    --rot3d[3] 0,1,0,~0 -m3d 5 -object3d[-2] [-1],50%,50%            # Draw 3d object.
    -*3d[-1] 0.25,0.16,1 -m3d 3 -object3d[0] [-1],50%,50%
    -rm[-1]
-   -pr[0] {~0+3}                                                    # Update 3d angle.
+   -p=[0] {~0+3}                                                    # Update 3d angle.
    -w[-1] -rm[-1] -wait 40                                          # Display 3d object.
  -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
 
  # Exit properly.
  -rm[0-3] -pp[0] -w 0
  -v +
+
+#@gmic x_jawbreaker : 0<_width<20,0<_height<20,0<_balls<=8
+#@gmic : Launch the Jawbreaker game.
+x_jawbreaker : -check "${1=12}>0 && $1<20 && ${2=13}>0 && $2<20 && ${3=5}>0 && $3<=8"
+  -e[] "\n
+------ Jawbreaker --------------------------------------------\n
+----\n
+---- The goal of the game is to remove the maximum number of\n
+---- balls on the board, simply by clicking on them. But a\n
+---- colored ball can disappear only if it is grouped with at\n
+---- least one ball of the same color. The score is higher if\n
+---- you destroy larger sets of connected colored balls.\n
+----\n
+---- Left mouse button to select/destroy balls on board.\n
+---- Key 'BACKSPACE' or 'SPACE' to undo the last move.\n
+---- Key 'S' to save snapshot of the current view.\n
+---- Keys 'ESC' or 'Q' to exit.\n
+----\n
+--------------------------------------------------------------"
+  -v -
+
+  # Init images and variables.
+  -i[&board] $1,$2 -rand[&board] 1,$3 -round[&board] 1
+  -i[&undo] [-1]
+  -i[&balls] 32,32 -ball[-1] 255,255,255 -*[-1] 1.5 -c[-1] 0,255 -r[-1] {@{&board,w}*w},{@{&board,h}*h},1,1,0,2 -/[-1] 255
+  -i[&back] {w},{h},1,3 -l[-1]
+    -rand 255 -blur_xy 6,20 -equalize 100,0,255 -blur_xy 2,4
+    --sh 0,0 --sh[-2] 1,1 --sh[-3] 2,2 -/[-3] 4 -/[-2] 8 -/[-1] 2 -rm[-3--1]
+  -endl
+  -i[&visu] [&back]
+  -p[&score] 0
+  -p[&render_board] 1
+  -p[&shapescorey] 0
+  -p[&shapescore] 0
+
+  # Enter user-event loop.
+  -do
+
+    # Render board graphics.
+    -if ~render_board
+      --abs[&board] --[-1] 1 -*[-1] {360/$3} --t[&board] 0 -*[-1] 0.9 -r[-2,-1] [&balls] [&balls]
+       -a[-3--1] c -hsv2rgb[-1]
+      --compose_channels[-1] + -t[-1] 0.1 -dilate[-1] 3
+      -image[&visu] [&back] -image[&visu] [-2],0,0,0,0,1,[-1] -rm[-2,-1]
+      -if {!~shapescorey} -w[&visu] @{&back,w},@{&back,h},0,0,"Jawbreaker (score : "~score")" -endif
+      -p=[&render_board] 0
+    -endif
+
+    # Add shape score sprite if necessary.
+    -if ~shapescorey
+      --text[&visu] "+"~shapescore,@{!,x},{@{!,y}-64+~shapescorey},32,{(~shapescorey-1)/31},255
+      -p=[&shapescorey] {max(0,~shapescorey-1)}
+      -w[-1] @{&back,w},@{&back,h},0,0,"Jawbreaker (score : "~score")" -rm[-1] -wait 25
+    -else -wait -endif
+
+    # Check for the end of the game.
+    --f[&board] "if(i,i(x-1,y,0,0,0)==i || i(x+1,y,0,0,0)==i || i(x,y+1,0,0,0)==i || i(x,y-1,0,0,0)==i,0)"
+    -if {!@{-1,+}} -rm[-1] -b -endif -rm[-1]
+
+    # Manage user-events
+    -if @{!,r} -p=[&render_board] 1             # Will resize window to initial size, if resized.
+    -elif @{!,S} -o[&visu] gmic_jawbreaker.png  # Save snapshot if requested.
+    -elif {@{!,BACKSPACE}" || "@{!,SPACE}}      # Manage undo move.
+      -abs[&undo] -image[&board] [&undo]
+      -p=[&render_board] 1
+
+    -elif {@{!,x}">=0 && "@{!,b}}               # Manage button click.
+
+      # Retrieve board coordinates.
+      -wait -1
+      -p[&x] {"int("@{!,x}"*"@{&board,w}"/"@{!,w}")"}
+      -p[&y] {"int("@{!,y}"*"@{&board,h}"/"@{!,h}")"}
+
+      # When selecting a ball -> display selection and init new shape score sprite.
+      -if {@{&board,(~x,~y)}>0}
+        -abs[&board] -flood[&board] ~x,~y,0,0,1,-@{&board,(~x,~y)}
+        --t[&board] 0 --[-1] 1
+        -p=[&shapescore] {(@{-1,+}+1)^2} -p=[&shapescorey] {if(~shapescore,32,0)} -rm[-1]
+
+      # When confirming selection of a ball -> remove set of connected balls.
+      -elif @{&board,(~x,~y)}
+
+        --flood[&board] ~x,~y,0,0,1,-1 -==[-1] -1
+        -if {@{-1,+}>1} # If selected ball is connected to at least one ball.
+
+          # Save undo state.
+          -image[&undo] [&board]
+
+          # Manage board shifts (vertical and horizontal).
+          -flood[&board] ~x,~y,0,0,1,0
+          -repeat @{&board,w}
+            --columns[&board] ~> -mirror[-1] y
+            -p[&h] @{&board,h} -l[-1] -s 0,- -a y -if @# -r 1,~h,1,1,0 -mirror y -else -i 1,~h -endif -endl -pp[&h]
+            -image[&board] [-1],~> -rm[-1]
+          -done
+          -lines[&board] -1,100% -f[&board] "if(y==0,if(i(x,h-1),x,w),i)" -sort[&board] +,x -lines[&board] 1,100%
+
+          # Update score.
+          -p=[&score] {~score+int((@{-1,+}-1)^2)}
+
+        -endif
+        -rm[-1] # Remove selection mask.
+
+      -else -abs[&board]  # Remove previous selection if clicked outside balls.
+      -endif
+
+      -p=[&render_board] 1
+      -pp[&x,&y]
+    -endif
+
+  -while {@!" && "!@{!,Q}" && "!@{!,ESC}}
+
+  # Game over.
+  -if {@!" && "!@{!,ESC}}
+    -w[] @{&visu,w},@{&visu,h},0,0,"Jawbreaker (final score : "~score")"
+    -i[&gameover] 230,85 -text[-1] "Game Over !",3,0,57,1,1 -text[-1] "Score : "~score,24,54,32,1,1
+    --dilate[-1] 5 -nm[-1] "mgameover" -*[-2] 255 -r[-2] 100%,100%,1,3
+    -repeat 25
+      --r[&gameover,&mgameover] {400-12*(~>+1)}%,{400-12*(~>+1)}%
+      --image[&visu] [-2],{(@{&visu,w}-w)/2},{(@{&visu,h}-h)/2},0,0,{~>/25},[-1]
+      -w[-1] -rm[-3--1] -wait 25
+    -done
+    -do
+      -wait -if @{!,r} -w[] @{!,w},@{!,h} -wait -1 -endif
+      -while {@!" && "!@{!,Q}" && "!@{!,ESC}" && "!@{!,b}}
+    -rm[&gameover,&mgameover]
+  -endif
+
+  # End properly.
+  -pp[&score,&render_board,&shapescorey,&shapescore]
+  -rm[&board,&undo,&balls,&back,&visu]
+  -w 0 -v +
 
 #--------------------------
 #
@@ -3235,17 +3552,16 @@ h :
 # strcmp : string1,string2
 # Return the comparison value between two strings.
 strcmp :
-  -v - (0,{"$1_"}) ({w},{"$2_"}) -=[-2] {w} --[-2,-1] -abs[-1] -u {!@{-1,+}} -rm[-1] -v +
+  (0,{"$1_"}) ({w},{"$2_"}) -=[-2] {w} --[-2,-1] -abs[-1] -u {!@{-1,+}} -rm[-1]
 
 # fact : value
 # Return the factorial of specified value.
 fact : -check isint($1)
-  -v - -if {$1<2} -u 1 -else -u {$1*@{"-fact "{$1-1}}} -endif -v +
+  -if {$1<2} -u 1 -else -u {$1*@{"-fact "{$1-1}}} -endif
 
 # filename : filename,_number1,_number2,...,_numberN
 # Return a filename numbered with specified indices.
 filename : -skip "${1=default}"
-  -v -
   -if {$#==1} -u "$1"
   -else
   (${2--1}) -name[-1] "$1" -u @{-1,f}@{-1,b}
@@ -3256,60 +3572,59 @@ filename : -skip "${1=default}"
   -if {narg({@{-1,x}})} -u @{}.@{-1,x} -endif
   -rm[-1]
   -endif
-  -v +
 
 # max_whds
 # Return the maximal wxhxdxs size of selected images.
 max_whds :
-  -v - -_max_whds -u ~0,~1,~2,~3 -pp[0-3] -v +
+  -_max_whds -u ~0,~1,~2,~3 -pp[0-3]
 
 _max_whds :
   -p[0] 0 -p[1] 0 -p[2] 0 -p[3] 0
   -repeat @#
-    -pr[0] {max(~0,w)}
-    -pr[1] {max(~1,h)}
-    -pr[2] {max(~2,d)}
-    -pr[3] {max(~3,s)}
+    -p=[0] {max(~0,w)}
+    -p=[1] {max(~1,h)}
+    -p=[2] {max(~2,d)}
+    -p=[3] {max(~3,s)}
   -mv[-1] 0 -done
 
 # max_whd
 # Return the maximal wxhxd size of selected images.
 max_whd :
-  -v - -_max_whds -u ~0,~1,~2 -pp[0-3] -v +
+  -_max_whds -u ~0,~1,~2 -pp[0-3]
 
 # max_wh
 # Return the maximal wxh size of selected images.
 max_wh :
-  -v - -_max_whds -u ~0,~1 -pp[0-3] -v +
+  -_max_whds -u ~0,~1 -pp[0-3]
 
 # max_s
 # Return the maximal s size of selected images.
 max_s :
-  -v - -_max_whds -u ~3 -pp[0-3] -v +
+  -_max_whds -u ~3 -pp[0-3]
 
 # min_whds
 # Return the minimal size of selected images.
 min_whds :
-  -v - -_min_whds -u ~0,~1,~2,~3 -pp[0-3] -v +
+  -_min_whds -u ~0,~1,~2,~3 -pp[0-3]
 
 _min_whds :
   -p[0] 0 -p[1] 0 -p[2] 0 -p[3] 0
   -repeat @#
-    -pr[0] {max(~0,w)}
-    -pr[1] {max(~1,h)}
-    -pr[2] {max(~2,d)}
-    -pr[3] {max(~3,s)}
+    -p=[0] {max(~0,w)}
+    -p=[1] {max(~1,h)}
+    -p=[2] {max(~2,d)}
+    -p=[3] {max(~3,s)}
   -mv[-1] 0 -done
 
 # min_whd
 # Return the maximal wxhxd size of selected images.
 min_whd :
-  -v - -_min_whds -u ~0,~1,~2 -pp[0-3] -v +
+  -_min_whds -u ~0,~1,~2 -pp[0-3]
 
 # min_wh
 # Return the maximal wxh size of selected images.
 min_wh :
-  -v - -_min_whds -u ~0,~1 -pp[0-3] -v +
+  -_min_whds -u ~0,~1 -pp[0-3]
 
 # fitratio_wh : min_width,min_height,ratio_wh
 # Return a 2D dimension 'width,height' which is bigger than 'min_width,min_height' and has the specified w/h ratio.
@@ -3362,7 +3677,7 @@ gimp_no_preview :
 # #@gimp : note = note{"A <b>new version</b> of the G'MIC plug-in for GIMP is available !
 # #@gimp : You are strongly encouraged to download and install this updated version, by clicking on one of the following urls :"}
 # #@gimp : note = note{"\n<span foreground="purple"><u>Windows version :</u></span>"}
-# #@gimp : url = link{"Download G'MIC plug-in for Windows (32 bits)","http://downloads.sourceforge.net/gmic/gmic_gimp_win32.zip"}
+# #@gimp : url = link{"Download G'MIC plug-in for Windows (32 bits)","http://downloads.sourceforge.net/gmic/gmic_gimp_win32.exe"}
 # #@gimp : note = note{"<b>Installation </b>: unzip the archive files and copy them into folder\n
 # #@gimp :              <i>C:\\Program Files\\GIMP\\lib\\gimp\\2.0\\plug-ins\</i>"}
 # #@gimp : note = note{"\n<span foreground="purple"><u>Linux version :</u></span>"}
@@ -3404,12 +3719,12 @@ gimp_logo :
   -rm 118,44,1,1 -text "G'MIC",3,-6,57,1,255 -r 100%,100%,10,1 -r 100%,100%,20,1,0,0,0.5,0.5,0.5 -blur 1.5
   -isosurface3d 50%
   -col3d {?(150,255)},{?(150,255)},{?(150,255)}
-  -sphere3d 8 -col3d[-1] {?(150,255)},{?(150,255)},{?(150,255)} -+3d[-1] 72,-6 -+3d -c3d[-1] -r3d
+  -sphere3d 8 -col3d[-1] {?(150,255)},{?(150,255)},{?(150,255)} -+3d[-1] 72,-6 -+3d -c3d[-1] -rv3d
   -db3d 0 -m3d 4 -sl3d 0.2 -ss3d 1.3 -rot3d[-1] 1,0,0,30 -f3d 120 -*3d[-1] 1.5
   230,120,1,3 -object3d[-1] [-2],50%,30%,0,1 -rm[-2] -text "$1",12%,75%,24,1,255
   -to_rgba -replace_color 0,0,0,0,0,255,0,0,0,0 -drop_shadow 6,6,2
   -i[-2] @{"-fitratio_wh 230,120,"~0},1,3
-  -rand[-2] 0,255 --shared[-2] 0,0 -/[-1] 2 -rm[-1]
+  -rand[-2] 255 --sh[-2] 0,0 -/[-1] 2 -rm[-1]
   -blur_radial[-2] 10 -sharpen[-2] 600
   -r[-1] [-2],[-2],1,4,0,0,0.5,0.5 -compose_rgba
   -pp[0]
@@ -3612,7 +3927,7 @@ gimp_logo_ca :
 #@gimp : - <b>2009/11/23</b> : version <i>1.3.3.0</i>.\n
 #@gimp : - <b>2010/03/05</b> : version <i>1.3.4.0</i>.\n
 #@gimp : - <b>2010/05/17</b> : version <i>1.3.5.0</i>.\n
-#@gimp : - <span foreground="purple"><b>2010/06/15</b> : version <i>1.3.5.7</i> (Current).</span>\n
+#@gimp : - <span foreground="purple"><b>2010/06/30</b> : version <i>1.3.6.0</i> (Current).</span>\n
 #@gimp : "}
 
 #@gimp Contributors : _none_, _none_
@@ -3657,7 +3972,7 @@ gimp_friends :
   --*[-1] 70 --*[-2] 110 --*[-3] 255 -*[-4] 255 -a c
   -blur_radial 4 -sharpen 300
   -i[-2] @{"-fitratio_wh "@{-1,w},@{-1,h},~0},1,3
-  -rand[-2] 0,255 --shared[-2] 1,2 -/[-1] 2 -rm[-1]
+  -rand[-2] 255 --sh[-2] 1,2 -/[-1] 2 -rm[-1]
   -blur_radial[-2] 10 -sharpen[-2] 600
   -r[-1] [-2],[-2],1,4,0,0,0.5,0.5 -compose_rgba
   135,67,1,1,0 -text[-1] "Greetings to\n  all G'MIC\n  friends !",2,-2,24,1,1
@@ -3684,7 +3999,7 @@ gimp_array_preview :
 
 gimp_array :
   -shift -$3%,-$4%,0,0,2
-  -if {$5&1} -mirror x -endif -if {$5>1} -mirror y -endif
+  -if {$5\&1} -mirror x -endif -if {$5>1} -mirror y -endif
   -array $1,$2,$6
 
 #@gimp Faded array : gimp_array_fade, gimp_array_fade_preview(1)
@@ -3700,7 +4015,7 @@ gimp_array_fade_preview :
   -gimp_array_fade $1,$2,$3,$4,$5,$6,$7,0
 
 gimp_array_fade :
-  -if {$7&1} -mirror x -endif -if {$7>1} -mirror y -endif
+  -if {$7\&1} -mirror x -endif -if {$7>1} -mirror y -endif
   -array_fade $1,$2,$5,$6,$8
   -shift -$3%,-$4%,0,0,2
 
@@ -3715,7 +4030,7 @@ gimp_array_mirror_preview :
   -gimp_array_mirror $1,$2,$3,$4,$5,0
 
 gimp_array_mirror :
-  -if {$5&1} -mirror x -endif -if {$5>1} -mirror y -endif
+  -if {$5\&1} -mirror x -endif -if {$5>1} -mirror y -endif
   -array_mirror $1,$4,$5
   -shift -$2%,-$3%,0,0,2
 
@@ -3731,7 +4046,7 @@ gimp_array_mirror :
 #@gimp : Opacity = float(0.5,0,1)
 gimp_array_color :
   -repeat @# -l[-1]
-    $1,$2,1,3 -rand[-1] 0,255 -to_colormode[-1] @{-2,s} -r[-1] [-2] -*[-1] $3 -*[-2] {1-$3} -+[-2,-1]
+    $1,$2,1,3 -rand[-1] 255 -to_colormode[-1] @{-2,s} -r[-1] [-2] -*[-1] $3 -*[-2] {1-$3} -+[-2,-1]
   -endl -mv[-1] 0 -done
 
 #@gimp Tiled rotation : gimp_rotate_tiles, gimp_rotate_tiles(1)
@@ -3806,6 +4121,17 @@ gimp_frame :
     -frame[-2] @-1,$3,$4,$5,$6 -rm[-1]
   -mv[-1] 0 -done
 
+#@gimp Pattern frame : gimp_frame_pattern, gimp_frame_pattern_preview(1)
+#@gimp : Tiles = int(10,3,30)
+#@gimp : Pattern = choice(1,"Top layer","Self image")
+#@gimp : Iterations = int(1,1,10)
+#@gimp : Constraint image size = bool(1)
+gimp_frame_pattern :
+  -repeat $3 -frame_pattern $1,$2,$4 -done
+
+gimp_frame_pattern_preview :
+  -gimp_frame_pattern $1,$2,$3,1
+
 #@gimp Fuzzy frame : gimp_frame_fuzzy, gimp_frame_fuzzy(0)
 #@gimp : Width = int(10,0,99)
 #@gimp : Height = int(10,0,99)
@@ -3830,6 +4156,7 @@ gimp_frame_fuzzy :
 gimp_frame_round :
   -frame_round ${1-8}
   -if $9 -frame_blur $1,{min(99,$1+$9)},$3,$10,$11% -endif
+
 
 #@gimp _<b>Artistic</b>
 #-----------------------
@@ -3999,7 +4326,7 @@ gimp_end_mix :
   -endif
 
 gimp_mix_rgb :
-  -repeat @# -l[-1] -split_opacity -reverse -to_rgb[-1]
+  -repeat @# -l[-1] -split_opacity -rv -to_rgb[-1]
     -gimp_start_mix $10,$11
     --[-1] 128 -s[-1] c
     -*[-3] $1 -+[-3] $2 -blur[-3] $3%
@@ -4007,7 +4334,7 @@ gimp_mix_rgb :
     -*[-1] $7 -+[-1] $8 -blur[-1] $9%
     -a[-3--1] c -+[-1] 128 -c[-1] 0,255
     -gimp_end_mix $10
-  -if {@#!=3} -reverse -a c -endif -endl -mv[-1] 0 -done
+  -if {@#!=3} -rv -a c -endif -endl -mv[-1] 0 -done
 
 gimp_mix_rgb_preview :
   -gimp_split_preview "-gimp_mix_rgb ${1--2}",$-1
@@ -4027,7 +4354,7 @@ gimp_mix_rgb_preview :
 #@gimp : Tones smoothness = float(2,0,10)
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_mix_ycbcr :
-  -repeat @# -l[-1] -split_opacity -reverse -to_rgb[-1]
+  -repeat @# -l[-1] -split_opacity -rv -to_rgb[-1]
     -gimp_start_mix $10,$11
     -rgb2ycbcr[-1] --[-1] 128 -s[-1] c
     -*[-3] $1 -+[-3] $2 -blur[-3] $3%
@@ -4035,7 +4362,7 @@ gimp_mix_ycbcr :
     -*[-1] $7 -+[-1] $8 -blur[-1] $9%
     -a[-3--1] c -+[-1] 128 -c[-1] 0,255 -ycbcr2rgb[-1]
     -gimp_end_mix $10
-  -if {@#!=3} -reverse -a c -endif -endl -mv[-1] 0 -done
+  -if {@#!=3} -rv -a c -endif -endl -mv[-1] 0 -done
 
 gimp_mix_ycbcr_preview :
   -gimp_split_preview "-gimp_mix_ycbcr ${1--2}",$-1
@@ -4055,7 +4382,7 @@ gimp_mix_ycbcr_preview :
 #@gimp : Tones smoothness = float(2,0,10)
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_mix_hsv :
-  -repeat @# -l[-1] -split_opacity -reverse -to_rgb[-1]
+  -repeat @# -l[-1] -split_opacity -rv -to_rgb[-1]
     -gimp_start_mix $10,$11
     -rgb2hsv[-1] -s[-1] c --[-2,-1] 0.5
     -*[-3] $1 -+[-3] $2 -blur[-3] $3%
@@ -4063,7 +4390,7 @@ gimp_mix_hsv :
     -*[-1] $7 -+[-1] $8 -blur[-1] $9%
     -mod[-3] 360 -+[-2,-1] 0.5 -c[-2,-1] 0,1 -a[-3--1] c -hsv2rgb[-1]
     -gimp_end_mix $10
-  -if {@#!=3} -reverse -a c -endif -endl -mv[-1] 0 -done
+  -if {@#!=3} -rv -a c -endif -endl -mv[-1] 0 -done
 
 gimp_mix_hsv_preview :
   -gimp_split_preview "-gimp_mix_hsv ${1--2}",$-1
@@ -4083,7 +4410,7 @@ gimp_mix_hsv_preview :
 #@gimp : Tones smoothness = float(2,0,10)
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_mix_lab :
-  -repeat @# -l[-1] -split_opacity -reverse -to_rgb[-1]
+  -repeat @# -l[-1] -split_opacity -rv -to_rgb[-1]
     -gimp_start_mix $10,$11
     -rgb2lab[-1] -s[-1] c
     -*[-3] $1 -+[-3] $2 -blur[-3] $3%
@@ -4091,7 +4418,7 @@ gimp_mix_lab :
     -*[-1] $7 -+[-1] $8 -blur[-1] $9%
     -a[-3--1] c -lab2rgb[-1]
     -gimp_end_mix $10
-  -if {@#!=3} -reverse -a c -endif -endl -mv[-1] 0 -done
+  -if {@#!=3} -rv -a c -endif -endl -mv[-1] 0 -done
 
 gimp_mix_lab_preview :
   -gimp_split_preview "-gimp_mix_lab ${1--2}",$-1
@@ -4114,7 +4441,7 @@ gimp_mix_lab_preview :
 #@gimp : Tones smoothness = float(2,0,10)
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_mix_cmyk :
-  -repeat @# -l[-1] -split_opacity -reverse -to_rgb[-1]
+  -repeat @# -l[-1] -split_opacity -rv -to_rgb[-1]
     -gimp_start_mix $13,$14
     -rgb2cmyk[-1] -s[-1] c
     -*[-4] $1 -+[-4] $2 -blur[-4] $3%
@@ -4123,7 +4450,7 @@ gimp_mix_cmyk :
     -*[-1] $10 -+[-1] $11 -blur[-1] $12%
     -a[-4--1] c -cmyk2rgb[-1]
     -gimp_end_mix $13
-  -if {@#!=3} -reverse -a c -endif -endl -mv[-1] 0 -done
+  -if {@#!=3} -rv -a c -endif -endl -mv[-1] 0 -done
 
 gimp_mix_cmyk_preview :
   -gimp_split_preview "-gimp_mix_cmyk ${1--2}",$-1
@@ -4160,14 +4487,105 @@ _gimp_channel_processing :
   -if $10 -negative[-1] -endif
 
 gimp_channel_processing :
-  -repeat @# -l[-1] -split_opacity -reverse -to_rgb[-1]
+  -repeat @# -l[-1] -split_opacity -rv -to_rgb[-1]
     -gimp_start_mix $11,$12
     -apply_channels[-1] "-_gimp_channel_processing $1,$2,$3,$4,$5,$6,$7,$8,$9,$10",$13,0
     -gimp_end_mix $11
-  -if {@#!=3} -reverse -a c -endif -endl -mv[-1] 0 -done
+  -if {@#!=3} -rv -a c -endif -endl -mv[-1] 0 -done
 
 gimp_channel_processing_preview :
   -gimp_split_preview "-gimp_channel_processing ${1--2}",$-1
+
+#@gimp Curves : gimp_apply_curve, gimp_apply_curve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(128,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(0.5,0.01,0.99)
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Value range = choice("Cut","Normalize")
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_apply_curve :
+  -apply_channels "-_gimp_apply_curve $13,${1-12}",$14,$15
+
+_gimp_apply_curve :
+  -p[0] {$2*100/255}
+  -p[1] {$3*100/255} -p[2] {$4*100/255}
+  -p[3] {$5*100/255} -p[4] {$6*100/255}
+  -p[5] {$7*100/255} -p[6] {$8*100/255}
+  -p[7] {$9*100/255} -p[8] {$10*100/255}
+  -p[9] {$11*100/255} -p[10] {$12*100/255}
+  -p[11] {$13*100/255}
+  -apply_curve $1,~0,@{"-if {~1>=0} -u ~1,~2, -else -u \"\" -endif"}\
+                     @{"-if {~3>=0} -u ~3,~4, -else -u \"\" -endif"}\
+                     @{"-if {~5>=0} -u ~5,~6, -else -u \"\" -endif"}\
+                     @{"-if {~7>=0} -u ~7,~8, -else -u \"\" -endif"}\
+                     @{"-if {~9>=0} -u ~9,~10, -else -u \"\" -endif"}~11
+  -pp[0-11]
+
+gimp_apply_curve_preview :
+  -repeat @#
+    --gimp_split_preview[-1] "-gimp_apply_curve ${1--2}",$-1
+    -axes[-1] 0,255,255,0,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -if $-2
+      [-1],[-1],1,1,-{$-2*255/100} -to_gray[-3] -histogram[-3] 256,0,255 -graph[-1] [-3],3,0,0,0,1,0
+      -rm[-3] -+[-1] {$-2*255/100} -+[-2,-1] -c[-1] 0,255
+    -endif
+    -p[0] {$1*100/255}
+    -p[1] {$2*100/255} -p[2] {$3*100/255}
+    -p[3] {$4*100/255} -p[4] {$5*100/255}
+    -p[5] {$6*100/255} -p[6] {$7*100/255}
+    -p[7] {$8*100/255} -p[8] {$9*100/255}
+    -p[9] {$10*100/255} -p[10] {$11*100/255}
+    -p[11] {$12*100/255}
+    -__gimp_apply_curve $13,~0,@{"-if {~1>=0} -u ~1,~2, -else -u \"\" -endif"}\
+                               @{"-if {~3>=0} -u ~3,~4, -else -u \"\" -endif"}\
+                               @{"-if {~5>=0} -u ~5,~6, -else -u \"\" -endif"}\
+                               @{"-if {~7>=0} -u ~7,~8, -else -u \"\" -endif"}\
+                               @{"-if {~9>=0} -u ~9,~10, -else -u \"\" -endif"}~11
+    -pp[0-11]
+  -mv[-1] 0 -done
+
+__gimp_apply_curve :
+  [-1],[-1],1,[-1]
+  (0,${2--2},101,$-1) -r[-1] 2,{w/2},1,1,-1 -sort[-1] +,y
+  --shift[-1] 0,-1,0,0,1 --shift[-2] 0,1,0,0,1 --[-2,-1] -*[-1] $1
+  -a[-2,-1] x
+  -repeat {h-1}
+    -if {@{-2,0}>=0" && "@{-2,4}>=0}
+      -spline[-2] @{-1,0}%,@{-1,1}%,@{-1,2}%,@{-1,3}%,@{-1,4}%,@{-1,5}%,@{-1,6}%,@{-1,7}%,1,255
+    -endif
+    -shift[-1] 0,-1,0,0,2
+  -done
+  -mirror[-2] y
+  -rm[-1] -or[-2,-1]
+
+  (0,${2--2},101,$-1) -r[-1] 2,{w/2},1,1,-1
+  -repeat {h}
+    -if {@{-2,0}>=0" && "@{-2,4}>=0}
+      -ellipse[-2] {@{-1,0}*@{-2,w}/100},{(100-@{-1,1})*@{-2,h}/100},3,3,0,1,255,0,0,255
+      -ellipse[-2] {@{-1,0}*@{-2,w}/100},{(100-@{-1,1})*@{-2,h}/100},3,3,0,1,0xFFFFFFFF,0,0,0,255
+      -text[-2] ~>,{@{-1,0}*@{-2,w}/100-5},{(100-@{-1,1})*@{-2,h}/100-17},13,1,255
+    -endif
+    -shift[-1] 0,-1,0,0,2
+  -done
+  -rm[-1]
 
 #@gimp Local normalization : gimp_normalize_local, gimp_normalize_local_preview(0)
 #@gimp : Amplitude = float(3,0,60)
@@ -4210,7 +4628,7 @@ gimp_normalize_local_preview :
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_blackandwhite :
   -repeat @#
-    -l[-1] -split_opacity -reverse -to_rgb[-1] -s[-1] c     # Isolate opacity
+    -l[-1] -split_opacity -rv -to_rgb[-1] -s[-1] c          # Isolate opacity
     -*[-3] $1 -blur[-3] $2%                                 # Red gain + smoothness
     -*[-2] $3 -blur[-2] $4%                                 # Green gain + smoothness
     -*[-1] $5 -blur[-1] $6%                                 # Blue gain + smoothness
@@ -4235,7 +4653,7 @@ gimp_blackandwhite :
       -a[-3--1] c -hsv2rgb[-1]
     -endif
 
-    -reverse -a c -endl -mv[-1] 0 -done                     # Re-compose opacity and loop to next image.
+    -rv -a c -endl -mv[-1] 0 -done                          # Re-compose opacity and loop to next image.
   -normalize_local $18,$19,$20,2%,1,0,255
 
 gimp_blackandwhite_preview :
@@ -4249,7 +4667,7 @@ gimp_blackandwhite_preview :
 gimp_sepia :
   -sepia
   -repeat @#
-    --shared[-1] 0,2
+    --sh[-1] 0,2
     -apply_gamma[-1] $1 --[-1] 128 -*[-1] $2 -+[-1] {128+$3} -c[-1] 0,255
   -rm[-1] -mv[-1] 0 -done
 
@@ -4290,14 +4708,14 @@ gimp_bwrecolorize :
   -elif {$5==3} # Sepia
     (0,44,115,143,196,244^0,20,84,119,184,235^0,5,44,73,144,200^255,255,255,255,255,255)
   -else         # Solarize
-    (0,359^1,1^1,1^255,255) -r[-1] 256,1,1,4,3 --shared[-1] 0,2 -hsv2rgb[-1] -rm[-1]
+    (0,359^1,1^1,1^255,255) -r[-1] 256,1,1,4,3 --sh[-1] 0,2 -hsv2rgb[-1] -rm[-1]
   -endif
   -if {$6==0} -r[-1] 256,1,1,4,1
   -elif {$6==1} -r[-1] 256,1,1,4,3
   -elif {$6==2} -r[-1] 256,1,1,4,5
   -else -r[-1] 256,1,1,4,6
   -endif
-  -if {$7==1} --shared[-1] 0,2 -rgb2hsv[-1] --shared[-1] 2,2 -f[-1] x/w -hsv2rgb[-2] -rm[-2,-1] -endif
+  -if {$7==1} --sh[-1] 0,2 -rgb2hsv[-1] --sh[-1] 2,2 -f[-1] x/w -hsv2rgb[-2] -rm[-2,-1] -endif
   -map[0--2] [-1] -rm[-1]
 
 gimp_bwrecolorize_preview :
@@ -4319,7 +4737,7 @@ gimp_ditheredbw_preview :
 #@gimp : Similarity space = choice(0,"RGB[A]","RGB","YCbCr","Red","Green","Blue","Opacity","Luminance","Blue & Red chrominances","Hue","Saturation")
 #@gimp : Tolerance = float(20,0,100)
 #@gimp : Smoothness = float(0,0,10)
-#@gimp : "Selected color    " = color(255,255,255,255)
+#@gimp : Selected color = color(255,255,255,255)
 #@gimp : Output as = choice(0,"Selected colors","Selected mask")
 #@gimp : Invert selection = bool(0)
 _gimp_select_color :
@@ -4357,8 +4775,8 @@ gimp_select_color :
 #@gimp Replace color : gimp_replace_color, gimp_replace_color(0)
 #@gimp : Tolerance = float(100,1,450)
 #@gimp : Smoothness = float(0,0,10)
-#@gimp : "Selected color    " = color(255,255,255,255)
-#@gimp : "Replaced color   " = color(0,0,0,0)
+#@gimp : Selected color = color(255,255,255,255)
+#@gimp : Replaced color = color(0,0,0,0)
 gimp_replace_color :
   -to_rgba -replace_color $1,$2%,${3--1} -c 0,255
 
@@ -4392,7 +4810,7 @@ gimp_linear_gradient :
   -v - -repeat @#
     ({w},{h}) -rm[-2]
     ($1^$2^$3^$4) ($5^$6^$7^$8)
-    -if $9 -reverse[-2,-1] -endif
+    -if $9 -rv[-2,-1] -endif
     -r[-2,-1] @-3 -rm[-3]
     -fade_linear $10,$11,$12
   -mv[-1] 0 -done -v +
@@ -4409,16 +4827,16 @@ gimp_radial_gradient :
   -v - -repeat @#
     ({w},{h}) -rm[-2]
     ($1^$2^$3^$4) ($5^$6^$7^$8)
-    -if $9 -reverse[-2,-1] -endif
+    -if $9 -rv[-2,-1] -endif
     -r[-2,-1] @-3 -rm[-3]
     100%,100% -=[-1] 1,$12%,$13% -distance[-1] 1 -_fade $10,$11
   -mv[-1] 0 -done -v +
 
 #@gimp Corner gradient : gimp_corner_gradient, gimp_corner_gradient
-#@gimp : "Color 1 (up/left corner)         " = color(255,255,255,128)
-#@gimp : "Color 2 (up/right corner)       " = color(255,0,0,255)
-#@gimp : "Color 3 (bottom/left corner)  " = color(0,255,0,255)
-#@gimp : "Color 4 (bottom/right corner)" = color(0,0,255,255)
+#@gimp : Color 1 (up/left corner) = color(255,255,255,128)
+#@gimp : Color 2 (up/right corner) = color(255,0,0,255)
+#@gimp : Color 3 (bottom/left corner) = color(0,255,0,255)
+#@gimp : Color 4 (bottom/right corner) = color(0,0,255,255)
 gimp_corner_gradient :
   -repeat @#
     ({w},{h}) -rm[-2]
@@ -4579,9 +4997,9 @@ gimp_morpho :
   -elif {$1==2} -erode $2 -dilate $2
   -elif {$1==3} -dilate $2 -erode $2
   -elif {$1==4} -repeat @# --erode $2 --[-2,-1] -n[-1] 0,255 -mv[-1] 0 -done
-  -elif {$1==5} -repeat @# --dilate $2 -reverse[-2,-1] --[-2,-1] -n[-1] 0,255 -mv[-1] 0 -done
+  -elif {$1==5} -repeat @# --dilate $2 -rv[-2,-1] --[-2,-1] -n[-1] 0,255 -mv[-1] 0 -done
   -elif {$1==6} -repeat @# --erode $2 -dilate[-1] $2 --[-2,-1] -n[-1] 0,255 -mv[-1] 0 -done
-  -else -repeat @# --dilate $2 -erode[-1] $2 -reverse[-2,-1] --[-2,-1] -n[-1] 0,255 -mv[-1] 0 -done
+  -else -repeat @# --dilate $2 -erode[-1] $2 -rv[-2,-1] --[-2,-1] -n[-1] 0,255 -mv[-1] 0 -done
   -endif
   -if $3 -negative -endif
 
@@ -4843,7 +5261,7 @@ gimp_bandpass_preview :
 #@gimp : Tiles = int(1,1,10)
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_anisotropic_smoothing :
-  -repeat @# -l[@{>,-1}]
+  -repeat @# -l[~>]
     -split_tiles $13,$13
     -apply_channels "-repeat $11 -smooth $1,$2,$3,$4,$5,$6,$7,$8,$9,$10 -done",$12,0
     -append_tiles $13,$13
@@ -5089,7 +5507,7 @@ gimp_scalenx_preview :
 #@gimp : Anisotropy = float(0.4,0,1)
 #@gimp : Sharpness = float(10,0,100)
 gimp_upscale_smart :
-  -upscale_smart $1,$2,1,$3,$4,$5 -cut 0,255
+  -to_rgb -upscale_smart $1,$2,1,$3,$4,$5 -cut 0,255
 
 gimp_upscale_smart_preview :
   -repeat @#
@@ -5227,7 +5645,7 @@ gimp_compose_fade :
   -n[-1] {-(@#-2)*$3},{(@#-2)*(1+$3)}
   --[-1] {$2*(1+$3)*(@#-2)}
   -c[-1] 0,{@#-2}
-  -if $6 -reverse[0--2] -endif
+  -if $6 -rv[0--2] -endif
   -if $5 -round[-1] 1
   -else -roundify[-1] $4
   -endif
@@ -5248,7 +5666,7 @@ _gimp_compose_fade4 : [0],[0],1,1,"((x-w*($1+0.5))*(y-h*($2+0.5)))%(0.2*w*h*(1.0
 gimp_compose_shapeaverage :
   -to_rgb
   -repeat {@#/2}
-    -reverse[-2,-1]
+    -rv[-2,-1]
     -if $1 -i[0] [-1] -endif
     -t[-1] 50% -compose_shapeaverage[-2,-1]
     -if $1 -*[0,-1] -/[0] 255 -mv[0] @# -endif
@@ -5269,7 +5687,7 @@ gimp_compose_shapeaverage :
 gimp_transparent_diff :
   -repeat {@#/2}
     -if $3
-      --[-2] [-1] -norm[-2] -blur[-2] $2% -t[-2] $1% -reverse[-2,-1]
+      --[-2] [-1] -norm[-2] -blur[-2] $2% -t[-2] $1% -rv[-2,-1]
     -else
       --[-1] [-2] -norm[-1] -blur[-1] $2% -t[-1] $1%
     -endif
@@ -5296,7 +5714,7 @@ gimp_split_freq_preview :
 
 gimp_split_freq :
   -v - -repeat @#
-    --blur[-1] $1 --[-2] [-1] -/[-2] 2 -+[-2] 128 -reverse[-2,-1]
+    --blur[-1] $1 --[-2] [-1] -/[-2] 2 -+[-2] 128 -rv[-2,-1]
   -mv[-2,-1] 0 -done -v +
 
 #@gimp Layers alignment : gimp_align_layers, gimp_align_layers_preview
@@ -5359,17 +5777,20 @@ gimp_shadow_patch :
 gimp_light_patch :
   -apply_channels "-light_patch $1,$2,$3",$4,0
 
-#@gimp Relief light : light_relief, light_relief(1)
+#@gimp Relief light : gimp_light_relief, gimp_light_relief(1)
 #@gimp : Ambient lightness = float(0.3,0,5)
 #@gimp : Specular lightness = float(0.2,0,2)
 #@gimp : Specular size = float(0.2,0,1)
 #@gimp : Darkness = float(0,0,1)
-#@gimp : Smoothness = float(0.2,0,5)
+#@gimp : Light smoothness = float(0.2,0,5)
 #@gimp : X-light = float(0.5,0,1)
 #@gimp : Y-light = float(0.5,0,1)
 #@gimp : Z-light = float(5,0,20)
 #@gimp : Z-scale = float(0.5,0,3)
 #@gimp : Opacity as bumpmap = bool(0)
+#@gimp : Image smoothness = float(0,0,10)
+gimp_light_relief :
+  -blur $11% -light_relief ${1-10}
 
 
 #@gimp _<b>Patterns</b>
@@ -5405,14 +5826,14 @@ _stencil :
   -*[-1] -65535 -to_colormode[-1] @{-2,s}
   -p[0] 0 -p[1] {sqrt(w*h*d)/2.5} -do # Start random filling (fast).
     ({?(w)},{?(h)},{?(d)})
-    -if {@{-2,(@-1)}==-65535} -flood[-2] @{-1,0-2},0,1,@{-3,(@{-1,0-2},0)},@{-3,(@{-1,0-2},1)},@{-3,(@{-1,0-2},2)} -pr[0] 0
-    -else -pr[0] {~0+1} -endif
-    -rm[-1] -if {~0>~1} -break -endif
+    -if {@{-2,(@-1)}==-65535} -flood[-2] @{-1,0-2},0,1,@{-3,(@{-1,0-2},0)},@{-3,(@{-1,0-2},1)},@{-3,(@{-1,0-2},2)} -p=[0] 0
+    -else -p=[0] {~0+1} -endif
+    -rm[-1] -if {~0>~1} -b -endif
   -while 1 -pp[0,1]
   -do   # Complete with deterministic filling (slower).
     (@{-1,c})
     -if {@{-2,(@-1)}==-65535} -flood[-2] @{-1,0-2},0,1,@{-3,(@{-1,0-2},0)},@{-3,(@{-1,0-2},1)},@{-3,(@{-1,0-2},2)}
-    -else -rm[-1] -break -endif
+    -else -rm[-1] -b -endif
     -rm[-1]
   -while 1
   -rm[-2]
@@ -5609,7 +6030,7 @@ gimp_lylejk_stencil :
 gimp_elevation :
   -if {@#==0} -q
   -elif {@#==1} --norm
-  -else -k[0,1] -reverse
+  -else -k[0,1] -rv
   -endif
   -to_rgb[0] -norm[1] -blur[1] $4 -*[1] $3 -r $1,$2,1,100%,3 -elevation3d[0] [1] -rm[1]
   -c3d -rot3d 0,0,1,$6 -rot3d 1,0,0,$5 -*3d $7 -m3d $8 -f3d $10
@@ -5629,7 +6050,7 @@ gimp_elevation_preview :
 #@gimp : Y-angle = float(41,0,360)
 #@gimp : Z-angle = float(21,0,360)
 gimp_imageobject3d :
-  -repeat @# -l[@{>,-1}]
+  -repeat @# -l[~>]
     -to_rgba
     -_gimp_imageobject3d_$1
     -c3d
@@ -5655,7 +6076,7 @@ _gimp_random3d3 : -sphere3d $1,2
 _gimp_random3d4 : ($1) -/[-1] 3 -torus3d $1,@-1 -rm[-2]
 gimp_random3d :
   -m3d $5 -db3d 0
-  -repeat @# -l[@{>,-1}]
+  -repeat @# -l[~>]
     -to_rgb ({w},{h},{d},{s}) -/[-1] 2 -repeat $2
     (@{1,0}) -+[-1] @{1,1} -*[-1] $3 -/[-1] 100 -_gimp_random3d$1 @-1 -rm[-2]
     -rot3d[-1] 1,1,0,{?(0,360)}
@@ -5878,7 +6299,7 @@ gimp_animate_morpho :
 gimp_elevation_anim :
   -if {@#==0} -q
   -elif {@#==1} --norm
-  -else -k[0,1] -reverse
+  -else -k[0,1] -rv
   -endif
   -to_rgb[0] -norm[1] -blur[1] $4 -*[1] $3 -r $1,$2,1,100%,3 -elevation3d[0] [1] -rm[1]
   -c3d -*3d $7 -m3d $8 -f3d $10
@@ -6022,6 +6443,15 @@ gimp_quick_copyright :
   -endif
   -mv[-1] 2 -done
   -rm[0,1]
+
+#@gimp Sierpinski triangle : sierpinski, sierpinski(1)
+#@gimp : Recursions = int(6,0,10)
+#@gimp : 1st X-coord = float(50,0,100)
+#@gimp : 1st Y-coord = float(0,0,100)
+#@gimp : 2nd X-coord = float(0,0,100)
+#@gimp : 2nd Y-coord = float(100,0,100)
+#@gimp : 3rd X-coord = float(100,0,100)
+#@gimp : 3rd Y-coord = float(100,0,100)
 
 
 #@gimp <b>Experimental</b>
