@@ -54,7 +54,7 @@
 
 // Define version number of the library file.
 #ifndef cimg_version
-#define cimg_version 135
+#define cimg_version 136
 
 /*-----------------------------------------------------------
  #
@@ -11765,19 +11765,19 @@ namespace cimg_library {
         for (char *s = se3, *ns = se2; s>ss; --s, --ns) if (*s=='<' && *ns=='<' && level[s-expr._data]==clevel) _cimg_mp_opcode2(18,compile(ss,s),compile(s+2,se));
         for (char *s = se3, *ns = se2; s>ss; --s, --ns) if (*s=='>' && *ns=='>' && level[s-expr._data]==clevel) _cimg_mp_opcode2(19,compile(ss,s),compile(s+2,se));
         for (char *s = se2, *ps = se3; s>ss; --s, --ps)
-          if (*s=='-' && *ps!='-' && *ps!='+' && *ps!='*' && *ps!='/' && *ps!='%' && *ps!='&' && *ps!='|' && *ps!='^' && *ps!='!' && *ps!='~' &&
-              (*ps!='e' || !(ps>ss && (*(ps-1)=='.' || (*(ps-1)>='0' && *(ps-1)<='9')))) && level[s-expr._data]==clevel)
-            _cimg_mp_opcode2(20,compile(ss,s),compile(s+1,se));
-        for (char *s = se2, *ps = se3; s>ss; --s, --ps)
           if (*s=='+' && *ps!='-' && *ps!='+' && *ps!='*' && *ps!='/' && *ps!='%' && *ps!='&' && *ps!='|' && *ps!='^' && *ps!='!' && *ps!='~' &&
               (*ps!='e' || !(ps>ss && (*(ps-1)=='.' || (*(ps-1)>='0' && *(ps-1)<='9')))) && level[s-expr._data]==clevel)
             _cimg_mp_opcode2(21,compile(ss,s),compile(s+1,se));
+        for (char *s = se2, *ps = se3; s>ss; --s, --ps)
+          if (*s=='-' && *ps!='-' && *ps!='+' && *ps!='*' && *ps!='/' && *ps!='%' && *ps!='&' && *ps!='|' && *ps!='^' && *ps!='!' && *ps!='~' &&
+              (*ps!='e' || !(ps>ss && (*(ps-1)=='.' || (*(ps-1)>='0' && *(ps-1)<='9')))) && level[s-expr._data]==clevel)
+            _cimg_mp_opcode2(20,compile(ss,s),compile(s+1,se));
         for (char *s = se2; s>ss; --s) if (*s=='*' && level[s-expr._data]==clevel) _cimg_mp_opcode2(22,compile(ss,s),compile(s+1,se));
         for (char *s = se2; s>ss; --s) if (*s=='/' && level[s-expr._data]==clevel) _cimg_mp_opcode2(23,compile(ss,s),compile(s+1,se));
         for (char *s = se2; s>ss; --s) if (*s=='%' && level[s-expr._data]==clevel) _cimg_mp_opcode2(24,compile(ss,s),compile(s+1,se));
         if (ss<se1) {
-          if (*ss=='-') _cimg_mp_opcode1(26,compile(ss1,se));
           if (*ss=='+') _cimg_mp_return(compile(ss1,se));
+          if (*ss=='-') _cimg_mp_opcode1(26,compile(ss1,se));
           if (*ss=='!') _cimg_mp_opcode1(27,compile(ss1,se));
           if (*ss=='~') _cimg_mp_opcode1(28,compile(ss1,se));
         }
@@ -24540,30 +24540,24 @@ namespace cimg_library {
     CImg<T>& draw_spline(const int x0, const int y0, const float u0, const float v0,
                          const int x1, const int y1, const float u1, const float v1,
                          const tc *const color, const float opacity=1,
-                         const float precision=4, const unsigned int pattern=~0U,
+                         const float precision=0.25, const unsigned int pattern=~0U,
                          const bool init_hatch=true) {
       if (!color)
         throw CImgArgumentException(_cimg_instance
                                     "draw_spline() : Specified color is (null).",
                                     cimg_instance);
-
       if (is_empty()) return *this;
+      if (x0==x1 && y0==y1) return draw_point(x0,y0,color,opacity);
       bool ninit_hatch = init_hatch;
       const float
-        dx = (float)(x1 - x0),
-        dy = (float)(y1 - y0),
-        dmax = cimg::max(cimg::abs(dx),cimg::abs(dy)),
-        ax = -2*dx + u0 + u1,
-        bx = 3*dx - 2*u0 - u1,
-        ay = -2*dy + v0 + v1,
-        by = 3*dy - 2*v0 - v1,
-        xprecision = dmax>0?precision/dmax:1.0f,
-        tmax = 1 + (dmax>0?xprecision:0.0f);
+        ax = u0 + u1 + 2*(x0 - x1),
+        bx = 3*(x1 - x0) - 2*u0 - u1,
+        ay = v0 + v1 + 2*(y0 - y1),
+        by = 3*(y1 - y0) - 2*v0 - v1,
+        _precision = 1/(std::sqrt(cimg::sqr(x0-x1)+cimg::sqr(y0-y1))*(precision>0?precision:1));
       int ox = x0, oy = y0;
-      for (float t = 0; t<tmax; t+=xprecision) {
-        const float
-          t2 = t*t,
-          t3 = t2*t;
+      for (float t = 0; t<1; t+=_precision) {
+        const float t2 = t*t, t3 = t2*t;
         const int
           nx = (int)(ax*t3 + bx*t2 + u0*t + x0),
           ny = (int)(ay*t3 + by*t2 + v0*t + y0);
@@ -24571,7 +24565,7 @@ namespace cimg_library {
         ninit_hatch = false;
         ox = nx; oy = ny;
       }
-      return *this;
+      return draw_line(ox,oy,x1,y1,color,opacity,pattern,false);
     }
 
     //! Draw a cubic spline curve in the instance image (for volumetric images).
@@ -24589,27 +24583,20 @@ namespace cimg_library {
         throw CImgArgumentException(_cimg_instance
                                     "draw_spline() : Specified color is (null).",
                                     cimg_instance);
-
       if (is_empty()) return *this;
+      if (x0==x1 && y0==y1 && z0==z1) return draw_point(x0,y0,z0,color,opacity);
       bool ninit_hatch = init_hatch;
       const float
-        dx = (float)(x1 - x0),
-        dy = (float)(y1 - y0),
-        dz = (float)(z1 - z0),
-        dmax = cimg::max(cimg::abs(dx),cimg::abs(dy),cimg::abs(dz)),
-        ax = -2*dx + u0 + u1,
-        bx = 3*dx - 2*u0 - u1,
-        ay = -2*dy + v0 + v1,
-        by = 3*dy - 2*v0 - v1,
-        az = -2*dz + w0 + w1,
-        bz = 3*dz - 2*w0 - w1,
-        xprecision = dmax>0?precision/dmax:1.0f,
-        tmax = 1 + (dmax>0?xprecision:0.0f);
+        ax = u0 + u1 + 2*(x0 - x1),
+        bx = 3*(x1 - x0) - 2*u0 - u1,
+        ay = v0 + v1 + 2*(y0 - y1),
+        by = 3*(y1 - y0) - 2*v0 - v1,
+        az = w0 + w1 + 2*(z0 - z1),
+        bz = 3*(z1 - z0) - 2*w0 - w1,
+        _precision = 1/(std::sqrt(cimg::sqr(x0-x1)+cimg::sqr(y0-y1))*(precision>0?precision:1));
       int ox = x0, oy = y0, oz = z0;
-      for (float t = 0; t<tmax; t+=xprecision) {
-        const float
-          t2 = t*t,
-          t3 = t2*t;
+      for (float t = 0; t<1; t+=_precision) {
+        const float t2 = t*t, t3 = t2*t;
         const int
           nx = (int)(ax*t3 + bx*t2 + u0*t + x0),
           ny = (int)(ay*t3 + by*t2 + v0*t + y0),
@@ -24618,7 +24605,7 @@ namespace cimg_library {
         ninit_hatch = false;
         ox = nx; oy = ny; oz = nz;
       }
-      return *this;
+      return draw_line(ox,oy,oz,x1,y1,z1,color,opacity,pattern,false);
     }
 
     //! Draw a cubic spline curve in the instance image.
@@ -24654,35 +24641,29 @@ namespace cimg_library {
                                     "draw_line() : Invalid specified texture (%u,%u,%u,%u,%p).",
                                     cimg_instance,
                                     texture._width,texture._height,texture._depth,texture._spectrum,texture._data);
-
       if (is_empty()) return *this;
       if (is_overlapped(texture)) return draw_spline(x0,y0,u0,v0,x1,y1,u1,v1,+texture,tx0,ty0,tx1,ty1,precision,opacity,pattern,init_hatch);
-      bool ninit_hatch = true;
+      if (x0==x1 && y0==y1) return draw_point(x0,y0,texture.get_vector_at(x0,y0),opacity);
+      bool ninit_hatch = init_hatch;
       const float
-        dx = (float)(x1 - x0),
-        dy = (float)(y1 - y0),
-        dmax = cimg::max(cimg::abs(dx),cimg::abs(dy)),
-        ax = -2*dx + u0 + u1,
-        bx = 3*dx - 2*u0 - u1,
-        ay = -2*dy + v0 + v1,
-        by = 3*dy - 2*v0 - v1,
-        xprecision = dmax>0?precision/dmax:1.0f,
-        tmax = 1 + (dmax>0?xprecision:0.0f);
+        ax = u0 + u1 + 2*(x0 - x1),
+        bx = 3*(x1 - x0) - 2*u0 - u1,
+        ay = v0 + v1 + 2*(y0 - y1),
+        by = 3*(y1 - y0) - 2*v0 - v1,
+        _precision = 1/(std::sqrt(cimg::sqr(x0-x1)+cimg::sqr(y0-y1))*(precision>0?precision:1));
       int ox = x0, oy = y0, otx = tx0, oty = ty0;
-      for (float t1 = 0; t1<tmax; t1+=xprecision) {
-        const float
-          t2 = t1*t1,
-          t3 = t2*t1;
+      for (float t = 0; t<1; t+=_precision) {
+        const float t2 = t*t, t3 = t2*t;
         const int
-          nx = (int)(ax*t3 + bx*t2 + u0*t1 + x0),
-          ny = (int)(ay*t3 + by*t2 + v0*t1 + y0),
-          ntx = tx0 + (int)((tx1-tx0)*t1/tmax),
-          nty = ty0 + (int)((ty1-ty0)*t1/tmax);
+          nx = (int)(ax*t3 + bx*t2 + u0*t + x0),
+          ny = (int)(ay*t3 + by*t2 + v0*t + y0),
+          ntx = tx0 + (int)((tx1-tx0)*t),
+          nty = ty0 + (int)((ty1-ty0)*t);
         draw_line(ox,oy,nx,ny,texture,otx,oty,ntx,nty,opacity,pattern,ninit_hatch);
         ninit_hatch = false;
         ox = nx; oy = ny; otx = ntx; oty = nty;
       }
-      return *this;
+      return draw_line(ox,oy,x1,y1,texture,otx,oty,tx1,ty1,opacity,pattern,false);
     }
 
     // Draw a set of connected spline curves in the instance image (internal).
@@ -27167,8 +27148,8 @@ namespace cimg_library {
         throw CImgArgumentException(_cimg_instance
                                     "draw_ellipse : Specified color is (null).",
                                     cimg_instance);
-
       if (is_empty()) return *this;
+      if (r1<=0 || r2<=0) return draw_point(x0,y0,color,opacity);
       _draw_scanline(color,opacity);
       const float
         nr1 = cimg::abs(r1), nr2 = cimg::abs(r2),
@@ -27182,7 +27163,7 @@ namespace cimg_library {
         b = u*v*(l1-l2),
         c = l1*v*v + l2*u*u;
       const int
-        yb = (int)std::sqrt(a*rmax*rmax/(a*c-b*b)),
+        yb = (int)std::sqrt(a*rmax*rmax/(a*c - b*b)),
         tymin = y0 - yb - 1,
         tymax = y0 + yb + 1,
         ymin = tymin<0?0:tymin,
@@ -27191,12 +27172,12 @@ namespace cimg_library {
       bool first_line = true;
       for (int y = ymin; y<=ymax; ++y) {
         const float
-          Y = y-y0 + (y<y0?0.5f:-0.5f),
-          delta = b*b*Y*Y-a*(c*Y*Y-rmax*rmax),
+          Y = y - y0 + (y<y0?0.5f:-0.5f),
+          delta = b*b*Y*Y - a*(c*Y*Y - rmax*rmax),
           sdelta = delta>0?(float)std::sqrt(delta)/a:0.0f,
           bY = b*Y/a,
-          fxmin = x0-0.5f-bY-sdelta,
-          fxmax = x0+0.5f-bY+sdelta;
+          fxmin = x0 - 0.5f - bY - sdelta,
+          fxmax = x0 + 0.5f - bY + sdelta;
         const int xmin = (int)fxmin, xmax = (int)fxmax;
         if (!pattern) _draw_scanline(xmin,xmax,y,color,opacity);
         else {
@@ -27788,7 +27769,7 @@ namespace cimg_library {
           char txt[32] = { 0 };
           cimg_foroff(xvalues,x) {
             cimg_snprintf(txt,sizeof(txt),"%g",(double)xvalues(x));
-            const int xi = (int)(x*(_width-1)/siz), xt = xi-(int)std::strlen(txt)*3;
+            const int xi = (int)(x*(_width-1)/siz), xt = xi - (int)std::strlen(txt)*3;
             draw_point(xi,y-1,color,opacity).draw_point(xi,y+1,color,opacity).
 	      draw_text(xt<0?0:xt,yt,txt,color,(tc*)0,opacity,13);
           }
@@ -27813,9 +27794,9 @@ namespace cimg_library {
             cimg_snprintf(txt,sizeof(txt),"%g",(double)yvalues(y));
             const int
               yi = (int)(y*(_height-1)/siz),
-              tmp = yi-5,
+              tmp = yi - 5,
               nyi = tmp<0?0:(tmp>=height()-11?height()-11:tmp),
-              xt = x-(int)std::strlen(txt)*7;
+              xt = x - (int)std::strlen(txt)*7;
             draw_point(x-1,yi,color,opacity).draw_point(x+1,yi,color,opacity);
             if (xt>0) draw_text(xt,nyi,txt,color,(tc*)0,opacity,13);
             else draw_text(x+3,nyi,txt,color,(tc*)0,opacity,13);
@@ -27867,9 +27848,17 @@ namespace cimg_library {
           dx = cimg::abs(x1-x0), dy = cimg::abs(y1-y0),
           px = (precisionx==0)?(float)std::pow(10.0,(int)std::log10(dx)-2.0):precisionx,
           py = (precisiony==0)?(float)std::pow(10.0,(int)std::log10(dy)-2.0):precisiony;
-        draw_axes(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),
-                  CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
-                  color,opacity,patternx,patterny);
+
+        if (x0!=x1 && y0!=y1)
+          draw_axes(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),
+                    CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
+                    color,opacity,patternx,patterny);
+        else if (x0==x1 && y0!=y1)
+          draw_axis(x0,CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
+                    color,opacity,patterny);
+        else if (x0!=x1 && y0==y1)
+          draw_axis(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),y0,
+                    color,opacity,patternx);
       }
       return *this;
     }
@@ -28889,9 +28878,8 @@ namespace cimg_library {
 
         case 1 : { // Point
           const unsigned int i0 = (unsigned int)primitive(0);
-          const float x0 = projections(i0,0), y0 = projections(i0,1);
           const tpfloat z0 = Z + vertices(i0,2);
-          if (x0>=0 && x0<_width && y0>=0 && y0<_height && z0>zmin) {
+          if (z0>zmin) {
             visibles(nb_visibles) = (unsigned int)l;
             zrange(nb_visibles++) = z0;
           }
@@ -29137,8 +29125,8 @@ namespace cimg_library {
               _sh = (unsigned int)(color._height*factor),
               sw = _sw?_sw:1,
               sh = _sh?_sh:1;
-            const int nx0 = x0 - (int)sw, ny0 = y0 - (int)sh;
-            if (x0+(int)sw>=0 && nx0<width() && y0+(int)sh>=0 && ny0<height()) {
+            const int nx0 = x0 - (int)sw/2, ny0 = y0 - (int)sh/2;
+            if (sw<_width && sh<_height && (nx0+(int)sw/2>=0 || nx0-(int)sw/2<width() || ny0+(int)sh/2>=0 || ny0-(int)sh/2<height())) {
               const CImg<tc>
                 _sprite = (sw!=color._width || sh!=color._height)?color.get_resize(sw,sh,1,-100,render_type<=3?1:3):CImg<tc>(),
                 &sprite = _sprite?_sprite:color;
