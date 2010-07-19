@@ -1805,8 +1805,10 @@ void create_parameters_gui(const bool reset_params) {
             if (!reset_params && std::sscanf(argument_value,"%f",&default_value)) {}
             GtkObject *const
               scale = gimp_scale_entry_new(GTK_TABLE(table),0,current_table_line,argument_name,50,6,
-                                           (gdouble)default_value,(gdouble)min_value,(gdouble)max_value,
-                                           0.1,0.1,2,true,0,0,0,0);
+                                           (double)default_value,(double)min_value,(double)max_value,
+                                           (double)(max_value-min_value)/40,
+                                           (double)(max_value-min_value)/10,
+                                           2,true,0,0,0,0);
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_float_parameter_changed(GTK_ADJUSTMENT(scale),event_infos+2*current_argument);
@@ -1825,10 +1827,12 @@ void create_parameters_gui(const bool reset_params) {
             if (!reset_params && std::sscanf(argument_value,"%f",&default_value)) {}
             GtkObject *const
               scale = gimp_scale_entry_new(GTK_TABLE(table),0,current_table_line,argument_name,50,6,
-                                           (gdouble)(int)cimg::round(default_value,1.0f),
-                                           (gdouble)(int)cimg::round(min_value,1.0f),
-                                           (gdouble)(int)cimg::round(max_value,1.0f),
-                                           1,1,0,true,0,0,0,0);
+                                           (double)(int)cimg::round(default_value,1.0f),
+                                           (double)(int)cimg::round(min_value,1.0f),
+                                           (double)(int)cimg::round(max_value,1.0f),
+                                           (double)cimg::round((max_value-min_value)/40,1,1),
+                                           (double)cimg::round((max_value-min_value)/10,1,1),
+                                           0,true,0,0,0,0);
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_int_parameter_changed(GTK_ADJUSTMENT(scale),event_infos+2*current_argument);

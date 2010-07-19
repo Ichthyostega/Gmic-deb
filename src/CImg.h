@@ -54,7 +54,7 @@
 
 // Define version number of the library file.
 #ifndef cimg_version
-#define cimg_version 136
+#define cimg_version 137
 
 /*-----------------------------------------------------------
  #
@@ -237,6 +237,7 @@ extern "C" {
 #ifdef cimg_use_jpeg
 extern "C" {
 #include "jpeglib.h"
+#include "setjmp.h"
 }
 #endif
 
@@ -4433,7 +4434,7 @@ namespace cimg_library {
 
     // Convert filename into a Windows-style filename.
     inline void winformat_string(char *const s) {
-      if (s && s[0]) {
+      if (s && *s) {
 #if cimg_OS==2
         char *const ns = new char[MAX_PATH];
         if (GetShortPathNameA(s,ns,MAX_PATH)) std::strcpy(s,ns);
@@ -4462,8 +4463,8 @@ namespace cimg_library {
         char tmp[1024] = { 0 }, filetmp[512] = { 0 };
         std::FILE *file = 0;
         cimg_snprintf(filetmp,sizeof(filetmp),"%s.tmp",cimg::filenamerand());
-        char *tmpPath = getenv("TMP");
-        if (!tmpPath) { tmpPath = getenv("TEMP"); winformat_string(tmpPath); }
+        char *tmpPath = std::getenv("TMP");
+        if (!tmpPath) { tmpPath = std::getenv("TEMP"); winformat_string(tmpPath); }
         if (tmpPath) _cimg_test_temporary_path(tmpPath);
 #if cimg_OS==2
         _cimg_test_temporary_path("C:\\WINNT\\Temp");
@@ -4479,7 +4480,7 @@ namespace cimg_library {
         _cimg_test_temporary_path("/var/tmp");
 #endif
         if (!path_found) {
-          st_path[0] = 0;
+          *st_path = 0;
           std::strncpy(tmp,filetmp,sizeof(tmp)-1);
           if ((file=std::fopen(tmp,"wb"))!=0) { std::fclose(file); std::remove(tmp); path_found = true; }
         }
@@ -4504,7 +4505,7 @@ namespace cimg_library {
         // Note : in the following line, 0x26 = CSIDL_PROGRAM_FILES (not defined on every compiler).
 #if !defined(__INTEL_COMPILER)
         if (!SHGetSpecialFolderPathA(0,st_path,0x0026,false)) {
-          const char *const pfPath = getenv("PROGRAMFILES");
+          const char *const pfPath = std::getenv("PROGRAMFILES");
           if (pfPath) std::strncpy(st_path,pfPath,MAX_PATH-1);
           else std::strcpy(st_path,"C:\\PROGRA~1");
         }
@@ -4894,7 +4895,7 @@ namespace cimg_library {
 
     //! Split a filename into two strings 'body' and 'extension'.
     inline const char *split_filename(const char *const filename, char *const body=0) {
-      if (!filename) { if (body) body[0] = 0; return 0; }
+      if (!filename) { if (body) *body = 0; return 0; }
       const char *p = 0; for (const char *np = filename; np>=filename && (p=np); np = std::strchr(np,'.')+1) {}
       if (p==filename) {
         if (body) std::strcpy(body,filename);
@@ -4907,7 +4908,7 @@ namespace cimg_library {
 
     //! Create a numbered version of a filename.
     inline char* number_filename(const char *const filename, const int number, const unsigned int n, char *const string) {
-      if (!filename) { if (string) string[0] = 0; return 0; }
+      if (!filename) { if (string) *string = 0; return 0; }
       char format[1024] = { 0 }, body[1024] = { 0 };
       const char *const ext = cimg::split_filename(filename,body);
       if (n>0) cimg_snprintf(format,sizeof(format),"%s_%%.%ud.%s",body,n,ext);
@@ -4924,7 +4925,7 @@ namespace cimg_library {
         throw CImgArgumentException("cimg::fopen() : File '%s', specified mode is (null).",
                                     path);
 
-      if (path[0]=='-') return (*mode=='r')?stdin:stdout;
+      if (*path=='-' && path[1]=='.') return (*mode=='r')?stdin:stdout;
       std::FILE *res = std::fopen(path,mode);
       if (!res)
         throw CImgIOException("cimg::fopen() : Failed to open file '%s' with mode '%s'.",
@@ -4979,7 +4980,7 @@ namespace cimg_library {
       else if ((uheader[0]==0x49 && uheader[1]==0x49) || (uheader[0]==0x4D && uheader[1]==0x4D)) f_type = _tif; // Check for TIFF format.
       else { // Check for PNM or PFM format.
         head = header;
-        while (head<header+siz && (err=std::sscanf(head,"%1023[^\n]",item))!=EOF && (item[0]=='#' || !err))
+        while (head<header+siz && (err=std::sscanf(head,"%1023[^\n]",item))!=EOF && (*item=='#' || !err))
           head+=1+(err?std::strlen(item):0);
         if (std::sscanf(item," P%d",&err)==1) f_type = _pnm;
         else if (std::sscanf(item," P%c",&cerr)==1 && (cerr=='f' || cerr=='F')) f_type = _pfm;
@@ -5086,9 +5087,9 @@ namespace cimg_library {
     inline char option(const char *const name, const int argc, const char *const *const argv,
                        const char defaut, const char *const usage=0) {
       const char *const s = cimg::option(name,argc,argv,(char*)0);
-      const char res = s?s[0]:defaut;
+      const char res = s?*s:defaut;
       char tmp[8] = { 0 };
-      tmp[0] = res;
+      *tmp = res;
       cimg::option(name,0,0,tmp,usage);
       return res;
     }
@@ -11223,7 +11224,7 @@ namespace cimg_library {
         const unsigned int psiz = primitive.size();
         switch (psiz) {
         case 1 : { // Point.
-          const unsigned int i0 = (unsigned int)primitive[0];
+          const unsigned int i0 = (unsigned int)primitive(0);
           if (i0>=_width) {
             if (error_message) std::sprintf(error_message,
                                             "3d object (%u,%u) refers to invalid vertex indice %u in point primitive %u",
@@ -13670,8 +13671,8 @@ namespace cimg_library {
           f = std::sqrt(f);
           const double l1 = 0.5*(e-f), l2 = 0.5*(e+f);
           const double theta1 = std::atan2(l2-a,b), theta2 = std::atan2(l1-a,b);
-          val[0]=(t)l2;
-          val[1]=(t)l1;
+          val[0] = (t)l2;
+          val[1] = (t)l1;
           vec(0,0) = (t)std::cos(theta1);
           vec(0,1) = (t)std::sin(theta1);
           vec(1,0) = (t)std::cos(theta2);
@@ -21144,7 +21145,7 @@ namespace cimg_library {
             if (val[1]<0) val[1] = 0;
             *(ptrG0++) = vec(0,0);
             *(ptrG1++) = vec(0,1);
-            *(ptrG2++) = 1 - (Tfloat)std::pow(1+val[0]+val[1],-(Tfloat)nedge);
+            *(ptrG2++) = 1 - (Tfloat)std::pow(1 + val[0] + val[1],-(Tfloat)nedge);
           }
           cimg_forC(*this,c) cimg_for3x3(*this,x,y,0,c,I,Tfloat) {
             const Tfloat
@@ -27227,7 +27228,9 @@ namespace cimg_library {
                           const tc *const color, const float opacity=1) {
       CImgList<t> eig = tensor.get_symmetric_eigen();
       const CImg<t> &val = eig[0], &vec = eig[1];
-      return draw_ellipse(x0,y0,val(0),val(1),vec(0,0),vec(0,1),color,opacity);
+      return draw_ellipse(x0,y0,std::sqrt(val(0)),std::sqrt(val(1)),
+                          std::atan2(vec(0,1),vec(0,0))*180/cimg::PI,
+                          color,opacity);
     }
 
     //! Draw an outlined ellipse.
@@ -27255,7 +27258,7 @@ namespace cimg_library {
        \param y0 = Y-coordinate of the ellipse center.
        \param tensor = Diffusion tensor describing the ellipse.
        \param color = array of spectrum() values of type \c T, defining the drawing color.
-       \param pattern = If zero, the ellipse is filled, else pattern is an integer whose bits describe the outline pattern.
+
        \param opacity = opacity of the drawing.
     **/
     template<typename t, typename tc>
@@ -27264,7 +27267,9 @@ namespace cimg_library {
                           const unsigned int pattern) {
       CImgList<t> eig = tensor.get_symmetric_eigen();
       const CImg<t> &val = eig[0], &vec = eig[1];
-      return draw_ellipse(x0,y0,val(0),val(1),vec(0,0),vec(0,1),color,opacity,pattern);
+      return draw_ellipse(x0,y0,std::sqrt(val(0)),std::sqrt(val(1)),
+                          std::atan2(vec(0,1),vec(0,0))*180/cimg::PI,
+                          color,opacity,pattern);
     }
 
     //! Draw an image.
@@ -27848,16 +27853,15 @@ namespace cimg_library {
           dx = cimg::abs(x1-x0), dy = cimg::abs(y1-y0),
           px = (precisionx==0)?(float)std::pow(10.0,(int)std::log10(dx)-2.0):precisionx,
           py = (precisiony==0)?(float)std::pow(10.0,(int)std::log10(dy)-2.0):precisiony;
-
         if (x0!=x1 && y0!=y1)
           draw_axes(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),
                     CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
                     color,opacity,patternx,patterny);
         else if (x0==x1 && y0!=y1)
-          draw_axis(x0,CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
+          draw_axis((int)x0,CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
                     color,opacity,patterny);
         else if (x0!=x1 && y0==y1)
-          draw_axis(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),y0,
+          draw_axis(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),(int)y0,
                     color,opacity,patternx);
       }
       return *this;
@@ -30455,6 +30459,7 @@ namespace cimg_library {
                  !cimg::strcasecmp(ext,"mpe") ||
                  !cimg::strcasecmp(ext,"movie") ||
                  !cimg::strcasecmp(ext,"ogm") ||
+                 !cimg::strcasecmp(ext,"ogg") ||
                  !cimg::strcasecmp(ext,"qt") ||
                  !cimg::strcasecmp(ext,"rm") ||
                  !cimg::strcasecmp(ext,"vob") ||
@@ -30637,7 +30642,7 @@ namespace cimg_library {
       std::FILE *const nfile = file?file:cimg::fopen(filename,"rb");
       unsigned char header[64] = { 0 };
       cimg::fread(header,54,nfile);
-      if (header[0]!='B' || header[1]!='M') {
+      if (*header!='B' || header[1]!='M') {
         if (!file) cimg::fclose(nfile);
         throw CImgIOException(_cimg_instance
                               "load_bmp() : Invalid BMP file '%s'.",
@@ -30847,7 +30852,7 @@ namespace cimg_library {
       assign(cinfo.output_width,cinfo.output_height,1,cinfo.output_components);
       T *ptr_r = _data, *ptr_g = _data + _width*_height, *ptr_b = _data + 2*_width*_height, *ptr_a = _data + 3*_width*_height;
       while (cinfo.output_scanline<cinfo.output_height) {
-        row_pointer[0] = buffer._data;
+        *row_pointer = buffer._data;
         if (jpeg_read_scanlines(&cinfo,row_pointer,1)!=1) {
           cimg::warn(_cimg_instance
                      "load_jpeg() : Incomplete data in file '%s'.",
@@ -31163,7 +31168,7 @@ namespace cimg_library {
       char item[1024] = { 0 };
       int err, rval, gval, bval;
       const int cimg_iobuffer = 12*1024*1024;
-      while ((err=std::fscanf(nfile,"%1023[^\n]",item))!=EOF && (item[0]=='#' || !err)) std::fgetc(nfile);
+      while ((err=std::fscanf(nfile,"%1023[^\n]",item))!=EOF && (*item=='#' || !err)) std::fgetc(nfile);
       if (std::sscanf(item," P%u",&ppm_type)!=1) {
         if (!file) cimg::fclose(nfile);
         throw CImgIOException(_cimg_instance
@@ -31171,7 +31176,7 @@ namespace cimg_library {
                               cimg_instance,
                               filename?filename:"(FILE*)");
       }
-      while ((err=std::fscanf(nfile," %1023[^\n]",item))!=EOF && (item[0]=='#' || !err)) std::fgetc(nfile);
+      while ((err=std::fscanf(nfile," %1023[^\n]",item))!=EOF && (*item=='#' || !err)) std::fgetc(nfile);
       if ((err=std::sscanf(item," %u %u %u",&W,&H,&colormax))<2) {
         if (!file) cimg::fclose(nfile);
         throw CImgIOException(_cimg_instance
@@ -31180,7 +31185,7 @@ namespace cimg_library {
                               filename?filename:"(FILE*)");
       }
       if (err==2) {
-        while ((err=std::fscanf(nfile," %1023[^\n]",item))!=EOF && (item[0]=='#' || !err)) std::fgetc(nfile);
+        while ((err=std::fscanf(nfile," %1023[^\n]",item))!=EOF && (*item=='#' || !err)) std::fgetc(nfile);
         if (std::sscanf(item,"%u",&colormax)!=1)
           cimg::warn(_cimg_instance
                      "load_pnm() : COLORMAX field is undefined in file '%s'.",
@@ -31309,7 +31314,7 @@ namespace cimg_library {
       char pfm_type, item[1024] = { 0 };
       int W = 0, H = 0, err = 0;
       double scale = 0;
-      while ((err=std::fscanf(nfile,"%1023[^\n]",item))!=EOF && (item[0]=='#' || !err)) std::fgetc(nfile);
+      while ((err=std::fscanf(nfile,"%1023[^\n]",item))!=EOF && (*item=='#' || !err)) std::fgetc(nfile);
       if (std::sscanf(item," P%c",&pfm_type)!=1) {
         if (!file) cimg::fclose(nfile);
         throw CImgIOException(_cimg_instance
@@ -31317,7 +31322,7 @@ namespace cimg_library {
                               cimg_instance,
                               filename?filename:"(FILE*)");
       }
-      while ((err=std::fscanf(nfile," %1023[^\n]",item))!=EOF && (item[0]=='#' || !err)) std::fgetc(nfile);
+      while ((err=std::fscanf(nfile," %1023[^\n]",item))!=EOF && (*item=='#' || !err)) std::fgetc(nfile);
       if ((err=std::sscanf(item," %d %d",&W,&H))<2) {
         if (!file) cimg::fclose(nfile);
         throw CImgIOException(_cimg_instance
@@ -31326,7 +31331,7 @@ namespace cimg_library {
                               filename?filename:"(FILE*)");
       }
       if (err==2) {
-        while ((err=std::fscanf(nfile," %1023[^\n]",item))!=EOF && (item[0]=='#' || !err)) std::fgetc(nfile);
+        while ((err=std::fscanf(nfile," %1023[^\n]",item))!=EOF && (*item=='#' || !err)) std::fgetc(nfile);
         if (std::sscanf(item,"%lf",&scale)!=1)
           cimg::warn(_cimg_instance
                      "load_pfm() : SCALE field is undefined in file '%s'.",
@@ -32461,7 +32466,7 @@ namespace cimg_library {
       int err;
 
       // Skip comments, and read magic string OFF
-      do { err = std::fscanf(nfile,"%255[^\n] ",line); } while (!err || (err==1 && line[0]=='#'));
+      do { err = std::fscanf(nfile,"%255[^\n] ",line); } while (!err || (err==1 && *line=='#'));
       if (cimg::strncasecmp(line,"OFF",3) && cimg::strncasecmp(line,"COFF",4)) {
         if (!file) cimg::fclose(nfile);
         throw CImgIOException(_cimg_instance
@@ -32469,7 +32474,7 @@ namespace cimg_library {
                               cimg_instance,
                               filename?filename:"(FILE*)");
       }
-      do { err = std::fscanf(nfile,"%255[^\n] ",line); } while (!err || (err==1 && line[0]=='#'));
+      do { err = std::fscanf(nfile,"%255[^\n] ",line); } while (!err || (err==1 && *line=='#'));
       if ((err = std::sscanf(line,"%u%u%*[^\n] ",&nb_points,&nb_primitives))!=2) {
         if (!file) cimg::fclose(nfile);
         throw CImgIOException(_cimg_instance
@@ -32482,7 +32487,7 @@ namespace cimg_library {
       assign(nb_points,3);
       float X = 0, Y = 0, Z = 0;
       cimg_forX(*this,l) {
-        do { err = std::fscanf(nfile,"%255[^\n] ",line); } while (!err || (err==1 && line[0]=='#'));
+        do { err = std::fscanf(nfile,"%255[^\n] ",line); } while (!err || (err==1 && *line=='#'));
         if ((err = std::sscanf(line,"%f%f%f%*[^\n] ",&X,&Y,&Z))!=3) {
           if (!file) cimg::fclose(nfile);
           throw CImgIOException(_cimg_instance
@@ -32500,7 +32505,7 @@ namespace cimg_library {
       while (!stopflag) {
         float c0 = 0.7f, c1 = 0.7f, c2 = 0.7f;
         unsigned int prim = 0, i0 = 0, i1 = 0, i2 = 0, i3 = 0, i4 = 0, i5 = 0, i6 = 0, i7 = 0;
-        line[0] = 0;
+        *line = 0;
         if ((err = std::fscanf(nfile,"%u",&prim))!=1) stopflag=true;
         else {
           ++nb_read;
@@ -33355,9 +33360,9 @@ namespace cimg_library {
         foreground_color(1,1,1,_spectrum,color_model?maxval:minval);
       float
         Xoff = 0, Yoff = 0, Zoff = 0, sprite_scale = 1,
-        xm, xM = vertices.get_shared_line(0).max_min(xm),
-        ym, yM = vertices.get_shared_line(1).max_min(ym),
-        zm, zM = vertices.get_shared_line(2).max_min(zm);
+        xm = 0, xM = vertices?vertices.get_shared_line(0).max_min(xm):0,
+        ym = 0, yM = vertices?vertices.get_shared_line(1).max_min(ym):0,
+        zm = 0, zM = vertices?vertices.get_shared_line(2).max_min(zm):0;
       const float delta = cimg::max(xM-xm,yM-ym,zM-zm);
 
       rotated_bbox_vertices = bbox_vertices.assign(8,3,1,1,
@@ -33393,9 +33398,10 @@ namespace cimg_library {
         // Init object pose
         if (init_pose) {
           const float
-            ratio = delta>0?(2.0f*cimg::min(disp.width(),disp.height())/(3.0f*delta)):0,
+            ratio = delta>0?(2.0f*cimg::min(disp.width(),disp.height())/(3.0f*delta)):1,
             dx = (xM + xm)/2, dy = (yM + ym)/2, dz = (zM + zm)/2;
-          if (centering) pose = CImg<floatT>(4,3,1,1, ratio,0.,0.,-ratio*dx, 0.,ratio,0.,-ratio*dy, 0.,0.,ratio,-ratio*dz);
+          if (centering)
+            pose = CImg<floatT>(4,3,1,1, ratio,0.,0.,-ratio*dx, 0.,ratio,0.,-ratio*dy, 0.,0.,ratio,-ratio*dz);
           else pose = CImg<floatT>(4,3,1,1, 1.,0.,0.,0., 0.,1.,0.,0., 0.,0.,1.,0.);
           if (pose_matrix) {
             CImg<floatT> pose0(pose_matrix,4,3,1,1,false);
@@ -33921,6 +33927,7 @@ namespace cimg_library {
                !cimg::strcasecmp(ext,"mpe") ||
                !cimg::strcasecmp(ext,"movie") ||
                !cimg::strcasecmp(ext,"ogm") ||
+               !cimg::strcasecmp(ext,"ogg") ||
                !cimg::strcasecmp(ext,"qt") ||
                !cimg::strcasecmp(ext,"rm") ||
                !cimg::strcasecmp(ext,"vob") ||
@@ -34248,7 +34255,7 @@ namespace cimg_library {
           }
         }
         }
-        row_pointer[0] = buffer._data;
+        *row_pointer = buffer._data;
         jpeg_write_scanlines(&cinfo,row_pointer,1);
       }
       jpeg_finish_compress(&cinfo);
@@ -35032,7 +35039,7 @@ namespace cimg_library {
       const char *const ext = cimg::split_filename(filename);
       short datatype=-1;
       std::memset(header,0,348);
-      if (!ext[0]) { cimg_snprintf(hname,sizeof(hname),"%s.hdr",filename); cimg_snprintf(iname,sizeof(iname),"%s.img",filename); }
+      if (!*ext) { cimg_snprintf(hname,sizeof(hname),"%s.hdr",filename); cimg_snprintf(iname,sizeof(iname),"%s.img",filename); }
       if (!cimg::strncasecmp(ext,"hdr",3)) {
         std::strcpy(hname,filename); std::strncpy(iname,filename,sizeof(iname)-1); std::sprintf(iname + std::strlen(iname)-3,"img");
       }
@@ -35040,10 +35047,10 @@ namespace cimg_library {
         std::strcpy(hname,filename); std::strncpy(iname,filename,sizeof(iname)-1); std::sprintf(hname + std::strlen(iname)-3,"hdr");
       }
       if (!cimg::strncasecmp(ext,"nii",3)) {
-        std::strncpy(hname,filename,sizeof(hname)-1); iname[0] = 0;
+        std::strncpy(hname,filename,sizeof(hname)-1); *iname = 0;
       }
       int *const iheader = (int*)header;
-      iheader[0] = 348;
+      *iheader = 348;
       std::strcpy(header + 4,"CImg");
       std::strcpy(header + 14," ");
       ((short*)(header + 36))[0] = 4096;
@@ -35081,7 +35088,7 @@ namespace cimg_library {
       } else ((float*)(header+76))[1] = ((float*)(header+76))[2] = ((float*)(header+76))[3] = 1;
       file = cimg::fopen(hname,"wb");
       cimg::fwrite(header,348,file);
-      if (iname[0]) { cimg::fclose(file); file = cimg::fopen(iname,"wb"); }
+      if (*iname) { cimg::fclose(file); file = cimg::fopen(iname,"wb"); }
       cimg::fwrite(_data,size(),file);
       cimg::fclose(file);
       return *this;
@@ -37467,7 +37474,7 @@ namespace cimg_library {
             !cimg::strcasecmp(ext,"tiff")) load_tiff(filename);
         else if (!cimg::strcasecmp(ext,"cimg") ||
                  !cimg::strcasecmp(ext,"cimgz") ||
-                 !ext[0]) load_cimg(filename);
+                 !*ext) load_cimg(filename);
         else if (!cimg::strcasecmp(ext,"rec") ||
                  !cimg::strcasecmp(ext,"par")) load_parrec(filename);
         else if (!cimg::strcasecmp(ext,"avi") ||
@@ -37484,6 +37491,7 @@ namespace cimg_library {
                  !cimg::strcasecmp(ext,"mpe") ||
                  !cimg::strcasecmp(ext,"movie") ||
                  !cimg::strcasecmp(ext,"ogm") ||
+                 !cimg::strcasecmp(ext,"ogg") ||
                  !cimg::strcasecmp(ext,"qt") ||
                  !cimg::strcasecmp(ext,"rm") ||
                  !cimg::strcasecmp(ext,"vob") ||
@@ -37799,7 +37807,7 @@ namespace cimg_library {
       CImgList<uintT> st_global;
       int err;
       char line[256] = { 0 };
-      do { err=std::fscanf(file,"%255[^\n]%*c",line); } while (err!=EOF && (line[0]=='#' || line[0]=='.'));
+      do { err=std::fscanf(file,"%255[^\n]%*c",line); } while (err!=EOF && (*line=='#' || *line=='.'));
       do {
         unsigned int sn,sizex,sizey,pixsize;
         float rs,ri,ss;
@@ -37828,7 +37836,7 @@ namespace cimg_library {
       cimglist_for(st_slices,l) {
         const CImg<floatT>& vec = st_slices[l];
         const unsigned int
-          sn = (unsigned int)vec[0]-1,
+          sn = (unsigned int)vec[0] - 1,
           pixsize = (unsigned int)vec[1],
           sizex = (unsigned int)vec[2],
           sizey = (unsigned int)vec[3],
@@ -38416,7 +38424,7 @@ namespace cimg_library {
       cimglist_save_plugin8(fn);
 #endif
       if (!cimg::strcasecmp(ext,"cimgz")) return save_cimg(fn,true);
-      else if (!cimg::strcasecmp(ext,"cimg") || !ext[0]) return save_cimg(fn,false);
+      else if (!cimg::strcasecmp(ext,"cimg") || !*ext) return save_cimg(fn,false);
       else if (!cimg::strcasecmp(ext,"yuv")) return save_yuv(fn,true);
       else if (!cimg::strcasecmp(ext,"avi") ||
                !cimg::strcasecmp(ext,"mov") ||
@@ -38432,6 +38440,7 @@ namespace cimg_library {
                !cimg::strcasecmp(ext,"mpe") ||
                !cimg::strcasecmp(ext,"movie") ||
                !cimg::strcasecmp(ext,"ogm") ||
+               !cimg::strcasecmp(ext,"ogg") ||
                !cimg::strcasecmp(ext,"qt") ||
                !cimg::strcasecmp(ext,"rm") ||
                !cimg::strcasecmp(ext,"vob") ||
@@ -38470,6 +38479,7 @@ namespace cimg_library {
           !cimg::strcasecmp(ext,"mpe") ||
           !cimg::strcasecmp(ext,"movie") ||
           !cimg::strcasecmp(ext,"ogm") ||
+          !cimg::strcasecmp(ext,"ogg") ||
           !cimg::strcasecmp(ext,"qt") ||
           !cimg::strcasecmp(ext,"rm") ||
           !cimg::strcasecmp(ext,"vob") ||
@@ -38725,7 +38735,7 @@ namespace cimg_library {
           green = currentIm.get_shared_channel(1);
           blue = currentIm.get_shared_channel(2);
           cimg_forXY(currentIm,X,Y) { // Assign pizel values to data buffer in interlaced RGBRGB ... format.
-            tmp_pict->data[0][Y*tmp_pict->linesize[0] + 3*X]     = red(X,Y);
+            tmp_pict->data[0][Y*tmp_pict->linesize[0] + 3*X] = red(X,Y);
             tmp_pict->data[0][Y*tmp_pict->linesize[0] + 3*X + 1] = green(X,Y);
             tmp_pict->data[0][Y*tmp_pict->linesize[0] + 3*X + 2] = blue(X,Y);
           }

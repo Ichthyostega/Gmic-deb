@@ -97,7 +97,7 @@ _gmic()
 	local line="x0[%],y0[%],x1[%],y1[%],_opacity,_pattern,_color1,..\' .";
 	local polygon="N,x1[%],y1[%],..,xN[%],yN[%],_opacity,_pattern,_color1,.. .";
 	local spline="x0[%],y0[%],u0[%],v0[%],x1[%],y1[%],u1[%],v1[%],_opacity,_pattern,_color1,.. .";
-	local ellipse="x[%],y[%],r[%],R[%],_angle,_opacity,_color1,.. .";
+	local ellipse="x[%],y[%],R[%],r[%],_angle,_opacity,_color1,.. .";
 	local text="text,_x[%],_y[%],_font_height>0,_opacity,_color1,.. .";
 	local graph="[indice],_plot_type,_vertex_type,_ymin,_ymax,_opacity,_pattern,_color1,.. \'formula\',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax,_opacity,_pattern,_color1,..";
 	local axes="x0,x1,y0,y1,_opacity,_pattern,_color1,.. .";
@@ -143,7 +143,7 @@ _gmic()
 	local moded3d="mode .";
 	local background3d="R,_G,_B [indice] (noargs)";
 	local skip="item .";
-	local status="item .";
+	local status="item $variable";
 	local exec="command .";
 	local while="boolean filename";
 	local repeat="nb_iterations .";
@@ -252,8 +252,10 @@ _gmic()
 	local d0="eq.to\'-display0\'. .";
 	local dfft="eq.to\'-display_fft\'. .";
 	local drgba="eq.to\'-display_rgba\'. .";
-	local drgba="eq.to\'-display_histogram\'. .";
+	local dh="eq.to\'-display_histogram\'. .";
 	local display_histogram="_width>0,_height>0,_clusters>0,_max_value>0,_show_axes={0|1} .";
+	local dt="eq.to\'-display_tensors\'. .";
+	local display_tensors="_size_factor>0,_ellipse_factor>=0,_opacity,_pattern,_color1,.. .";
 	local ball="_R,_G,_B .";
 	local sierpinski="recursion_level>=0 .";
 	local text_outline="text,_x[%],_y[%],_font_height>0,_outline>=0,_opacity,_color1,.. .";
@@ -301,7 +303,7 @@ _gmic()
 	local frame_fuzzy="_size_x>=0,_size_y>=0,_fuzzyness>=0,_smoothness>=0,_R,_G,_B,_A .";
 	local frame_round="_sharpness>0,_size>=0,_smoothness,_shade,_R,_G,_B,_A .";
 	local frame_blur="_sharpness>0,_size>=0,_smoothness,_shade,_blur .";
-	local frame_pattern="_M>=3,_pattern={0=firstimage|1=self},_constraint_size={0|1} .";
+	local frame_pattern="_M>=3,_pattern={0=firstimage|1=self},_constrain_size={0|1} .";
 	local rotate_tiles="_angle,_M>0,N>0 .";
 	local shift_tiles="_M>0,_N>0,_amplitude .";
 	local linearize_tiles="_M>0,_N>0 .";
@@ -314,6 +316,7 @@ _gmic()
 	local sponge="_size>0 .";
 	local hearts="_density>=0 .";
 	local color_ellipses="_count>0,_radius>=0,_opacity>=0 .";
+	local ellipsionism="_R>0[%],_r>0[%],_smoothness>=0[%],_opacity,_outline>0,_density>0 .";
 	local whirls="_texture>=0,_smoothness>=0,_darkness>=0,_lightness>=0 .";
 	local cartoon="_smoothness,_sharpening,_threshold>=0,_thickness>=0,_color>=0,quantization>0 .";
 	local drawing="_amplitude>=0 .";
@@ -367,7 +370,6 @@ _gmic()
 	local register_nonrigid="_smoothness>=0,_precision>0,_nb_scale>=0 .";
 	local register_rigid="_smoothness>=0 .";
 	local deinterlace="_method={0|1} .";
-	local animate="filter_name,(params_start;..;..),(params_end;..;..),nb_frames>=0,_output_frames={0|1},_filename .";
 	local apply_pose3d="p1,..,p12 .";
 	local animate3d="_width>0,_height>0,_dx,_dy,_dz,_zoom>=0,_filename .";
 	local balls3d="_size>0,_R,_G,_B,_opacity .";
@@ -437,15 +439,15 @@ _gmic()
 		-expand_xyz --expand_xyz -shrink_x --shrink_x -shrink_y --shrink_y -shrink_z --shrink_z 
 		-shrink_xy --shrink_xy -elevate --elevate -ow --ow -outputw --outputw -op --op -outputp 
 		--outputp -on --on -outputn --outputn -d0 --d0 -display0 --display0 -dfft --dfft 
-		-display_fft --display_fft -drgba --drgba -display_rgba --display_rgba -drgba --drgba 
-		-display_histogram --display_histogram -ball --ball -sierpinski --sierpinski -text_outline 
-		--text_outline -histogram_cumul --histogram_cumul -direction2rgb --direction2rgb -vector2tensor 
-		--vector2tensor -rgb2bayer --rgb2bayer -bayer2rgb --bayer2rgb -lic --lic -gaussian 
-		--gaussian -blur_x --blur_x -blur_y --blur_y -blur_z --blur_z -blur_xy --blur_xy -blur_xyz 
-		--blur_xyz -blur_angular --blur_angular -blur_radial --blur_radial -blur_linear --blur_linear 
-		-dog --dog -pde_flow --pde_flow -heat_flow --heat_flow -meancurvature_flow --meancurvature_flow 
-		-tv_flow --tv_flow -inpaint_flow --inpaint_flow -remove_hotpixels --remove_hotpixels 
-		-richardson_lucy --richardson_lucy -oriented_richardson_lucy --oriented_richardson_lucy 
+		-display_fft --display_fft -drgba --drgba -display_rgba --display_rgba -dh --dh -display_histogram 
+		--display_histogram -dt --dt -display_tensors --display_tensors -ball --ball -sierpinski 
+		--sierpinski -text_outline --text_outline -histogram_cumul --histogram_cumul -direction2rgb 
+		--direction2rgb -vector2tensor --vector2tensor -rgb2bayer --rgb2bayer -bayer2rgb --bayer2rgb 
+		-lic --lic -gaussian --gaussian -blur_x --blur_x -blur_y --blur_y -blur_z --blur_z 
+		-blur_xy --blur_xy -blur_xyz --blur_xyz -blur_angular --blur_angular -blur_radial --blur_radial 
+		-blur_linear --blur_linear -dog --dog -pde_flow --pde_flow -heat_flow --heat_flow -meancurvature_flow 
+		--meancurvature_flow -tv_flow --tv_flow -inpaint_flow --inpaint_flow -remove_hotpixels 
+		--remove_hotpixels -richardson_lucy --richardson_lucy -oriented_richardson_lucy --oriented_richardson_lucy 
 		-unsharp --unsharp -unsharp_octave --unsharp_octave -normalize_local --normalize_local 
 		-fftpolar --fftpolar -ifftpolar --ifftpolar -convolve_fft --convolve_fft -deconvolve_fft 
 		--deconvolve_fft -bandpass --bandpass -split_freq --split_freq -compose_freq --compose_freq 
@@ -458,23 +460,23 @@ _gmic()
 		-frame_pattern --frame_pattern -rotate_tiles --rotate_tiles -shift_tiles --shift_tiles 
 		-linearize_tiles --linearize_tiles -quadratize_tiles --quadratize_tiles -polaroid --polaroid 
 		-drop_shadow --drop_shadow -tetris --tetris -mosaic --mosaic -puzzle --puzzle -sponge 
-		--sponge -hearts --hearts -color_ellipses --color_ellipses -whirls --whirls -cartoon 
-		--cartoon -drawing --drawing -draw_whirl --draw_whirl -stencil --stencil -stencilbw 
-		--stencilbw -pencilbw --pencilbw -ditheredbw --ditheredbw -dotsbw --dotsbw -warhol 
-		--warhol -cubism --cubism -glow --glow -old_photo --old_photo -euclidean2polar --euclidean2polar 
-		-warp_perspective --warp_perspective -polar2euclidean --polar2euclidean -water --water 
-		-wave --wave -twirl --twirl -map_sphere --map_sphere -flower --flower -zoom --zoom 
-		-deform --deform -fish_eye --fish_eye -transform_polar --transform_polar -kaleidoscope 
-		--kaleidoscope -spread --spread -shade_stripes --shade_stripes -stripes_y --stripes_y 
-		-shadow_patch --shadow_patch -light_patch --light_patch -light_relief --light_relief 
-		-noise_hurl --noise_hurl -pixelize --pixelize -paper --paper -cracks --cracks -apply_channels 
-		--apply_channels -to_gray --to_gray -to_graya --to_graya -to_rgb --to_rgb -to_rgba 
-		--to_rgba -to_colormode --to_colormode -remove_opacity --remove_opacity -select_color 
-		--select_color -replace_color --replace_color -fc --fc -fill_color --fill_color -luminance 
-		--luminance -mix_rgb --mix_rgb -mix_channels --mix_channels -solarize --solarize -sepia 
-		--sepia -split_opacity --split_opacity -red_eye --red_eye -rgb2lch --rgb2lch -lch2rgb 
-		--lch2rgb -lab2lch --lab2lch -lch2lab --lch2lab -fade_x --fade_x -fade_y --fade_y 
-		-fade_z --fade_z -fade_radial --fade_radial -fade_diamond --fade_diamond -fade_linear 
+		--sponge -hearts --hearts -color_ellipses --color_ellipses -ellipsionism --ellipsionism 
+		-whirls --whirls -cartoon --cartoon -drawing --drawing -draw_whirl --draw_whirl -stencil 
+		--stencil -stencilbw --stencilbw -pencilbw --pencilbw -sketchbw --sketchbw -ditheredbw 
+		--ditheredbw -dotsbw --dotsbw -warhol --warhol -cubism --cubism -glow --glow -old_photo 
+		--old_photo -euclidean2polar --euclidean2polar -warp_perspective --warp_perspective -polar2euclidean 
+		--polar2euclidean -water --water -wave --wave -twirl --twirl -map_sphere --map_sphere 
+		-flower --flower -zoom --zoom -deform --deform -fish_eye --fish_eye -transform_polar 
+		--transform_polar -kaleidoscope --kaleidoscope -spread --spread -shade_stripes --shade_stripes 
+		-stripes_y --stripes_y -shadow_patch --shadow_patch -light_patch --light_patch -light_relief 
+		--light_relief -noise_hurl --noise_hurl -pixelize --pixelize -paper --paper -cracks 
+		--cracks -apply_channels --apply_channels -to_gray --to_gray -to_graya --to_graya -to_rgb 
+		--to_rgb -to_rgba --to_rgba -to_colormode --to_colormode -remove_opacity --remove_opacity 
+		-select_color --select_color -replace_color --replace_color -fc --fc -fill_color --fill_color 
+		-luminance --luminance -mix_rgb --mix_rgb -mix_channels --mix_channels -solarize --solarize 
+		-sepia --sepia -split_opacity --split_opacity -red_eye --red_eye -rgb2lch --rgb2lch 
+		-lch2rgb --lch2rgb -lab2lch --lab2lch -lch2lab --lch2lab -fade_x --fade_x -fade_y 
+		--fade_y -fade_z --fade_z -fade_radial --fade_radial -fade_diamond --fade_diamond -fade_linear 
 		--fade_linear -compose_rgba --compose_rgba -compose_channels --compose_channels -compose_average 
 		--compose_average -compose_multiply --compose_multiply -compose_screen --compose_screen 
 		-compose_darken --compose_darken -compose_lighten --compose_lighten -compose_difference 
@@ -486,12 +488,13 @@ _gmic()
 		--compose_edges -compose_fade --compose_fade -compose_shapeaverage --compose_shapeaverage 
 		-cross_correlation --cross_correlation -normalized_cross_correlation --normalized_cross_correlation 
 		-phase_correlation --phase_correlation -morph --morph -register_nonrigid --register_nonrigid 
-		-register_rigid --register_rigid -deinterlace --deinterlace -animate --animate -apply_pose3d 
-		--apply_pose3d -animate3d --animate3d -balls3d --balls3d -imagecube3d --imagecube3d 
-		-imagepyramid3d --imagepyramid3d -pyramid3d --pyramid3d -text3d --text3d -gmic3d --gmic3d 
-		-sierpinski3d --sierpinski3d -snapshot3d --snapshot3d -x_mandelbrot --x_mandelbrot -x_fish_eye 
-		--x_fish_eye -x_spline --x_spline -x_tictactoe --x_tictactoe -x_fourier --x_fourier 
-		-x_life --x_life -x_fire --x_fire -x_jawbreaker --x_jawbreaker ÿ";
+		-register_rigid --register_rigid -deinterlace --deinterlace -animate --animate -empty3d 
+		--empty3d -apply_pose3d --apply_pose3d -animate3d --animate3d -balls3d --balls3d -imagecube3d 
+		--imagecube3d -imagepyramid3d --imagepyramid3d -pyramid3d --pyramid3d -text3d --text3d 
+		-gmic3d --gmic3d -sierpinski3d --sierpinski3d -snapshot3d --snapshot3d -x_mandelbrot 
+		--x_mandelbrot -x_fish_eye --x_fish_eye -x_spline --x_spline -x_tictactoe --x_tictactoe 
+		-x_fourier --x_fourier -x_life --x_life -x_fire --x_fire -x_jawbreaker --x_jawbreaker 
+		ÿ";
 
 	case "${prev}" in 
 			-help | --help)
@@ -1442,12 +1445,20 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$drgba"))
 			return 0
 			;;
-			-drgba | --drgba)
-			COMPREPLY=( $(compgen -W "$drgba"))
+			-dh | --dh)
+			COMPREPLY=( $(compgen -W "$dh"))
 			return 0
 			;;
 			-display_histogram | --display_histogram)
 			COMPREPLY=( $(compgen -W "$display_histogram"))
+			return 0
+			;;
+			-dt | --dt)
+			COMPREPLY=( $(compgen -W "$dt"))
+			return 0
+			;;
+			-display_tensors | --display_tensors)
+			COMPREPLY=( $(compgen -W "$display_tensors"))
 			return 0
 			;;
 			-ball | --ball)
@@ -1690,6 +1701,10 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$color_ellipses"))
 			return 0
 			;;
+			-ellipsionism | --ellipsionism)
+			COMPREPLY=( $(compgen -W "$ellipsionism"))
+			return 0
+			;;
 			-whirls | --whirls)
 			COMPREPLY=( $(compgen -W "$whirls"))
 			return 0
@@ -1900,10 +1915,6 @@ _gmic()
 			;;
 			-deinterlace | --deinterlace)
 			COMPREPLY=( $(compgen -W "$deinterlace"))
-			return 0
-			;;
-			-animate | --animate)
-			COMPREPLY=( $(compgen -W "$animate"))
 			return 0
 			;;
 			-apply_pose3d | --apply_pose3d)
