@@ -218,9 +218,7 @@ apply_curve : -check "${1=0.5}>0 && $1<1" -skip ${2=0},${3=100}
 #@gmic : Compute negative of selected images.
 negative :
   -e[^-1] "Compute negative of image$?."
-  -v - -repeat @#
-    --[-1] @{-1,M} -*[-1] -1
-  -mv[-1] 0 -done -v +
+  -v - -repeat @# --[-1] @{-1,M} -mv[-1] 0 -done -* -1 -v +
 
 #@gmic tones : N>0
 #@gmic : Get N tones masks from selected images.
@@ -231,11 +229,12 @@ tones : -skip ${1=3}
   -mv[-$1--1] 0 -done -v +
 
 #@gmic t2 : eq. to '-threshold2'.
-t2 : -threshold2 ${^0}
+t2 :
+  -threshold2 ${^0}
 
 #@gmic threshold2 : _min,_max
 #@gmic : Threshold selected images between the two given values (eq. to '-t2').
-threshold2 : -skip ${1=0%},${2=100%}
+threshold2 :
   -e[^-1] "Hard-threshold image$? between values $1 and $2."
   -v -
   -repeat @#
@@ -530,8 +529,8 @@ display_rgba :
     -i[-2] (160,128;128,160) -r[-2] 16,16 -r[-2] [-1],[-1],1,3,0,2 -compose_rgba[-2,-1]
   -mv[-1] 0 -done -v +
 
-#@gmic drgba : eq. to '-display_histogram'.
-dh :
+#@gmic dh : eq. to '-display_histogram'.
+dh : -skip ${1=,}
   -display_histogram ${^0}
 
 #@gmic display_histogram : _width>0,_height>0,_clusters>0,_max_value>0,_show_axes={ 0 | 1 }
@@ -552,6 +551,33 @@ display_histogram : -check "${1=512}>0 && ${2=200}>0 && ${3=256}>0 && ${4=255}" 
     -endl
     -+[-1] 255
   -mv[-1] 0 -done -v +
+
+#@gmic dt : eq. to '-display_tensors'.
+dt : -skip ${1=,}
+  -display_tensors ${^0}
+
+#@gmic display_tensors :  _size_factor>0,_ellipse_factor>=0,_opacity,_pattern,_color1,..
+#@gmic : Render field of 2x2 tensors with ellipses.
+display_tensors : -check "${1=16}>0 && ${2=0.9}>=0" -skip ${3=1},${4=255},${5=$4},${6=$5}
+  -e[^-1] "Render field of 2x2 tensors with ellipses, from image$?."
+  -v - -repeat @#
+    -i[0] {int($1*w)},{int($1*h)},1,3
+    -/[-1] {max(abs(im),abs(iM))}
+    -repeat {h} -repeat {w}
+      -p[&x] ~>
+      -p[&y] @{>,-2}
+      -p[&a] @{-1,(~x,~y,0,0)}
+      -p[&b] @{-1,(~x,~y,0,1)}
+      -p[&c] @{-1,(~x,~y,0,2)}
+      (~a,~b;~b,~c) -eigen[-1]
+      -p[&R] @{-2,0}
+      -p[&r] @{-2,1}
+      -p[&angle] {atan2(@{-1,(0,1)},@{-1,(0,0)})*180/pi}
+      -rm[-2,-1]
+      -ellipse[0] {(~x+0.5)*$1},{(~y+0.5)*$1},{$2*$1*~R/2},{$2*$1*~r/2},~angle,${3--1}
+      -pp[&x,&y,&a,&b,&c,&R,&r,&angle]
+    -done -done
+  -rm[-1] -done -v +
 
 #-------------------------------------
 #
@@ -692,7 +718,7 @@ bayer2rgb : -skip ${1=1},${2=1},${3=0.5}
 
     # Shrink to original image size.
     -shrink_x[-1] {"2 + 4*$1"},0 -shrink_y[-1] {"2 + 4*$1"},0
-    -cut[-1] 0,255
+    -c[-1] 0,255
 
   -mv[-1] 0 -done -v +
 
@@ -1300,7 +1326,7 @@ frame_blur : -skip ${1=10},${2=30},${3=0},${4=1},${5=3%}
     -compose_fade[-3--1]
   -mv[-1] 0 -done -v +
 
-#@gmic frame_pattern : _M>=3,_pattern = { 0=first image | 1=self },_constraint_size = { 0 | 1 }
+#@gmic frame_pattern : _M>=3,_pattern = { 0=first image | 1=self },_constrain_size = { 0 | 1 }
 #@gmic : Insert selected pattern frame in selected images.
 frame_pattern : -check "${1=10}>=3" -skip ${2=0},${3=0}
   -v - -to_colormode 0
@@ -1460,6 +1486,34 @@ color_ellipses : -skip ${1=1400},${2=5},${3=0.1}
     -repeat $1 -ellipse[-1] {?(0,100)}%,{?(0,100)}%,{?(0,$2)}%,{?(0,$2)}%,{?(0,360)},$3,{?(60,255)},{?(60,255)},{?(60,255)} -done
   -mv[-1] 0 -done -v +
 
+#@gmic ellipsionism : _R>0[%],_r>0[%],_smoothness>=0[%],_opacity,_outline>0,_density>0
+#@gmic : Apply ellipsionism filter to selected images.
+ellipsionism : -check "${1=10}>0 && ${2=3}>0 && ${5=8}>0 && ${6=0.6}>0" -skip ${3=1%},${4=0.7}
+  -e[^-1] "Apply ellipsionism filter to image$?, with radii ($1,$2), smoothness $3, opacity $4 and outline $5."
+  -v - -to_rgba -repeat @#
+
+    # Compute contour angle.
+    --luminance[-1] -gradient[-1] xy -a[-2,-1] c -blur[-1] $3 -orientation[-1]
+    --shared[-1] 0,0 --shared[-2] 1,1 -atan2[-1] [-2] -*[-1] {180/pi} -+[-1] 90 -rm[-2,-1]
+    -channels[-1] 1,1
+
+    # Render ellipses.
+    [-2],[-2],1,[-2]
+    -repeat {$6*w*h/max($1,$2)}
+      -p[0] {?(w)} -p[1] {?(h)}
+      -ellipse[-1] ~0,~1,$1,$2,@{-2,(~0,~1)},$4,\
+                   @{-3,(~0,~1,0,0)},@{-3,(~0,~1,0,1)},@{-3,(~0,~1,0,2)},@{-3,(~0,~1,0,3)}
+      -ellipse[-1] ~0,~1,$1,$2,@{-2,(~0,~1)},$4,0x1,\
+                   {@{-3,(~0,~1,0,0)}/$5},{@{-3,(~0,~1,0,1)}/$5},{@{-3,(~0,~1,0,2)}/$5},{@{-3,(~0,~1,0,3)}/$5}
+      -pp[0,1]
+    -done
+    -rm[-2]
+
+    # Renormalize and prepare next image.
+    -n[-1] [-2]
+    -compose_rgba[-2,-1]
+  -mv[-1] 0 -done -v +
+
 #@gmic whirls : _texture>=0,_smoothness>=0,_darkness>=0,_lightness>=0
 #@gmic : Add random whirl texture to selected images.
 whirls : -skip ${1=3},${2=6},${3=0.5},${4=1.8}
@@ -1522,6 +1576,71 @@ pencilbw : -skip ${1=0.3},${2=60}
     -to_rgb[-1] -norm[-1] -blur[-1] $1 -sharpen[-1] 4000 -smooth[-1] $2,0,1 -equalize[-1] 256 -sqrt[-1] -n[-1] 0,255
   -mv[-1] 0 -done -v +
 
+#@gmic sketchbw
+#@gmic : _nb_orients>0,_start_angle,_angle_range>=0,_length>=0,_threshold>=0,
+#@gmic : _opacity,_bgfactor>=0,_density>0,_sharpness>=0,
+#@gmic : _anisotropy>=0,_smoothness>=0,_coherence>=0,_is_boost={ 0 | 1 },_is_curved={ 0 | 1 }\n
+#@gmic : Apply sketch effect to selected images.
+sketchbw :
+  -check "${1=2}>0 && ${3=180}>=0 && ${4=30}>=0 && ${5=1}>=0 && ${7=0}>=0 && ${8=0.6}>0 && ${9=0.1}>=0 && ${10=0.6}>=0 && ${11=0.25}>=0 && ${12=1}>=0"
+  -skip ${2=45},${6=0.03},${13=0},${14=1}
+  -e[^-1] "Apply B&W sketch effect on image$?."
+  -v - -edgetensors $9,$10,$11,$12
+  -p[0] 1 -p[1] 1 -i[0] 1
+
+  -repeat {@#-1}
+    -/[-1] {max(iM,im)} -s[-1] c     # Normalize and split tensor coefficients.
+    100%,100%,1,1,255                # Create rendering B&W image.
+
+    -if {~0!=w||~1!=h}               # Create set of random coordinates, if necessary.
+      -rm[0] {int($8*w*h/($1*sqrt($4)))}
+      --rand[-1] 0,{@{-2,h}-1} -rand[-2] 0,{@{-3,w}-1} -a[-2,-1] y -mv[-1] 0
+      -p=[0] {w} -p=[1] {h}
+    -endif
+
+    -if $14 # Render sketch with curved strokes
+      -repeat $1
+        -p {($2+~>*$3/$1)*pi/180}
+        --*[-4] {cos(~-1)} --*[-4] {sin(~-1)} -+[-2,-1]
+        --*[-4] {cos(~-1)} --*[-4] {sin(~-1)} -+[-2,-1]
+        -pp[-1] -a[-2,-1] c -channels[-1] 0,2
+        -if $13 -orientation[-1] -endif
+        -repeat @{0,w}
+          -p @{0,(~>,0)},@{0,(~>,1)}
+          -if {@{-5,(~-1)}+@{-3,(~-1)}<$5} -p $6 -else -p {$7*$6} -endif
+          -if ~-1
+            --streamline3d[-1] ~-2,0,$4,0.8,0,0,1 -col3d[-1] 0,0,0 -object3d[-3] [-1],0,0,0,~-1,0 -rm[-1]
+            --streamline3d[-1] ~-2,0,$4,0.8,0,1,1 -col3d[-1] 0,0,0 -object3d[-3] [-1],0,0,0,~-1,0 -rm[-1]
+          -endif
+          -pp[-2--1]
+        -done
+        -rm[-1]
+      -done
+
+    -else # Render sketch with straight strokes
+      -repeat $1
+        -p {($2+~>*$3/$1)*pi/180}
+        --*[-4] {cos(~-1)} --*[-4] {sin(~-1)} -+[-2,-1]
+        --*[-4] {cos(~-1)} --*[-4] {sin(~-1)} -+[-2,-1]
+        -pp[-1] -a[-2,-1] c
+        -if $13 -orientation[-1] -endif
+        -repeat @{0,w}
+          -p @{0,(~>,0)} -p @{0,(~>,1)}
+          -if {@{-5,(~-2,~-1)}+@{-3,(~-2,~-1)}<$5} -p $6 -else -p {$7*$6} -endif
+          -if ~-1
+            -line[-2] {~-3-$4*@{-1,(~-3,~-2,0,0)}},{~-2-$4*@{-1,(~-3,~-2,0,1)}},\
+                      {~-3+$4*@{-1,(~-3,~-2,0,0)}},{~-2+$4*@{-1,(~-3,~-2,0,1)}},\
+                      {3*~-1},0
+          -endif
+          -pp[-3--1]
+        -done
+        -rm[-1]
+      -done
+
+    -endif
+    -rm[-4--2]
+  -mv[-1] 1 -done -rm[0] -pp[0,1] -v +
+
 #@gmic ditheredbw
 #@gmic : Create dithered B&W version of selected images.
 ditheredbw :
@@ -1575,7 +1694,7 @@ cubism : -skip ${1=160},${2=10},${3=75},${4=0.7},${5=0}
 
 #@gmic glow : _amplitude>=0
 #@gmic : Add soft glow on selected images.
-glow : -skip ${1=-1}
+glow : -skip ${1=1%}
   -e[^-1] "Add soft glow on image$?, with amplitude $1."
   -v - -repeat @#
     --blur[-1] $1 -n[-1] [-2] -compose_edges[-2,-1] 1
@@ -1665,7 +1784,7 @@ map_sphere : -skip ${1=512},${2=512},${3=100},${4=0.5}
    -repeat @#
      -i[-2] 100%,1,1,100%,0 -a[-2,-1] y # Add one border line to have a sphere exterior.
      ({-$1/2},{$1/2}) ({-$2/2};{$2/2}) -r[-2,-1] $1,$2,1,1,3 -atan2[-1] [-2] -rm[-2] # Compute theta angle.
-     $1,$2 -=[-1] 1,50%,50% -distance[-1] 1 -sqr[-1] -/[-1] ~-1 -sqrt[-1] -cut[-1] 0,1 -asin[-1] # Compute phi angle.
+     $1,$2 -=[-1] 1,50%,50% -distance[-1] 1 -sqr[-1] -/[-1] ~-1 -sqrt[-1] -c[-1] 0,1 -asin[-1] # Compute phi angle.
      -+[-2] {pi} -*[-2] {(@{-3,w}-1)/(2*pi)} # Normalize theta to X-coordinates
      -*[-1] {2/pi} -pow[-1] $4 -*[-1] {@{-3,h}-1} -*[-1] -1 -+[-1] {@{-3,h}-1} # Normalize phi to Y-coordinates
      -a[-2,-1] c -warp[-2] [-1],0,1,1 -rm[-1] # Apply image warping
@@ -1871,16 +1990,16 @@ apply_channels : -skip ${3=0}
   -if {$2==0}
     -e[^-1] "Apply command '$1' on image$?." -v -
     -repeat @# -l[-1]
-      -_apply_channels[0] "$1"
-      -if $3 -n[0] 0,255 -else -c[0] 0,255 -endif
+      -_apply_channels "$1"
+      -if $3 -n 0,255 -else -c 0,255 -endif
     -endl -mv[-1] 0 -done
 
   # Process RGBA channels.
   -elif {$2==1}
     -e[^-1] "Apply command '$1' on RGBA channels of image$?." -v -
     -to_rgba -repeat @# -l[-1]
-      -_apply_channels[0] "$1"
-      -if $3 -n[0] 0,255 -else -c[0] 0,255 -endif
+      -_apply_channels "$1"
+      -if $3 -n 0,255 -else -c 0,255 -endif
     -endl -mv[-1] 0 -done
 
   # Process RGB channels.
@@ -1888,8 +2007,9 @@ apply_channels : -skip ${3=0}
     -e[^-1] "Apply command '$1' on RGB channels of image$?." -v -
     -repeat @# -l[-1]
       -split_opacity -to_rgb[0]
-      -_apply_channels[0] "$1" -to_rgb[0]
+      -_apply_channels[0] "$1"
       -if $3 -n[0] 0,255 -else -c[0] 0,255 -endif
+      -to_rgb[0]
       -a c
     -endl -mv[-1] 0 -done
 
@@ -2015,13 +2135,44 @@ apply_channels : -skip ${3=0}
     -endl -mv[-1] 0 -done
 
   # Process Alpha channel.
-  -else
+  -elif {$2==15}
     -e[^-1] "Apply command(s) '$1' on alpha channel of image$?." -v -
     -repeat @# -l[-1]
       -to_rgba -split_opacity
       -_apply_channels[1] "$1" -channels[1] 0
       -if $3 -n[1] 0,255 -else -c[1] 0,255 -endif
       -a c
+    -endl -mv[-1] 0 -done
+
+  # Process c-h channels.
+  -elif {$2==16}
+    -e[^-1] "Apply command '$1' on c-h channels of image$?." -v -
+    -repeat @# -l[-1]
+      -split_opacity -to_rgb[0] -rgb2lch[0] -s[0] c
+      -*[1] 2.55 -+[2] {pi} -*[2] {255/(2*pi)} -_apply_channels[1] "$1" -_apply_channels[2] "$1"
+      -channels[1,2] 0 -/[1] 2.55 -/[2] {255/(2*pi)} --[2] {pi}
+      -if $3 -n[1] 0,100 -n[2] -{pi},{pi} -endif
+      -a[0-2] c -lch2rgb[0] -a c
+    -endl -mv[-1] 0 -done
+
+  # Process c-channel.
+  -elif {$2==17}
+    -e[^-1] "Apply command '$1' on c-channel of image$?." -v -
+    -repeat @# -l[-1]
+      -split_opacity -to_rgb[0] -rgb2lch[0] -s[0] c
+      -*[1] 2.55 -_apply_channels[1] "$1" -channels[1] 0 -/[1] 2.55
+      -if $3 -n[1] 0,100 -else -c[1] 0,100 -endif
+      -a[0-2] c -lch2rgb[0] -a c
+    -endl -mv[-1] 0 -done
+
+  # Process h-channel.
+  -else
+    -e[^-1] "Apply command '$1' on h-channel of image$?." -v -
+    -repeat @# -l[-1]
+      -split_opacity -to_rgb[0] -rgb2lch[0] -s[0] c
+      -+[2] {pi} -*[2] {255/(2*pi)} -_apply_channels[2] "$1" -channels[2] 0 -/[2] {255/(2*pi)} --[2] {pi}
+      -if $3 -n[2] -{pi},{pi} -endif
+      -a[0-2] c -lch2rgb[0] -a c
     -endl -mv[-1] 0 -done
   -endif
   -v +
@@ -2084,7 +2235,7 @@ to_colormode : -skip ${1=0}
   -elif {$1==3} -to_rgb
   -elif {$1==4} -to_rgba
   -else
-    -p 0 -repeat @#
+    -p 1 -repeat @#
       -if {@{~>,s}>4} -error "Image ["~>"] is not a G,GA,RGB or RGBA image."
       -else -p=[-1] {max(~-1,@{~>,s})}
       -endif
@@ -2096,8 +2247,8 @@ to_colormode : -skip ${1=0}
 remove_opacity :
   -e[^-1] "Remove opacity channel of image$?."
   -v - -repeat @#
-    -if {s==2} -r[-1] 100%,100%,100%,1,0
-    -elif {s==4} -r[-1] 100%,100%,100%,3,0
+    -if {s==2} -channels[-1] 0,0
+    -elif {s==4} -channels[-1] 0,2
     -endif
   -mv[-1] 0 -done -v +
 
@@ -2121,7 +2272,8 @@ replace_color :
   -mv[-1] 0 -done -v +
 
 #@gmic fc : eq. to '-fill_color'.
-fc : -fill_color ${^0}
+fc :
+  -fill_color ${^0}
 
 #@gmic fill_color : col1,...,colN
 #@gmic : Fill selected images with specified color.
@@ -2178,7 +2330,7 @@ split_opacity :
   -e[^-1] "Split color and opacity parts of image$?."
   -v - -repeat @#
     -if {s==2} -s[-1] c -mv[-2,-1] 0
-    -elif {s==4} -s[-1] c -a[-4--2] c -mv[-2,-1] 0
+    -elif {s==4} --channels[-1] 3,3 -channels[-2] 0,2 -mv[-2,-1] 0
     -else -mv[-1] 0
     -endif
   -done -v +
@@ -2301,7 +2453,7 @@ compose_channels : -skip ${1="+"}
 #@gmic : Compose selected images two-by-two, using average mode.
 compose_average :
   -e[^-1] "Compose image$? two-by-two, using average mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -+[-2,-1] -/[-1] 2
   -mv[-1] 0 -done -v +
 
@@ -2309,7 +2461,7 @@ compose_average :
 #@gmic : Compose selected images two-by-two, using multiply mode.
 compose_multiply :
   -e[^-1] "Compose image$? two-by-two, using multiply mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -*[-2,-1] -/[-1] 256
   -mv[-1] 0 -done -v +
 
@@ -2317,7 +2469,7 @@ compose_multiply :
 #@gmic : Compose selected images two-by-two, using screen mode.
 compose_screen :
   -e[^-1] "Compose image$? two-by-two, using screen mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 --[-2,-1] 255 -*[-2,-1] -/[-1] 256 --[-1] 255 -*[-1] -1
   -mv[-1] 0 -done -v +
 
@@ -2325,7 +2477,7 @@ compose_screen :
 #@gmic : Compose selected images two-by-two, using darken mode.
 compose_darken :
   -e[^-1] "Compose image$? two-by-two, using darken mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -min[-2] [-1] -rm[-1]
   -mv[-1] 0 -done -v +
 
@@ -2333,7 +2485,7 @@ compose_darken :
 #@gmic : Compose selected images two-by-two, using lighten mode.
 compose_lighten :
   -e[^-1] "Compose image$? two-by-two, using lighten mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -max[-2] [-1] -rm[-1]
   -mv[-1] 0 -done -v +
 
@@ -2341,7 +2493,7 @@ compose_lighten :
 #@gmic : Compose selected images two-by-two, using difference mode.
 compose_difference :
   -e[^-1] "Compose image$? two-by-two, using difference mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 --[-2,-1] -abs[-1]
   -mv[-1] 0 -done -v +
 
@@ -2349,7 +2501,7 @@ compose_difference :
 #@gmic : Compose selected images two-by-two, using negation mode.
 compose_negation :
   -e[^-1] "Compose image$? two-by-two, using negation mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -+[-2,-1] --[-1] 255 -abs[-1] --[-1] 255 -*[-1] -1
   -mv[-1] 0 -done -v +
 
@@ -2357,7 +2509,7 @@ compose_negation :
 #@gmic : Compose selected images two-by-two, using exclusion mode.
 compose_exclusion :
   -e[^-1] "Compose image$? two-by-two, using exclusion mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 --*[-2] [-1] -/[-1] -128 -+[-3--1]
   -mv[-1] 0 -done -v +
 
@@ -2365,7 +2517,7 @@ compose_exclusion :
 #@gmic : Compose selected images two-by-two, using overlay mode.
 compose_overlay :
   -e[^-1] "Compose image$? two-by-two, using overlay mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0
     --t[-2] 128
     --*[-3] [-2] -/[-1] 128
@@ -2378,7 +2530,7 @@ compose_overlay :
 #@gmic : Compose selected images two-by-two, using hard light mode.
 compose_hardlight :
   -e[^-1] "Compose image$? two-by-two, using hard light mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0
     --t[-1] 128
     --*[-3] [-2] -/[-1] 128
@@ -2391,7 +2543,7 @@ compose_hardlight :
 #@gmic : Compose selected images two-by-two, using soft light mode.
 compose_softlight :
   -e[^-1] "Compose image$? two-by-two, using soft light mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -/[-2,-1] 256 --*[-2] [-1] -*[-1] 2 -sqr[-3] -*[-2] [-3] -*[-2] -2 -+[-3--1] -*[-1] 256
   -mv[-1] 0 -done -v +
 
@@ -2399,7 +2551,7 @@ compose_softlight :
 #@gmic : Compose selected images two-by-two, using dodge mode.
 compose_dodge :
   -e[^-1] "Compose image$? two-by-two, using dodge mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 --[-1] 255.1 -/[-2,-1] -*[-1] -256 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
@@ -2407,7 +2559,7 @@ compose_dodge :
 #@gmic : Compose selected images two-by-two, using color burn mode.
 compose_colorburn :
   -e[^-1] "Compose image$? two-by-two, using colorburn mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 --[-2] 255 -+[-1] 0.1 -/[-2,-1] -*[-1] 256 -+[-1] 255 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
@@ -2415,7 +2567,7 @@ compose_colorburn :
 #@gmic : Compose selected images two-by-two, using reflect mode.
 compose_reflect :
   -e[^-1] "Compose image$? two-by-two, using reflect mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -sqr[-2] --[-1] 255.1 -/[-2,-1] -*[-1] -1 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
@@ -2423,7 +2575,7 @@ compose_reflect :
 #@gmic : Compose selected images two-by-two, using freeze mode.
 compose_freeze :
   -e[^-1] "Compose image$? two-by-two, using freeze mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 --[-2] 255 -sqr[-2] -+[-1] 0.1 -/[-2,-1] --[-1] 255 -*[-1] -1 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
@@ -2431,7 +2583,7 @@ compose_freeze :
 #@gmic : Compose selected images two-by-two, using stamp mode.
 compose_stamp :
   -e[^-1] "Compose image$? two-by-two, using stamp mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -*[-1] 2 -+[-2,-1] --[-1] 255 -c[-1] 0,255
   -mv[-1] 0 -done -v +
 
@@ -2439,7 +2591,7 @@ compose_stamp :
 #@gmic : Compose selected images two-by-two, using interpolation mode.
 compose_interpolation :
   -e[^-1] "Compose image$? two-by-two, using interpolation mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -*[-2,-1] 0.012271846 -cos[-2,-1] -/[-2,-1] -4 -+[-2,-1] -+[-1] 0.5 -*[-1] 256
   -mv[-1] 0 -done -v +
 
@@ -2447,7 +2599,7 @@ compose_interpolation :
 #@gmic : Compose selected images two-by-two, using xor mode.
 compose_xor :
   -e[^-1] "Compose image$? two-by-two, using xor mode."
-  -v - -remove_opacity -to_colormode[0--1] @{0,s} -repeat {@#/2}
+  -v - -remove_opacity -to_colormode 0 -repeat {@#/2}
     -r[-1] [-2],0 -xor[-2,-1]
   -mv[-1] 0 -done -v +
 
@@ -2591,7 +2743,9 @@ deinterlace : -skip ${1=0}
     -r[-1] @-2 -rm[-2]
   -mv[-1] 0 -done -v +
 
-#@gmic animate : filter_name,(params_start;..;..),(params_end;..;..),nb_frames>=0,_output_frames={ 0 | 1 },_filename
+#@gmic animate
+#@gmic : filter_name,(params_start;..;..),(params_end;..;..),nb_frames>=0,_output_frames={ 0 | 1 },_filename |
+#@gmic : delay>0\n
 #@gmic : Animate filter from starting parameters to ending parameters.
 animate : -skip ${1=30},${2=0},${3=""},${4=0},${5=1},${6=""}
   -if {isval($1)}
@@ -2644,6 +2798,12 @@ animate : -skip ${1=30},${2=0},${3=""},${4=0},${5=1},${6=""}
 #@gmic ::  3d-related filters
 #
 #------------------------------
+
+#@gmic empty3d
+#@gmic : Create new empty 3d object.
+empty3d :
+  -e[^-1] "Create new empty 3d object."
+  -v - (67.5;73.5;109.5;103.5;51.5;100.5;0;0) -v +
 
 #@gmic apply_pose3d : p1,..,p12
 #@gmic : Apply 3d pose matrix to selected 3d objects.
@@ -2897,7 +3057,7 @@ x_mandelbrot : -skip ${1=0},${2=0.317},${3=0.03}
 
   # Start event loop.
   -do
-    -p {min(@{!,w},@{!,h})}                                                                               # Push desired window dimension.
+    -p {min(@{!,w},@{!,h})}                                                                       # Push desired window dimension.
     ~-1,~-1 -mandelbrot[-1] @0,256,$1,{if($1,$2,0)},{if($1,$3,0)} -map[-1] [1]                    # Render fractal.
     -if $1 -w[-1] ~-1,~-1,0,0,"Julia set c=("@{0,0}","@{0,1}")-("@{0,2}","@{0,3}"), c0=($2,$3)"   # Display on window.
     -else -w[-1] ~-1,~-1,0,0,"Mandelbrot set c=("@{0,0}","@{0,1}")-("@{0,2}","@{0,3}")" -endif
@@ -3429,6 +3589,7 @@ x_jawbreaker : -check "${1=12}>0 && $1<20 && ${2=13}>0 && $2<20 && ${3=5}>0 && $
   -endl
   -i[&visu] [&back]
   -p[&score] 0
+  -p[&undoscore] 0
   -p[&render_board] 1
   -p[&shapescorey] 0
   -p[&shapescore] 0
@@ -3462,6 +3623,7 @@ x_jawbreaker : -check "${1=12}>0 && $1<20 && ${2=13}>0 && $2<20 && ${3=5}>0 && $
     -elif @{!,S} -o[&visu] gmic_jawbreaker.png  # Save snapshot if requested.
     -elif {@{!,BACKSPACE}" || "@{!,SPACE}}      # Manage undo move.
       -abs[&undo] -image[&board] [&undo]
+      -p=[&score] ~undoscore
       -p=[&render_board] 1
 
     -elif {@{!,x}">=0 && "@{!,b}}               # Manage button click.
@@ -3485,6 +3647,7 @@ x_jawbreaker : -check "${1=12}>0 && $1<20 && ${2=13}>0 && $2<20 && ${3=5}>0 && $
 
           # Save undo state.
           -image[&undo] [&board]
+          -p=[&undoscore] ~score
 
           # Manage board shifts (vertical and horizontal).
           -flood[&board] ~x,~y,0,0,1,0
@@ -3527,7 +3690,7 @@ x_jawbreaker : -check "${1=12}>0 && $1<20 && ${2=13}>0 && $2<20 && ${3=5}>0 && $
   -endif
 
   # End properly.
-  -pp[&score,&render_board,&shapescorey,&shapescore]
+  -pp[&score,&render_board,&shapescorey,&shapescore,&undoscore]
   -rm[&board,&undo,&balls,&back,&visu]
   -w 0 -v +
 
@@ -3548,6 +3711,24 @@ help : -skip ${1=""}
   -v +
 h :
   -help ${^0}
+
+# path_tmp
+# Return a path to store temporary files (OS-dependent).
+path_tmp :
+  -u ""
+  -if {narg({${TMP}})} -u ${TMP}
+  -elif {narg({${TEMP}})} -u ${TEMP}
+  -elif {narg({${TMPDIR}})} -u ${TMPDIR}
+  -elif {narg({${HOME}})} -u "/tmp"
+  -endif
+
+# path_user
+# Return a path to store persistent configuration files for one user (OS-dependent).
+path_user :
+  -u ""
+  -if {narg({${APPDATA}})} -u ${APPDATA}
+  -elif {narg({${HOME}})} -u ${HOME}
+  -endif
 
 # strcmp : string1,string2
 # Return the comparison value between two strings.
@@ -3673,7 +3854,7 @@ gimp_no_preview :
   -skip ${^0}
 
 # Do not forget to ucomment this entry for a deprecated version of the G'MIC plug-in !
-# #@gimp <span foreground="red"><b>UPDATE INFORMATION</b></span> : _none_, gimp_logo_en_
+# #@gimp <span foreground="red"><b>UPDATE INFORMATION</b></span> : _none_, gimp_logo_en
 # #@gimp : note = note{"A <b>new version</b> of the G'MIC plug-in for GIMP is available !
 # #@gimp : You are strongly encouraged to download and install this updated version, by clicking on one of the following urls :"}
 # #@gimp : note = note{"\n<span foreground="purple"><u>Windows version :</u></span>"}
@@ -3927,7 +4108,8 @@ gimp_logo_ca :
 #@gimp : - <b>2009/11/23</b> : version <i>1.3.3.0</i>.\n
 #@gimp : - <b>2010/03/05</b> : version <i>1.3.4.0</i>.\n
 #@gimp : - <b>2010/05/17</b> : version <i>1.3.5.0</i>.\n
-#@gimp : - <span foreground="purple"><b>2010/06/30</b> : version <i>1.3.6.0</i> (Current).</span>\n
+#@gimp : - <b>2010/06/30</b> : version <i>1.3.6.0</i>.\n
+#@gimp : - <span foreground="purple"><b>2010/07/12</b> : version <i>1.3.7.1</i> (Current).</span>\n
 #@gimp : "}
 
 #@gimp Contributors : _none_, _none_
@@ -4125,7 +4307,7 @@ gimp_frame :
 #@gimp : Tiles = int(10,3,30)
 #@gimp : Pattern = choice(1,"Top layer","Self image")
 #@gimp : Iterations = int(1,1,10)
-#@gimp : Constraint image size = bool(1)
+#@gimp : Constrain image size = _bool(1)
 gimp_frame_pattern :
   -repeat $3 -frame_pattern $1,$2,$4 -done
 
@@ -4208,6 +4390,20 @@ gimp_reflect :
 gimp_color_ellipses :
   -to_rgb -color_ellipses $1,$2,$3
 
+#@gimp Ellipsionism : gimp_ellipsionism, gimp_ellipsionism_preview(0)
+#@gimp : Primary radius = float(20,1,100)
+#@gimp : Secondary radius = float(10,1,100)
+#@gimp : Smoothness = float(0.5,0,10)
+#@gimp : Opacity = float(0.7,0,1)
+#@gimp : Outline = float(8,1,3)
+#@gimp : Density = float(0.5,0.1,2)
+#@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_ellipsionism :
+  -ellipsionism ${1--1}
+
+gimp_ellipsionism_preview :
+  -gimp_split_preview "-gimp_ellipsionism ${1--2}",$-1
+
 #@gimp Cartoon : cartoon, gimp_cartoon_preview(0)
 #@gimp : Smoothness = float(2,0,10)
 #@gimp : Sharpening = float(200,0,400)
@@ -4233,6 +4429,15 @@ gimp_pen_drawing_preview :
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_draw_whirl_preview :
   -gimp_split_preview "-draw_whirl ${1--2}",$-1
+
+#@gimp Painting : gimp_painting, gimp_painting(0)
+#@gimp : Abstraction = int(1,1,10)
+#@gimp : Smoothness = float(1.5,0,5)
+#@gimp : Color = float(2,0,4)
+gimp_painting :
+  -to_rgb -repeat $1 -gimp_normalize_local 10,6,5,20,1,3 -done
+  -gimp_anisotropic_smoothing {100*$2},0.2,1,$2,{2*$2},0.8,90,2,0,1,1,2,1
+  -gimp_mix_lab 1,0,0,$3,0,0.5,$3,0,0.5,0,2,0
 
 #@gimp Cubism : cubism, cubism(1)
 #@gimp : Iterations = int(300,1,2000)
@@ -4278,17 +4483,46 @@ gimp_pencilbw :
 gimp_pencilbw_preview :
   -gimp_split_preview "-gimp_pencilbw ${1--2}",$-1
 
+#@gimp B&amp;W sketch : gimp_sketchbw, gimp_sketchbw_preview(0)
+#@gimp : Number of orientations = int(2,1,16)
+#@gimp : Starting angle = float(45,0,180)
+#@gimp : Angle range = float(180,0,180)
+#@gimp : Stroke length = float(30,0,1000)
+#@gimp : Contour threshold = float(1,0,3)
+#@gimp : Opacity = float(0.03,0,0.3)
+#@gimp : Background intensity = float(0,0,2)
+#@gimp : Density = float(0.6,0,5)
+#@gimp : Sharpness = float(0.1,0,1.5)
+#@gimp : Anisotropy = float(0.6,0,1)
+#@gimp : Smoothness = float(0.25,0,10)
+#@gimp : Coherence = float(1,0,10)
+#@gimp : Boost stroke = bool(0)
+#@gimp : Curved stroke = bool(1)
+#@gimp : Negative = bool(0)
+#@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_sketchbw :
+  -sketchbw ${1-14}
+  -if $15 -negative -endif
+
+gimp_sketchbw_preview :
+  -gimp_split_preview "-gimp_sketchbw ${1--2}",$-1
+
 #@gimp Warhol : warhol, warhol(1)
 #@gimp : X-tiles = int(3,1,10)
 #@gimp : Y-tiles = int(3,1,10)
 #@gimp : Smoothness = float(2,0,10)
 #@gimp : Color = float(40,0,60)
 
-#@gimp Soft glow : glow, gimp_glow_preview(1)
-#@gimp : Amplitude = float(1,0,8)
+#@gimp Soft glow : gimp_glow, gimp_glow_preview(0)
+#@gimp : Amplitude = float(1,0,20)
+#@gimp : note = note()
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_glow :
+  -apply_channels "-glow $1",$2,0
+
 gimp_glow_preview :
-  -gimp_split_preview "-glow ${1--2}",$-1
+  -gimp_split_preview "-gimp_glow ${1--2}",$-1
 
 #@gimp Tetris effect : gimp_tetris, gimp_tetris(0)
 #@gimp : Scale = int(10,1,20)
@@ -4470,7 +4704,7 @@ gimp_mix_cmyk_preview :
 #@gimp : Tones range = choice("All tones","Shadows","Mid-tones","Highlights")
 #@gimp : Tones smoothness = float(2,0,10)
 #@gimp : note = note()
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 _gimp_channel_processing :
   -apply_gamma[-1] $1
@@ -4517,7 +4751,7 @@ gimp_channel_processing_preview :
 #@gimp : Ending Y = int(255,0,255)
 #@gimp : sep = separator()
 #@gimp : Curve smoothness = float(0.5,0.01,0.99)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Value range = choice("Cut","Normalize")
 #@gimp : Display histogram = float(0,0,100)
 #@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
@@ -4588,12 +4822,12 @@ __gimp_apply_curve :
   -rm[-1]
 
 #@gimp Local normalization : gimp_normalize_local, gimp_normalize_local_preview(0)
-#@gimp : Amplitude = float(3,0,60)
-#@gimp : Radius = int(24,1,512)
-#@gimp : Neighborhood smoothness = float(4,0,40)
-#@gimp : Average smoothness = float(2,0,40)
-#@gimp : Constraint values = bool(1)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Amplitude = float(2,0,60)
+#@gimp : Radius = int(6,1,64)
+#@gimp : Neighborhood smoothness = float(5,0,40)
+#@gimp : Average smoothness = float(20,0,40)
+#@gimp : Constrain values = bool(1)
+#@gimp : Channel(s) = choice(3,"All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_normalize_local :
   -apply_channels "-normalize_local $1,$2,$3,$4,$5,0,255",$6,0
@@ -4695,10 +4929,7 @@ gimp_sepia_preview :
 #@gimp : 8th tone = color(255,255,255,255)
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_bwrecolorize :
-  -luminance
-  -apply_gamma[-1] $1 --[-1] 128 -*[-1] $2 -+[-1] {$3+128} -c[-1] 0,255
   -if $4 -n 0,255 -endif
-
   -if {$5==0}  # User-defined gradient
     (${9--2}) -r[-1] 4,$8,1,1,-1 -permute[-1] yzcx
   -elif {$5==1} # Black to white
@@ -4716,7 +4947,13 @@ gimp_bwrecolorize :
   -else -r[-1] 256,1,1,4,6
   -endif
   -if {$7==1} --sh[-1] 0,2 -rgb2hsv[-1] --sh[-1] 2,2 -f[-1] x/w -hsv2rgb[-2] -rm[-2,-1] -endif
-  -map[0--2] [-1] -rm[-1]
+  -repeat {@#-1}
+    -p @{~>,s}
+    -luminance[~>] -apply_gamma[~>] $1 --[~>] 128 -*[~>] $2 -+[~>] {$3+128} -c[~>] 0,255
+    -map[~>] [-1] -to_colormode[~>] ~-1
+    -pp[-1]
+  -done
+  -rm[-1]
 
 gimp_bwrecolorize_preview :
   -gimp_split_preview "-gimp_bwrecolorize ${1--1}",$-1
@@ -4884,7 +5121,7 @@ gimp_gradient2rgb_preview :
 #@gimp : Min threshold = float(0,0,100)
 #@gimp : Max threshold = float(100,0,100)
 #@gimp : Negative colors = bool(0)
-#@gimp : Channel(s) = choice(3,"All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice(3,"All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 _gimp_local_orientation :
   -blur $1% -gradient_orientation 2 -complex2polar -rm[0--1:2]
@@ -4962,7 +5199,7 @@ gimp_isophotes_preview :
 #@gimp Segmentation : gimp_segment_watershed, gimp_segment_watershed_preview(0)
 #@gimp : Edge threshold = float(2,0,5)
 #@gimp : Smoothness = float(1,0,5)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_segment_watershed :
   -apply_channels "-blur $2 -segment_watershed $1",$3,0
@@ -5125,7 +5362,7 @@ gimp_transform_polar :
 #@gimp Additive noise : gimp_noise, gimp_noise_preview(0)
 #@gimp : Amplitude = float(10,0,200)
 #@gimp : Noise type = choice("Gaussian","Uniform","Salt and pepper","Poisson")
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Value range = choice("Cut","Normalize")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_noise :
@@ -5137,7 +5374,7 @@ gimp_noise_preview :
 #@gimp Spread noise : gimp_spread, gimp_spread_preview(0)
 #@gimp : X-variations = float(4,0,20)
 #@gimp : Y-variations = float(4,0,20)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_spread :
   -apply_channels "-spread $1,$2",$3,0
@@ -5150,7 +5387,7 @@ gimp_spread_preview :
 #@gimp : Orientation = choice(1,"Horizontal","Vertical")
 #@gimp : Darkness = float(0.8,0,3)
 #@gimp : Lightness = float(1.3,0,3)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_shade_stripes :
   -apply_channels "-shade_stripes $1,$2,$3,$4",$5,0
@@ -5160,7 +5397,7 @@ gimp_shade_stripes_preview :
 
 #@gimp Old-movie stripes : gimp_stripes_y, gimp_stripes_y_preview(1)
 #@gimp : Frequency = float(10,0,100)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_stripes_y :
   -apply_channels "-stripes_y $1",$2,0
@@ -5168,18 +5405,18 @@ gimp_stripes_y :
 gimp_stripes_y_preview :
   -gimp_split_preview "-gimp_stripes_y ${1--2}",$-1
 
-#@gimp Gaussian blur : gimp_gaussian_blur, gimp_gaussian_blur_preview(1)
-#@gimp : XY-amplitude = float(3,0,10)
-#@gimp : X-amplitude = float(0,0,10)
-#@gimp : Y-amplitude = float(0,0,10)
+#@gimp Gaussian blur : gimp_gaussian_blur, gimp_gaussian_blur_preview(0)
+#@gimp : XY-amplitude = float(3,0,20)
+#@gimp : X-amplitude = float(0,0,20)
+#@gimp : Y-amplitude = float(0,0,20)
 #@gimp : Border conditions = choice(1,"Black","Nearest")
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Value range = choice("Cut","Normalize")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 _gimp_gaussian_blur :
-  -blur $1%,$4
-  -if {$2>0} -repeat @# -l[-1] -s y -blur $2%,$4 -a y -endl -mv[-1] 0 -done -endif
-  -if {$3>0} -repeat @# -l[-1] -s x -blur $3%,$4 -a x -endl -mv[-1] 0 -done -endif
+  -blur $1,$4
+  -if {$2>0} -repeat @# -l[-1] -s y -blur $2,$4 -a y -endl -mv[-1] 0 -done -endif
+  -if {$3>0} -repeat @# -l[-1] -s x -blur $3,$4 -a x -endl -mv[-1] 0 -done -endif
 
 gimp_gaussian_blur :
   -apply_channels "-_gimp_gaussian_blur $1,$2,$3,$4",$5,$6
@@ -5192,7 +5429,7 @@ gimp_gaussian_blur_preview :
 #@gimp : Orthogonal radius = float(0.5,0,100)
 #@gimp : Angle = float(0,0,180)
 #@gimp : Border conditions = choice(1,"Black","Nearest")
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Value range = choice("Cut","Normalize")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_blur_linear :
@@ -5205,7 +5442,7 @@ gimp_blur_linear_preview :
 #@gimp : Amplitude = float(3,0,20)
 #@gimp : X-center = float(0.5,0,1)
 #@gimp : Y-center = float(0.5,0,1)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Value range = choice("Cut","Normalize")
 gimp_blur_radial :
   -apply_channels "-blur_radial $1%,$2,$3",$4,$5
@@ -5214,7 +5451,7 @@ gimp_blur_radial :
 #@gimp : Amplitude = float(2,0,10)
 #@gimp : X-center = float(0.5,0,1)
 #@gimp : Y-center = float(0.5,0,1)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Value range = choice("Cut","Normalize")
 gimp_blur_angular :
   -apply_channels "-blur_angular $1%,$2,$3",$4,$5
@@ -5222,7 +5459,7 @@ gimp_blur_angular :
 #@gimp Bandpass filter : gimp_bandpass, gimp_bandpass_preview(0)
 #@gimp : Low frequency = float(0,0,100)
 #@gimp : High frequency = float(100,0,100)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Value range = choice(1,"Cut","Normalize")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_bandpass :
@@ -5257,7 +5494,7 @@ gimp_bandpass_preview :
 #@gimp : Interpolation = choice(0,"Nearest neighbor","Linear","Runge-Kutta")
 #@gimp : Fast approximation = bool(1)
 #@gimp : Iterations = int(1,1,10)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Tiles = int(1,1,10)
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_anisotropic_smoothing :
@@ -5278,7 +5515,7 @@ gimp_anisotropic_smoothing_preview :
 #@gimp : Patch smoothness = float(0,0,4)
 #@gimp : Fast approximation = bool(1)
 #@gimp : Iterations = int(1,1,10)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_patch_smoothing :
   -apply_channels "-repeat $7 -denoise $1,$2,$3,$4,$5,$6 -done",$8,0 -c 0,255
@@ -5290,7 +5527,7 @@ gimp_patch_smoothing_preview :
 #@gimp : Spatial variance = float(10,0,100)
 #@gimp : Value variance = float(7,0,100)
 #@gimp : Iterations = int(2,1,10)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_bilateral :
   -apply_channels "-repeat $3 -bilateral $1,$2 -done",$4,0
@@ -5310,7 +5547,7 @@ gimp_remove_hotpixels_preview :
 
 #@gimp Median filtering : gimp_median, gimp_median_preview(0)
 #@gimp : Radius = int(3,1,20)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_median :
   -apply_channels "-median $1",$2,0
@@ -5325,7 +5562,7 @@ gimp_median_preview :
 #@gimp : Tensor smoothness = float(1.1,0,10)
 #@gimp : Time step = float(15,5,50)
 #@gimp : Iterations = int(8,1,100)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_edgepreserving_smoothing :
   -apply_channels "-smooth $6,$1,$2,$3,$4,$5,0",$7,0 -c 0,255
@@ -5337,7 +5574,7 @@ gimp_edgepreserving_smoothing_preview :
 #@gimp : Time step = float(30,5,50)
 #@gimp : Iterations = int(4,1,10)
 #@gimp : Keep iterations as different layers = bool(false)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_meancurvature_smoothing :
   -apply_channels "-meancurvature_flow $2,$1,$3",$4,0 -c 0,255
@@ -5349,7 +5586,7 @@ gimp_meancurvature_smoothing_preview :
 #@gimp : Time step = float(30,5,100)
 #@gimp : Iterations = int(10,1,40)
 #@gimp : Keep iterations as different layers = bool(false)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_tv_smoothing :
   -apply_channels "-tv_flow $2,$1,$3",$4,0 -c 0,255
@@ -5367,7 +5604,7 @@ gimp_tv_smoothing_preview :
 #@gimp : Lightness level = float(1,0,4)
 #@gimp : Iterations = int(1,1,10)
 #@gimp : Negative effect = bool(0)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 #@gimp : note = note{"\n\n<small><b>Note : </b>
 #@gimp : This filter is inspired by the original <i>Unsharp Mask</i> filter in GIMP, with additional parameters.
@@ -5393,7 +5630,7 @@ gimp_unsharp_preview :
 #@gimp : Maximal radius = float(5,0,20)
 #@gimp : Amount = float(3,0,10)
 #@gimp : Threshold = float(0,0,255)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_unsharp_octave :
   -apply_channels "-unsharp_octave $1,$2,$3,$4",$5,0
@@ -5404,7 +5641,7 @@ gimp_unsharp_octave_preview :
 #@gimp Inverse diffusion : gimp_sharpen_inversediff, gimp_sharpen_inversediff_preview(0)
 #@gimp : Amplitude = float(50,1,300)
 #@gimp : Iterations = int(2,1,10)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_sharpen_inversediff :
   -apply_channels "-repeat $2 -sharpen $1,0 -c 0,255 -done",$3,0
@@ -5418,7 +5655,7 @@ gimp_sharpen_inversediff_preview :
 #@gimp : Gradient smoothness = float(0.8,0,10)
 #@gimp : Tensor smoothness = float(1.1,0,10)
 #@gimp : Iterations = int(1,1,10)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_sharpen_shock :
   -apply_channels "-repeat $5 -sharpen $1,1,$2,$3,$4 -c 0,255 -done",$6,0
@@ -5432,10 +5669,10 @@ gimp_sharpen_shock_preview :
 #@gimp : Time step = float(20,0,50)
 #@gimp : Smoothness = float(0.1,0,10)
 #@gimp : Regularization = choice(1,"Tikhonov","Mean curvature","Total variation")
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_richardson_lucy :
-  -apply_channels "-richardson_lucy ${1-5} -cut 0,255",$6,0
+  -apply_channels "-richardson_lucy ${1-5} -c 0,255",$6,0
 
 gimp_richardson_lucy_preview :
   -gimp_split_preview "-gimp_richardson_lucy ${1--2}",$-1
@@ -5507,18 +5744,19 @@ gimp_scalenx_preview :
 #@gimp : Anisotropy = float(0.4,0,1)
 #@gimp : Sharpness = float(10,0,100)
 gimp_upscale_smart :
-  -to_rgb -upscale_smart $1,$2,1,$3,$4,$5 -cut 0,255
+  -to_rgb -upscale_smart $1,$2,1,$3,$4,$5 -c 0,255
 
 gimp_upscale_smart_preview :
   -repeat @#
-    --r $1,$2,1,1,0
+    --r[-1] $1,$2,1,1,0
     -if {w<@{-2,w}||h<@{-2,h}}  # Test for downscaling
-      -rm[-1] {w+1-(w%2)},{h+1-(h%2)},1,1,96,128
-      -text[-1] "Downscaling is\nnot allowed !",5,5,16,1,255
-      -rm[-2] -return
+      -rm[-1] -/[-1] 4
+      1 -text[-1] "Downscaling is\nnot allowed !",5,5,20,1,255 -r[-1] [-2],[-2],1,1,0,0,0.5,0.5
+      -or[-2,-1]
+    -else
+      -crop[-2] {50-50*@{-2,w}/w}%,{50-50*@{-2,h}/h}%,{50+50*@{-2,w}/w}%,{50+50*@{-2,h}/h}%
+      -rm[-1] -gimp_upscale_smart[-1] $1,$2,$3,$4,$5 -c[-1] 0,255
     -endif
-    -p {@{-2,w}/w*100}%,{@{-2,h}/h*100}% -rm[-1]
-    -crop 0,0,~-1 -pp[-1] -gimp_upscale_smart $1,$2,$3,$4,$5 -cut 0,255
   -mv[-1] 0 -done
 
 
@@ -5765,7 +6003,7 @@ gimp_drop_shadow :
 
 #@gimp Shadow patch : gimp_shadow_patch, gimp_shadow_patch(1)
 #@gimp : Opacity = float(0.7,0,1)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 gimp_shadow_patch :
   -apply_channels "-shadow_patch $1",$2,0
 
@@ -5773,7 +6011,7 @@ gimp_shadow_patch :
 #@gimp : Density = int(5,2,30)
 #@gimp : Darkness = float(0.7,0,1)
 #@gimp : Lightness = float(2.5,1,4)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 gimp_light_patch :
   -apply_channels "-light_patch $1,$2,$3",$4,0
 
@@ -5782,7 +6020,7 @@ gimp_light_patch :
 #@gimp : Specular lightness = float(0.2,0,2)
 #@gimp : Specular size = float(0.2,0,1)
 #@gimp : Darkness = float(0,0,1)
-#@gimp : Light smoothness = float(0.2,0,5)
+#@gimp : Light smoothness = float(0.5,0,5)
 #@gimp : X-light = float(0.5,0,1)
 #@gimp : Y-light = float(0.5,0,1)
 #@gimp : Z-light = float(5,0,20)
@@ -5865,7 +6103,7 @@ gimp_dots_preview :
 
 #@gimp Puzzle : gimp_puzzle, gimp_puzzle_preview(0)
 #@gimp : Scale = float(6,1,20)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_puzzle :
   -apply_channels "-puzzle $1",$2,0
@@ -5876,7 +6114,7 @@ gimp_puzzle_preview :
 #@gimp Mosaic : gimp_mosaic, gimp_mosaic_preview(0)
 #@gimp : Density = float(1,0.1,10)
 #@gimp : Keep edges = bool(true)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_mosaic :
   -apply_channels "-mosaic $1,$2",$3,0
@@ -5888,7 +6126,7 @@ gimp_mosaic_preview :
 #@gimp : Density = float(1,0.1,10)
 #@gimp : Amplitude = float(-80,-255,255)
 #@gimp : Relief = bool(true)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_cracks :
   -apply_channels "-cracks $1,$2,$3",$4,0
@@ -5901,7 +6139,7 @@ gimp_cracks_preview :
 #@gimp : Smoothness = float(2,0,10)
 #@gimp : Darkness = float(0.2,0,1)
 #@gimp : Lightness = float(1.8,1,3)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_whirls :
   -apply_channels "-whirls $1,$2,$3,$4",$5,0
@@ -5910,7 +6148,7 @@ gimp_whirls_preview :
   -gimp_split_preview "-gimp_whirls ${1--2}",$-1
 
 #@gimp Paper : gimp_paper, gimp_paper_preview(0)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_paper :
   -apply_channels "-paper",$1,0
@@ -5920,7 +6158,7 @@ gimp_paper_preview :
 
 #@gimp Hearts : gimp_hearts, gimp_hearts_preview(0)
 #@gimp : Density = float(10,0,100)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_hearts :
   -apply_channels "-hearts $1",$2,0
@@ -5930,7 +6168,7 @@ gimp_hearts_preview :
 
 #@gimp Sponge : gimp_sponge, gimp_sponge_preview(0)
 #@gimp : Size = int(13,3,21)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_sponge :
   -apply_channels "-sponge $1",$2,0
@@ -6003,7 +6241,7 @@ gimp_canvas_preview :
 #@gimp : Amplitude = int(5,1,10)
 #@gimp : Sharpness = float(10,0,100)
 #@gimp : Radius = float(3,0,10)
-#@gimp : Channel(s) = choice(3,"All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice(3,"All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 gimp_lylejk_stencil :
   -apply_channels "-repeat $1 -blur $3 -unsharp $3,$2 -c 0,255 -mv[-1] 0 -done",$4,0
 
@@ -6121,7 +6359,7 @@ gimp_animate_preview : -skip ${4=1}
     -if $4 -s[-1] x,2 -else [-1] -endif
     -i $2 -i $3 -$1[-4] @-2 -$1[-3] @-1 -rm[-2,-1]
     -if {!$4} -columns[-2] 0,{int(@{-2,w}/2)} -columns[-1] {int(w/2+1)},100% -endif
-    -r[-2,-1] @0,100%,100%,2 -a[-2,-1] x -drgba[-1]
+    -round[0] 1 -r[-2,-1] @0,100%,100%,2 -a[-2,-1] x -drgba[-1]
     -line[-1] 50%,0,50%,100%,1,0,0,0,255
     34,12 -text[-1] "Start",1,0,13,1,1 --dilate[-1] 3 -to_colormode[-2] @{-3,s} -*[-2] 255 -image[-3] [-2],2,2,0,0,1,[-1] -rm[-2--1]
     21,12 -text[-1] "End",1,0,13,1,1 --dilate[-1] 3 -to_colormode[-2] @{-3,s} -*[-2] 255 -image[-3] [-2],{@{-3,w}-22},{@{-3,h}-13},0,0,1,[-1] -rm[-2--1]
@@ -6406,7 +6644,7 @@ gimp_import_image :
 #@gimp : Command = text("-to_rgb --deform 20 -compose_edges 3")
 #@gimp : Value range = choice("Cut","Normalize")
 #@gimp : Enable channel processing = bool(0)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : note = note{"\n<small><b>Note : </b>
 #@gimp : This filter can execute any set of instructions understood by the <b>G'MIC</b> language interpreter.
 #@gimp : Here, you can then test some commands before creating your own G'MIC custom commands and GIMP menu entries.\n\n
@@ -6421,7 +6659,6 @@ gimp_custom_command : -skip "${1=-return}"
   -else
     $1 -if $2 -n 0,255 -else -c 0,255 -endif
   -endif
-  -print
 
 #@gimp Quick copyright : gimp_quick_copyright, gimp_quick_copyright(0)
 #@gimp : Text = text("\251 G'MIC")
@@ -6472,7 +6709,7 @@ gimp_quick_copyright :
 #@gimp : Interpolation = choice(0,"Nearest neighbor","Linear","Runge-Kutta")
 #@gimp : Fast approximation = bool(1)
 #@gimp : Iterations = int(1,1,10)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : Tiles = int(1,1,10)
 gimp_anisotropic_smoothing16 :
   -rm -i $1 -/ 256
@@ -6494,7 +6731,7 @@ gimp_anisotropic_smoothing16_preview :
 #@gimp : Patch smoothness = float(0,0,4)
 #@gimp : Fast approximation = bool(1)
 #@gimp : Iterations = int(1,1,10)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 gimp_patch_smoothing16 :
   -rm -i $1 -/ 256
   -gimp_patch_smoothing ${3--1}
@@ -6517,7 +6754,7 @@ gimp_patch_smoothing16_preview :
 #@gimp : Lightness level = float(1,0,4)
 #@gimp : Iterations = int(1,1,10)
 #@gimp : Negative effect = bool(0)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","AB-components","A-component","B-component","Hue","Saturation","Value","Key","Alpha")
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha")
 #@gimp : note = note{"\n\n<small><b>Note : </b>
 #@gimp : This filter is inspired by the original <i>Unsharp Mask</i> filter in GIMP, with additional parameters.
 #@gimp : </small>"}
@@ -6548,3 +6785,4 @@ gimp_unsharp16_preview :
 # End:
 #
 # (End of G'MIC custom commands)
+

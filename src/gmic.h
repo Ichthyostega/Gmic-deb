@@ -46,7 +46,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 1360
+#define gmic_version 1371
 
 // Define environment variables.
 #ifndef cimg_verbosity
@@ -70,7 +70,7 @@
 #endif
 
 // Define some special character codes used for replacement in double quoted strings.
-const char _ampersand = 24, _tilde = 25, _lbrace = 26, _rbrace = 28, _comma = 29, _dquote = 30, _arobace = 31;
+const char _dollar = 23, _ampersand = 24, _tilde = 25, _lbrace = 26, _rbrace = 28, _comma = 29, _dquote = 30, _arobace = 31;
 
 // Replace special characters in a string.
 inline char *gmic_strreplace(char *const str) {

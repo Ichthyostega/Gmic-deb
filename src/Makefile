@@ -64,6 +64,9 @@ endif
 ifeq ($(CC),g++-4.5)
 IS_GCC = yes
 endif
+ifeq ($(CC),g++-4.5.0)
+IS_GCC = yes
+endif
 
 #---------------------------------------------------
 # Set compilation flags allowing to customize G'MIC
@@ -88,9 +91,10 @@ ifeq ($(CC),icc)
 OPT_CFLAGS = -O3 -ipo -no-prec-div -override-limits
 endif
 
-# Flags to enable image display, using X11.
-X11_CFLAGS = -Dcimg_display=1 -Dcimg_use_xrandr -I$(USR)/X11R6/include
-X11_LDFLAGS = -L$(USR)/X11R6/lib -lX11 -lXrandr -lpthread
+# Flags to enable image display, using X11
+# (keep /usr/ dirname here since X11 is located in /usr/ on Mac too).
+X11_CFLAGS = -Dcimg_display=1 -Dcimg_use_xrandr -I/usr/X11R6/include
+X11_LDFLAGS = -L/usr/X11R6/lib -lX11 -lXrandr -lpthread
 
 # Flags to enable fast display, using XShm.
 XSHM_CFLAGS = -Dcimg_use_xshm
