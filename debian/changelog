@@ -1,3 +1,9 @@
+gmic (1.3.7.1+dfsg-1) unstable; urgency=low
+
+  * [b573582f] Merge commit 'upstream/1.3.7.1+dfsg'
+
+ -- Bernd Zeimetz <bzed@debian.org>  Mon, 19 Jul 2010 19:11:21 +0200
+
 gmic (1.3.6.0+dfsg-1) unstable; urgency=low
 
   * [204cd64b] Merge commit 'upstream/1.3.6.0+dfsg'
