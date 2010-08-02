@@ -69,27 +69,28 @@ using namespace cimg_library;
 
 // Define plug-in global variables.
 //---------------------------------
-CImgList<char> gmic_entries;             // The list of recognized G'MIC menu entries.
-CImgList<char> gmic_1stlevel_entries;    // The treepath positions of 1st-level G'MIC menu entries.
-CImgList<char> gmic_commands;            // The list of corresponding G'MIC commands to process the image.
-CImgList<char> gmic_preview_commands;    // The list of corresponding G'MIC commands to preview the image.
-CImgList<char> gmic_arguments;           // The list of corresponding needed filter arguments.
-CImgList<double> gmic_preview_factors;   // The list of default preview factors for each filter.
-CImg<float> computed_preview;            // The last computed preview image.
-bool _create_dialog_gui;                 // Return value of the 'create_gui_dialog()' function (set by events handlers).
-void **event_infos;                      // Infos that are passed to the GUI callback functions.
-char *gmic_custom_commands = 0;          // The array of custom G'MIC commands.
-int image_id = 0;                        // The image concerned by the plug-in execution.
-GimpRunMode run_mode;                    // Run-mode used to call the plug-in.
-GtkTreeStore *tree_view_store = 0;       // The list of the filters as a GtkTreeView model.
-GimpDrawable *drawable_preview = 0;      // The drawable used by the preview window.
-GtkWidget *dialog_window = 0;            // The plug-in dialog window.
-GtkWidget *left_pane  = 0;               // The left pane, containing the preview window.
-GtkWidget *gui_preview = 0;              // The preview window.
-GtkWidget *tree_mode_stockbutton = 0;    // A temporary stock button for the expand/collapse button.
-GtkWidget *tree_mode_button = 0;         // Expand/Collapse button for the treeview.
-GtkWidget *right_frame = 0;              // The right frame containing the filter parameters.
-GtkWidget *right_scrolledwindow = 0;     // The right scrolled window, containing the right frame.
+CImgList<char> gmic_entries;                  // The list of recognized G'MIC menu entries.
+CImgList<char> gmic_1stlevel_entries;         // The treepath positions of 1st-level G'MIC menu entries.
+CImgList<char> gmic_commands;                 // The list of corresponding G'MIC commands to process the image.
+CImgList<char> gmic_preview_commands;         // The list of corresponding G'MIC commands to preview the image.
+CImgList<char> gmic_arguments;                // The list of corresponding needed filter arguments.
+CImgList<double> gmic_preview_factors;        // The list of default preview factors for each filter.
+CImg<float> computed_preview;                 // The last computed preview image.
+CImg<char> gmic_custom_commands;              // The buffer of custom G'MIC commands definition.
+bool _create_dialog_gui;                      // Return value of the 'create_gui_dialog()' function (set by events handlers).
+void **event_infos;                           // Infos that are passed to the GUI callback functions.
+int image_id = 0;                             // The image concerned by the plug-in execution.
+GimpRunMode run_mode;                         // Run-mode used to call the plug-in.
+GtkTreeStore *tree_view_store = 0;            // The list of the filters as a GtkTreeView model.
+GimpDrawable *drawable_preview = 0;           // The drawable used by the preview window.
+GtkWidget *dialog_window = 0;                 // The plug-in dialog window.
+GtkWidget *left_pane  = 0;                    // The left pane, containing the preview window.
+GtkWidget *gui_preview = 0;                   // The preview window.
+GtkWidget *tree_mode_stockbutton = 0;         // A temporary stock button for the expand/collapse button.
+GtkWidget *tree_mode_button = 0;              // Expand/Collapse button for the treeview.
+GtkWidget *right_frame = 0;                   // The right frame containing the filter parameters.
+GtkWidget *right_scrolledwindow = 0;          // The right scrolled window, containing the right frame.
+GimpPDBStatusType status = GIMP_PDB_SUCCESS;  // The plug-in return status.
 
 #define gmic_xstr(x) gmic_str(x)
 #define gmic_str(x) #x
@@ -562,8 +563,7 @@ void flush_tree_view(GtkWidget *const tree_view) {
 bool update_filters_definition(const bool network_update) {
 
   // Free old definitions if necessary.
-  if (gmic_custom_commands) delete[] gmic_custom_commands;
-  gmic_custom_commands = 0;
+  if (gmic_custom_commands) gmic_custom_commands.assign();
   if (tree_view_store) g_object_unref(tree_view_store);
   gmic_entries.assign();
   gmic_1stlevel_entries.assign();
@@ -590,7 +590,7 @@ bool update_filters_definition(const bool network_update) {
     } else
       cimg_snprintf(update_command,sizeof(update_command),_gmic_path "curl --silent --compressed %s%s -o %s",
                     gmic_update_server,gmic_update_file,src_filename);
-    int status = cimg::system(update_command);
+    int _status = cimg::system(update_command);
     std::FILE *file_s = std::fopen(src_filename,"r");
 
     if (!file_s) { // Try with 'wget' if 'curl' failed.
@@ -602,7 +602,7 @@ bool update_filters_definition(const bool network_update) {
       } else
         cimg_snprintf(update_command,sizeof(update_command),_gmic_path "wget --quiet %s%s -O %s",
                       gmic_update_server,gmic_update_file,src_filename);
-      status = cimg::system(update_command);
+      _status = cimg::system(update_command);
       file_s = std::fopen(src_filename,"r");
     }
 
@@ -621,7 +621,7 @@ bool update_filters_definition(const bool network_update) {
         } else
           cimg_snprintf(update_command,sizeof(update_command),_gmic_path "gunzip --quiet %s.gz",
                         src_filename);
-        status = cimg::system(update_command);
+        _status = cimg::system(update_command);
         file_s = std::fopen(src_filename,"r");
         if (!file_s) {
           cimg_snprintf(update_command,sizeof(update_command),"%s.gz",
@@ -638,14 +638,14 @@ bool update_filters_definition(const bool network_update) {
       std::rewind(file_s);
       if (size_s) {
         std::FILE *file_d = std::fopen(dest_filename,"w");
-        char *buffer = new char[size_s], sep = 0;
+        CImg<char> buffer(size_s);
+        char sep = 0;
         if (file_d &&
             std::fread(buffer,sizeof(char),size_s,file_s)==size_s &&
             std::sscanf(buffer,"#@gmi%c",&sep)==1 && sep=='c' &&
             std::fwrite(buffer,sizeof(char),size_s,file_d)==size_s) {
           network_succeed = true; std::fclose(file_d);
         }
-        delete[] buffer;
       }
       std::fclose(file_s);
     }
@@ -672,7 +672,8 @@ bool update_filters_definition(const bool network_update) {
     std::rewind(file_custom);
   }
   const unsigned int size_final = size_update + size_custom + size_data_gmic_def + 1;
-  char *ptrd = gmic_custom_commands = new char[size_final];
+  gmic_custom_commands.assign(size_final);
+  char *ptrd = gmic_custom_commands;
   if (size_custom) { ptrd+=std::fread(ptrd,1,size_custom,file_custom); std::fclose(file_custom); }
   if (size_update) { ptrd+=std::fread(ptrd,1,size_update,file_update); std::fclose(file_update); }
   if (size_data_gmic_def) { std::memcpy(ptrd,data_gmic_def,size_data_gmic_def-1); ptrd+=size_data_gmic_def-1; }
@@ -1400,14 +1401,8 @@ void process_image(const char *const command_line) {
 
   // Check that everything went fine, else display an error dialog.
   if (spt.error_message) {
-    GtkWidget *const
-      message = gtk_message_dialog_new_with_markup(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,
-                                                   "<b>G'MIC filter processing error !</b>\n\n"
-                                                   "Error message returned by the processing engine :\n\n"
-                                                   "<i>%s</i>",spt.error_message.data());
-    gtk_widget_show(message);
-    gtk_dialog_run(GTK_DIALOG(message));
-    gtk_widget_destroy(message);
+    gimp_message(spt.error_message.data());
+    status = GIMP_PDB_CALLING_ERROR;
   } else {
 
     // Get output layers dimensions and check if input/output layers have compatible dimensions.
@@ -1830,7 +1825,7 @@ void create_parameters_gui(const bool reset_params) {
                                            (double)(int)cimg::round(default_value,1.0f),
                                            (double)(int)cimg::round(min_value,1.0f),
                                            (double)(int)cimg::round(max_value,1.0f),
-                                           (double)cimg::round((max_value-min_value)/40,1,1),
+                                           (double)1,
                                            (double)cimg::round((max_value-min_value)/10,1,1),
                                            0,true,0,0,0,0);
             event_infos[2*current_argument] = (void*)current_argument;
@@ -2307,17 +2302,16 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
               gint *nreturn_vals, GimpParam **return_vals) {
 
   // Init plug-in variables.
+  static GimpParam return_values[1];
+  *return_vals  = return_values;
+  *nreturn_vals = 1;
+  return_values[0].type = GIMP_PDB_STATUS;
+  cimg::unused(name,nparams);
+  run_mode = (GimpRunMode)param[0].data.d_int32;
   cimg::output(stderr);
+  set_locale();
+
   try {
-    set_locale();
-    static GimpParam output_values[1];
-    output_values[0].type = GIMP_PDB_STATUS;
-    output_values[0].data.d_status = GIMP_PDB_SUCCESS;
-    *return_vals  = output_values;
-    *nreturn_vals = 1;
-    name = 0;
-    nparams = 0;
-    run_mode = (GimpRunMode)param[0].data.d_int32;
 
     // Init filters and images.
     update_filters_definition(false);
@@ -2358,14 +2352,12 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
     } break;
     }
 
-    // Free plug-in resources.
-    delete[] gmic_custom_commands;
   } catch (CImgException &e) {
-    std::fprintf(cimg::output(),
-                 "\n*** Plug-in 'gmic_gimp' : Execution error in plug-in code :\n*** %s\n",
-                 e.what());
-    std::fflush(cimg::output());
+    gimp_message(e.what());
+    status = GIMP_PDB_CALLING_ERROR;
   }
+
+  return_values[0].data.d_status = status;
 }
 
 // 'Query' function, required by the GIMP plug-in API.

@@ -107,6 +107,11 @@ int main() {
                  image_list._data[i]._data);
   }
 
+  // Fourth step : Free image resources.
+  //-------------------------------------
+  image_list.assign(0);
+
+
   // That's it !
   //-------------
   std::fprintf(stderr,"\n- That's it !\n");

@@ -16,70 +16,70 @@ _gmic()
 	prev=${COMP_WORDS[COMP_CWORD-1]}
 
 	local help="_command .";
-	local add="value[%] [indice] filename \'formula\' (noargs)";
-	local sub="value[%] [indice] filename \'formula\' (noargs)";
-	local mul="value[%] [indice] filename \'formula\' (noargs)";
-	local mmul="value[%] [indice] filename \'formula\' (noargs)";
-	local div="value[%] [indice] filename \'formula\' (noargs)";
-	local pow="value[%] [indice] filename \'formula\' (noargs)";
-	local min="value[%] [indice] filename \'formula\' (noargs)";
-	local max="value[%] [indice] filename \'formula\' (noargs)";
-	local mod="value[%] [indice] filename \'formula\' (noargs)";
-	local and="value[%] [indice] filename \'formula\' (noargs)";
-	local or="value[%] [indice] filename \'formula\' (noargs)";
-	local xor="value[%] [indice] filename \'formula\' (noargs)";
-	local bsl="value[%] [indice] filename \'formula\' (noargs)";
-	local bsr="value[%] [indice] filename \'formula\' (noargs)";
-	local rol="value[%] [indice] filename \'formula\' (noargs)";
-	local ror="value[%] [indice] filename \'formula\' (noargs)";
-	local eq="value[%] [indice] filename \'formula\' (noargs)";
-	local neq="value[%] [indice] filename \'formula\' (noargs)";
-	local gt="value[%] [indice] filename \'formula\' (noargs)";
-	local ge="value[%] [indice] filename \'formula\' (noargs)";
-	local lt="value[%] [indice] filename \'formula\' (noargs)";
-	local le="value[%] [indice] filename \'formula\' (noargs)";
-	local atan2="[indice] .";
+	local add="value[%] [image] filename \'formula\' (noargs)";
+	local sub="value[%] [image] filename \'formula\' (noargs)";
+	local mul="value[%] [image] filename \'formula\' (noargs)";
+	local mmul="value[%] [image] filename \'formula\' (noargs)";
+	local div="value[%] [image] filename \'formula\' (noargs)";
+	local pow="value[%] [image] filename \'formula\' (noargs)";
+	local min="value[%] [image] filename \'formula\' (noargs)";
+	local max="value[%] [image] filename \'formula\' (noargs)";
+	local mod="value[%] [image] filename \'formula\' (noargs)";
+	local and="value[%] [image] filename \'formula\' (noargs)";
+	local or="value[%] [image] filename \'formula\' (noargs)";
+	local xor="value[%] [image] filename \'formula\' (noargs)";
+	local bsl="value[%] [image] filename \'formula\' (noargs)";
+	local bsr="value[%] [image] filename \'formula\' (noargs)";
+	local rol="value[%] [image] filename \'formula\' (noargs)";
+	local ror="value[%] [image] filename \'formula\' (noargs)";
+	local eq="value[%] [image] filename \'formula\' (noargs)";
+	local neq="value[%] [image] filename \'formula\' (noargs)";
+	local gt="value[%] [image] filename \'formula\' (noargs)";
+	local ge="value[%] [image] filename \'formula\' (noargs)";
+	local lt="value[%] [image] filename \'formula\' (noargs)";
+	local le="value[%] [image] filename \'formula\' (noargs)";
+	local atan2="[image] .";
 	local set="value,_x[%],_y[%],_z[%],_c[%] .";
-	local fill="value1,_value2,.. [indice] formula";
+	local fill="value1,_value2,.. [image] formula";
 	local threshold="value[%],_soft (noargs)";
-	local cut="{value0[%]|[indice0]},{value1[%]|[indice1]} [indice] (noargs)";
-	local normalize="{value0[%]|[indice0]},{value1[%]|[indice1]}[indice] .";
+	local cut="{value0[%]|[image0]},{value1[%]|[image1]} [image] (noargs)";
+	local normalize="{value0[%]|[image0]},{value1[%]|[image1]} [image]";
 	local round="rounding_value>=0,_rounding_type .";
 	local equalize="nb_levels>0[%],_value0[%],_value1[%] .";
 	local quantize="nb_levels>0[%],_preserve_value_range={0|1} .";
 	local noise="std_variation>=0[%],_noise_type .";
-	local rand="value[%] value0[%],value1[%]";
-	local map="[indice] predefined_palette";
-	local index="{[indice]|predefined_palette},_is_dithered={0|1},_map_palette={0|1} .";
-	local resize="[indice],_interpolation,_borders,_cx,_cy,_cz,_cc {[indice_w]|width>0[%]},_{[indice_h]|height>0[%]},_{[indice_d]|depth>0[%]},_{[indice_s]|spectrum>0[%]},_interpolation,_borders,_cx,_cy,_cz,_cc (noargs)";
+	local rand="{value0[%]|[image0]},{value1[%]|[image1]} [image]";
+	local map="[image] predefined_palette";
+	local index="{[image]|predefined_palette},_is_dithered={0|1},_map_palette={0|1} .";
+	local resize="[image],_interpolation,_borders,_cx,_cy,_cz,_cc {[image_w]|width>0[%]},_{[image_h]|height>0[%]},_{[image_d]|depth>0[%]},_{[image_s]|spectrum>0[%]},_interpolation,_borders,_cx,_cy,_cz,_cc (noargs)";
 	local crop="x0[%],x1[%],_borders x0[%],y0[%],x1[%],y1[%],_borders x0[%],y0[%],z0[%],x1[%],y1[%],z1[%],_borders x0[%],y0[%],z0[%],c0[%],x1[%],y1[%],z1[%],c1[%],_borders (noargs)";
 	local autocrop="value1,value2,.. .";
-	local channels="{[indice0]|c0[%]},_{[indice1]|c1[%]} .";
-	local slices="{[indice0]|z0[%]},_{[indice1]|z1[%]} .";
-	local lines="{[indice0]|y0[%]},_{[indice1]|y1[%]} .";
-	local columns="{[indice0]|x0[%]},_{[indice1]|x1[%]} .";
+	local channels="{[image0]|c0[%]},_{[image1]|c1[%]} .";
+	local slices="{[image0]|z0[%]},_{[image1]|z1[%]} .";
+	local lines="{[image0]|y0[%]},_{[image1]|y1[%]} .";
+	local columns="{[image0]|x0[%]},_{[image1]|x1[%]} .";
 	local rotate="angle,_borders,_interpolation,_cx[%],_cy[%],_zoom .";
 	local mirror="axis={x|y|z|c} .";
 	local shift="vx[%],_vy[%],_vz[%],_vc[%],_borders .";
-	local solve="[indice] .";
+	local solve="[image] .";
 	local dijkstra="starting_node>=0,ending_node>=0 .";
 	local permute="permutation .";
 	local unroll="axis={x|y|z|c} .";
 	local split="axis={x|y|z|c},_nb_parts patch_x>0,_patch_y>0,_patch_z>0,_patch_v>0,borders value,_keep_splitting_values={+|-}";
 	local append="axis={x|y|z|c},_alignment .";
-	local warp="[indice],_is_relative={0|1},_interpolation={0|1},_borders,_nb_frames>0 .";
+	local warp="[image],_is_relative={0|1},_interpolation={0|1},_borders,_nb_frames>0 .";
 	local deriche="std_variation>=0[%],order={0|1|2},axis={x|y|z|c},_borders .";
 	local blur="std_variation>=0[%],_borders .";
 	local bilateral="std_variation_s>0[%],std_variation_r>0 .";
 	local denoise="std_variation_s>=0,_std_variation_p>=0,_patch_size>0,_lookup_size>0,_smoothness,_fast_approx={0|1} .";
-	local smooth="amplitude>=0,_sharpness>=0,_anisotropy,_alpha,_sigma,_dl>0,_da>0,_precision>0,interpolation,_fast_approx={0|1} nb_iterations>=0,_sharpness>=0,_anisotropy,_alpha,_sigma,_dt>0,0 [indice],_amplitude>=0,_dl>0,_da>0,_precision>0,_interpolation,_fast_approx={0|1} [indice],_nb_iters>=0,_dt>0,0";
+	local smooth="amplitude>=0,_sharpness>=0,_anisotropy,_alpha,_sigma,_dl>0,_da>0,_precision>0,interpolation,_fast_approx={0|1} nb_iterations>=0,_sharpness>=0,_anisotropy,_alpha,_sigma,_dt>0,0 [image],_amplitude>=0,_dl>0,_da>0,_precision>0,_interpolation,_fast_approx={0|1} [image],_nb_iters>=0,_dt>0,0";
 	local median="radius>=0 .";
 	local sharpen="amplitude>=0 amplitude>=0,1,_edge>=0,_alpha,_sigma";
-	local convolve="[indice],_borders .";
-	local correlate="[indice],_borders .";
-	local erode="size>=0\' size_x>=0,size_y>=0,_size_z>=0 [indice],_borders";
-	local dilate="size>=0 size_x>=0,size_y>=0,size_z>=0 [indice],_borders";
-	local inpaint="[indice] .";
+	local convolve="[image],_borders .";
+	local correlate="[image],_borders .";
+	local erode="size>=0\' size_x>=0,size_y>=0,_size_z>=0 [image],_borders";
+	local dilate="size>=0 size_x>=0,size_y>=0,size_z>=0 [image],_borders";
+	local inpaint="[image] .";
 	local gradient="{x|y|z}..{x|y|z},_scheme (noargs)";
 	local structuretensors="_scheme .";
 	local edgetensors="sharpness>=0,_anisotropy,_alpha,_sigma,is_sqrt={0|1} .";
@@ -89,8 +89,8 @@ _gmic()
 	local histogram="nb_levels>0[%],_val0[%],_val1[%] .";
 	local distance="isovalue .";
 	local eikonal="nb_iterations>=0,_band_size>=0 .";
-	local watershed="[indice],_fill_lines={0|1} .";
-	local displacement="[indice],_smoothness>=0,_precision>0,_nb_scales>=0,iteration_max>=0,is_backward={0|1} .";
+	local watershed="[priority_image],_fill_lines={0|1} .";
+	local displacement="[source_image],_smoothness>=0,_precision>0,_nb_scales>=0,iteration_max>=0,is_backward={0|1} .";
 	local sort="_ordering={+|-},_axis={x|y|z|c} .";
 	local psnr="_max_value .";
 	local point="x[%],y[%],_z[%],_opacity,_color1,.. .";
@@ -99,13 +99,13 @@ _gmic()
 	local spline="x0[%],y0[%],u0[%],v0[%],x1[%],y1[%],u1[%],v1[%],_opacity,_pattern,_color1,.. .";
 	local ellipse="x[%],y[%],R[%],r[%],_angle,_opacity,_color1,.. .";
 	local text="text,_x[%],_y[%],_font_height>0,_opacity,_color1,.. .";
-	local graph="[indice],_plot_type,_vertex_type,_ymin,_ymax,_opacity,_pattern,_color1,.. \'formula\',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax,_opacity,_pattern,_color1,..";
+	local graph="[function_image],_plot_type,_vertex_type,_ymin,_ymax,_opacity,_pattern,_color1,.. \'formula\',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax,_opacity,_pattern,_color1,..";
 	local axes="x0,x1,y0,y1,_opacity,_pattern,_color1,.. .";
 	local grid="sizex[%]>=0,sizey[%]>=0,_offsetx[%],_offsety[%],_opacity,_pattern,_color1,.. .";
-	local quiver="[indice],_sampling>0,_factor,_is_arrow={0|1},_opacity,_pattern,_color1,.. .";
+	local quiver="[function_image],_sampling>0,_factor,_is_arrow={0|1},_opacity,_pattern,_color1,.. .";
 	local flood="x[%],_y[%],_z[%],_tolerance>=0,_opacity,_color1,.. .";
-	local image="[indice],_x[%],_y[%],_z[%],_c[%],_opacity,_[indice_mask] .";
-	local object3d="[indice],_x[%],_y[%],_z,_opacity,_is_zbuffer={0|1} .";
+	local image="[sprite],_x[%],_y[%],_z[%],_c[%],_opacity,_[sprite_mask] .";
+	local object3d="[object3d],_x[%],_y[%],_z,_opacity,_is_zbuffer={0|1} .";
 	local plasma="alpha,_beta,_opacity .";
 	local mandelbrot="z0r,z0i,z1r,z1i,_iteration_max>=0,_is_julia={0|1},_c0r,_c0i,_opacity .";
 	local move="position[%] .";
@@ -121,11 +121,11 @@ _gmic()
 	local torus3d="radius1,_radius2,_nb_subdivisions1>0,_nb_subdivisions2>0 .";
 	local plane3d="size1_size2,_nb_subdivisions1>0,_nb_subdisivions2>0 .";
 	local sphere3d="radius,_nb_recursions>=0 .";
-	local elevation3d="z-factor [indice] \'formula\',_x0,_y0,_x1,y1,_dx[%],_dy[%] (noargs)";
+	local elevation3d="z-factor [image] \'formula\',_x0,_y0,_x1,y1,_dx[%],_dy[%] (noargs)";
 	local isoline3d="isovalue[%] \'formula\',value,_x0,_y0,_x1,_y1,_dx>0[%],_dy>0[%]";
 	local isosurface3d="isovalue[%] \'formula\',value,_x0,_y0,_z0,_x1,_y1,_z1,_dx>0[%],_dy>0[%],_dz>0[%]";
 	local streamline3d="x,y,z,_L>=0,_dl>0,_interp,_is_backward={0|1},_is_oriented={0|1} \'formula\',x,y,z,_L>=0,_dl>0,_interp,_is_backward={0|1},_is_oriented={0|1}";
-	local add3d="tx,_ty,_tz [indice3d] (noargs)";
+	local add3d="tx,_ty,_tz [object3d] (noargs)";
 	local sub3d="tx,_ty,_tz .";
 	local mul3d="factor factor_x,factor_y,_factor_z";
 	local div3d="factor factor_x,factor_y,_factor_z";
@@ -133,7 +133,7 @@ _gmic()
 	local color3d="R,G,B,_opacity .";
 	local opacity3d="opacity .";
 	local primitives3d="mode .";
-	local light3d="position_x,position_y,position_z [indice] (noargs)";
+	local light3d="position_x,position_y,position_z [image] (noargs)";
 	local focale3d="focale>=0 .";
 	local pose3d="value1,..,value16 (noargs)";
 	local specl3d="value .";
@@ -141,7 +141,7 @@ _gmic()
 	local double3d="is_double={0|1} .";
 	local mode3d="mode .";
 	local moded3d="mode .";
-	local background3d="R,_G,_B [indice] (noargs)";
+	local background3d="R,_G,_B [image] (noargs)";
 	local skip="item .";
 	local status="item $variable";
 	local exec="command .";
@@ -154,7 +154,7 @@ _gmic()
 	local push=="item .";
 	local error="message .";
 	local progress="0<=value<=100 -1";
-	local input="filename [indice]x_nb_copies>0 {width>0[%]|[indice_w]},{_height>0[%]|[indice_h]},{_depth>0[%]|[indice_d]},{_spectrum>0[%]|[indice_s]},_value1,_value2,.. (value1{,|;|/|^}value2{,|;|/|^}..)";
+	local input="filename [image]x_nb_copies>0 {width>0[%]|[image_w]},{_height>0[%]|[image_h]},{_depth>0[%]|[image_d]},{_spectrum>0[%]|[image_s]},_value1,_value2,.. (value1{,|;|/|^}value2{,|;|/|^}..)";
 	local output="filename,_format_options .";
 	local verbose="level {+|-}";
 	local echo="message .";
@@ -264,13 +264,13 @@ _gmic()
 	local bayer2rgb="_GM_smoothness,_RB_smoothness1,_RB_smoothness2 .";
 	local lic="_amplitude>0,_channels>0 .";
 	local gaussian="_sigma1[%],_sigma2[%],_angle .";
-	local blur_x="amplitude,_borders={0|1} .";
-	local blur_y="amplitude,_borders={0|1} .";
-	local blur_z="amplitude,_borders={0|1} .";
-	local blur_xy="amplitude_x,amplitude_y,_borders={0|1} .";
-	local blur_xyz="amplitude_x,amplitude_y,amplitude_z,_borders={0|1} .";
-	local blur_angular="_amplitude,_cx,_cy .";
-	local blur_radial="_amplitude,_cx,_cy .";
+	local blur_x="amplitude[%]>=0,_borders={0|1} .";
+	local blur_y="amplitude[%]>=0,_borders={0|1} .";
+	local blur_z="amplitude[%]>=0,_borders={0|1} .";
+	local blur_xy="amplitude_x[%],amplitude_y[%],_borders={0|1} .";
+	local blur_xyz="amplitude_x[%],amplitude_y[%],amplitude_z,_borders={0|1} .";
+	local blur_angular="_amplitude[%],_cx,_cy .";
+	local blur_radial="_amplitude[%],_cx,_cy .";
 	local blur_linear="_amplitude1[%],_amplitude2[%],_angle=0,_borders={0=dirichlet|1=neumann} .";
 	local dog="_sigma1>=0[%],_sigma2>=0[%] .";
 	local pde_flow="_nb_iter>=0,_dt,_velocity_command,_sequence_flag={0|1} .";
@@ -285,7 +285,12 @@ _gmic()
 	local unsharp_octave="_nb_scales>0,_radius[%]>=0,_amount>=0,threshold[%]>=0 .";
 	local normalize_local="_amplitude>=0,_radius>0,_n_smooth>=0[%],_a_smooth>=0[%],_cut={0|1},_min=0,_max=255 .";
 	local bandpass="_min_freq[%],_max_freq[%] .";
+	local watermark="_text .";
 	local split_freq="smoothness>0[%] .";
+	local erode_oct="_size>=0 .";
+	local dilate_oct="_size>=0 .";
+	local erode_circ="_size>=0 .";
+	local dilate_circ="_size>=0 .";
 	local gradient_orientation="_dimension={1,2,3} .";
 	local gradient2rgb="_orientation={0|1} .";
 	local edges="_threshold>=0 .";
@@ -299,7 +304,7 @@ _gmic()
 	local array_pattern="_M>0,_N>0,_density>=0,_angle>=0,_zoom>=0,_opacity,_expand_type={0,1,2} .";
 	local taquin="_M>0,_N>0 .";
 	local grid="_M>0,_N>0 .";
-	local frame="_size_x>=0,_size_y>=0,_R,_G,_B,_A .";
+	local frame="_size_x[%]>=0,_size_y[%]>=0,_col1,...,_colN .";
 	local frame_fuzzy="_size_x>=0,_size_y>=0,_fuzzyness>=0,_smoothness>=0,_R,_G,_B,_A .";
 	local frame_round="_sharpness>0,_size>=0,_smoothness,_shade,_R,_G,_B,_A .";
 	local frame_blur="_sharpness>0,_size>=0,_smoothness,_shade,_blur .";
@@ -329,8 +334,8 @@ _gmic()
 	local cubism="_nb_iter>=0,_bloc_size>0,_max_angle,_opacity,_smoothness>=0 .";
 	local glow="_amplitude>=0 .";
 	local euclidean2polar="_cx,_cx,_n>0,_borders={0=dirichlet|1=neumann|2=cyclic} .";
-	local warp_perspective="_x-angle,_y-angle,_zoom>0,_x-center,_y-center,_borders={0=dirichlet|1=neumann|2=cyclic} .";
 	local polar2euclidean="_cx,_cy,_n>0,_borders={0=dirichlet|1=neumann|2=cyclic} .";
+	local warp_perspective="_x-angle,_y-angle,_zoom>0,_x-center,_y-center,_borders={0=dirichlet|1=neumann|2=cyclic} .";
 	local water="_amplitude>=0,_smoothness>=0 .";
 	local wave="_amplitude>=0,_frequency>=0,_center_x,_center_y .";
 	local twirl="_amplitude,_cx,_cy,_borders={0=dirichlet|1=neumann|2=cyclic} .";
@@ -341,6 +346,7 @@ _gmic()
 	local fish_eye="_x,_y,0<=_radius<=100,_amplitude>=0 .";
 	local transform_polar="\"expr_radius\",_\"expr_angle\",_x_center,_y_center,_borders={0|1} .";
 	local kaleidoscope="_cx,_cy,_radius,_angle,_borders={0=dirichlet|1=neumann|2=cyclic} .";
+	local rotoidoscope="_cx,_cy,_tiles>0,_smoothness[%]>=0,_borders={0=dirichlet|1=neumann|2=cyclic} .";
 	local spread="_dx>=0,_dy>=0,_dz>=0 .";
 	local shade_stripes="_frequency>=0,_direction={0|1},_darkness>=0,_lightness>=0 .";
 	local stripes_y="_frequency>=0 .";
@@ -350,7 +356,7 @@ _gmic()
 	local noise_hurl="_amplitude>=0 .";
 	local pixelize="_scale_x>0,_scale_y>0,_scale_z>0 .";
 	local cracks="_density>=0,_amplitude,_relief={0|1} .";
-	local apply_channels="\"command\",_channels={All,RGBA,RGB,Y,CbCr,Cb,Cr,L,ab,a,b,H,S,V,K,A},_normalize={0=cut|1=normalize} .";
+	local apply_channels="\"command\",_channels={All,RGBA,RGB,Y,CbCr,Cb,Cr,L,ab,a,b,H,S,V,K,A,ch,c,h},_normalize={0=cut|1=normalize} .";
 	local to_colormode="mode={0=adaptive|1=G|2=GA|3=RGB|4=RGBA} .";
 	local select_color="_tolerance[%]>=0,col1,..,colN .";
 	local replace_color="_tolerance[%]>=0,_smoothness[%]>=0,src1,...,srcN,dest1,...,destN .";
@@ -365,7 +371,7 @@ _gmic()
 	local fade_radial="0<=_start<=100,0<=_end<=100 .";
 	local fade_diamond="0<=_start<=100,0<=_end<=100 .";
 	local fade_linear="_angle,0<=_start<=100,0<=_end<=100 .";
-	local compose_edges="_smoothness .";
+	local compose_edges="_smoothness[%]>=0 .";
 	local morph="nb_frames>0,_smoothness>=0,_precision>0 .";
 	local register_nonrigid="_smoothness>=0,_precision>0,_nb_scale>=0 .";
 	local register_rigid="_smoothness>=0 .";
@@ -440,38 +446,41 @@ _gmic()
 		-shrink_xy --shrink_xy -elevate --elevate -ow --ow -outputw --outputw -op --op -outputp 
 		--outputp -on --on -outputn --outputn -d0 --d0 -display0 --display0 -dfft --dfft 
 		-display_fft --display_fft -drgba --drgba -display_rgba --display_rgba -dh --dh -display_histogram 
-		--display_histogram -dt --dt -display_tensors --display_tensors -ball --ball -sierpinski 
-		--sierpinski -text_outline --text_outline -histogram_cumul --histogram_cumul -direction2rgb 
-		--direction2rgb -vector2tensor --vector2tensor -rgb2bayer --rgb2bayer -bayer2rgb --bayer2rgb 
-		-lic --lic -gaussian --gaussian -blur_x --blur_x -blur_y --blur_y -blur_z --blur_z 
-		-blur_xy --blur_xy -blur_xyz --blur_xyz -blur_angular --blur_angular -blur_radial --blur_radial 
-		-blur_linear --blur_linear -dog --dog -pde_flow --pde_flow -heat_flow --heat_flow -meancurvature_flow 
-		--meancurvature_flow -tv_flow --tv_flow -inpaint_flow --inpaint_flow -remove_hotpixels 
-		--remove_hotpixels -richardson_lucy --richardson_lucy -oriented_richardson_lucy --oriented_richardson_lucy 
-		-unsharp --unsharp -unsharp_octave --unsharp_octave -normalize_local --normalize_local 
-		-fftpolar --fftpolar -ifftpolar --ifftpolar -convolve_fft --convolve_fft -deconvolve_fft 
-		--deconvolve_fft -bandpass --bandpass -split_freq --split_freq -compose_freq --compose_freq 
-		-gradient_norm --gradient_norm -gradient_orientation --gradient_orientation -gradient2rgb 
-		--gradient2rgb -laplacian --laplacian -inn --inn -iee --iee -curvature --curvature 
-		-edges --edges -isophotes --isophotes -topographic_map --topographic_map -segment_watershed 
-		--segment_watershed -array --array -array_fade --array_fade -array_mirror --array_mirror 
-		-array_random --array_random -array_pattern --array_pattern -taquin --taquin -grid --grid 
-		-frame --frame -frame_fuzzy --frame_fuzzy -frame_round --frame_round -frame_blur --frame_blur 
-		-frame_pattern --frame_pattern -rotate_tiles --rotate_tiles -shift_tiles --shift_tiles 
-		-linearize_tiles --linearize_tiles -quadratize_tiles --quadratize_tiles -polaroid --polaroid 
-		-drop_shadow --drop_shadow -tetris --tetris -mosaic --mosaic -puzzle --puzzle -sponge 
-		--sponge -hearts --hearts -color_ellipses --color_ellipses -ellipsionism --ellipsionism 
-		-whirls --whirls -cartoon --cartoon -drawing --drawing -draw_whirl --draw_whirl -stencil 
-		--stencil -stencilbw --stencilbw -pencilbw --pencilbw -sketchbw --sketchbw -ditheredbw 
-		--ditheredbw -dotsbw --dotsbw -warhol --warhol -cubism --cubism -glow --glow -old_photo 
-		--old_photo -euclidean2polar --euclidean2polar -warp_perspective --warp_perspective -polar2euclidean 
-		--polar2euclidean -water --water -wave --wave -twirl --twirl -map_sphere --map_sphere 
-		-flower --flower -zoom --zoom -deform --deform -fish_eye --fish_eye -transform_polar 
-		--transform_polar -kaleidoscope --kaleidoscope -spread --spread -shade_stripes --shade_stripes 
-		-stripes_y --stripes_y -shadow_patch --shadow_patch -light_patch --light_patch -light_relief 
-		--light_relief -noise_hurl --noise_hurl -pixelize --pixelize -paper --paper -cracks 
-		--cracks -apply_channels --apply_channels -to_gray --to_gray -to_graya --to_graya -to_rgb 
-		--to_rgb -to_rgba --to_rgba -to_colormode --to_colormode -remove_opacity --remove_opacity 
+		--display_histogram -dt --dt -display_tensors --display_tensors -float2int8 --float2int8 
+		-int82float --int82float -float2fft8 --float2fft8 -fft82float --fft82float -ball --ball 
+		-sierpinski --sierpinski -text_outline --text_outline -histogram_cumul --histogram_cumul 
+		-direction2rgb --direction2rgb -vector2tensor --vector2tensor -rgb2bayer --rgb2bayer 
+		-bayer2rgb --bayer2rgb -lic --lic -gaussian --gaussian -blur_x --blur_x -blur_y --blur_y 
+		-blur_z --blur_z -blur_xy --blur_xy -blur_xyz --blur_xyz -blur_angular --blur_angular 
+		-blur_radial --blur_radial -blur_linear --blur_linear -dog --dog -pde_flow --pde_flow 
+		-heat_flow --heat_flow -meancurvature_flow --meancurvature_flow -tv_flow --tv_flow -inpaint_flow 
+		--inpaint_flow -remove_hotpixels --remove_hotpixels -richardson_lucy --richardson_lucy 
+		-oriented_richardson_lucy --oriented_richardson_lucy -unsharp --unsharp -unsharp_octave 
+		--unsharp_octave -normalize_local --normalize_local -fftpolar --fftpolar -ifftpolar --ifftpolar 
+		-convolve_fft --convolve_fft -deconvolve_fft --deconvolve_fft -bandpass --bandpass -watermark 
+		--watermark -split_freq --split_freq -compose_freq --compose_freq -erode_oct --erode_oct 
+		-dilate_oct --dilate_oct -erode_circ --erode_circ -dilate_circ --dilate_circ -gradient_norm 
+		--gradient_norm -gradient_orientation --gradient_orientation -gradient2rgb --gradient2rgb 
+		-laplacian --laplacian -inn --inn -iee --iee -curvature --curvature -edges --edges 
+		-isophotes --isophotes -topographic_map --topographic_map -segment_watershed --segment_watershed 
+		-array --array -array_fade --array_fade -array_mirror --array_mirror -array_random --array_random 
+		-array_pattern --array_pattern -taquin --taquin -grid --grid -frame --frame -frame_fuzzy 
+		--frame_fuzzy -frame_round --frame_round -frame_blur --frame_blur -frame_pattern --frame_pattern 
+		-rotate_tiles --rotate_tiles -shift_tiles --shift_tiles -linearize_tiles --linearize_tiles 
+		-quadratize_tiles --quadratize_tiles -polaroid --polaroid -drop_shadow --drop_shadow 
+		-tetris --tetris -mosaic --mosaic -puzzle --puzzle -sponge --sponge -hearts --hearts 
+		-color_ellipses --color_ellipses -ellipsionism --ellipsionism -whirls --whirls -cartoon 
+		--cartoon -drawing --drawing -draw_whirl --draw_whirl -stencil --stencil -stencilbw 
+		--stencilbw -pencilbw --pencilbw -sketchbw --sketchbw -ditheredbw --ditheredbw -dotsbw 
+		--dotsbw -warhol --warhol -cubism --cubism -glow --glow -old_photo --old_photo -euclidean2polar 
+		--euclidean2polar -polar2euclidean --polar2euclidean -warp_perspective --warp_perspective 
+		-water --water -wave --wave -twirl --twirl -map_sphere --map_sphere -flower --flower 
+		-zoom --zoom -deform --deform -fish_eye --fish_eye -transform_polar --transform_polar 
+		-kaleidoscope --kaleidoscope -rotoidoscope --rotoidoscope -spread --spread -shade_stripes 
+		--shade_stripes -stripes_y --stripes_y -shadow_patch --shadow_patch -light_patch --light_patch 
+		-light_relief --light_relief -noise_hurl --noise_hurl -pixelize --pixelize -paper --paper 
+		-cracks --cracks -apply_channels --apply_channels -to_gray --to_gray -to_graya --to_graya 
+		-to_rgb --to_rgb -to_rgba --to_rgba -to_colormode --to_colormode -remove_opacity --remove_opacity 
 		-select_color --select_color -replace_color --replace_color -fc --fc -fill_color --fill_color 
 		-luminance --luminance -mix_rgb --mix_rgb -mix_channels --mix_channels -solarize --solarize 
 		-sepia --sepia -split_opacity --split_opacity -red_eye --red_eye -rgb2lch --rgb2lch 
@@ -493,8 +502,8 @@ _gmic()
 		--imagecube3d -imagepyramid3d --imagepyramid3d -pyramid3d --pyramid3d -text3d --text3d 
 		-gmic3d --gmic3d -sierpinski3d --sierpinski3d -snapshot3d --snapshot3d -x_mandelbrot 
 		--x_mandelbrot -x_fish_eye --x_fish_eye -x_spline --x_spline -x_tictactoe --x_tictactoe 
-		-x_fourier --x_fourier -x_life --x_life -x_fire --x_fire -x_jawbreaker --x_jawbreaker 
-		ÿ";
+		-x_fourier --x_fourier -x_life --x_life -x_fire --x_fire -x_light --x_light -x_jawbreaker 
+		--x_jawbreaker -x_paint --x_paint ÿ";
 
 	case "${prev}" in 
 			-help | --help)
@@ -1577,8 +1586,28 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$bandpass"))
 			return 0
 			;;
+			-watermark | --watermark)
+			COMPREPLY=( $(compgen -W "$watermark"))
+			return 0
+			;;
 			-split_freq | --split_freq)
 			COMPREPLY=( $(compgen -W "$split_freq"))
+			return 0
+			;;
+			-erode_oct | --erode_oct)
+			COMPREPLY=( $(compgen -W "$erode_oct"))
+			return 0
+			;;
+			-dilate_oct | --dilate_oct)
+			COMPREPLY=( $(compgen -W "$dilate_oct"))
+			return 0
+			;;
+			-erode_circ | --erode_circ)
+			COMPREPLY=( $(compgen -W "$erode_circ"))
+			return 0
+			;;
+			-dilate_circ | --dilate_circ)
+			COMPREPLY=( $(compgen -W "$dilate_circ"))
 			return 0
 			;;
 			-gradient_orientation | --gradient_orientation)
@@ -1753,12 +1782,12 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$euclidean2polar"))
 			return 0
 			;;
-			-warp_perspective | --warp_perspective)
-			COMPREPLY=( $(compgen -W "$warp_perspective"))
-			return 0
-			;;
 			-polar2euclidean | --polar2euclidean)
 			COMPREPLY=( $(compgen -W "$polar2euclidean"))
+			return 0
+			;;
+			-warp_perspective | --warp_perspective)
+			COMPREPLY=( $(compgen -W "$warp_perspective"))
 			return 0
 			;;
 			-water | --water)
@@ -1799,6 +1828,10 @@ _gmic()
 			;;
 			-kaleidoscope | --kaleidoscope)
 			COMPREPLY=( $(compgen -W "$kaleidoscope"))
+			return 0
+			;;
+			-rotoidoscope | --rotoidoscope)
+			COMPREPLY=( $(compgen -W "$rotoidoscope"))
 			return 0
 			;;
 			-spread | --spread)
