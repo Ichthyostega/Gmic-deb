@@ -53,16 +53,15 @@
     ;; Render a 3D mapped cube from the active layer, using G'MIC.
     (plug-in-gmic 1 img drawable 1
                   (string-append
-                   " -v- " ; To have a silent output.
-                   "-gimp_imagecube3d @{-1,w},@{-1,h},128,{max(@{-1,w}/2,@{-1,h}/2)},"
+                   " -v - " ; To have a silent output. Remove it to display errors from the G'MIC interpreter on stderr.
+                   "-gimp_imageobject3d 0,{w},{h},{max(w,h)/2},"
                    (number->string x) ","
                    (number->string y) ","
                    (number->string z)
-                   " -apply_gamma 2"
                    ))
 
     ;; Merge two layers together, using the G'MIC 'edges' mode (this layer mode does not exist by default in GIMP).
-    (plug-in-gmic 1 img drawable 2 "-v- -compose_edges 2")
+    (plug-in-gmic 1 img drawable 2 "-v - -compose_edges 1")
 
     )
 
