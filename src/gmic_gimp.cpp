@@ -710,7 +710,7 @@ bool update_filters_definition(const bool network_update) {
       err = std::sscanf(_line," %4095[^:]: %4095[^,]%*c %4095[^,]%*c %4095[^\n]",
                         entry,command,preview_command,arguments);
       if (err==1) { // If entry defines a menu folder.
-        cimg::strpare(entry,' ',false,true); cimg::strpare(entry,' ',false,true);
+        cimg::strpare(entry,' ',false,true);
         char *nentry = entry; while (*nentry=='_') { ++nentry; --level; }
         if (level<0) level = 0; else if (level>15) level = 15;
         cimg::strpare(nentry,' ',false,true); cimg::strpare(nentry,'\"',true);
@@ -725,25 +725,30 @@ bool update_filters_definition(const bool network_update) {
           ++level;
         }
       } else if (err>=2) { // If entry defines a regular filter.
-        cimg::strpare(entry,' ',false,true); cimg::strpare(entry,'\"',true);
+        cimg::strpare(entry,' ',false,true);
+        char *nentry = entry; while (*nentry=='_') { ++nentry; --level; }
+        if (level<0) level = 0; else if (level>15) level = 15;
+        cimg::strpare(nentry,' ',false,true); cimg::strpare(nentry,'\"',true);
         cimg::strpare(command,' ',false,true);
         cimg::strpare(arguments,' ',false,true);
-        CImg<char>::string(entry).move_to(gmic_entries);
-        CImg<char>::string(command).move_to(gmic_commands);
-        CImg<char>::string(arguments).move_to(gmic_arguments);
-        if (err>=3) { // Filter has a specified preview command.
-          cimg::strpare(preview_command,' ',false,true);
-          char *const preview_mode = std::strchr(preview_command,'(');
-          double factor = 1;
-          char sep = 0;
-          if (preview_mode && std::sscanf(preview_mode+1,"%lf%c",&factor,&sep)==2 && factor>=0 && sep==')')
-            *preview_mode = 0;
-          else factor = -1;
-          CImg<char>::string(preview_command).move_to(gmic_preview_commands);
-          CImg<double>::vector(factor).move_to(gmic_preview_factors);
-        } else gmic_preview_commands.insert(1);
-        gtk_tree_store_append(tree_view_store,&iter,level?&parent[level-1]:0);
-        gtk_tree_store_set(tree_view_store,&iter,0,gmic_entries.size(),1,entry,-1);
+        if (*nentry) {
+          CImg<char>::string(nentry).move_to(gmic_entries);
+          CImg<char>::string(command).move_to(gmic_commands);
+          CImg<char>::string(arguments).move_to(gmic_arguments);
+          if (err>=3) { // Filter has a specified preview command.
+            cimg::strpare(preview_command,' ',false,true);
+            char *const preview_mode = std::strchr(preview_command,'(');
+            double factor = 1;
+            char sep = 0;
+            if (preview_mode && std::sscanf(preview_mode+1,"%lf%c",&factor,&sep)==2 && factor>=0 && sep==')')
+              *preview_mode = 0;
+            else factor = -1;
+            CImg<char>::string(preview_command).move_to(gmic_preview_commands);
+            CImg<double>::vector(factor).move_to(gmic_preview_factors);
+          } else gmic_preview_commands.insert(1);
+          gtk_tree_store_append(tree_view_store,&iter,level?&parent[level-1]:0);
+          gtk_tree_store_set(tree_view_store,&iter,0,gmic_entries.size(),1,nentry,-1);
+        }
       }
     } else { // Line is the continuation of an entry.
       if (gmic_arguments) {
@@ -1087,7 +1092,13 @@ void process_preview();
 // Secure function for invalidate preview.
 void _gimp_preview_invalidate() {
   computed_preview.assign();
-  if ((GIMP_IS_PREVIEW(gui_preview) && gimp_drawable_is_valid(drawable_preview->drawable_id)))
+  if (GIMP_IS_PREVIEW(gui_preview) &&
+#if GIMP_MINOR_VERSION<=6
+      gimp_drawable_is_valid(drawable_preview->drawable_id)
+#else
+      gimp_item_is_valid(drawable_preview->drawable_id)
+#endif
+      )
     gimp_preview_invalidate(GIMP_PREVIEW(gui_preview));
   else {
     if (GTK_IS_WIDGET(gui_preview)) gtk_widget_destroy(gui_preview);

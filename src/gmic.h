@@ -46,7 +46,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 1390
+#define gmic_version 1400
 
 // Define environment variables.
 #ifndef cimg_verbosity
@@ -143,6 +143,7 @@ struct gmic {
 #if cimg_display!=0
   cimg_library::CImgDisplay instant_window[10];
 #endif
+  static gmic_list<char> default_command_names, default_command_definitions;
   gmic_list<char> command_names, command_definitions, scope;
   gmic_list<unsigned int> dowhiles, repeatdones;
   gmic_image<unsigned char> background3d, light3d;
@@ -154,26 +155,34 @@ struct gmic {
   volatile int _cancel, *cancel;
   unsigned int nb_carriages, position;
 
-  // Constructors.
+
+#define _GDEBUG(img) std::fprintf(stderr,#img"(%u,%u,%u,%u,%u,%p) / ",img._width,img._height,img._depth,img._spectrum,img._is_shared,img._data)
+#define GDEBUG(x) std::fprintf(stderr,"DEBUG"#x" : "); _GDEBUG(background3d); _GDEBUG(light3d); _GDEBUG(pose3d); _GDEBUG(status); std::fprintf(stderr,"\n")
+
+
+  // Constructors - Destructors.
   // Use them to run the G'MIC interpreter from your C++ source.
-  gmic(const char *const command_line, const char *const custom_commands=0, const bool default_commands=true,
-       float *const p_progress=0, int *const p_cancel=0);
+  ~gmic();
+  gmic(const char *const command_line, const char *const custom_commands=0,
+       const bool include_default_commands=true, float *const p_progress=0, int *const p_cancel=0);
   template<typename T> gmic(const int argc, const char *const *const argv, gmic_list<T>& images,
-                            const char *const custom_commands=0, const bool default_commands=true,
+                            const char *const custom_commands=0, const bool include_default_commands=true,
                             float *const p_progress=0, int *const p_cancel=0);
   template<typename T> gmic(const char *const command_line, gmic_list<T>& images,
-                            const char *const custom_commands=0, const bool default_commands=true,
+                            const char *const custom_commands=0, const bool include_default_commands=true,
                             float *const p_progress=0, int *const p_cancel=0);
 
   // All functions below should be considered as 'private' and thus, should not be used
   // in your own C++ source code. Use them at your own risk.
-  gmic& add_commands(const char *const data_commands);
-  gmic& add_commands(std::FILE *const file);
+  gmic& add_commands(const char *const data_commands,
+                     gmic_list<char>& command_names, gmic_list<char>& command_definitions);
+  gmic& add_commands(std::FILE *const file,
+                     gmic_list<char>& command_names, gmic_list<char>& command_definitions);
   gmic_image<char> scope2string(const bool is_last_slash=true) const;
   gmic_image<char> scope2string(const gmic_image<unsigned int>& scope_selection,
                                 const bool is_last_slash=true) const;
 
-  gmic& assign(const char *const custom_commands=0, const bool default_commands=true,
+  gmic& assign(const char *const custom_commands=0, const bool include_default_commands=true,
                float *const p_progress=0, int *const p_cancel=0);
 
   gmic_image<unsigned int> selection2cimg(const char *const string, const unsigned int indice_max,
