@@ -2,7 +2,7 @@ Description: Turn off exaggerated optimizations.
 
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -87,7 +87,7 @@ DEBUG_CFLAGS = -Dcimg_use_vt100 -Dcimg_v
+@@ -90,7 +90,7 @@ DEBUG_CFLAGS = -Dcimg_use_vt100 -Dcimg_v
  
  # Flags to enable optimizations.
  ifeq ($(IS_GCC),yes)
