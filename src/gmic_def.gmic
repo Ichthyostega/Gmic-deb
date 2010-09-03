@@ -196,23 +196,11 @@ apply_gamma : -skip ${1=1.2}
     (@{-1,m},@{-1,M}) -n[-2] 0,1 -pow[-2] {1/$1} -n[-2] @-1 -rm[-1]
   -mv[-1] 0 -done -v +
 
-#@gmic apply_curve : 0<smoothness<1,y0,x1,y1,x2,y2,...,xN-1,yN-1,yN
+#@gmic apply_curve : 0<=smoothness<=1,x0,y0,x1,y1,x2,y2,...,xN,yN
 #@gmic : Apply curve transformation to image values.
-apply_curve : -check "${1=0.5}>0 && $1<1" -skip ${2=0},${3=100}
-  -e[^-1] "Apply intensity curve with control points (0,${2--2},100,$-1) on image$?."
-  -v -
-  (0,${2--2},101,$-1) -r[-1] 2,{w/2},1,1,-1 -sort[-1] +,y           # Set point coordinates.
-  --shift[-1] 0,-1,0,0,1 --shift[-2] 0,1,0,0,1 --[-2,-1] -*[-1] $1  # Compute point tangents.
-  -a[-2,-1] x
-  512,512
-  -repeat {@{-2,h}-1}
-    -spline[-1] @{-2,0}%,@{-2,1}%,@{-2,2}%,@{-2,3}%,@{-2,4}%,@{-2,5}%,@{-2,6}%,@{-2,7}%,1,1
-    -shift[-2] 0,-1,0,0,2
-  -done
-  -rm[-2] -flood[-1] 100%,0,0,0,1,1
-  -plot2value[-1] -r[-1] 256,1,1,1,2 -/[-1] 2 -mv[-1] 0
-  -repeat {@#-1} -map[-1] [0] -mv[-1] 1 -done -rm[0]
-  -v +
+apply_curve : -check "${1=1}>=0 && $1<=1" -skip ${2=0},${3=100}
+  -e[^-1] "Apply intensity curve with smoothness $1 and keypoints (${2--1}) on image$?."
+  -v - -function1d ${1--1} -map[0--2] [-1] -rm[-1] -v +
 
 #@gmic negative
 #@gmic : Compute negative of selected images.
@@ -240,6 +228,21 @@ threshold2 :
   -repeat @#
     --t[-1] $1 -t[-2] $2 -xor[-2,-1]
   -mv[-1] 0 -done -v +
+
+#@gmic chessboard : size1>0,_size2>0,_offset1,_offset2,_angle,_opacity,_color1,..,_color2,..
+#@gmic : Draw opaque chessboard on selected images.
+chessboard : -check "${1=32}>0 && ${2=$1}>0" -skip ${3=0},${4=0},${5=0},${6=1},${7=0},${8=255}
+  -e[^-1] "Draw chessboard on image$?, with sizes ($1,$2), offsets ($3,$4), angle $5 and opacity $6."
+  -v - -i[0] (${7--1}) -r[0] {int(@{0,w}/2)},1,1,2,-1 -permute[0] cyzx
+  -repeat {@#-1}
+    -p[0] {w} -p[1] {h} -p[2] {s} -p[3] {$5*pi/180}
+    ($3,{$3+~0-1};$3,{$3+~0-1}^$4,$4;{$4+~1-1},{$4+~1-1}) -r[-1] ~0,~1,1,2,3
+    -r[-1] {~0*~1},2,1,1,-1
+    -i[-2] ({cos(~3)},{-sin(~3)};{sin(~3)},{cos(~3)}) -**[-2,-1]
+    -r[-1] ~0,~1,1,2,-1
+    -mod[-1] {$1+$2} ->=[-1] $1 -s[-1] c -xor[-2,-1] -map[-1] [0] -r[-1] 100%,100%,1,[-2]
+    -image[-2] [-1],0,0,0,0,$6 -rm[-1]
+  -mv[-1] 1 -done -rm[0] -v +
 
 #---------------------------------
 #
@@ -598,6 +601,16 @@ fft82float :
     -s[-1] y,2 -int82float[-2,-1] -exp[-2] --[-2] 1 -ifftpolar[-2,-1]
   -mv[-1] 0 -done -v +
 
+#@gmic apply_camera : _command,_camera_index>=-1,_skip_frames>=0
+#@gmic : Apply specified command on live camera stream, and display it on display window [0].
+apply_camera : -skip "${1=-skip 1}" -check "${2=-1}>=-1 && ${3=0}>=0"
+  -v - -if {$2==-1} stream=\#default -else stream=\#$2 -endif
+  -v + -e[^-1] "Apply command '$1' on camera stream "$stream", with $3 frames skip." -v -
+  -l[] -do
+    -camera $2,1,$3 $1 -w[-1] -1,-1,-1,-1,"(Camera "$stream")"
+    -if @{!,S} -o[-1] gmic_camera.png -endif -rm[-1]
+  -while {@!" && "!@{!,ESC}" && "!@{!,Q}} -endl -v +
+
 #-------------------------------------
 #
 #@gmic :: Image creation and drawing
@@ -675,7 +688,7 @@ vector2tensor :
     -s c
     -if {@#==2} --sqr[-1] -*[-2] [-3] -sqr[-3]
     -elif {@#==3} --sqr[-2] --*[-3] [-2] --sqr[-3] -*[-5,-4] [-6] -sqr[-6]
-    -else -error "Invalid image : Dimensions "{w}","{h}","{d}","{s}" does not represent a field of 2d or 3d vectors."
+    -else -error[] "Invalid image : Dimensions "{w}","{h}","{d}","{s}" does not represent a field of 2d or 3d vectors."
     -endif
     -a c
   -endl -mv[-1] 0 -done -v +
@@ -743,7 +756,6 @@ bayer2rgb : -skip ${1=1},${2=1},${3=0.5}
 
   -mv[-1] 0 -done -v +
 
-
 #@gmic lic : _amplitude>0,_channels>0
 #@gmic : Generate LIC representation of vector field.
 lic : -skip ${1=30},${2=1}
@@ -776,6 +788,45 @@ gaussian : -skip ${1=3},${2=$1},${3=0}
     -*[-1] {2*(~0)*(~1)*(~2-~3)}                        # x^2(u^2/s1+v^2/s2) y^2(v^2/s1+u^2/s2) 2uvxy(1/s1-1/s2)
     -+[-3--1] -exp[-1]
   -mv[-1] 0 -done -v +
+
+#@gmic function1d : 0<=smoothness<=1,x0,y0,x1,y1,...,xn,yn
+#@gmic : Generate continuous 1d function from specified list of keypoints (xk,yk)
+#@gmic : in range [0,max(xk)] (xk are integers).
+function1d : -check "${1=1}>=0 && $1<=1" -skip ${2=0},${3=0}
+  -e[^-1] "Generate continuous 1d function, with smoothness $1 and keypoints (${2--1})."
+  -v -
+
+  # Normalize input coordinates.
+  -if {$#<5} {int(max(0,$2))+1},1,1,1,$3 -return -endif
+  (${2--1}) -r[-1] 2,{int(w/2)},1,1,-1 -sort[-1] +,y -s[-1] x,2 -round[-2] 1 -a[-2,-1] x
+
+  # Estimate pointwise forward/backward slopes.
+  --shift[-1] 0,1,0,0,1 --[-1] [-2] -*[-1] -1   # Backward derivatives.
+  --shift[-2] 0,-1,0,0,1 --[-1] [-3]            # Forward derivatives.
+  --*[-2] {$1/2} --*[-2] {1-$1/2} -+[-2,-1]     # Forward tangents.
+  -*[-3] {1-$1/2} -*[-2] {$1/2} -+[-3,-2]       # Backward tangents.
+  -s[-2,-1] x -+[-4,-2] 1e-10
+  -/[-3] [-4] -/[-1] [-2] -rm[-4,-2]            # Forward and backward slopes.
+  -a[-3--1] x                                   # Append slopes to coordinates.
+
+  # Compute multi-spline curve.
+  {@{-1,(0,{h-1})}+1}
+  -repeat {@{-2,h}-1}
+    xstart={if(~>,@{-2,0},0)}
+    -_function1d @{-2,0-1},@{-2,3},@{-2,4-6},$xstart,@{-2,4} -image[-2] [-1],$xstart -rm[-1]
+  -shift[-2] 0,-1 -done
+  -rm[-2]
+  -v +
+
+# Generate single spline function from specified coordinates (x0,y0,s0)-(x1,y1,s1), in range [t0..t1]
+_function1d :
+  ({$1^3},{$1^2},$1,1;\
+   {3*$1^2},{2*$1},1,0;\
+   {$4^3},{$4^2},$4,1;\
+   {3*$4^2},{2*$4},1,0)
+  ($2;$3;$5;$6) -solve[-1] [-2] -rm[-2] -transpose[-1]
+  ($7,$8) -r[-1] {1+$8-$7},1,1,1,3 --pow[-1] 3 --pow[-2] 2 --f[-1] 1 -mv[-4] -1 -a[-4--1] y
+  -**[-2,-1]
 
 #-------------------------
 #
@@ -847,7 +898,7 @@ dog : -skip ${1=2%},${2=3%}
 pde_flow : -skip ${1=10},${2=30},${3=laplacian},${4=0}
   -e[^-1] "Apply $1 iterations of the velocity flow '$3' on image$?, with time step $2."
   -v - -repeat @# -l[-1] -repeat $1
-    --$3[-1] (@{-1,m},@{-1,M}) -abs[-1] -+[-1] 0.01 -/[-2] @{-1,M} -rm[-1] -*[-1] $2
+    --$3[-1] -*[-1] {$2/(0.01+max(abs(im),abs(iM)))}
     -if $4 -+[-1] [-2] -else -+[-2,-1] -endif
   -done -if $4 -rm[0] -endif -a x -endl
   -mv[-1] 0 -done -if $4 -s x,$1 -endif -v +
@@ -967,6 +1018,28 @@ normalize_local :
     --[-1] [-2] -*[-3,-1] -+[-2,-1]
     -if $5 -c[-1] $6,$7 -endif
   -mv[-1] 0 -done -v +
+
+#@gmic map_tones : _threshold>=0,_gamma>=0,_smoothness>=0,iter>=0
+#@gmic : Apply tone mapping operator based on Poisson equation.
+map_tones : -skip ${1=0.1},${2=0.8},${3=0.5},${4=30}
+  -e[^-1] "Apply tone mapping operator with threshold $1, gamma $2, smoothness $3 and $4 iterations."
+  -v - -repeat @#
+
+    # Estimate target divergence for each channel.
+    --l[-1] -s[-1] c -repeat @#
+      -gradient[-1] xy,1 -a[-2,-1] c --norm[-1] -orientation[-2]
+      -p {im},{iM} -blur[-1] $3 -n[-1] ~-1 -pp[-1]
+      -*[-1] 'alpha=$1*iM;(alpha/(1e-10+i))*(i/(1e-10+alpha))^$2'
+     -*[-2,-1] -s[-1] c -gradient[-2] x,-1 -gradient[-1] y,-1 -+[-2,-1]
+    -mv[-1] 0 -done -a c -endl
+
+    # Start PDE iterations
+    -*[-1] 0.25
+    -repeat $4
+      --laplacian[-2] -*[-1] 0.25 -+[-1] [-3] --[-1] [-2] -*[-1] 800 -+[-3,-1] -/[-2] 801 -c[-2] 0,255
+      -w[-2]
+    -done -rm[-1]
+  -mv[-1] 0 -done  -v +
 
 #@gmic fftpolar
 #@gmic : Compute fourier transform of selected images, as centered magnitude/phase images.
@@ -1151,6 +1224,18 @@ laplacian :
     -endif
   -mv[-1] 0 -done -v +
 
+#@gmic divergence
+#@gmic : Compute divergence of selected vector fields.
+divergence :
+  -e[^-1] "Compute divergence of vector field$?."
+  -v - -repeat @#
+    -if {s==1} -gradient[-1] x,0
+    -elif {s==2} -s[-1] c -gradient[-2] x,0 -gradient[-1] y,0 -+[-2,-1]
+    -elif {s==3} -s[-1] c -gradient[-3] x,0 -gradient[-2] y,0 -gradient[-1] z,0 -+[-3--1]
+    -else -error[] "Cannot compute divergence of image ["~>"] (has "{s}">3 channels)."
+    -endif
+  -mv[-1] 0 -done -v +
+
 #@gmic inn
 #@gmic : Compute gradient-directed 2nd derivative of image(s).
 Inn :
@@ -1259,9 +1344,9 @@ _topographic_map :
     -endif
   -while 1
 
-#@gmic segment_watershed : _threshold>=0
+#@gmic segment_watershed : _threshold>=0,_edge_threshold>0,_keep_watershed={ 0 | 1 }
 #@gmic : Apply watershed segmentation on selected images.
-segment_watershed : -check "${1=2}>=0 && ${2=11}>0"
+segment_watershed : -check "${1=2}>=0 && ${2=11}>0" -skip ${3=1}
   -e[^-1] "Apply watershed segmentation on image$?, with edge threshold $1."
   -v - -repeat @#
     -p[0] {1+@{-1,m}} -+[-1] ~0
@@ -1272,7 +1357,7 @@ segment_watershed : -check "${1=2}>=0 && ${2=11}>0"
       --f[-1] "if(i<$1 && i<i(x+1) && i<i(x-1) && i<i(x,y+1) && i<i(x,y-1),1,0)"
     -endif
     -*[-3,-1] -*[-1] -1
-    -watershed[-2] [-1],1 -rm[-1]
+    -watershed[-2] [-1],$3 -rm[-1]
     -pp[0]
   -mv[-1] 0 -done -v +
 
@@ -1354,9 +1439,9 @@ taquin : -skip ${1=4},${2=$1}
    -split_tiles $1,$2,1 -repeat {$1*$2} -mv[~>] {int(?(0,@#))} -done -append_tiles $1,$2
  -endl -mv[-1] 0 -done -v +
 
-#@gmic grid : _M>0,_N>0
+#@gmic imagegrid : _M>0,_N>0
 #@gmic : Create MxN image grid from selected images.
-grid : -skip ${1=10},${2=$1}
+imagegrid : -skip ${1=10},${2=$1}
   -e[^-1] "Create $1x$2 image grid from image$?."
   -v - -repeat @#
     ({w},{h}) ($1,$2) -/[-2,-1] -round[-1] 1 -r[-2] @-1,[-2],[-2],2 -rm[-1]
@@ -1366,7 +1451,7 @@ grid : -skip ${1=10},${2=$1}
 
 #@gmic frame : _size_x[%]>=0,_size_y[%]>=0,_col1,...,_colN
 #@gmic : Insert RGBA-colored frame in selected images.
-frame : -skip ${1=20},${2=$1},${3=255},${4=$4},${5=$4}
+frame : -skip ${1=20},${2=$1},${3=255},${4=$3},${5=$4}
   -e[^-1] "Insert $1x$2 outer frame in image$?, with color (${3--1})."
   -v - -repeat @#
     -if {$1} -i[-2] $1,[-1],[-1],[-1] -fill_color[-2] ${3--1} [-2] -a[-3--1] x -endif
@@ -1486,6 +1571,14 @@ quadratize_tiles : -check "${1=10}>0 && ${2=$1}>0"
     -mv[-1] 0 -done
     -repeat {@#/~-1} -a[-~-1--1] c -mv[-1] 0 -done -append_tiles $1,$2 -pp[-1]
   -endl -mv[-1] 0 -done -v +
+
+#@gmic tunnel : _level>=0,_factor>0,_cx,_cy,_opacity.
+#@gmic : Apply tunnel effect on selected images.
+tunnel : -check "${1=9}>=0 && ${2=80%}>0" -skip ${3=0.5},${4=0.5},${5=0.1}
+  -e[^-1] "Apply tunnel effect on image$?, with depth $1, factor $2, centering ($3,$4) and opacity $5."
+  -v - -repeat @#
+    -repeat $1 --r[-1] $2,$2,1,100%,5 -image[-2] [-1],{(@{-2,w}-w)*$3},{(@{-2,h}-h)*$4},0,0,$5 -rm[-1] -done
+  -mv[-1] 0 -done -v +
 
 #-----------------------------
 #
@@ -2278,7 +2371,7 @@ _apply_channels :
 to_gray :
   -e[^-1] "Force image$? to be in GRAY mode."
   -v - -repeat @#
-    -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
+    -if {s>4} -error[] "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
     -elif {s>=3} -channels[-1] 0,2 -luminance[-1]
     -elif {s==2} -r[-1] 100%,100%,100%,1,0
     -endif
@@ -2289,7 +2382,7 @@ to_gray :
 to_graya :
   -e[^-1] "Force image$? to be in GRAYA mode."
   -v - -repeat @#
-    -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
+    -if {s>4} -error[] "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
     -elif {s==4} --channels[-1] 3 -channels[-2] 0,2 -luminance[-2] -a[-2,-1] c
     -elif {s==3} -luminance[-1] -channels[-1] 0,1 --sh[-1] 1,1 -f[-1] 255 -rm[-1]
     -elif {s==1} -channels[-1] 0,1 --sh[-1] 1,1 -f[-1] 255 -rm[-1]
@@ -2301,7 +2394,7 @@ to_graya :
 to_rgb :
    -e[^-1] "Force image$? to be in RGB mode."
    -v - -repeat @#
-     -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
+     -if {s>4} -error[] "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
      -elif {s==4} -channels[-1] 0,2
      -elif {s==2} -channels[-1] 0,0 -r[-1] 100%,100%,100%,3
      -elif {s==1} -r[-1] 100%,100%,1,3
@@ -2313,7 +2406,7 @@ to_rgb :
 to_rgba :
    -e[^-1] "Force image$? to be in RGBA mode."
    -v - -repeat @#
-     -if {s>4} -error "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
+     -if {s>4} -error[] "Image ["@{<,-1}"] is not a G,GA,RGB or RGBA image."
      -elif {s==3} -channels[-1] 0,3 --sh[-1] 3,3 -f[-1] 255 -rm[-1]
      -elif {s==2} -r[-1] 100%,100%,100%,4 --sh[-1] 2,2 -f[-1] [-2] -rm[-1]
      -elif {s==1} -r[-1] 100%,100%,1,4 --sh[-1] 3,3 -f[-1] 255 -rm[-1]
@@ -2347,7 +2440,7 @@ remove_opacity :
 
 #@gmic select_color : _tolerance[%]>=0,col1,..,colN
 #@gmic : Select pixels with specified color in selected images.
-select_color :
+select_color : -skip ${1=1}
   -e[^-1] "Select color (${2--1}) in image$?, with tolerance $1."
   -v - -repeat @#
     (${2--1}) -unroll[-1] c -r[-1] [-2] --[-2,-1] -norm[-1] -t[-1] $1 -*[-1] -1 -+[-1] 1
@@ -2828,10 +2921,12 @@ deinterlace : -skip ${1=0}
   -v - -repeat @#
     -i[-2] ({w},{h})
     -if {$1==0}
-      -l[-1] -s y -a[0--1:2] y -a[1--1] y -r[-2] [-1],0 -r[-2,-1] 100%,200%,100%,100%,5 -+[-2,-1] -/[-1] 2 -endl
+      -l[-1] -s y -a[0--1:2] y -a[1--1] y -r[-2] [-1],0 -r[-2,-1] 100%,200%,100%,100%,5
+      -+[-2,-1] -/[-1] 2 -c[-1] 0,255 -endl
     -else
       -l[-1] -s y -a[0--1:2] y -a[1--1] y -r[-2] [-1],0 -r[-2,-1] 100%,200%,1,100%,5
-      --displacement[-2] [-1],0.05 -warp[-3] [-1],1,1,1 -rm[-1] -+[-2,-1] -/[-1] 2 -endl
+      --displacement[-2] [-1],0.05 -warp[-3] [-1],1,1,1 -rm[-1]
+      -+[-2,-1] -/[-1] 2 -c[-1] 0,255 -endl
     -endif
     -r[-1] @-2 -rm[-2]
   -mv[-1] 0 -done -v +
@@ -2955,10 +3050,29 @@ balls3d : -check "${1=32}>0" -skip ${2=255},${3=$2},${4=$3},${5=1}
 
   -mv[-1] 0 -done -v +
 
+#@gmic imageplane3d
+#@gmic : Create 3d mapped planes from selected images.
+imageplane3d :
+  -e[^-1] "Generate 3d mapped planes from image$?."
+  -v - -repeat @#
+    -p[0] {w-1} -p[1] {h-1}
+    -i[-2] (67.5;73.5;109.5;103.5;51.5;100.5;\  # Magick number for CImg3d.
+            4;1;\                               # Number of vertices and primitives.
+            -0.5;-0.5;0;\                       # Vertex coordinates.
+            0.5;-0.5;0;\
+            0.5;0.5;0;\
+            -0.5;0.5;0;\
+            12;0;3;2;1;0;0;0;~1;~0;~1;~0;0;\    # Primitives description.
+            -128;{w};{h};{s})                   # Texture map.
+    -pp[0,1] -unroll[-1] y
+    (1)  # Opacity.
+    -a[-3--1] y
+  -mv[-1] 0 -done -v +
+
 #@gmic imagecube3d
 #@gmic : Create 3d mapped cubes from selected images.
 imagecube3d :
-  -e[^-1] "Generated 3d mapped cube frome image$?."
+  -e[^-1] "Generate 3d mapped cubes from image$?."
   -v - -repeat @#
     -p[0] {w-1} -p[1] {h-1}
     -i[-2] (67.5;73.5;109.5;103.5;51.5;100.5;\  # Magick number for CImg3d.
@@ -2983,10 +3097,24 @@ imagecube3d :
     -a[-3--1] y
   -mv[-1] 0 -done -v +
 
+#@gmic image6cube3d
+#@gmic : Create 3d mapped cubes from selected sets of 6 selected images.
+image6cube3d :
+  -e[^-1] "Generate 3d mapped cubes from sets of image$?."
+  -v - -imageplane3d -repeat {@#/6}
+    -+3d[-6] 0,0,-0.5
+    -rot3d[-5] 1,0,0,180 -+3d[-5] 0,0,0.5
+    -rot3d[-4] 0,1,0,-90 -+3d[-4] -0.5,0,0
+    -rot3d[-3] 0,1,0,90 -+3d[-3] 0.5,0,0
+    -rot3d[-2] 1,0,0,90 -+3d[-2] 0,-0.5,0
+    -rot3d[-1] 1,0,0,-90 -+3d[-1] 0,0.5,0
+    -+3d[-6--1]
+  -mv[-1] 0 -done -v +
+
 #@gmic imagepyramid3d
 #@gmic : Create 3d mapped pyramides from selected images.
 imagepyramid3d :
-  -e[^-1] "Generated 3d mapped pyramids frome image$?."
+  -e[^-1] "Generate 3d mapped pyramids from image$?."
   -v - -repeat @#
     -p[0] {w-1} -p[1] {h-1} -p[2] {w/2}
     -i[-2] (67.5;73.5;109.5;103.5;51.5;100.5;\  # Magick number for CImg3d.
@@ -3108,7 +3236,7 @@ _sierpinski3d :
                  $13,$14,$15,\
                  {$16-1}
 
-#@gmic snapshot3d : _size>0,_zoom>=0
+#@gmic snapshot3d : _size>0,_zoom>=0,_backgroundR,_backgroundG,_backgroundB
 #@gmic : Create 2d snapshots of selected 3d objects.
 #@gmic : Set 'zoom' to 0 to disable object auto-scaling.
 snapshot3d : -check "${1=512}>0 && ${2=1}>=0" -skip ${3=""}
@@ -3588,7 +3716,7 @@ x_life :
       -rm[3] -i[3] {int(?(3,12))},1,1,3,?(100,255)
       -r[3] {?(100,300)}%,1,1,3,4
       -point[3] 0,0,0,1,0
-      -r[3] {?(100,600)}%,1,1,3,5
+      -r[3] {?(100,600)}%,1,1,3,5 -c[3] 0,255
     -endif
 
     --r[1] @{2,w},@{2,h} -and[-1] 7 -blur[-1] {1+~1*0.05}       # Render colored image of the game and display it.
@@ -3856,17 +3984,19 @@ x_paint :
   -v - -to_rgb
 
   # Init variables and images.
-  -if {!@#} -i[0] 512,512,1,3 -endif
-  color=255,255,255
+  -if {!@#} -i[0] 512,512,1,3,255 -endif
+  color=0,0,0
   saturation=1
   brushsize=3
   brushopacity=0
-  brushangle=0
+  brushangle=90
+  brushthickness=1
   image=0
   refresh_palette=1
   refresh_image=1
   refresh_brush=1
-  ox1=-1 oy1=-1
+  ox1=-1
+  oy1=-1
   1 1    # Palette image [-2] and brush image [-1]
 
   # Start user event loop.
@@ -3886,12 +4016,26 @@ x_paint :
     # Open/refresh brush window.
     -if $refresh_brush
       -rm[-1] (32,64;64,32) -r[-1] 16,16,1,3,1 -r[-1] {8*48},{4*48},1,3,0,2
-      -repeat 4 -repeat 8 -ellipse[-1] {48*~>+24},{48*@{>,-2}+24},{2*~>+1},{2*~>+1},0,{1-@{>,-2}/4},255 -done -done
+      -repeat 4 -repeat 8
+        -ellipse[-1] {48*~>+24},{48*@{>,-2}+24},{2*~>+1},{(2*~>+1)*$brushthickness},$brushangle,{1-@{>,-2}/4},255
+      -done -done
       -polygon[-1] 4,{$brushsize*48},{$brushopacity*48},\
                      {$brushsize*48+47},{$brushopacity*48},\
                      {$brushsize*48+47},{$brushopacity*48+47},\
                      {$brushsize*48},{$brushopacity*48+47},\
-                     1,0xFFFFFFFF,255
+                     1,0xFFFFFFFF,255,128,128
+      {w},16,1,3 -line[-1] 0,50%,100%,50%,1,0x55555555,128,64,128
+      bx={$brushangle*w/180}
+      -polygon[-1] 4,{$bx-16},20%,{$bx+16},20%,{$bx+16},80%,{$bx-16},80%,1,128
+      -line[-1] {$bx-16},20%,{$bx+16},20%,1,255 -line[-1] {$bx+16},20%,{$bx+16},80%,1,255
+      -line[-1] {$bx-16},80%,{$bx+16},80%,1,64 -line[-1] {$bx-16},20%,{$bx-16},80%,1,64
+      -a[-2,-1] y
+      16,{h-16},1,3 -line[-1] 50%,0,50%,100%,1,0x55555555,128,64,128
+      by={$brushthickness*(h-16)}
+      -polygon[-1] 4,20%,{$by-16},80%,{$by-16},80%,{$by+16},20%,{$by+16},1,128
+      -line[-1] 20%,{$by-16},80%,{$by-16},1,255 -line[-1] 80%,{$by-16},80%,{$by+16},1,255
+      -line[-1] 20%,{$by-16},20%,{$by+16},1,64 -line[-1] 20%,{$by+16},80%,{$by+16},1,64
+      -a[-2,-1] x
       -w3[-1] {w},{h},0,0,"Brush"
       refresh_brush=0
     -endif
@@ -3903,18 +4047,23 @@ x_paint :
     -endif
 
     # Manage user events.
-    x1=@{!1,x} y1=@{!1,y} x2=@{!2,x} y2=@{!2,y}
+    x1=@{!1,x} y1=@{!1,y}
+    x2=@{!2,x} y2=@{!2,y}
+    x3=@{!3,x} y3=@{!3,y}
 
     -if {$x1>=0}                        # Event in the image window.
       -if {@{!1,b}\&1}                  # Left button -> draw brush stroke.
         ox1={if($ox1<0,$x1,$ox1)}
         oy1={if($oy1<0,$y1,$oy1)}
         delta={max(abs($x1-$ox1),abs($y1-$oy1))}
-        dx={($x1-$ox1)/max(1,$delta)}
-        dy={($y1-$oy1)/max(1,$delta)}
-        r={2*$brushsize+1}
-        o={1-($brushopacity/4)^0.1}
-        -repeat {$delta+1} -ellipse[$image] {$ox1+~>*$dx},{$oy1+~>*$dy},$r,$r,0,$o,$color -done
+        r1={2*$brushsize+1}
+        r2={$r1*$brushthickness}
+        dx={2*($x1-$ox1)/max(1,$delta)}
+        dy={2*($y1-$oy1)/max(1,$delta)}
+        o={1-($brushopacity/4)^0.04}
+        -repeat {max(1,($delta+1)/2)}
+          -ellipse[$image] {$ox1+~>*$dx},{$oy1+~>*$dy},$r1,$r2,$brushangle,$o,$color
+        -done
         ox1=$x1 oy1=$y1
         refresh_image=1
       -else
@@ -3945,9 +4094,15 @@ x_paint :
       refresh_palette=1
     -endif
 
-    -if {@{!3,b}" && "@{!3,x}>=0}  # Manage brush selection.
-      brushsize={int(@{!3,x}*8/@{-1,w})}
-      brushopacity={int(@{!3,y}*4/@{-1,h})}
+    -if {@{!3,b}" && "$x3>=0}  # Manage brush selection.
+      -if {$x3<384" && "$y3>=192}   # Bottom slider -> select brush angle.
+        brushangle={$x3*180/(@{-1,w}-16)}
+      -elif {$x3>=384" && "$y3<192} # Right slider -> select brush thickness.
+        brushthickness={$y3/(@{-1,h}-16)}
+      -elif {$x3<384" && "$y3<192}
+        brushsize={int($x3*8/(@{-1,w}-16))}
+        brushopacity={int($y3*4/(@{-1,h}-16))}
+      -endif
       refresh_brush=1
     -endif
     -wait
@@ -3979,19 +4134,29 @@ h :
 # Return a path to store temporary files (OS-dependent).
 path_tmp :
   -u ""
-  -if {narg({${TMP}})} -u ${TMP}
-  -elif {narg({${TEMP}})} -u ${TEMP}
-  -elif {narg({${TMPDIR}})} -u ${TMPDIR}
-  -elif {narg({${HOME}})} -u "/tmp"
+  -if {narg({'${TMP}'})} -u ${TMP}
+  -elif {narg({'${TEMP}'})} -u ${TEMP}
+  -elif {narg({'${TMPDIR}'})} -u ${TMPDIR}
+  -elif {narg({'${HOME}'})} -u "/tmp"
   -endif
 
 # path_user
 # Return a path to store persistent configuration files for one user (OS-dependent).
 path_user :
   -u ""
-  -if {narg({${APPDATA}})} -u ${APPDATA}
-  -elif {narg({${HOME}})} -u ${HOME}
+  -if {narg({'${APPDATA}'})} -u ${APPDATA}
+  -elif {narg({'${HOME}'})} -u ${HOME}
   -endif
+
+# randRGB
+# Return a random RGB color
+randRGB :
+  3,1,1,1,round(?(255)) -u @-1 -rm[-1]
+
+# randRGBA
+# Return a random RGBA color
+randRGBA :
+  4,1,1,1,round(?(255)) -u @-1 -rm[-1]
 
 # strcmp : string1,string2
 # Return the comparison value between two strings.
@@ -4136,6 +4301,7 @@ gimp_no_preview :
   118,50 -text[-1] "No preview\navailable",2,1,24,1,255 -r[-1] [-2],[-2],1,1,0,0,0.5,0.5 -to_colormode[-1] @{-2,s}
   (1.5,0,1.5;0,0,0;1.5,0,1.5) -r[-1] [-3],3 -*[-3,-1] -c[-2] 0,255 -or
   -skip ${^0}
+
 
 # Do not forget to ucomment this entry for a deprecated version of the G'MIC plug-in !
 # #@gimp <span foreground="red"><b>UPDATE INFORMATION</b></span> : _none_, gimp_logo_en
@@ -4394,7 +4560,8 @@ gimp_logo_ca :
 #@gimp : - <b>2010/06/30</b> : version <i>1.3.6.0</i>.\n
 #@gimp : - <b>2010/07/07</b> : version <i>1.3.7.0</i>.\n
 #@gimp : - <b>2010/07/20</b> : version <i>1.3.8.0</i>.\n
-#@gimp : - <span foreground="purple"><b>2010/07/28</b> : version <i>1.3.9.0</i> (Current).</span>\n
+#@gimp : - <b>2010/07/28</b> : version <i>1.3.9.0</i>.\n
+#@gimp : - <span foreground="purple"><b>2010/09/03</b> : version <i>1.4.0.0</i> (Current).</span>\n
 #@gimp : "}
 
 #@gimp Contributors : _none_, _none_
@@ -4419,18 +4586,20 @@ gimp_logo_ca :
 
 #@gimp Friends Hall of Fame : _none_, gimp_friends
 #@gimp : note = note{"\n<span foreground="purple" underline="single">Postcard senders :</span>"}
-#@gimp : note = note{" <b>-</b> We've received <b>8</b> postcards from <b>G'MIC</b> enthusiasts so far."}
-#@gimp : note = note{"   You could be the 9th sender :)"}
+#@gimp : note = note{" <b>-</b> We've received <b>9</b> postcards from <b>G'MIC</b> enthusiasts so far."}
+#@gimp : note = note{"   You could be the 10th sender :)"}
 #@gimp : sep = separator()
-#@gimp : note = note{" <b>-</b> A big hug goes to these folks :"}
-#@gimp : link = link(0,"[1] Jean-Michel Webbe - Guadeloupe/France","http://cimg.sourceforge.net/img/postcard15.jpg")
-#@gimp : link = link(0,"[2] Jaime - Barcelona/Spain","http://cimg.sourceforge.net/img/postcard14.jpg")
-#@gimp : link = link(0,"[3] Institut for Biomathematik und Biometrie - Neuherberg/Germany","http://cimg.sourceforge.net/img/postcard20.jpg")
-#@gimp : link = link(0,"[4] Guy Poizat - Cabestany/France","http://cimg.sourceforge.net/img/postcard21.jpg")
+#@gimp : note = note{" <b>-</b> A big hug goes to these folks (recently received first) :"}
+#@gimp : link = link(0,"[1] Mahvin - Portland/USA","http://cimg.sourceforge.net/img/postcard27.jpg")
+#@gimp : link = link(0,"[2] Vincent Roullier - Caen/France","http://cimg.sourceforge.net/img/postcard26.jpg")
+#@gimp : link = link(0,"[3] M???? - Munich/Germany","http://cimg.sourceforge.net/img/postcard24.jpg")
+#@gimp : link = link(0,"[4] F. Albior - Jaca/Spain","http://cimg.sourceforge.net/img/postcard23.jpg")
 #@gimp : link = link(0,"[5] PhotoComIX - Frascati/Italy","http://cimg.sourceforge.net/img/postcard22.jpg")
-#@gimp : link = link(0,"[6] F. Albior - Jaca/Spain","http://cimg.sourceforge.net/img/postcard23.jpg")
-#@gimp : link = link(0,"[7] M???? - Munich/Germany","http://cimg.sourceforge.net/img/postcard24.jpg")
-#@gimp : link = link(0,"[8] Vincent Roullier - Caen/France","http://cimg.sourceforge.net/img/postcard26.jpg")
+#@gimp : link = link(0,"[6] Guy Poizat - Cabestany/France","http://cimg.sourceforge.net/img/postcard21.jpg")
+#@gimp : link = link(0,"[7] Institut for Biomathematik und Biometrie - Neuherberg/Germany","http://cimg.sourceforge.net/img/postcard20.jpg")
+#@gimp : link = link(0,"[8] Jaime - Barcelona/Spain","http://cimg.sourceforge.net/img/postcard14.jpg")
+#@gimp : link = link(0,"[9] Jean-Michel Webbe - Guadeloupe/France","http://cimg.sourceforge.net/img/postcard15.jpg")
+
 #@gimp : sep = separator()
 #@gimp : note = note{"\nMay the force be with you !"}
 gimp_friends :
@@ -4554,11 +4723,11 @@ gimp_parameterize_tiles :
   -endif
   -c 0,255
 
-#@gimp Image grid : gimp_grid, gimp_grid(0)
+#@gimp Image grid : gimp_imagegrid, gimp_imagegrid(0)
 #@gimp : X-size = int(10,2,100)
 #@gimp : Y-size = int(10,2,100)
-gimp_grid :
-  -to_rgba -grid $1,$2
+gimp_imagegrid :
+  -to_rgba -imagegrid $1,$2
 
 #@gimp Taquin puzzle : taquin, taquin(1)
 #@gimp : X-tiles = int(7,1,20)
@@ -4632,6 +4801,15 @@ gimp_frame_fuzzy :
 gimp_frame_round :
   -frame_round ${1-8}
   -if $9 -frame_blur $1,{min(99,$1+$9)},$3,$10,$11% -endif
+
+#@gimp Tunnel : gimp_tunnel,gimp_tunnel(1)
+#@gimp : Depth = int(4,1,100)
+#@gimp : Factor = float(80,1,99)
+#@gimp : X-center = float(0.5,0,1)
+#@gimp : Y-center = float(0.5,0,1)
+#@gimp : Opacity = float(0.2,0,1)
+gimp_tunnel :
+  -tunnel $1,$2%,$3,$4,$5
 
 
 #@gimp _<b>Artistic</b>
@@ -4805,11 +4983,14 @@ gimp_pencilbw_preview :
 #@gimp : Coherence = float(1,0,10)
 #@gimp : Boost stroke = bool(0)
 #@gimp : Curved stroke = bool(1)
-#@gimp : Negative = bool(0)
+#@gimp : Color model = choice("Black on white","White on black","Black on transparent white","White on transparent black")
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_sketchbw :
   -sketchbw ${1-14}
-  -if $15 -negative -endif
+  -if {$15\&1} -negative -endif
+  -if {$15==2} -r 100%,100%,1,4 -repeat @# --sh[~>] 3,3 -*[-1] -2 -+[-1] {2*255} -c[-1] 0,255 -rm[-1] -done
+  -elif {$15==3} -r 100%,100%,1,4 -repeat @# --sh[~>] 3,3 -*[-1] 2 -c[-1] 0,255 -rm[-1] -done
+  -endif
 
 gimp_sketchbw_preview :
   -gimp_split_preview "-gimp_sketchbw ${1--2}",$-1
@@ -5040,7 +5221,7 @@ gimp_channel_processing_preview :
 #@gimp Curves : gimp_apply_curve, gimp_apply_curve_preview
 #@gimp : Starting Y = int(0,0,255)
 #@gimp : sep = separator()
-#@gimp : X-coord(1) = int(128,-1,255)
+#@gimp : X-coord(1) = int(-1,-1,255)
 #@gimp : Y-coord(1) = int(128,0,255)
 #@gimp : sep = separator()
 #@gimp : X-coord(2) = int(-1,-1,255)
@@ -5057,93 +5238,575 @@ gimp_channel_processing_preview :
 #@gimp : sep = separator()
 #@gimp : Ending Y = int(255,0,255)
 #@gimp : sep = separator()
-#@gimp : Curve smoothness = float(0.5,0.01,0.99)
+#@gimp : Curve smoothness = float(1,0,1)
 #@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha","ch-components","c-component","h-component")
 #@gimp : Value range = choice("Cut","Normalize")
 #@gimp : Display histogram = float(0,0,100)
 #@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 gimp_apply_curve :
-  -apply_channels "-_gimp_apply_curve $13,${1-12}",$14,$15
+  -apply_channels "-_gimp_apply_curve ${1-13}",$14,$15
 
 _gimp_apply_curve :
-  -p[0] {$2*100/255}
-  -p[1] {$3*100/255} -p[2] {$4*100/255}
-  -p[3] {$5*100/255} -p[4] {$6*100/255}
-  -p[5] {$7*100/255} -p[6] {$8*100/255}
-  -p[7] {$9*100/255} -p[8] {$10*100/255}
-  -p[9] {$11*100/255} -p[10] {$12*100/255}
-  -p[11] {$13*100/255}
-  -apply_curve $1,~0,@{"-if {"~1">=0} -u "~1","~2", -else -u \"\" -endif"}\
-                     @{"-if {"~3">=0} -u "~3","~4", -else -u \"\" -endif"}\
-                     @{"-if {"~5">=0} -u "~5","~6", -else -u \"\" -endif"}\
-                     @{"-if {"~7">=0} -u "~7","~8", -else -u \"\" -endif"}\
-                     @{"-if {"~9">=0} -u "~9","~10", -else -u \"\" -endif"}~11
+  -apply_curve $13,0,$1,\
+                   @{"-if {$2>=0} -u $2,$3, -else -u \"\" -endif"}\
+                   @{"-if {$4>=0} -u $4,$5, -else -u \"\" -endif"}\
+                   @{"-if {$6>=0} -u $6,$7, -else -u \"\" -endif"}\
+                   @{"-if {$8>=0} -u $8,$9, -else -u \"\" -endif"}\
+                   @{"-if {$10>=0} -u $10,$11, -else -u \"\" -endif"}\
+                   255,$12
 
 gimp_apply_curve_preview :
-  -repeat @#
+  -function1d $13,0,$1,\
+                  @{"-if {$2>=0} -u $2,$3, -else -u \"\" -endif"}\
+                  @{"-if {$4>=0} -u $4,$5, -else -u \"\" -endif"}\
+                  @{"-if {$6>=0} -u $6,$7, -else -u \"\" -endif"}\
+                  @{"-if {$8>=0} -u $8,$9, -else -u \"\" -endif"}\
+                  @{"-if {$10>=0} -u $10,$11, -else -u \"\" -endif"}\
+                  255,$12
+  -mv[-1] 0
+  -repeat {@#-1}
     --gimp_split_preview[-1] "-gimp_apply_curve ${1--2}",$-1
-    -axes[-1] 0,255,255,0,1,255
-    -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -axes[-1] 0,255,255,0,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
+    -if $-2
+      [-1],[-1],1,1,-{$-2*255/100} -to_gray[-3] -histogram[-3] 256,0,255 -graph[-1] [-3],3,0,0,0,1,0
+      -rm[-3] -+[-1] {$-2*255/100} -+[-2,-1] -c[-1] 0,255
+     -else -rm[-2] -endif
+     -graph[-1] [0],1,0,255,0,1,255
+     -_gimp_apply_curve_preview 0,$1,0 -_gimp_apply_curve_preview $2,$3,1
+     -_gimp_apply_curve_preview $4,$5,2 -_gimp_apply_curve_preview $6,$7,3
+     -_gimp_apply_curve_preview $8,$9,4 -_gimp_apply_curve_preview $10,$11,5
+     -_gimp_apply_curve_preview 255,$12,6
+  -mv[-1] 1 -done -rm[0]
+
+_gimp_apply_curve_preview :
+  -if {$1>=0}
+    x={$1*100/255}% y={100-$2*100/255}%
+    -ellipse[-1] $x,$y,3,3,0,1,0xFFFFFFFF,0,0,0 -ellipse[-1] $x,$y,2,2,0,1,0,255,0
+    -text[-1] $3,$x,{$y*h-20},13,1,255
+  -endif
+
+
+#@gimp RGB Curves
+#@gimp Red : gimp_apply_RGBcurve, gimp_apply_Rcurve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(-1,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(1,0,1)
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+
+#@gimp Green : gimp_apply_RGBcurve, gimp_apply_Gcurve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(-1,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(1,0,1)
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+
+#@gimp Blue : gimp_apply_RGBcurve, gimp_apply_Bcurve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(-1,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(1,0,1)
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_apply_RGBcurve : -skip $1
+  -gimp_apply_RGBcurve_configfile
+  -repeat {@#-1} -l[~>,-1]
+    -to_colormode[0] {max(3,s)}
+    --shared[0] 0,0 -_gimp_apply_RGBcurve[-1] @{-2,0-12} -rm[-1]
+    --shared[0] 1,1 -_gimp_apply_RGBcurve[-1] @{-2,13-25} -rm[-1]
+    --shared[0] 2,2 -_gimp_apply_RGBcurve[-1] @{-2,26-38} -rm[-1]
+  -endl -done
+  -rm[-1]
+
+_gimp_apply_RGBcurve :
+  -apply_curve $13,0,$1,\
+                   @{"-if {$2>=0} -u $2,$3, -else -u \"\" -endif"}\
+                   @{"-if {$4>=0} -u $4,$5, -else -u \"\" -endif"}\
+                   @{"-if {$6>=0} -u $6,$7, -else -u \"\" -endif"}\
+                   @{"-if {$8>=0} -u $8,$9, -else -u \"\" -endif"}\
+                   @{"-if {$10>=0} -u $10,$11, -else -u \"\" -endif"}\
+                   255,$12
+  -c 0,255
+
+gimp_apply_Rcurve_preview :
+  -gimp_apply_RGBcurve_configfile
+  --shared[-1] 0,0,0,0 -f[-1] ${1--3} -rm[-1]
+  -gimp_apply_RGBcurve_preview[0--2] @-1,0,${-2,-1} -rm[-1]
+
+gimp_apply_Gcurve_preview :
+  -gimp_apply_RGBcurve_configfile
+  --shared[-1] 1,1,0,0 -f[-1] ${1--3} -rm[-1]
+  -gimp_apply_RGBcurve_preview[0--2] @-1,1,${-2,-1} -rm[-1]
+
+gimp_apply_Bcurve_preview :
+  -gimp_apply_RGBcurve_configfile
+  --shared[-1] 2,2,0,0 -f[-1] ${1--3} -rm[-1]
+  -gimp_apply_RGBcurve_preview[0--2] @-1,2,${-2,-1} -rm[-1]
+
+gimp_apply_RGBcurve_configfile :
+  filename=@{-path_tmp}/.gmic_RGBcurve.dlm
+  -if $filename $filename -else (0,-1,128,-1,128,-1,128,-1,128,-1,128,255,1) -r[-1] 100%,3 -endif
+
+gimp_apply_RGBcurve_preview :
+  (${1--3}) -r[-1] 13,3,1,1,-1 -o[-1] @{-path_tmp}/.gmic_RGBcurve.dlm -rm[-1]
+  -function1d $13,0,$1,\
+                  @{"-if {$2>=0} -u $2,$3, -else -u \"\" -endif"}\
+                  @{"-if {$4>=0} -u $4,$5, -else -u \"\" -endif"}\
+                  @{"-if {$6>=0} -u $6,$7, -else -u \"\" -endif"}\
+                  @{"-if {$8>=0} -u $8,$9, -else -u \"\" -endif"}\
+                  @{"-if {$10>=0} -u $10,$11, -else -u \"\" -endif"}\
+                  255,$12
+  -function1d $26,0,$14,\
+                  @{"-if {$15>=0} -u $15,$16, -else -u \"\" -endif"}\
+                  @{"-if {$17>=0} -u $17,$18, -else -u \"\" -endif"}\
+                  @{"-if {$19>=0} -u $19,$20, -else -u \"\" -endif"}\
+                  @{"-if {$21>=0} -u $21,$22, -else -u \"\" -endif"}\
+                  @{"-if {$23>=0} -u $23,$24, -else -u \"\" -endif"}\
+                  255,$25
+  -function1d $39,0,$27,\
+                  @{"-if {$28>=0} -u $28,$29, -else -u \"\" -endif"}\
+                  @{"-if {$30>=0} -u $30,$31, -else -u \"\" -endif"}\
+                  @{"-if {$32>=0} -u $32,$33, -else -u \"\" -endif"}\
+                  @{"-if {$34>=0} -u $34,$35, -else -u \"\" -endif"}\
+                  @{"-if {$36>=0} -u $36,$37, -else -u \"\" -endif"}\
+                  255,$38
+  -a[-3--1] y -mv[-1] 0
+  -repeat {@#-1}
+    [-1]
+    --gimp_split_preview[-1] "-gimp_apply_RGBcurve 0",$-1
+    -axes[-1] 0,255,255,0,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
      -if $-2
         [-1],[-1],1,1,-{$-2*255/100} -to_gray[-3] -histogram[-3] 256,0,255 -graph[-1] [-3],3,0,0,0,1,0
         -rm[-3] -+[-1] {$-2*255/100} -+[-2,-1] -c[-1] 0,255
      -else -rm[-2] -endif
+     -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
+     --shared[0] 0,0,0,0
+     -graph[-2] [-1],1,0,255,0,1,255,128,128 --[-1] 1
+     -graph[-2] [-1],1,0,255,0,0.5,200,0,0 -rm[-1]
+     --shared[0] 1,1,0,0
+     -graph[-2] [-1],1,0,255,0,1,128,255,128 --[-1] 1
+     -graph[-2] [-1],1,0,255,0,0.5,0,200,0 -rm[-1]
+     --shared[0] 2,2,0,0
+     -graph[-2] [-1],1,0,255,0,1,128,128,255 --[-1] 1
+     -graph[-2] [-1],1,0,255,0,0.5,0,0,200 -rm[-1]
+     -if {$40==0}
+       -_gimp_apply_curve_preview 0,$1,0 -_gimp_apply_curve_preview $2,$3,1
+       -_gimp_apply_curve_preview $4,$5,2 -_gimp_apply_curve_preview $6,$7,3
+       -_gimp_apply_curve_preview $8,$9,4 -_gimp_apply_curve_preview $10,$11,5
+       -_gimp_apply_curve_preview 255,$12,6
+     -elif {$40==1}
+       -_gimp_apply_curve_preview 0,$14,0 -_gimp_apply_curve_preview $15,$16,1
+       -_gimp_apply_curve_preview $17,$18,2 -_gimp_apply_curve_preview $19,$20,3
+       -_gimp_apply_curve_preview $21,$22,4 -_gimp_apply_curve_preview $23,$24,5
+       -_gimp_apply_curve_preview 255,$25,6
+     -else
+       -_gimp_apply_curve_preview 0,$27,0 -_gimp_apply_curve_preview $28,$29,1
+       -_gimp_apply_curve_preview $30,$31,2 -_gimp_apply_curve_preview $32,$33,3
+       -_gimp_apply_curve_preview $34,$35,4 -_gimp_apply_curve_preview $36,$37,5
+       -_gimp_apply_curve_preview 255,$38,6
+     -endif
+  -mv[-1] 1 -done -rm[0]
 
-     -p[0] {$1*100/255}
-     -p[1] {$2*100/255} -p[2] {$3*100/255}
-     -p[3] {$4*100/255} -p[4] {$5*100/255}
-     -p[5] {$6*100/255} -p[6] {$7*100/255}
-     -p[7] {$8*100/255} -p[8] {$9*100/255}
-     -p[9] {$10*100/255} -p[10] {$11*100/255}
-     -p[11] {$12*100/255}
-     -__gimp_apply_curve $13,~0,@{"-if {"~1">=0} -u "~1","~2", -else -u \"\" -endif"}\
-                                @{"-if {"~3">=0} -u "~3","~4", -else -u \"\" -endif"}\
-                                @{"-if {"~5">=0} -u "~5","~6", -else -u \"\" -endif"}\
-                                @{"-if {"~7">=0} -u "~7","~8", -else -u \"\" -endif"}\
-                                @{"-if {"~9">=0} -u "~9","~10", -else -u \"\" -endif"}~11
-    -pp[0-11]
-  -mv[-1] 0 -done
+#@gimp _YCbCr Curves
+#@gimp Luminance : gimp_apply_YCbCrcurve, gimp_apply_Ycurve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(-1,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(1,0,1)
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 
-__gimp_apply_curve :
-  [-1],[-1],1,[-1]
-  (0,${2--2},101,$-1) -r[-1] 2,{w/2},1,1,-1 -sort[-1] +,y
-  --shift[-1] 0,-1,0,0,1 --shift[-2] 0,1,0,0,1 --[-2,-1] -*[-1] $1
-  -a[-2,-1] x
-  -repeat {h-1}
-    -if {@{-2,0}>=0" && "@{-2,4}>=0}
-      -spline[-2] @{-1,0}%,@{-1,1}%,@{-1,2}%,@{-1,3}%,@{-1,4}%,@{-1,5}%,@{-1,6}%,@{-1,7}%,1,255
-    -endif
-    -shift[-1] 0,-1,0,0,2
-  -done
-  -mirror[-2] y
-  -rm[-1] -or[-2,-1]
+#@gimp Blue chrominance : gimp_apply_YCbCrcurve, gimp_apply_Cbcurve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(-1,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(1,0,1)
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
 
-  (0,${2--2},101,$-1) -r[-1] 2,{w/2},1,1,-1
-  -repeat {h}
-    -if {@{-2,0}>=0" && "@{-2,4}>=0}
-      -ellipse[-2] {@{-1,0}*@{-2,w}/100},{(100-@{-1,1})*@{-2,h}/100},3,3,0,1,255,0,0,255
-      -ellipse[-2] {@{-1,0}*@{-2,w}/100},{(100-@{-1,1})*@{-2,h}/100},3,3,0,1,0xFFFFFFFF,0,0,0,255
-      -text[-2] ~>,{@{-1,0}*@{-2,w}/100-5},{(100-@{-1,1})*@{-2,h}/100-17},13,1,255
-    -endif
-    -shift[-1] 0,-1,0,0,2
-  -done
+#@gimp Red Chrominance : gimp_apply_YCbCrcurve, gimp_apply_Crcurve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(-1,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(1,0,1)
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_apply_YCbCrcurve : -skip $1
+  -gimp_apply_YCbCrcurve_configfile
+  -repeat {@#-1} -l[~>,-1]
+    -to_colormode[0] {max(3,s)} --shared[0] 0,2 -rgb2ycbcr[-1] -rm[-1]
+    --shared[0] 0,0 -_gimp_apply_YCbCrcurve[-1] @{-2,0-12} -rm[-1]
+    --shared[0] 1,1 -_gimp_apply_YCbCrcurve[-1] @{-2,13-25} -rm[-1]
+    --shared[0] 2,2 -_gimp_apply_YCbCrcurve[-1] @{-2,26-38} -rm[-1]
+    --shared[0] 0,2 -ycbcr2rgb[-1] -rm[-1]
+  -endl -done
   -rm[-1]
 
-#@gimp Local normalization : gimp_normalize_local, gimp_normalize_local_preview(0)
-#@gimp : Amplitude = float(2,0,60)
-#@gimp : Radius = int(6,1,64)
-#@gimp : Neighborhood smoothness = float(5,0,40)
-#@gimp : Average smoothness = float(20,0,40)
-#@gimp : Constrain values = bool(1)
-#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha","ch-components","c-component","h-component")
-#@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
-gimp_normalize_local :
-  -apply_channels "-normalize_local $1,$2,$3,$4,$5,0,255",$6,0
+_gimp_apply_YCbCrcurve :
+  -apply_curve $13,0,$1,\
+                   @{"-if {$2>=0} -u $2,$3, -else -u \"\" -endif"}\
+                   @{"-if {$4>=0} -u $4,$5, -else -u \"\" -endif"}\
+                   @{"-if {$6>=0} -u $6,$7, -else -u \"\" -endif"}\
+                   @{"-if {$8>=0} -u $8,$9, -else -u \"\" -endif"}\
+                   @{"-if {$10>=0} -u $10,$11, -else -u \"\" -endif"}\
+                   255,$12
+  -c 0,255
 
-gimp_normalize_local_preview :
-  -gimp_split_preview "-gimp_normalize_local ${1--2}",$-1
+gimp_apply_Ycurve_preview :
+  -gimp_apply_YCbCrcurve_configfile
+  --shared[-1] 0,0,0,0 -f[-1] ${1--3} -rm[-1]
+  -gimp_apply_YCbCrcurve_preview[0--2] @-1,0,${-2,-1} -rm[-1]
 
-#@gimp Black &amp; White : gimp_blackandwhite, gimp_blackandwhite_preview(1)
+gimp_apply_Cbcurve_preview :
+  -gimp_apply_YCbCrcurve_configfile
+  --shared[-1] 1,1,0,0 -f[-1] ${1--3} -rm[-1]
+  -gimp_apply_YCbCrcurve_preview[0--2] @-1,1,${-2,-1} -rm[-1]
+
+gimp_apply_Crcurve_preview :
+  -gimp_apply_YCbCrcurve_configfile
+  --shared[-1] 2,2,0,0 -f[-1] ${1--3} -rm[-1]
+  -gimp_apply_YCbCrcurve_preview[0--2] @-1,2,${-2,-1} -rm[-1]
+
+gimp_apply_YCbCrcurve_configfile :
+  filename=@{-path_tmp}/.gmic_YCbCrcurve.dlm
+  -if $filename $filename -else (0,-1,128,-1,128,-1,128,-1,128,-1,128,255,1) -r[-1] 100%,3 -endif
+
+gimp_apply_YCbCrcurve_preview :
+  (${1--3}) -r[-1] 13,3,1,1,-1 -o[-1] @{-path_tmp}/.gmic_YCbCrcurve.dlm -rm[-1]
+  -function1d $13,0,$1,\
+                  @{"-if {$2>=0} -u $2,$3, -else -u \"\" -endif"}\
+                  @{"-if {$4>=0} -u $4,$5, -else -u \"\" -endif"}\
+                  @{"-if {$6>=0} -u $6,$7, -else -u \"\" -endif"}\
+                  @{"-if {$8>=0} -u $8,$9, -else -u \"\" -endif"}\
+                  @{"-if {$10>=0} -u $10,$11, -else -u \"\" -endif"}\
+                  255,$12
+  -function1d $26,0,$14,\
+                  @{"-if {$15>=0} -u $15,$16, -else -u \"\" -endif"}\
+                  @{"-if {$17>=0} -u $17,$18, -else -u \"\" -endif"}\
+                  @{"-if {$19>=0} -u $19,$20, -else -u \"\" -endif"}\
+                  @{"-if {$21>=0} -u $21,$22, -else -u \"\" -endif"}\
+                  @{"-if {$23>=0} -u $23,$24, -else -u \"\" -endif"}\
+                  255,$25
+  -function1d $39,0,$27,\
+                  @{"-if {$28>=0} -u $28,$29, -else -u \"\" -endif"}\
+                  @{"-if {$30>=0} -u $30,$31, -else -u \"\" -endif"}\
+                  @{"-if {$32>=0} -u $32,$33, -else -u \"\" -endif"}\
+                  @{"-if {$34>=0} -u $34,$35, -else -u \"\" -endif"}\
+                  @{"-if {$36>=0} -u $36,$37, -else -u \"\" -endif"}\
+                  255,$38
+  -a[-3--1] y -mv[-1] 0
+  -repeat {@#-1}
+    [-1]
+    --gimp_split_preview[-1] "-gimp_apply_YCbCrcurve 0",$-1
+    -axes[-1] 0,255,255,0,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
+     -if $-2
+        [-1],[-1],1,1,-{$-2*255/100} -to_gray[-3] -histogram[-3] 256,0,255 -graph[-1] [-3],3,0,0,0,1,0
+        -rm[-3] -+[-1] {$-2*255/100} -+[-2,-1] -c[-1] 0,255
+     -else -rm[-2] -endif
+     -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
+     --shared[0] 0,0,0,0
+     -graph[-2] [-1],1,0,255,0,1,255,255,255 --[-1] 1
+     -graph[-2] [-1],1,0,255,0,0.5,200,200,200 -rm[-1]
+     --shared[0] 1,1,0,0
+     -graph[-2] [-1],1,0,255,0,1,128,128,255 --[-1] 1
+     -graph[-2] [-1],1,0,255,0,0.5,0,0,200 -rm[-1]
+     --shared[0] 2,2,0,0
+     -graph[-2] [-1],1,0,255,0,1,255,128,128 --[-1] 1
+     -graph[-2] [-1],1,0,255,0,0.5,200,0,0 -rm[-1]
+     -if {$40==0}
+       -_gimp_apply_curve_preview 0,$1,0 -_gimp_apply_curve_preview $2,$3,1
+       -_gimp_apply_curve_preview $4,$5,2 -_gimp_apply_curve_preview $6,$7,3
+       -_gimp_apply_curve_preview $8,$9,4 -_gimp_apply_curve_preview $10,$11,5
+       -_gimp_apply_curve_preview 255,$12,6
+     -elif {$40==1}
+       -_gimp_apply_curve_preview 0,$14,0 -_gimp_apply_curve_preview $15,$16,1
+       -_gimp_apply_curve_preview $17,$18,2 -_gimp_apply_curve_preview $19,$20,3
+       -_gimp_apply_curve_preview $21,$22,4 -_gimp_apply_curve_preview $23,$24,5
+       -_gimp_apply_curve_preview 255,$25,6
+     -else
+       -_gimp_apply_curve_preview 0,$27,0 -_gimp_apply_curve_preview $28,$29,1
+       -_gimp_apply_curve_preview $30,$31,2 -_gimp_apply_curve_preview $32,$33,3
+       -_gimp_apply_curve_preview $34,$35,4 -_gimp_apply_curve_preview $36,$37,5
+       -_gimp_apply_curve_preview 255,$38,6
+     -endif
+  -mv[-1] 1 -done -rm[0]
+
+
+#@gimp _Lab Curves
+#@gimp Lightness : gimp_apply_Labcurve, gimp_apply_Lcurve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(-1,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(1,0,1)
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+
+#@gimp A-color : gimp_apply_Labcurve, gimp_apply_acurve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(-1,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(1,0,1)
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+
+#@gimp B-color : gimp_apply_Labcurve, gimp_apply_bcurve_preview
+#@gimp : Starting Y = int(0,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(1) = int(-1,-1,255)
+#@gimp : Y-coord(1) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(2) = int(-1,-1,255)
+#@gimp : Y-coord(2) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(3) = int(-1,-1,255)
+#@gimp : Y-coord(3) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(4) = int(-1,-1,255)
+#@gimp : Y-coord(4) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : X-coord(5) = int(-1,-1,255)
+#@gimp : Y-coord(5) = int(128,0,255)
+#@gimp : sep = separator()
+#@gimp : Ending Y = int(255,0,255)
+#@gimp : sep = separator()
+#@gimp : Curve smoothness = float(1,0,1)
+#@gimp : Display histogram = float(0,0,100)
+#@gimp : Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_apply_Labcurve : -skip $1
+  -gimp_apply_Labcurve_configfile
+  -repeat {@#-1} -l[~>,-1]
+    -to_colormode[0] {max(3,s)} --shared[0] 0,2 -rgb2lab[-1] -rm[-1]
+    --shared[0] 0,0 -*[-1] 2.55 -_gimp_apply_Labcurve[-1] @{-2,0-12} -/[-1] 2.55 -rm[-1]
+    --shared[0] 1,1 -+[-1] 86 -*[-1] 1.38587 -_gimp_apply_Labcurve[-1] @{-2,13-25} -/[-1] 1.38587 --[-1] 86 -rm[-1]
+    --shared[0] 2,2 -+[-1] 108 -*[-1] 1.25616 -_gimp_apply_Labcurve[-1] @{-2,26-38} -/[-1] 1.25616 --[-1] 108 -rm[-1]
+    --shared[0] 0,2 -lab2rgb[-1] -rm[-1]
+  -endl -done
+  -rm[-1]
+
+_gimp_apply_Labcurve :
+  -apply_curve $13,0,$1,\
+                   @{"-if {$2>=0} -u $2,$3, -else -u \"\" -endif"}\
+                   @{"-if {$4>=0} -u $4,$5, -else -u \"\" -endif"}\
+                   @{"-if {$6>=0} -u $6,$7, -else -u \"\" -endif"}\
+                   @{"-if {$8>=0} -u $8,$9, -else -u \"\" -endif"}\
+                   @{"-if {$10>=0} -u $10,$11, -else -u \"\" -endif"}\
+                   255,$12
+  -c 0,255
+
+gimp_apply_Lcurve_preview :
+  -gimp_apply_Labcurve_configfile
+  --shared[-1] 0,0,0,0 -f[-1] ${1--3} -rm[-1]
+  -gimp_apply_Labcurve_preview[0--2] @-1,0,${-2,-1} -rm[-1]
+
+gimp_apply_acurve_preview :
+  -gimp_apply_Labcurve_configfile
+  --shared[-1] 1,1,0,0 -f[-1] ${1--3} -rm[-1]
+  -gimp_apply_Labcurve_preview[0--2] @-1,1,${-2,-1} -rm[-1]
+
+gimp_apply_bcurve_preview :
+  -gimp_apply_Labcurve_configfile
+  --shared[-1] 2,2,0,0 -f[-1] ${1--3} -rm[-1]
+  -gimp_apply_Labcurve_preview[0--2] @-1,2,${-2,-1} -rm[-1]
+
+gimp_apply_Labcurve_configfile :
+  filename=@{-path_tmp}/.gmic_Labcurve.dlm
+  -if $filename $filename -else (0,-1,128,-1,128,-1,128,-1,128,-1,128,255,1) -r[-1] 100%,3 -endif
+
+gimp_apply_Labcurve_preview :
+  (${1--3}) -r[-1] 13,3,1,1,-1 -o[-1] @{-path_tmp}/.gmic_Labcurve.dlm -rm[-1]
+  -function1d $13,0,$1,\
+                  @{"-if {$2>=0} -u $2,$3, -else -u \"\" -endif"}\
+                  @{"-if {$4>=0} -u $4,$5, -else -u \"\" -endif"}\
+                  @{"-if {$6>=0} -u $6,$7, -else -u \"\" -endif"}\
+                  @{"-if {$8>=0} -u $8,$9, -else -u \"\" -endif"}\
+                  @{"-if {$10>=0} -u $10,$11, -else -u \"\" -endif"}\
+                  255,$12
+  -function1d $26,0,$14,\
+                  @{"-if {$15>=0} -u $15,$16, -else -u \"\" -endif"}\
+                  @{"-if {$17>=0} -u $17,$18, -else -u \"\" -endif"}\
+                  @{"-if {$19>=0} -u $19,$20, -else -u \"\" -endif"}\
+                  @{"-if {$21>=0} -u $21,$22, -else -u \"\" -endif"}\
+                  @{"-if {$23>=0} -u $23,$24, -else -u \"\" -endif"}\
+                  255,$25
+  -function1d $39,0,$27,\
+                  @{"-if {$28>=0} -u $28,$29, -else -u \"\" -endif"}\
+                  @{"-if {$30>=0} -u $30,$31, -else -u \"\" -endif"}\
+                  @{"-if {$32>=0} -u $32,$33, -else -u \"\" -endif"}\
+                  @{"-if {$34>=0} -u $34,$35, -else -u \"\" -endif"}\
+                  @{"-if {$36>=0} -u $36,$37, -else -u \"\" -endif"}\
+                  255,$38
+  -a[-3--1] y -mv[-1] 0
+  -repeat {@#-1}
+    [-1]
+    --gimp_split_preview[-1] "-gimp_apply_Labcurve 0",$-1
+    -axes[-1] 0,255,255,0,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
+     -if $-2
+        [-1],[-1],1,1,-{$-2*255/100} -to_gray[-3] -histogram[-3] 256,0,255 -graph[-1] [-3],3,0,0,0,1,0
+        -rm[-3] -+[-1] {$-2*255/100} -+[-2,-1] -c[-1] 0,255
+     -else -rm[-2] -endif
+     -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
+     --shared[0] 0,0,0,0
+     -graph[-2] [-1],1,0,255,0,1,255,255,255 --[-1] 1
+     -graph[-2] [-1],1,0,255,0,0.5,200,200,200 -rm[-1]
+     --shared[0] 1,1,0,0
+     -graph[-2] [-1],1,0,255,0,1,255,128,128 --[-1] 1
+     -graph[-2] [-1],1,0,255,0,0.5,200,0,0 -rm[-1]
+     --shared[0] 2,2,0,0
+     -graph[-2] [-1],1,0,255,0,1,128,128,255 --[-1] 1
+     -graph[-2] [-1],1,0,255,0,0.5,0,0,200 -rm[-1]
+     -if {$40==0}
+       -_gimp_apply_curve_preview 0,$1,0 -_gimp_apply_curve_preview $2,$3,1
+       -_gimp_apply_curve_preview $4,$5,2 -_gimp_apply_curve_preview $6,$7,3
+       -_gimp_apply_curve_preview $8,$9,4 -_gimp_apply_curve_preview $10,$11,5
+       -_gimp_apply_curve_preview 255,$12,6
+     -elif {$40==1}
+       -_gimp_apply_curve_preview 0,$14,0 -_gimp_apply_curve_preview $15,$16,1
+       -_gimp_apply_curve_preview $17,$18,2 -_gimp_apply_curve_preview $19,$20,3
+       -_gimp_apply_curve_preview $21,$22,4 -_gimp_apply_curve_preview $23,$24,5
+       -_gimp_apply_curve_preview 255,$25,6
+     -else
+       -_gimp_apply_curve_preview 0,$27,0 -_gimp_apply_curve_preview $28,$29,1
+       -_gimp_apply_curve_preview $30,$31,2 -_gimp_apply_curve_preview $32,$33,3
+       -_gimp_apply_curve_preview $34,$35,4 -_gimp_apply_curve_preview $36,$37,5
+       -_gimp_apply_curve_preview 255,$38,6
+     -endif
+  -mv[-1] 1 -done -rm[0]
+
+#@gimp _Black &amp; White : gimp_blackandwhite, gimp_blackandwhite_preview(1)
 #@gimp : Red level = float(0.299,0,1)
 #@gimp : Red smoothness = float(0,0,10)
 #@gimp : Green level = float(0.587,0,1)
@@ -5239,7 +5902,7 @@ gimp_sepia_preview :
 gimp_bwrecolorize :
   -if $4 -n 0,255 -endif
   -if {$5==0}  # User-defined gradient
-    (${9--2}) -r[-1] 4,$8,1,1,-1 -permute[-1] yzcx
+    -to_rgba (${9--2}) -r[-1] 4,$8,1,1,-1 -permute[-1] yzcx
   -elif {$5==1} # Black to white
     (0,255^0,255^0,255^255,255)
   -elif {$5==2} # White to black
@@ -5251,7 +5914,7 @@ gimp_bwrecolorize :
   -endif
   -if {$6==0} -r[-1] 256,1,1,4,1
   -elif {$6==1} -r[-1] 256,1,1,4,3
-  -elif {$6==2} -r[-1] 256,1,1,4,5
+  -elif {$6==2} -r[-1] 256,1,1,4,5 -c[-1] 0,255
   -else -r[-1] 256,1,1,4,6
   -endif
   -if {$7==1} --sh[-1] 0,2 -rgb2hsv[-1] --sh[-1] 2,2 -f[-1] x/w -hsv2rgb[-2] -rm[-2,-1] -endif
@@ -5277,6 +5940,34 @@ gimp_ditheredbw :
 
 gimp_ditheredbw_preview :
   -gimp_split_preview "-gimp_ditheredbw ${1--2}",$-1
+
+#@gimp Tone mapping : gimp_map_tones, gimp_map_tones_preview(0)
+#@gimp : Threshold = float(0.5,0,1)
+#@gimp : Gamma = float(0.7,0,1)
+#@gimp : Smoothness = float(0.1,0,10)
+#@gimp : Iterations = int(30,0,500)
+#@gimp : Channel(s) = choice(3,"All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha","ch-components","c-component","h-component")
+#@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_map_tones :
+  -apply_channels "-map_tones ${1-4}",$5,0
+  -n 0,255
+
+gimp_map_tones_preview :
+  -gimp_split_preview "-gimp_map_tones ${1--2}",$-1
+
+#@gimp Local normalization : gimp_normalize_local, gimp_normalize_local_preview(0)
+#@gimp : Amplitude = float(2,0,60)
+#@gimp : Radius = int(6,1,64)
+#@gimp : Neighborhood smoothness = float(5,0,40)
+#@gimp : Average smoothness = float(20,0,40)
+#@gimp : Constrain values = bool(1)
+#@gimp : Channel(s) = choice("All","RGBA","RGB","Luminance","Blue/red chrominances","Blue chrominance","Red chrominance","Lightness","ab-components","a-component","b-component","Hue","Saturation","Value","Key","Alpha","ch-components","c-component","h-component")
+#@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_normalize_local :
+  -apply_channels "-normalize_local $1,$2,$3,$4,$5,0,255",$6,0
+
+gimp_normalize_local_preview :
+  -gimp_split_preview "-gimp_normalize_local ${1--2}",$-1
 
 #@gimp Select color : gimp_select_color, gimp_select_color(1)
 #@gimp : Similarity space = choice(0,"RGB[A]","RGB","YCbCr","Red","Green","Blue","Opacity","Luminance","Blue & Red chrominances","Hue","Saturation")
@@ -6603,7 +7294,7 @@ gimp_elevation_preview :
   -gimp_elevation {w},{h},$3,$4,$5,$6,$7,$8,$9,$10
 
 #@gimp 3d image object : gimp_imageobject3d, gimp_imageobject3d(1)
-#@gimp : Type = choice("Cube","Pyramid")
+#@gimp : Type = choice(1,"Plane","Cube","Pyramid")
 #@gimp : Width = int(512,1,1024)
 #@gimp : Height = int(512,1,1024)
 #@gimp : Size = float(256,0,512)
@@ -6619,8 +7310,9 @@ gimp_imageobject3d :
     $2,$3,1,4,0 -object3d[1] [0],50%,50% -k[1]
   -endl -done
 
-_gimp_imageobject3d_0 : -imagecube3d
-_gimp_imageobject3d_1 : -imagepyramid3d
+_gimp_imageobject3d_0 : -imageplane3d
+_gimp_imageobject3d_1 : -imagecube3d
+_gimp_imageobject3d_2 : -imagepyramid3d
 
 #@gimp 3d random objects : gimp_random3d, gimp_random3d(1)
 #@gimp : Type = choice("Cube","Cone","Cylinder","Sphere","Torus")
@@ -6671,6 +7363,22 @@ gimp_mandelbrot_preview :
   -gimp_mandelbrot ${^0}
   -line 0,50%,100%,50%,0.5,255
   -line 50%,0,50%,100%,0.5,255
+
+#@gimp Chessboard : gimp_chessboard, gimp_chessboard_preview(0)
+#@gimp : First size = int(64,1,512)
+#@gimp : Second size = int(64,1,512)
+#@gimp : First offset = int(0,0,512)
+#@gimp : Second offset = int(0,0,512)
+#@gimp : Angle = float(0,0,180)
+#@gimp : Opacity = float(0.5,0,1)
+#@gimp : First color = color(0,0,0,255)
+#@gimp : Second color = color(255,255,255,255)
+#@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+gimp_chessboard :
+  -to_rgba -chessboard ${1--1}
+
+gimp_chessboard_preview :
+  -gimp_split_preview "-gimp_chessboard ${1--2}",$-1
 
 #@gimp _<b>Sequences</b>
 #-----------------------

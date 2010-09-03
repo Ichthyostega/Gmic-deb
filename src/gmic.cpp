@@ -870,11 +870,16 @@ inline const char* gmic_basename(const char *const s)  {
 #if defined(gmic_float) || !defined(gmic_separate_compilation)
 #include "gmic_def.h"
 
-gmic::gmic(const char *const command_line, const char *const custom_commands, const bool default_commands,
-           float *const p_progress, int *const p_cancel) {
+CImgList<char> gmic::default_command_names = CImgList<char>();
+CImgList<char> gmic::default_command_definitions = CImgList<char>();
+
+gmic::~gmic() {} // Does nothing but is strangely needed to avoid memory corruption with g++.
+
+gmic::gmic(const char *const command_line, const char *const custom_commands,
+           const bool include_default_commands, float *const p_progress, int *const p_cancel) {
   CImgList<float> images;
   assign(0,false,0,0);
-  gmic(command_line,images,custom_commands,default_commands,p_progress,p_cancel);
+  gmic(command_line,images,custom_commands,include_default_commands,p_progress,p_cancel);
 }
 
 // Get current scope as a string.
@@ -913,20 +918,18 @@ CImg<char> gmic::scope2string(const CImg<unsigned int>& scope_selection, const b
 // Parse items from a G'MIC command line.
 //---------------------------------------
 CImgList<char> gmic::command_line_to_CImgList(const char *const command_line) {
-  if (!command_line) return CImgList<char>();
+  if (!command_line || !*command_line) return CImgList<char>();
   bool is_dquoted = false;
   const char *ptrs0 = command_line;
   while (*ptrs0==' ') ++ptrs0;  // Remove leading spaces to first item.
-  CImg<char> item(ptrs0,std::strlen(ptrs0)+1);
+  CImg<char> item(std::strlen(ptrs0)+1);
   CImgList<char> items;
-  char *ptrd = item.data();
+  char *ptrd = item.data(), c = 0;
   for (const char *ptrs = ptrs0; *ptrs; ++ptrs) {
-    char c = *ptrs;
+    c = *ptrs;
     if (c=='\\') {  // If escaped character.
       c = *(++ptrs);
-      if (!c) error("Invalid command line : Last character is missing for an escape sequence, "
-                    "in expression '%s'.",
-                    command_line);
+      if (!c) { c = '\\'; --ptrs; }
       else if (c=='$') c = _dollar;
       else if (c=='&') c = _ampersand;
       else if (c=='~') c = _tilde;
@@ -952,7 +955,9 @@ CImgList<char> gmic::command_line_to_CImgList(const char *const command_line) {
   }
   if (is_dquoted) error("Invalid command line : Double quotes are not closed, in expression '%s'.",
                         command_line);
-  if (ptrd!=item.data()) { *ptrd = 0; CImg<char>(item.data(),ptrd - item.data() + 1).move_to(items); }
+  if (ptrd!=item.data() && c!=' ') {
+    *ptrd = 0; CImg<char>(item.data(),ptrd - item.data() + 1).move_to(items);
+  }
   if (is_debug) {
     debug("Decompose command line into %u items : ",items.size());
     cimglist_for(items,l) debug("  item[%u] = '%s'",l,items[l].data());
@@ -962,10 +967,8 @@ CImgList<char> gmic::command_line_to_CImgList(const char *const command_line) {
 
 // Set default G'MIC environment.
 //-------------------------------
-gmic& gmic::assign(const char *const custom_commands, const bool default_commands,
+gmic& gmic::assign(const char *const custom_commands, const bool include_default_commands,
                    float *const p_progress, int *const p_cancel) {
-  command_names.assign();
-  command_definitions.assign();
   scope.assign(CImg<char>::string("."));
   position = 0;
   verbosity = 0;
@@ -989,11 +992,16 @@ gmic& gmic::assign(const char *const custom_commands, const bool default_command
   specular_shine3d = 0.8f;
   if (p_progress) progress = p_progress; else { _progress = -1; progress = &_progress; }
   if (p_cancel) cancel = p_cancel; else { _cancel = 0; cancel = &_cancel; }
-  if (default_commands) add_commands(data_gmic_def);
-  add_commands(custom_commands);
+  command_names.assign();
+  command_definitions.assign();
+  if (include_default_commands) {
+    if (!default_command_names) add_commands(data_gmic_def,default_command_names,default_command_definitions);
+    command_names.assign(default_command_names);
+    command_definitions.assign(default_command_definitions);
+  }
+  add_commands(custom_commands,command_names,command_definitions);
   return *this;
 }
-
 
 // Print log message.
 //-------------------
@@ -1097,7 +1105,8 @@ gmic& gmic::debug(const char *format, ...) {
 
 // Add custom commands from a char* buffer.
 //------------------------------------------
-gmic& gmic::add_commands(const char *const data_commands) {
+gmic& gmic::add_commands(const char *const data_commands,
+                         CImgList<char>& command_names, CImgList<char>& command_definitions) {
   if (!data_commands || !*data_commands) return *this;
   static char mac[256], com[256*1024], line[256*1024];
   *mac = *com = *line = 0;
@@ -1108,7 +1117,7 @@ gmic& gmic::add_commands(const char *const data_commands) {
     // Read new line.
     char *_line = line;
     while (*data!='\n' && *data && _line<line+sizeof(line)) *(_line++) = *(data++); *_line = 0;
-    if (*data=='\n') ++data;    // Skip next '\n'.
+    if (*data=='\n') ++data; // Skip next '\n'.
     // Replace non-usual characters by spaces.
     for (_line = line; *_line; ++_line) if (*_line<' ') *_line = ' ';
     _line = line; if (*_line=='#') *_line = 0; else do { // Remove comments.
@@ -1141,7 +1150,8 @@ gmic& gmic::add_commands(const char *const data_commands) {
 
 // Add commands from a file.
 //---------------------------
-gmic& gmic::add_commands(std::FILE *const file) {
+gmic& gmic::add_commands(std::FILE *const file,
+                        CImgList<char>& command_names, CImgList<char>& command_definitions) {
   if (!file) return *this;
   unsigned int siz = 0;
   std::fseek(file,0,SEEK_END);
@@ -1151,7 +1161,7 @@ gmic& gmic::add_commands(std::FILE *const file) {
     CImg<char> buffer(siz+1);
     if (std::fread(buffer.data(),sizeof(char),siz,file)) {
       buffer[siz] = 0;
-      add_commands(buffer.data());
+      add_commands(buffer.data(),command_names,command_definitions);
     }
   }
   return *this;
@@ -1540,9 +1550,9 @@ gmic& gmic::debug(const CImgList<T>& list, const char *format, ...) {
 //-----------------------
 template<typename T>
 gmic::gmic(const int argc, const char *const *const argv, CImgList<T>& images,
-           const char *custom_commands, const bool default_commands,
+           const char *custom_commands, const bool include_default_commands,
            float *const p_progress, int *const p_cancel) {
-  assign(custom_commands,default_commands,p_progress,p_cancel);
+  assign(custom_commands,include_default_commands,p_progress,p_cancel);
   CImgList<char> items;
   for (int l = 1; l<argc; ++l) {
     if (!std::strcmp("-debug",argv[l])) is_debug = true;
@@ -1569,9 +1579,9 @@ gmic::gmic(const int argc, const char *const *const argv, CImgList<T>& images,
 
 template<typename T>
 gmic::gmic(const char *const command_line, CImgList<T>& images,
-           const char *custom_commands, const bool default_commands,
+           const char *custom_commands, const bool include_default_commands,
            float *const p_progress, int *const p_cancel) {
-  assign(custom_commands,default_commands,p_progress,p_cancel);
+  assign(custom_commands,include_default_commands,p_progress,p_cancel);
   const CImgList<char> items = command_line_to_CImgList(command_line);
   cimglist_for(items,l) if (!std::strcmp("-debug",items[l].data())) { is_debug = true; break; }
   if (is_debug) {
@@ -1832,6 +1842,13 @@ CImg<char> gmic::substitute_item(const char *const source,
 #else
         cimg_snprintf(substr,substr.width(),"0");
 #endif
+        CImg<char>(substr.data(),std::strlen(substr)).move_to(substituted_items);
+
+        // Substitute '@|' -> current value of the timer.
+      } else if (*nsource=='@' && nsource[1]=='|') {
+        static const unsigned long t0 = cimg::time();
+        nsource+=2;
+        cimg_snprintf(substr,substr.width(),"%lu",cimg::time()-t0);
         CImg<char>(substr.data(),std::strlen(substr)).move_to(substituted_items);
 
         // Substitute '@?' -> current type of image pixels.
@@ -2263,6 +2280,7 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
     }
 
     // Begin command line parsing.
+    if (!command_line && is_start) { print(images,"Start G'MIC instance."); is_start = false; }
     while (position<command_line.size() && !is_quit) {
       const char
         *const initial_item = command_line[position].data(),
@@ -2422,12 +2440,12 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
           if (file) {
             print(images,"Load command file '%s'",
                   argument_text);
-            add_commands(file);
+            add_commands(file,command_names,command_definitions);
             cimg::fclose(file);
           } else {
             print(images,"Import command from expression '%s'.",
                   argument_text);
-            add_commands(arg_command);
+            add_commands(arg_command,command_names,command_definitions);
           }
           if (verbosity>=0 || is_debug) {
             const unsigned int nb_added = command_names.size() - siz;
@@ -3953,6 +3971,21 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
             const CImg<T> A = images[*ind];
             cimg_forY(selection,l) gmic_apply(images[selection[l]],solve(A));
           } else arg_error("solve");
+          ++position; continue;
+        }
+
+        // Tridiagonal solve.
+        if (!std::strcmp("-trisolve",command)) {
+          CImg<unsigned int> ind;
+          char sep = 0;
+          if (std::sscanf(argument,"[%255[a-zA-Z0-9_.eE%+-]%c%c",indices,&sep,&end)==2 && sep==']' &&
+              (ind=selection2cimg(indices,images.size(),images_labels,"-trisolve",true,
+                                  false,CImg<char>::empty())).height()==1) {
+            print(images,"Solve tridiagonal system AX = B, with B-vector%s and tridiagonal A-matrix [%d].",
+                  gmic_selection,*ind);
+            const CImgList<T> A = images[*ind].get_split('x');
+            cimg_forY(selection,l) gmic_apply(images[selection[l]],solve_tridiagonal(A[0],A[1],A[2]));
+          } else arg_error("trisolve");
           ++position; continue;
         }
 
@@ -5942,6 +5975,19 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
         // 3d objects manipulation
         //-------------------------
 
+        // Create 3d rotation matrix.
+        if (!std::strcmp("-rotation3d",item)) {
+          float x0 = 0, y0 = 0, z0 = 0, angle = 0;
+          if (std::sscanf(argument,"%f,%f,%f,%f%c",
+                          &x0,&y0,&z0,&angle,&end)==4) {
+            print(images,"Create new 3d rotation matrix around axis (%g,%g,%g) with angle %g degree.",
+                  x0,y0,z0,angle);
+            CImg<T>::rotation_matrix(x0,y0,z0,angle*cimg::PI/180).move_to(images);
+            CImg<char>::string("(3d rotation)").move_to(images_labels);
+          } else arg_error("rotation3d");
+          ++position; continue;
+        }
+
         // Create 3d point.
         if (!std::strcmp("-point3d",item)) {
           float x0 = 0, y0 = 0, z0 = 0;
@@ -6676,7 +6722,7 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
           float u = 0, v = 0, w = 1, angle = 0;
           if (std::sscanf(argument,"%f,%f,%f,%f%c",
                           &u,&v,&w,&angle,&end)==4) {
-            print(images,"Rotate 3d object%s around axis (%g,%g,%g), with angle %g.",
+            print(images,"Rotate 3d object%s around axis (%g,%g,%g), with angle %g degree.",
                   gmic_selection,
                   u,v,w,
                   angle);
@@ -7459,7 +7505,7 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
             st1 = std1; st2 = std2; scope_ind = scope_do;
           } else {
             print(images,"%s",Com);
-            warning(images,"Command '%s' : There are no 'do..while' or 'repeat..done' blocks to %s.",com,com);
+            error(images,"Command '%s' : There are no loops to %s.",com,com);
             continue;
           }
           int level = 0;
@@ -7715,7 +7761,7 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
           if (dimh==0) dimw = 0;
           if (sepw=='%') dimw = cimg::max(1.0f,cimg::round(CImgDisplay::screen_width()*dimw/100,1));
           if (seph=='%') dimh = cimg::max(1.0f,cimg::round(CImgDisplay::screen_height()*dimh/100,1));
-          gmic_strreplace(title);
+          gmic_strreplace(title); cimg::strescape(title);
 #if cimg_display==0
           print(images,"Display image%s in instant window [%d] (skipped, no display available).",
                 gmic_selection,
@@ -8128,6 +8174,43 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
           continue;
         }
 
+        // Camera input.
+        if (!std::strcmp("-camera",command)) {
+          int cam_index = -1, nb_frames = 1, skip_frames = 0, release_cam = 0;
+          if ((std::sscanf(argument,"%d%c",
+                           &cam_index,&end)==1 ||
+               std::sscanf(argument,"%d,%d%c",
+                           &cam_index,&nb_frames,&end)==2 ||
+               std::sscanf(argument,"%d,%d,%d%c",
+                           &cam_index,&nb_frames,&skip_frames,&end)==3 ||
+               std::sscanf(argument,"%d,%d,%d,%d%c",
+                           &cam_index,&nb_frames,&skip_frames,&release_cam,&end)==4) &&
+              cam_index>=-1 && nb_frames>=0 && skip_frames>=0) ++position;
+          if (release_cam) {
+            if (cam_index<0) print(images,"Release default camera.");
+            else print(images,"Release camera #%d.",cam_index);
+            CImg<T>::get_load_camera(cam_index,true);
+          } else {
+            if (cam_index<0) {
+              print(images,"Insert %d image%s from default camera, with %d frames skipping.",
+                    nb_frames,nb_frames>1?"s":"",skip_frames);
+              cimg_snprintf(title,sizeof(title),"(Default camera)");
+            } else {
+              print(images,"Insert %d image%s from camera #%d, with %d frames skipping.",
+                    cam_index,nb_frames,nb_frames>1?"s":"",skip_frames);
+              cimg_snprintf(title,sizeof(title),"(Camera #%d)",cam_index);
+            }
+            const CImg<char> _title = CImg<char>::string(title);
+            if (nb_frames>1) std::fputc('\n',cimg::output());
+            for (int k = 0; k<nb_frames; ++k) {
+              if (nb_frames>1) std::fprintf(cimg::output(),"\r  > Image %d/%d        ",k+1,nb_frames);
+              CImg<T>::get_load_camera(cam_index,(unsigned int)skip_frames,false).move_to(images);
+              images_labels.insert(_title);
+            }
+          }
+          continue;
+        }
+
         // Output.
         if (!std::strcmp("-output",command) || !std::strcmp("-o",command)) {
           static char filename[4096], options[256];
@@ -8236,7 +8319,7 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
             const char *const command_code = command_definitions[l].data();
 
             if (!std::strcmp(command+1,custom_command)) {
-              CImgList<char> arguments(256);
+              CImgList<char> arguments(32);
               unsigned int nb_arguments = 0;
               custom_command_found = true;
 
@@ -8252,17 +8335,18 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
 
               // Extract possible command arguments.
               CImg<char>::string(custom_command).move_to(arguments[0]); // Set $0 to be the command name.
-              for (const char *ss = argument, *_ss = ss; nb_arguments<255 && _ss; ss =_ss+1)
+              for (const char *ss = argument, *_ss = ss; _ss; ss =_ss+1)
                 if ((_ss=std::strchr(ss,','))!=0) {
                   if (ss==_ss) ++nb_arguments;
                   else {
+                    if (++nb_arguments>=arguments.size()) arguments.insert(2+2*nb_arguments-arguments.size());
                     CImg<char> arg_item(ss,_ss-ss+1);
                     arg_item.back() = 0;
-                    arg_item.move_to(arguments[++nb_arguments]);
+                    arg_item.move_to(arguments[nb_arguments]);
                   }
                 } else {
                   if (*ss) {
-                    ++nb_arguments;
+                    if (++nb_arguments>=arguments.size()) arguments.insert(1+nb_arguments-arguments.size());
                     if (*ss!=',') CImg<char>::string(ss).move_to(arguments[nb_arguments]);
                   }
                   break;
@@ -8316,12 +8400,10 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
 
                     // Substitute $i and ${i} -> value of the i^th argument.
                   } else if ((std::sscanf(nsource,"$%d",&ind)==1 ||
-
-
                               (std::sscanf(nsource,"${%d%c",&ind,&sep)==2 && sep=='}')) &&
-                             ind>=-(int)nb_arguments-1 && ind<256) {
+                             ind>=-(int)nb_arguments-1) {
                     const int nind = ind + (ind<0?(int)nb_arguments+1:0);
-                    if (!arguments[nind]) {
+                    if (nind>=arguments.width() || !arguments[nind]) {
                       error(custom_command,images,
                             "Command '%s' : Undefined argument '$%d' (in expression '$%s%d%s').",
                             custom_command,ind,sep=='}'?"{":"",ind,sep=='}'?"}":"");
@@ -8334,13 +8416,14 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
                     // Substitute ${i=$j} -> value of the i^th argument, or the default value,
                     // i.e. the value of another argument.
                   } else if (std::sscanf(nsource,"${%d=$%d%c",&ind,&ind1,&sep)==3 && sep=='}' &&
-                             ind>0 && ind<256 && ind1>=-(int)nb_arguments-1 && ind1<256) {
+                             ind>0 && ind1>=-(int)nb_arguments-1) {
                     const int nind1 = ind1 + (ind1<0?(int)nb_arguments+1:0);
-                    if (!arguments[nind1])
+                    if (nind1>=arguments.width() || !arguments[nind1])
                       error(custom_command,images,
                             "Command '%s' : Undefined argument '$%d' (in expression '${%d=$%d}').",
                             custom_command,ind1,ind,ind1);
                     nsource+=cimg_snprintf(substr,substr.width(),"${%d=$%d}",ind,ind1);
+                    if (ind>=arguments.width()) arguments.insert(2+2*ind-arguments.size());
                     if (!arguments[ind]) {
                       arguments[ind] = arguments[nind1];
                       if (ind>(int)nb_arguments) nb_arguments = ind;
@@ -8352,7 +8435,8 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
                     // Substitute ${i=$#} -> value of the i^th argument, or the default value,
                     // i.e. the maximum indice of known arguments.
                   } else if (std::sscanf(nsource,"${%d=$#%c",&ind,&sep)==2 && sep=='}' &&
-                             ind>0 && ind<256) {
+                             ind>0) {
+                    if (ind>=arguments.width()) arguments.insert(2+2*ind-arguments.size());
                     if (!arguments[ind]) {
                       cimg_snprintf(substr,substr.width(),"%u",nb_arguments);
                       CImg<char>::string(substr).move_to(arguments[ind]);
@@ -8365,8 +8449,9 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
 
                     // Substitute ${i=default} -> value of the i^th argument, or the specified default value.
                   } else if (std::sscanf(inbraces,"%d%c",&ind,&sep)==2 && sep=='=' &&
-                             ind>0 && ind<256) {
+                             ind>0) {
                     nsource+=l_inbraces + 3;
+                    if (ind>=arguments.width()) arguments.insert(2+2*ind-arguments.size());
                     if (!arguments[ind]) {
                       CImg<char>::string(inbraces.data() + cimg_snprintf(substr,substr.width(),"%d=",ind)).
                         move_to(arguments[ind]);
@@ -8422,8 +8507,8 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
               CImg<char>::vector(0).move_to(substituted_items);
               (substituted_items>'x').move_to(substituted_command);
 
-              bool is_dquoted = false;
               // Substitute special character codes appearing outside strings.
+              bool is_dquoted = false;
               for (char *s = substituted_command.data(); *s; ++s) {
                 const char c = *s;
                 if (c=='\"') is_dquoted = !is_dquoted;
@@ -8692,14 +8777,18 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
           if (*filename=='-' && (!filename[1] || filename[1]=='.')) file = 0;
           else {
             if (!(file=std::fopen(filename,"r"))) { // If failed again, we really don't know what it is.
-              if (*filename=='-') {
-                if (cimg::type<T>::id()==cimg::type<float>::id())
-                  error(images,"Command '%s' : Command not found.",
-                        argument+1);
+              if (*argument=='-') {
+                if (std::sscanf(argument+1,"%255[a-zA-Z0-9_]%c",filename,&end)!=1 ||
+                    (*filename>='0' && *filename<='9'))
+                  error(images,"Command 'input' : File '%s' not found.",
+                        argument_text);
+                else if (cimg::type<T>::id()==cimg::type<float>::id())
+                  error(images,"Unknown command '%s'.",
+                        argument_text+1);
                 else
-                  error(images,"Command '%s' : Command not found in '%s' type mode "
-                        "(maybe available in 'float' type mode only ?).",
-                        argument+1,cimg::type<T>::string());
+                  error(images,"Command '%s' : Unknown command in '%s' type mode "
+                        "(maytbe in 'float' type mode only ?).",
+                        argument_text+1,cimg::type<T>::string());
               } else error(images,"Command 'input' : File '%s' not found.",
                            argument_text);
             }
@@ -8835,7 +8924,7 @@ gmic& gmic::parse(const CImgList<char>& command_line, unsigned int& position,
                 filename);
           const unsigned int siz = command_names.size();
           std::FILE *const file = cimg::fopen(argument,"r");
-          add_commands(file);
+          add_commands(file,command_names,command_definitions);
           cimg::fclose(file);
           if (verbosity>=0 || is_debug) {
             const unsigned int nb_added = command_names.size() - siz;
@@ -8948,11 +9037,11 @@ gmic& gmic::parse_float(const CImgList<char>& command_line, unsigned int& positi
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<float>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<float>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #else
 #if defined(gmic_bool) || !defined(gmic_separate_compilation)
 gmic& gmic::parse_bool(const CImgList<char>& command_line, unsigned int& position,
@@ -8961,11 +9050,11 @@ gmic& gmic::parse_bool(const CImgList<char>& command_line, unsigned int& positio
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<bool>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<bool>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #endif
 #if defined(gmic_uchar) || !defined(gmic_separate_compilation)
 gmic& gmic::parse_uchar(const CImgList<char>& command_line, unsigned int& position,
@@ -8974,11 +9063,11 @@ gmic& gmic::parse_uchar(const CImgList<char>& command_line, unsigned int& positi
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<unsigned char>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<unsigned char>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #endif
 #if defined(gmic_char) || !defined(gmic_separate_compilation)
 gmic& gmic::parse_char(const CImgList<char>& command_line, unsigned int& position,
@@ -8987,11 +9076,11 @@ gmic& gmic::parse_char(const CImgList<char>& command_line, unsigned int& positio
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<char>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<char>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #endif
 #if defined(gmic_ushort) || !defined(gmic_separate_compilation)
 gmic& gmic::parse_ushort(const CImgList<char>& command_line, unsigned int& position,
@@ -9000,11 +9089,11 @@ gmic& gmic::parse_ushort(const CImgList<char>& command_line, unsigned int& posit
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<unsigned short>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<unsigned short>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #endif
 #if defined(gmic_short) || !defined(gmic_separate_compilation)
 gmic& gmic::parse_short(const CImgList<char>& command_line, unsigned int& position,
@@ -9013,11 +9102,11 @@ gmic& gmic::parse_short(const CImgList<char>& command_line, unsigned int& positi
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<short>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<short>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #endif
 #if defined(gmic_uint) || !defined(gmic_separate_compilation)
 gmic& gmic::parse_uint(const CImgList<char>& command_line, unsigned int& position,
@@ -9026,11 +9115,11 @@ gmic& gmic::parse_uint(const CImgList<char>& command_line, unsigned int& positio
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<unsigned int>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<unsigned int>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #endif
 #if defined(gmic_int) || !defined(gmic_separate_compilation)
 gmic& gmic::parse_int(const CImgList<char>& command_line, unsigned int& position,
@@ -9039,11 +9128,11 @@ gmic& gmic::parse_int(const CImgList<char>& command_line, unsigned int& position
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<int>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<int>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #endif
 #if defined(gmic_float) || !defined(gmic_separate_compilation)
 gmic& gmic::parse_float(const CImgList<char>& command_line, unsigned int& position,
@@ -9052,11 +9141,11 @@ gmic& gmic::parse_float(const CImgList<char>& command_line, unsigned int& positi
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<float>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<float>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #endif
 #if defined(gmic_double) || !defined(gmic_separate_compilation)
 gmic& gmic::parse_double(const CImgList<char>& command_line, unsigned int& position,
@@ -9065,11 +9154,11 @@ gmic& gmic::parse_double(const CImgList<char>& command_line, unsigned int& posit
   return parse(command_line,position,images,images_labels,stack,stack_labels);
 }
 template gmic::gmic(const int, const char *const *const, CImgList<double>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 template gmic::gmic(const char *const, CImgList<double>&,
-                    const char *const custom_commands, const bool default_commands, float *const p_progress,
-                    int *const p_cancel);
+                    const char *const custom_commands, const bool include_default_commands,
+                    float *const p_progress, int *const p_cancel);
 #endif
 #endif
 #endif
@@ -9346,6 +9435,7 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("     Use these expressions to get the current state of the interpreter environment :");
   gmic_help("    _ '@#' is substituted by the current number of images in the list.");
   gmic_help("    _ '@%' is substituted by the pid of the current process.");
+  gmic_help("    _ '@|' is substituted by the current value of a millisecond-precision timer.");
   gmic_help("    _ '@?' is substituted by the current type of image pixels.");
   gmic_help("    _ '@^' is substituted by the current verbosity level.");
   gmic_help("    _ '@/' is substituted by the current level of the command scope.");
@@ -10060,6 +10150,11 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_option("-solve","[image]","");
   gmic_help(_"Solve linear system AX = B for selected B-vectors and specified A-matrix.");
 
+  gmic_option("-trisolve","[image]","");
+  gmic_help(_"Solve tridiagonal system AX = B for selected B-vectors and specified tridiagonal A-matrix.");
+  gmic_help(_"Tridiagonal matrix must be stored as a 3 column vector, where 2nd column contains the");
+  gmic_help(_"diagonal coefficients, while 1st and 3rd columns contain the left and right coefficients.");
+
   gmic_option("-eigen","","");
   gmic_help(_"Compute the eigenvalues and eigenvectors of specified symmetric matrices.");
 
@@ -10319,6 +10414,9 @@ bool help(const int argc, const char *const *const argv, const char *const comma
 
   gmic_section("3d rendering");
 
+  gmic_option("-rotation3d","u,v,w,angle","");
+  gmic_help(_"Create a new 3d rotation matrix with specified axis and angle (in deg).");
+
   gmic_option("-point3d","x0,y0,z0","");
   gmic_help(_"Create a new 3d point at specified coordinates.");
 
@@ -10401,7 +10499,7 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_"(eq. to '-c3d').");
 
   gmic_option("-normalize3d","","");
-  gmic_help(_"Normalize size of selected 3d objects.");
+  gmic_help(_"Normalize selected 3d objects to unit size.");
   gmic_help(_"(eq. to '-n3d').");
 
   gmic_option("-rotate3d","u,v,w,angle","");
@@ -10635,6 +10733,11 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_argument("(no args)");
   gmic_help(_"Insert shared buffers from (opt. points/lines/planes/channels of) selected images.");
   gmic_help(_"(eq. to '-sh').");
+
+  gmic_option("-camera","_camera_index>=-1,_nb_frames>0,_skip_frames>=0,release_camera={ 0 | 1 }","(*)");
+  gmic_help(_"Insert one or several frames from specified camera, with custom delay between frames (in ms).");
+  gmic_help(_"Set 'camera_index' to -1 to use the default camera device.");
+  gmic_help(_"When 'release_camera' is set to 1, the camera stream is released and no images are inserted.");
 
   gmic_option("-display","","");
   gmic_help(_"Display selected images in an interactive viewer (use the instant window [0] if opened).");
@@ -10894,7 +10997,8 @@ int main(int argc, char **argv) {
   //---------------------------
   cimg::output(stdout);
   if (argc==1) {
-    std::fprintf(cimg::output(),"[gmic] No options or data provided. Try '%s -h' for help.\n",
+    std::fprintf(cimg::output(),
+                 "[gmic] No commands, options or data provided (type '%s -h' to get help).\n",
                  cimg::basename(argv[0]));
     std::fflush(cimg::output());
     std::exit(0);

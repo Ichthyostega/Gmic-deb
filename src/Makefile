@@ -124,6 +124,10 @@ FFMPEG_LDFLAGS = -lavcodec -lavformat -lswscale
 ZLIB_CFLAGS = -Dcimg_use_zlib
 ZLIB_LDFLAGS = -lz
 
+# Flags to enable native support of webcams, using the OpenCV library.
+OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv
+OPENCV_LDFLAGS = -lcv -lhighgui
+
 # Flags to enable native support of most classical image file formats, using the GraphicsMagick++ library.
 MAGICK_CFLAGS = -Dcimg_use_magick -I$(USR)/include/GraphicsMagick
 ifeq ($(OS),Darwin)
@@ -152,25 +156,28 @@ BOARD_LDFLAGS = -lboard
 
 # Sets of flags for building different configurations.
 STD_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
-                  $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
+                  $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) $(OPENCV_CFLAGS) \
 	  	  $(MAGICK_CFLAGS) $(EXR_CFLAGS) $(FFTW_CFLAGS) # $(FFMPEG_CFLAGS)
-STD_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) \
-		   $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) \
-		   $(ZLIB_LDFLAGS) $(MAGICK_LDFLAGS) $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(FFMPEG_LDFLAGS)
+STD_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
+		   $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) $(OPENCV_LDFLAGS) \
+	           $(MAGICK_LDFLAGS) $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(FFMPEG_LDFLAGS)
 
 CUST_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
-                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
+                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) $(OPENCV_CFLAGS) \
 	           $(MAGICK_CFLAGS) $(FFTW_CFLAGS) $(FFMPEG_CFLAGS) $(BOARD_CFLAGS) $(EXR_CFLAGS)
 CUST_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
-                    $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) \
+                    $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) $(OPENCV_LDFLAGS) \
 	    	    $(MAGICK_LDFLAGS) $(FFTW_LDFLAGS) $(FFMPEG_LDFLAGS) $(BOARD_LDFLAGS) $(EXR_LDFLAGS)
 
 DEBUG_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
-                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
+                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) $(OPENCV_CFLAGS) \
 	            $(FFTW_CFLAGS) $(FFMPEG_CFLAGS)
 DEBUG_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
-	  	     $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) \
+	  	     $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) $(OPENCV_LDFLAGS) \
 		     $(FFTW_LDFLAGS) $(FFMPEG_LDFLAGS)
+
+MINIMAL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS)
+MINIMAL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS)
 
 STD_MACOSX_CFLAGS= $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) \
                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) \
@@ -226,8 +233,11 @@ lib:
 	$(MAKE) "CFLAGS+=$(STD_LIB_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_LIB_LDFLAGS)" gmic_lib
 
 # Entries for non-default configurations.
+minimal:
+	$(MAKE) "CFLAGS+=$(MINIMAL_UNIX_CFLAGS)" "LDFLAGS+=$(MINIMAL_UNIX_LDFLAGS)" gmic_minimal
+
 debug:
-	$(MAKE) "CFLAGS+=$(DEBUG_UNIX_CFLAGS)" "LDFLAGS+=$(DEBUG_UNIX_LDFLAGS)" gmic_debug
+	$(MAKE) "CFLAGS+=$(DEBUG_UNIX_CFLAGS)" "LDFLAGS+=$(DEBUG_UNIX_LDFLAGS)" gmic_minimal
 
 linux:
 	$(MAKE) "CFLAGS+=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_UNIX_LDFLAGS)" "STRIP_EXE=1" gmic_gmic
@@ -249,8 +259,8 @@ gmic_lib.o: gmic.cpp gmic_def.h
 	$(CC) -o gmic_lib.o -c gmic.cpp -fPIC -Dgmic_minimal -Dgmic_float $(CFLAGS)
 gmic_lib: gmic_lib.o
 	ar rcs libgmic.a gmic_lib.o
-	$(CC) -shared -Wl,-soname,libgmic.so.1 -o libgmic.so.1.3.2 gmic_lib.o $(LDFLAGS)
-	$(CC) -o gmic_use_lib gmic_use_lib.cpp -L. -lgmic -lfftw3
+	$(CC) -shared -Wl,-soname,libgmic.so.1 -o libgmic.so gmic_lib.o $(LDFLAGS)
+	$(CC) -o gmic_use_lib gmic_use_lib.cpp -L. -lgmic $(FFTW_LDFLAGS)
 
 gmic_gimp.o: gmic.cpp gmic_def.h
 	$(CC) -o gmic_gimp.o -c gmic.cpp -Dgmic_gimp -Dgmic_minimal -Dgmic_float $(CFLAGS)
@@ -258,7 +268,7 @@ gmic_gimp : gmic_gimp.o gmic_gimp.cpp
 	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o `gimptool-2.0$(EXE) --cflags` $(CFLAGS) `gimptool-2.0$(EXE) --libs` $(LDFLAGS)
 	strip gmic_gimp$(EXE)
 
-gmic_debug: gmic.cpp
+gmic_minimal: gmic.cpp
 	$(CC) -o gmic gmic.cpp -Dgmic_minimal -Dgmic_float -Dgmic_main $(CFLAGS) $(LDFLAGS)
 
 gmic_bool.o: gmic.cpp
