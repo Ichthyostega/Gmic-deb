@@ -46,7 +46,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 1400
+#define gmic_version 1420
 
 // Define environment variables.
 #ifndef cimg_verbosity
