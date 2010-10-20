@@ -54,7 +54,7 @@
 
 // Define version number of the library file.
 #ifndef cimg_version
-#define cimg_version 140
+#define cimg_version 142
 
 /*-----------------------------------------------------------
  #
@@ -4351,16 +4351,18 @@ namespace cimg_library {
        \param x is the number to be rounded.
        \param y is the rounding precision.
        \param rounding_type defines the type of rounding (0=nearest, -1=backward, 1=forward).
+       \return the rounded value, with the same type as parameter x.
     **/
-    inline double round(const double x, const double y, const int rounding_type=0) {
+    template<typename T>
+    inline T round(const T x, const double y=1, const int rounding_type=0) {
       if (y<=0) return x;
-      const double delta = cimg::mod(x,y);
+      const double delta = cimg::mod((double)x,y);
       if (delta==0.0) return x;
-      if (delta==0.5*y) return x>=0?x+delta:x-delta;
+      if (delta==0.5*y) return (T)(x>=0?x+delta:x-delta);
       const double
         backward = x - delta,
         forward = backward + y;
-      return rounding_type<0?backward:(rounding_type>0?forward:(2*delta<y?backward:forward));
+      return (T)(rounding_type<0?backward:(rounding_type>0?forward:(2*delta<y?backward:forward)));
     }
 
     inline double _pythagore(double a, double b) {
@@ -11386,26 +11388,6 @@ namespace cimg_library {
         }
       }
 
-      // Check consistency of opacities.
-      return _is_object3d(opacities,error_message);
-    }
-
-    template<typename to>
-    bool _is_object3d(const CImgList<to>& opacities, char *const error_message) const {
-      cimglist_for(opacities,o) {
-        const CImg<to>& opacity = opacities[o];
-        if (opacity._spectrum!=1) {
-          if (error_message) std::sprintf(error_message,
-                                          "3d object has invalid opacity (%u,%u,%u,%u) for primitive %u",
-                                          opacity._width,opacity._height,opacity._depth,opacity._spectrum,o);
-          return false;
-        }
-      }
-      return true;
-    }
-
-    template<typename to>
-    bool _is_object3d(const CImg<to>&, char *const) const {
       return true;
     }
 
@@ -11454,7 +11436,7 @@ namespace cimg_library {
       }
       if (!full_check) return true;
 
-      // Check primitive consistency.
+      // Check consistency of primitive data.
       if (ptrs==ptre) {
         if (error_message) std::sprintf(error_message,
                                         "CImg3d (%u,%u) has no primitive data",
@@ -11538,7 +11520,7 @@ namespace cimg_library {
         }
       }
 
-      // Check color consistency.
+      // Check consistency of color data.
       if (ptrs==ptre) {
         if (error_message) std::sprintf(error_message,
                                         "CImg3d (%u,%u) has no color/texture data",
@@ -11566,7 +11548,7 @@ namespace cimg_library {
         }
       }
 
-      // Check opacity consistency.
+      // Check consistency of opacity data.
       if (ptrs==ptre) {
         if (error_message) std::sprintf(error_message,
                                         "CImg3d (%u,%u) has no opacity data",
@@ -14304,7 +14286,7 @@ namespace cimg_library {
 
       const bool is_bounded = (x0!=x1 || y0!=y1 || z0!=z1);
       if (L<=0 || (is_bounded && (x<x0 || x>x1 || y<y0 || y>y1 || z<z0 || z>z1))) return CImg<floatT>();
-      const unsigned int size_L = (unsigned int)cimg::round(L/dl+1,1);
+      const unsigned int size_L = (unsigned int)cimg::round(L/dl+1);
       CImg<floatT> coordinates(size_L,3);
       const float dl2 = dl/2;
       float
@@ -15352,16 +15334,16 @@ namespace cimg_library {
 
     //! Compute image with rounded pixel values.
     /**
-       \param x Rounding precision.
+       \param y Rounding precision.
        \param rounding_type Roundin type, can be 0 (nearest), 1 (forward), -1(backward).
     **/
-    CImg<T>& round(const float x, const int rounding_type=0) {
-      if (x>0) cimg_for(*this,ptrd,T) *ptrd = (T)cimg::round(*ptrd,x,rounding_type);
+    CImg<T>& round(const double y=1, const int rounding_type=0) {
+      if (y>0) cimg_for(*this,ptrd,T) *ptrd = cimg::round(*ptrd,y,rounding_type);
       return *this;
     }
 
-    CImg<T> get_round(const float x, const unsigned int rounding_type=0) const {
-      return (+*this).round(x,rounding_type);
+    CImg<T> get_round(const double y=1, const unsigned int rounding_type=0) const {
+      return (+*this).round(y,rounding_type);
     }
 
     //! Add random noise to the values of the instance image.
@@ -16120,18 +16102,8 @@ namespace cimg_library {
     //@{
     //---------------------------------
 
-    //! Return a default indexed color palette with 256 (R,G,B) entries.
-    /**
-       \return An instance of a default color palette with 256 (R,G,B) colors.
-       \note This color palette is particularly used by %CImg when displaying images on 256 colors displays.
-             It consists in the quantification of the (R,G,B) color space using 3:3:2 bits for color coding
-             (i.e 8 levels for the Red and Green and 4 levels for the Blue).
-       \code
-       CImg<float>::default_LUT256().display();
-       \endcode
-       \image html ref_default_LUT256.jpg
-    **/
-    static CImg<Tuchar> default_LUT256() {
+    //! Return a palette 'default' with 256 (R,G,B) entries.
+    static const CImg<Tuchar>& default_LUT256() {
       static CImg<Tuchar> palette;
       if (!palette) {
         palette.assign(1,256,1,3);
@@ -16146,15 +16118,8 @@ namespace cimg_library {
       return palette;
     }
 
-    //! Return a rainbow indexed color palette with 256 (R,G,B) entries.
-    /**
-       \return An instance of a rainbow color palette with 256 (R,G,B) colors.
-       \code
-       CImg<float>::rainbow_LUT256().display();
-       \endcode
-       \image html ref_rainbow_LUT256.jpg
-    **/
-    static CImg<Tuchar> rainbow_LUT256() {
+    //! Return palette 'HSV' with 256 (R,G,B) entries.
+    static const CImg<Tuchar>& HSV_LUT256() {
       static CImg<Tuchar> palette;
       if (!palette) {
         CImg<Tint> tmp(1,256,1,3,1);
@@ -16164,15 +16129,8 @@ namespace cimg_library {
       return palette;
     }
 
-    //! Return a contrasted indexed color palette with 256 (R,G,B) entries.
-    /**
-       \return An instance of a contrasted color palette with 256 (R,G,B) colors.
-       \code
-       CImg<float>::contrast_LUT256().display();
-       \endcode
-       \image html ref_contrast_LUT256.jpg
-    **/
-    static CImg<Tuchar> contrast_LUT256() {
+    //! Return palette 'lines' with 256 (R,G,B) entries.
+    static const CImg<Tuchar>& lines_LUT256() {
       static const unsigned char pal[] = {
         217,62,88,75,1,237,240,12,56,160,165,116,1,1,204,2,15,248,148,185,133,141,46,246,222,116,16,5,207,226,
         17,114,247,1,214,53,238,0,95,55,233,235,109,0,17,54,33,0,90,30,3,0,94,27,19,0,68,212,166,130,0,15,7,119,
@@ -16199,6 +16157,59 @@ namespace cimg_library {
         33,221,174,31,3,0,189,228,6,153,14,144,14,108,197,0,9,206,245,254,3,16,253,178,248,0,95,125,8,0,3,168,21,
         23,168,19,50,240,244,185,0,1,144,10,168,31,82,1,13 };
       static const CImg<Tuchar> palette(pal,1,256,1,3,false);
+      return palette;
+    }
+
+    //! Return the palette 'hot' with 256 (R,G,B) entries.
+    static const CImg<Tuchar>& hot_LUT256() {
+      static CImg<Tuchar> palette;
+      if (!palette) {
+        palette.assign(1,4,1,3,0);
+        palette[1] = palette[2] = palette[3] = palette[6] = palette[7] = palette[11] = 255;
+        palette.resize(1,256,1,3,3);
+      }
+      return palette;
+    }
+
+    //! Return the palette 'cool' with 256 (R,G,B) entries.
+    static const CImg<Tuchar>& cool_LUT256() {
+      static CImg<Tuchar> palette;
+      if (!palette) palette.assign(1,2,1,3).fill(0,255,255,0,255,255).resize(1,256,1,3,3);
+      return palette;
+    }
+
+    //! Return palette 'jet' with 256 (R,G,B) entries.
+    static const CImg<Tuchar>& jet_LUT256() {
+      static CImg<Tuchar> palette;
+      if (!palette) {
+        palette.assign(1,4,1,3,0);
+        palette[2] = palette[3] = palette[5] = palette[6] = palette[8] = palette[9] = 255;
+        palette.resize(1,256,1,3,3);
+      }
+      return palette;
+    }
+
+    //! Return palette 'flag' with 256 (R,G,B) entries.
+    static const CImg<Tuchar>& flag_LUT256() {
+      static CImg<Tuchar> palette;
+      if (!palette) {
+        palette.assign(1,4,1,3,0);
+        palette[0] = palette[1] = palette[5] = palette[9] = palette[10] = 255;
+        palette.resize(1,256,1,3,0,2);
+      }
+      return palette;
+    }
+
+    //! Return palette 'cube' with 256 (R,G,B) entries.
+    static const CImg<Tuchar>& cube_LUT256() {
+      static CImg<Tuchar> palette;
+      if (!palette) {
+        palette.assign(1,8,1,3,0);
+        palette[1] = palette[3] = palette[5] = palette[7] =
+          palette[10] = palette[11] = palette[12] = palette[13] =
+          palette[20] = palette[21] = palette[22] = palette[23] = 255;
+        palette.resize(1,256,1,3,3);
+      }
       return palette;
     }
 
@@ -17999,7 +18010,7 @@ namespace cimg_library {
           - 2 : Repeat Pattern (Fourier style).
     **/
     CImg<T>& shift(const int deltax, const int deltay=0, const int deltaz=0, const int deltac=0,
-                       const int border_condition=0) {
+                   const int border_condition=0) {
       if (is_empty()) return *this;
       if (deltax) // Shift along X-axis
         switch (border_condition) {
@@ -18151,10 +18162,10 @@ namespace cimg_library {
         switch (border_condition) {
         case 0 :
           if (cimg::abs(deltac)>=spectrum()) return fill(0);
-          if (-deltac>0) {
+          if (deltac<0) {
             std::memmove(_data,data(0,0,0,-deltac),_width*_height*_depth*(_spectrum+deltac)*sizeof(T));
             std::memset(data(0,0,0,_spectrum+deltac),0,_width*_height*_depth*(-deltac)*sizeof(T));
-          } else cimg_forC(*this,c) {
+          } else {
             std::memmove(data(0,0,0,deltac),_data,_width*_height*_depth*(_spectrum-deltac)*sizeof(T));
             std::memset(_data,0,deltac*_width*_height*_depth*sizeof(T));
           }
@@ -22581,7 +22592,6 @@ namespace cimg_library {
                                     "have incompatible dimensions.",
                                     cimg_instance,
                                     elevation._width,elevation._height,elevation._depth,elevation._spectrum,elevation._data);
-
       if (is_empty()) return *this;
       float m, M = (float)max_min(m);
       if (M==m) ++M;
@@ -28697,7 +28707,7 @@ namespace cimg_library {
        \param opacities = Image or list of P opacities
        \param render_type = Render type (0=Points, 1=Lines, 2=Faces (no light), 3=Faces (flat), 4=Faces(Gouraud)
        \param double_sided = Tell if object faces have two sides or are oriented.
-       \param focale = length of the focale
+       \param focale = length of the focale (0 for parallel projection)
        \param lightx = X-coordinate of the light
        \param lighty = Y-coordinate of the light
        \param lightz = Z-coordinate of the light
@@ -28915,9 +28925,19 @@ namespace cimg_library {
         if (colors._width>primitives._width) {
           static CImg<floatT> default_light_texture;
           static const tc *lptr = 0;
-          if (!lptr || lptr!=colors.back().data()) {
-            default_light_texture.assign(colors.back())/=255;
+          static tc ref_values[64] = { 0 };
+          const CImg<tc>& img = colors.back();
+          bool is_same_texture = (lptr==img._data);
+          if (is_same_texture)
+            for (unsigned int r = 0, j = 0; j<8; ++j)
+              for (unsigned int i = 0; i<8; ++i)
+                if (ref_values[r++]!=img(i*img._width/9,j*img._height/9,0,(i+j)%img._spectrum)) { is_same_texture = false; break; }
+          if (!is_same_texture || default_light_texture._spectrum<_spectrum) {
+            (default_light_texture.assign(img,false)/=255).resize(-100,-100,1,_spectrum);
             lptr = colors.back().data();
+            for (unsigned int r = 0, j = 0; j<8; ++j)
+              for (unsigned int i = 0; i<8; ++i)
+                ref_values[r++] = img(i*img._width/9,j*img._height/9,0,(i+j)%img._spectrum);
           }
           light_texture.assign(default_light_texture,true);
         } else {
@@ -28950,14 +28970,15 @@ namespace cimg_library {
       // Compute 3d to 2d projection.
       CImg<tpfloat> projections(vertices._width,2);
       tpfloat parallzmin = cimg::type<tpfloat>::max();
-      if (focale>0) cimg_forX(projections,l) { // Perspective projection
+      const float absfocale = focale?cimg::abs(focale):0;
+      if (absfocale) cimg_forX(projections,l) { // Perspective projection
           const tpfloat
             x = (tpfloat)vertices(l,0),
             y = (tpfloat)vertices(l,1),
             z = (tpfloat)vertices(l,2);
-          const tpfloat projectedz = z + Z + focale;
-          projections(l,1) = Y + focale*y/projectedz;
-          projections(l,0) = X + focale*x/projectedz;
+          const tpfloat projectedz = z + Z + absfocale;
+          projections(l,1) = Y + absfocale*y/projectedz;
+          projections(l,0) = X + absfocale*x/projectedz;
         } else cimg_forX(projections,l) { // Parallel projection
           const tpfloat
             x = (tpfloat)vertices(l,0),
@@ -28972,7 +28993,7 @@ namespace cimg_library {
       CImg<uintT> visibles(primitives._width);
       CImg<tpfloat> zrange(primitives._width);
       unsigned int nb_visibles = 0;
-      const tpfloat zmin = focale>0?(tpfloat)(1.5f - focale):cimg::type<tpfloat>::min();
+      const tpfloat zmin = absfocale?(tpfloat)(1.5f - absfocale):cimg::type<tpfloat>::min();
       cimglist_for(primitives,l) {
         const CImg<tf>& primitive = primitives[l];
         switch (primitive.size()) {
@@ -29193,15 +29214,15 @@ namespace cimg_library {
       }
 
       // Draw visible primitives
-      const float _focale = focale>0?focale:(1-parallzmin);
+      const float _focale = absfocale?absfocale:(1-parallzmin);
       const CImg<tc> default_color(1,_spectrum,1,1,(tc)200);
       for (unsigned int l = 0; l<nb_visibles; ++l) {
         const unsigned int n_primitive = visibles(permutations(l));
         const CImg<tf>& primitive = primitives[n_primitive];
         const CImg<tc>
-          _color = (n_primitive<colors._width && colors[n_primitive]._spectrum<_spectrum)?
-          colors[n_primitive].get_resize(-100,-100,-100,_spectrum,0):CImg<tc>(),
-          &color = n_primitive<colors._width?(_color?_color:colors[n_primitive]):default_color;
+          &__color = n_primitive<colors._width?colors[n_primitive]:CImg<tc>(),
+          _color = (__color && __color.size()!=_spectrum && __color._spectrum<_spectrum)?colors[n_primitive].get_resize(-100,-100,-100,_spectrum,0):CImg<tc>(),
+          &color = _color?_color:(__color?__color:default_color);
         const tc *const pcolor = color._data;
         const float opac = n_primitive<opacities.size()?opacities(n_primitive,0):1.0f;
 #ifdef cimg_use_board
@@ -29222,7 +29243,7 @@ namespace cimg_library {
 #endif
           } else { // Colored sprite.
             const tpfloat z = Z + vertices(n0,2);
-            const float factor = sprite_scale*(focale>0?focale/(z + focale):1);
+            const float factor = focale<0?1:sprite_scale*(absfocale?absfocale/(z + absfocale):1);
             const unsigned int
               _sw = (unsigned int)(color._width*factor),
               _sh = (unsigned int)(color._height*factor),
@@ -29283,9 +29304,9 @@ namespace cimg_library {
             Yc = 0.5f*((float)vertices(n0,1) + (float)vertices(n1,1)),
             Zc = 0.5f*((float)vertices(n0,2) + (float)vertices(n1,2)),
             zc = Z + Zc + _focale,
-            xc = X + Xc*(focale>0?focale/zc:1),
-            yc = Y + Yc*(focale>0?focale/zc:1),
-            radius = std::sqrt(cimg::sqr(Xc-vertices(n0,0)) + cimg::sqr(Yc-vertices(n0,1)) + cimg::sqr(Zc-vertices(n0,2)))*(focale>0?focale/zc:1);
+            xc = X + Xc*(absfocale?absfocale/zc:1),
+            yc = Y + Yc*(absfocale?absfocale/zc:1),
+            radius = std::sqrt(cimg::sqr(Xc-vertices(n0,0)) + cimg::sqr(Yc-vertices(n0,1)) + cimg::sqr(Zc-vertices(n0,2)))*(absfocale?absfocale/zc:1);
           switch (render_type) {
           case 0 :
             draw_point((int)xc,(int)yc,pcolor,opac);
@@ -31152,42 +31173,43 @@ namespace cimg_library {
       png_read_info(png_ptr,info_ptr);
       png_uint_32 W, H;
       int bit_depth, color_type, interlace_type;
+      bool is_gray = false;
       png_get_IHDR(png_ptr,info_ptr,&W,&H,&bit_depth,&color_type,&interlace_type,(int*)0,(int*)0);
-      int new_bit_depth = bit_depth;
-      int new_color_type = color_type;
-      bool no_alpha_channel = true;
 
       // Transforms to unify image data
-      if (new_color_type==PNG_COLOR_TYPE_PALETTE){
+      if (color_type==PNG_COLOR_TYPE_PALETTE) {
         png_set_palette_to_rgb(png_ptr);
-        new_color_type-=PNG_COLOR_MASK_PALETTE;
-        new_bit_depth = 8;
+        color_type = PNG_COLOR_TYPE_RGB;
+        bit_depth = 8;
       }
-      if (new_color_type==PNG_COLOR_TYPE_GRAY && bit_depth<8){
+      if (color_type==PNG_COLOR_TYPE_GRAY && bit_depth<8) {
         png_set_expand_gray_1_2_4_to_8(png_ptr);
-        new_bit_depth = 8;
+        color_type = PNG_COLOR_TYPE_RGB;
+        is_gray = true;
+        bit_depth = 8;
       }
       if (png_get_valid(png_ptr,info_ptr,PNG_INFO_tRNS)) {
         png_set_tRNS_to_alpha(png_ptr);
-        new_color_type |= PNG_COLOR_MASK_ALPHA;
-        no_alpha_channel = false;
+        color_type |= PNG_COLOR_MASK_ALPHA;
       }
-      if (new_color_type==PNG_COLOR_TYPE_GRAY || new_color_type==PNG_COLOR_TYPE_GRAY_ALPHA) {
+      if (color_type==PNG_COLOR_TYPE_GRAY || color_type==PNG_COLOR_TYPE_GRAY_ALPHA) {
         png_set_gray_to_rgb(png_ptr);
-        new_color_type |= PNG_COLOR_MASK_COLOR;
+        color_type |= PNG_COLOR_MASK_COLOR;
+        is_gray = true;
       }
-      if (new_color_type==PNG_COLOR_TYPE_RGB)
-        png_set_filler(png_ptr, 0xffffU, PNG_FILLER_AFTER);
+      if (color_type==PNG_COLOR_TYPE_RGB)
+        png_set_filler(png_ptr,0xffffU,PNG_FILLER_AFTER);
+
       png_read_update_info(png_ptr,info_ptr);
-      if (!(new_bit_depth==8 || new_bit_depth==16)) {
+      if (bit_depth!=8 && bit_depth!=16) {
         if (!file) cimg::fclose(nfile);
         png_destroy_read_struct(&png_ptr,&end_info,(png_infopp)0);
         throw CImgIOException(_cimg_instance
                               "load_png() : Invalid bit depth %u in file '%s'.",
                               cimg_instance,
-                              new_bit_depth,nfilename?nfilename:"(FILE*)");
+                              bit_depth,nfilename?nfilename:"(FILE*)");
       }
-      const int byte_depth = new_bit_depth>>3;
+      const int byte_depth = bit_depth>>3;
 
       // Allocate Memory for Image Read
       png_bytep *const imgData = new png_bytep[H];
@@ -31196,38 +31218,42 @@ namespace cimg_library {
       png_read_end(png_ptr,end_info);
 
       // Read pixel data
-      if (!(new_color_type==PNG_COLOR_TYPE_RGB || new_color_type==PNG_COLOR_TYPE_RGB_ALPHA)) {
+      if (color_type!=PNG_COLOR_TYPE_RGB && color_type!=PNG_COLOR_TYPE_RGB_ALPHA) {
         if (!file) cimg::fclose(nfile);
         png_destroy_read_struct(&png_ptr,&end_info,(png_infopp)0);
         throw CImgIOException(_cimg_instance
                               "load_png() : Invalid color coding type %u in file '%s'.",
                               cimg_instance,
-                              new_color_type,nfilename?nfilename:"(FILE*)");
+                              color_type,nfilename?nfilename:"(FILE*)");
       }
-      no_alpha_channel |= (new_color_type==PNG_COLOR_TYPE_RGB);
-      assign(W,H,1,no_alpha_channel?3:4);
-      T *ptr1 = data(0,0,0,0), *ptr2 = data(0,0,0,1), *ptr3 = data(0,0,0,2), *ptr4 = data(0,0,0,3);
-      switch (new_bit_depth) {
+      const bool is_alpha = (color_type==PNG_COLOR_TYPE_RGBA);
+      assign(W,H,1,(is_gray?1:3) + (is_alpha?1:0));
+      T
+        *ptr_r = data(0,0,0,0),
+        *ptr_g = is_gray?0:data(0,0,0,1),
+        *ptr_b = is_gray?0:data(0,0,0,2),
+        *ptr_a = !is_alpha?0:data(0,0,0,is_gray?1:3);
+      switch (bit_depth) {
       case 8 : {
-        cimg_forY(*this,y){
+        cimg_forY(*this,y) {
           const unsigned char *ptrs = (unsigned char*)imgData[y];
-          cimg_forX(*this,x){
-            *(ptr1++) = (T)*(ptrs++);
-            *(ptr2++) = (T)*(ptrs++);
-            *(ptr3++) = (T)*(ptrs++);
-            if (no_alpha_channel) ++ptrs; else *(ptr4++) = (T)*(ptrs++);
+          cimg_forX(*this,x) {
+            *(ptr_r++) = (T)*(ptrs++);
+            if (ptr_g) *(ptr_g++) = (T)*(ptrs++); else ++ptrs;
+            if (ptr_b) *(ptr_b++) = (T)*(ptrs++); else ++ptrs;
+            if (ptr_a) *(ptr_a++) = (T)*(ptrs++); else ++ptrs;
           }
         }
       } break;
       case 16 : {
-        cimg_forY(*this,y){
+        cimg_forY(*this,y) {
           const unsigned short *ptrs = (unsigned short*)(imgData[y]);
           if (!cimg::endianness()) cimg::invert_endianness(ptrs,4*_width);
-          cimg_forX(*this,x){
-            *(ptr1++) = (T)*(ptrs++);
-            *(ptr2++) = (T)*(ptrs++);
-            *(ptr3++) = (T)*(ptrs++);
-            if (no_alpha_channel) ++ptrs; else *(ptr4++) = (T)*(ptrs++);
+          cimg_forX(*this,x) {
+            *(ptr_r++) = (T)*(ptrs++);
+            if (ptr_g) *(ptr_g++) = (T)*(ptrs++); else ++ptrs;
+            if (ptr_b) *(ptr_b++) = (T)*(ptrs++); else ++ptrs;
+            if (ptr_a) *(ptr_a++) = (T)*(ptrs++); else ++ptrs;
           }
         }
       } break;
@@ -32776,7 +32802,17 @@ namespace cimg_library {
 #if cimg_OS==1
       cimg_snprintf(command,sizeof(command),"%s convert \"%s\" pnm:-",cimg::graphicsmagick_path(),filename);
       file = popen(command,"r");
-      if (file) { load_pnm(file); pclose(file); return *this; }
+      if (file) {
+        try { load_pnm(file); } catch (...) {
+          pclose(file);
+          throw CImgIOException(_cimg_instance
+                                "load_graphicsmagick_external() : Failed to load file '%s' with external command 'gm'.",
+                                cimg_instance,
+                                filename);
+        }
+        pclose(file);
+        return *this;
+      }
 #endif
       do {
         cimg_snprintf(filetmp,sizeof(filetmp),"%s%c%s.pnm",cimg::temporary_path(),cimg_file_separator,cimg::filenamerand());
@@ -32856,7 +32892,17 @@ namespace cimg_library {
 #if cimg_OS==1
       cimg_snprintf(command,sizeof(command),"%s \"%s\" pnm:-",cimg::imagemagick_path(),filename);
       file = popen(command,"r");
-      if (file) { load_pnm(file); pclose(file); return *this; }
+      if (file) {
+        try { load_pnm(file); } catch (...) {
+          pclose(file);
+          throw CImgIOException(_cimg_instance
+                                "load_imagemagick_external() : Failed to load file '%s' with external command 'convert'.",
+                                cimg_instance,
+                                filename);
+        }
+        pclose(file);
+        return *this;
+      }
 #endif
       do {
         cimg_snprintf(filetmp,sizeof(filetmp),"%s%c%s.pnm",cimg::temporary_path(),cimg_file_separator,cimg::filenamerand());
@@ -32930,7 +32976,17 @@ namespace cimg_library {
 #if cimg_OS==1
       cimg_snprintf(command,sizeof(command),"%s -w -4 -c \"%s\"",cimg::dcraw_path(),filename);
       file = popen(command,"r");
-      if (file) { load_pnm(file); pclose(file); return *this; }
+      if (file) {
+        try { load_pnm(file); } catch (...) {
+          pclose(file);
+          throw CImgIOException(_cimg_instance
+                                "load_dcraw_external() : Failed to load file '%s' with external command 'dcraw'.",
+                                cimg_instance,
+                                filename);
+        }
+        pclose(file);
+        return *this;
+      }
 #endif
       do {
         cimg_snprintf(filetmp,sizeof(filetmp),"%s%c%s.ppm",cimg::temporary_path(),cimg_file_separator,cimg::filenamerand());
@@ -32998,7 +33054,7 @@ namespace cimg_library {
           } else for (unsigned int siz = img->width*img->height; siz; --siz) { *(ptr_b++) = (T)*(ptrs++); *(ptr_g++) = (T)*(ptrs++); *(ptr_r++) = (T)*(ptrs++); }
       }
 #else
-      cimg::unused(camera_index,release_camera);
+      cimg::unused(camera_index,skip_frames,release_camera);
       throw CImgIOException(_cimg_instance
                             "load_camera() : This function requires the OpenCV library to run "
                             "(macro 'cimg_use_opencv' must be defined).",
@@ -34534,19 +34590,19 @@ namespace cimg_library {
       double stmin, stmax = (double)max_min(stmin);
       if (_depth>1)
         cimg::warn(_cimg_instance
-                   "save_magick() : Instance is volumetric, only the first slice will be saved in file '%s'.",
+                   "save_png() : Instance is volumetric, only the first slice will be saved in file '%s'.",
                    cimg_instance,
                    filename);
 
-      if (_spectrum>3)
+      if (_spectrum>4)
         cimg::warn(_cimg_instance
-                   "save_magick() : Instance is multispectral, only the three first channels will be saved in file '%s'.",
+                   "save_png() : Instance is multispectral, only the three first channels will be saved in file '%s'.",
                    cimg_instance,
                    filename);
 
       if (stmin<0 || (bytes_per_pixel==1 && stmax>=256) || stmax>=65536)
         cimg::warn(_cimg_instance
-                   "save_magick() : Instance has pixel values in [%g,%g], probable type overflow in file '%s'.",
+                   "save_png() : Instance has pixel values in [%g,%g], probable type overflow in file '%s'.",
                    cimg_instance,
                    filename,stmin,stmax);
 
@@ -37190,8 +37246,7 @@ namespace cimg_library {
           std::memset(_data,0,sizeof(CImg<T>)*(_width-1));
           delete[] _data;
           _data = new_data;
-        }
-        else if (npos!=_width-1) std::memmove(_data+npos+1,_data+npos,sizeof(CImg<T>)*(_width-1-npos));
+        } else if (npos!=_width-1) std::memmove(_data+npos+1,_data+npos,sizeof(CImg<T>)*(_width-1-npos));
         _data[npos]._width = _data[npos]._height = _data[npos]._depth = _data[npos]._spectrum = 0; _data[npos]._data = 0;
         _data[npos] = img;
       }

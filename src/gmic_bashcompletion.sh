@@ -44,7 +44,7 @@ _gmic()
 	local threshold="value[%],_soft (noargs)";
 	local cut="{value0[%]|[image0]},{value1[%]|[image1]} [image] (noargs)";
 	local normalize="{value0[%]|[image0]},{value1[%]|[image1]} [image]";
-	local round="rounding_value>=0,_rounding_type .";
+	local round="rounding_value>=0,_rounding_type (noargs)";
 	local equalize="nb_levels>0[%],_value0[%],_value1[%] .";
 	local quantize="nb_levels>0[%],_preserve_value_range={0|1} .";
 	local noise="std_variation>=0[%],_noise_type .";
@@ -99,7 +99,7 @@ _gmic()
 	local polygon="N,x1[%],y1[%],..,xN[%],yN[%],_opacity,_pattern,_color1,.. .";
 	local spline="x0[%],y0[%],u0[%],v0[%],x1[%],y1[%],u1[%],v1[%],_opacity,_pattern,_color1,.. .";
 	local ellipse="x[%],y[%],R[%],r[%],_angle,_opacity,_color1,.. .";
-	local text="text,_x[%],_y[%],_font_height>0,_opacity,_color1,.. .";
+	local text="text,_x[%],_y[%],_font_height>=0,_opacity,_color1,.. .";
 	local graph="[function_image],_plot_type,_vertex_type,_ymin,_ymax,_opacity,_pattern,_color1,.. \'formula\',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax,_opacity,_pattern,_color1,..";
 	local axes="x0,x1,y0,y1,_opacity,_pattern,_color1,.. .";
 	local grid="sizex[%]>=0,sizey[%]>=0,_offsetx[%],_offsety[%],_opacity,_pattern,_color1,.. .";
@@ -125,7 +125,7 @@ _gmic()
 	local sphere3d="radius,_nb_recursions>=0 .";
 	local elevation3d="z-factor [image] \'formula\',_x0,_y0,_x1,y1,_dx[%],_dy[%] (noargs)";
 	local isoline3d="isovalue[%] \'formula\',value,_x0,_y0,_x1,_y1,_dx>0[%],_dy>0[%]";
-	local isosurface3d="isovalue[%] \'formula\',value,_x0,_y0,_z0,_x1,_y1,_z1,_dx>0[%],_dy>0[%],_dz>0[%]";
+	local isosurface3d="isovalue[%] \'formula\',value,_x0,_y0,_z0,_x1,_y1,_z1,_size_x>0[%],_size_y>0[%],_size_z>0[%]";
 	local streamline3d="x,y,z,_L>=0,_dl>0,_interp,_is_backward={0|1},_is_oriented={0|1} \'formula\',x,y,z,_L>=0,_dl>0,_interp,_is_backward={0|1},_is_oriented={0|1}";
 	local add3d="tx,_ty,_tz [object3d] (noargs)";
 	local sub3d="tx,_ty,_tz .";
@@ -136,7 +136,7 @@ _gmic()
 	local opacity3d="opacity .";
 	local primitives3d="mode .";
 	local light3d="position_x,position_y,position_z [image] (noargs)";
-	local focale3d="focale>=0 .";
+	local focale3d="focale .";
 	local pose3d="value1,..,value16 (noargs)";
 	local specl3d="value .";
 	local specs3d="value .";
@@ -227,6 +227,8 @@ _gmic()
 	local chessboard="size1>0,_size2>0,_offset1,_offset2,_angle,_opacity,_color1,..,_color2,.. .";
 	local split_tiles="M!=0,_N!=0,_is_homogeneous={0|1} .";
 	local append_tiles="M>0,_N>0 .";
+	local rr2d="eq.to\'-resize_ratio2d\'. .";
+	local resize_ratio2d="width>0,height>0,_mode={0=inside|1=outside|2=padded},0=<_interpolation_type<=6 .";
 	local r2dx="eq.to\'-resize2dx\'. .";
 	local resize2dx="width>0,_interpolation_type={0,1,2,3,4,5} .";
 	local r3dx="eq.to\'-resize3dx\'. .";
@@ -289,7 +291,7 @@ _gmic()
 	local oriented_richardson_lucy="amplitude1[%]>=0,_amplitude2[%]>=0,_angle,_nb_iter>=0,_dt>=0,_regul>=0,_regul_type={0=Tikhonov|1=meancurv.|2=TV} .";
 	local unsharp="_radius[%]>=0,_amount>=0,_threshold[%]>=0 .";
 	local unsharp_octave="_nb_scales>0,_radius[%]>=0,_amount>=0,threshold[%]>=0 .";
-	local normalize_local="_amplitude>=0,_radius>0,_n_smooth>=0[%],_a_smooth>=0[%],_cut={0|1},_min=0,_max=255 .";
+	local normalize_local="_amplitude>=0,_radius>0,_n_smooth>=0[%],_a_smooth>=0[%],_is_cut={0|1},_min=0,_max=255 .";
 	local map_tones="_threshold>=0,_gamma>=0,_smoothness>=0,iter>=0 .";
 	local bandpass="_min_freq[%],_max_freq[%] .";
 	local watermark="_text .";
@@ -388,9 +390,13 @@ _gmic()
 	local animate3d="_width>0,_height>0,_dx,_dy,_dz,_zoom>=0,_filename .";
 	local balls3d="_size>0,_R,_G,_B,_opacity .";
 	local pyramid3d="_width,_height .";
+	local gyroid3d="_resolution>0,_zoom .";
+	local weird3d="_resolution>0 .";
 	local text3d="text,_font_height>0,_depth>0,_smoothness .";
 	local sierpinski3d="_recursion_level>=0,_width,_height .";
+	local parametric3d="_x(a,b),_y(a,b),_z(a,b),_amin,_amax,_bmin,_bmax,_res_a>0,_res_b>0,_res_x>0,_res_y>0,_res_z>0,_smoothness>=0,_isovalue>=0 .";
 	local snapshot3d="_size>0,_zoom>=0,_backgroundR,_backgroundG,_backgroundB .";
+	local label_points3d="_label_size>0,_opacity .";
 	local x_mandelbrot="_julia={0|1},_c0r,_c0i .";
 	local x_jawbreaker="0<_width<20,0<_height<20,0<_balls<=8 .";
 	opts="-help --help -debug --debug -add --add -sub --sub -mul --mul -mmul --mmul -div 
@@ -447,24 +453,25 @@ _gmic()
 		--polar2complex -plot2value --plot2value -transfer_histogram --transfer_histogram -normalize_sum 
 		--normalize_sum -apply_gamma --apply_gamma -apply_curve --apply_curve -negative --negative 
 		-tones --tones -t2 --t2 -threshold2 --threshold2 -chessboard --chessboard -split_tiles 
-		--split_tiles -append_tiles --append_tiles -r2dx --r2dx -resize2dx --resize2dx -r3dx 
-		--r3dx -resize3dx --resize3dx -r2dy --r2dy -resize2dy --resize2dy -r3dy --r3dy -resize3dy 
-		--resize3dy -r3dz --r3dz -resize3dz --resize3dz -upscale_smart --upscale_smart -expand_x 
-		--expand_x -expand_y --expand_y -expand_z --expand_z -expand_xy --expand_xy -expand_xyz 
-		--expand_xyz -shrink_x --shrink_x -shrink_y --shrink_y -shrink_z --shrink_z -shrink_xy 
-		--shrink_xy -elevate --elevate -ow --ow -outputw --outputw -op --op -outputp --outputp 
-		-on --on -outputn --outputn -d0 --d0 -display0 --display0 -dfft --dfft -display_fft 
-		--display_fft -drgba --drgba -display_rgba --display_rgba -dh --dh -display_histogram 
-		--display_histogram -dt --dt -display_tensors --display_tensors -float2int8 --float2int8 
-		-int82float --int82float -float2fft8 --float2fft8 -fft82float --fft82float -apply_camera 
-		--apply_camera -ball --ball -sierpinski --sierpinski -text_outline --text_outline -histogram_cumul 
-		--histogram_cumul -direction2rgb --direction2rgb -vector2tensor --vector2tensor -rgb2bayer 
-		--rgb2bayer -bayer2rgb --bayer2rgb -lic --lic -gaussian --gaussian -function1d --function1d 
-		-blur_x --blur_x -blur_y --blur_y -blur_z --blur_z -blur_xy --blur_xy -blur_xyz --blur_xyz 
-		-blur_angular --blur_angular -blur_radial --blur_radial -blur_linear --blur_linear -dog 
-		--dog -pde_flow --pde_flow -heat_flow --heat_flow -meancurvature_flow --meancurvature_flow 
-		-tv_flow --tv_flow -inpaint_flow --inpaint_flow -remove_hotpixels --remove_hotpixels 
-		-richardson_lucy --richardson_lucy -oriented_richardson_lucy --oriented_richardson_lucy 
+		--split_tiles -append_tiles --append_tiles -rr2d --rr2d -resize_ratio2d --resize_ratio2d 
+		-r2dx --r2dx -resize2dx --resize2dx -r3dx --r3dx -resize3dx --resize3dx -r2dy --r2dy 
+		-resize2dy --resize2dy -r3dy --r3dy -resize3dy --resize3dy -r3dz --r3dz -resize3dz 
+		--resize3dz -upscale_smart --upscale_smart -expand_x --expand_x -expand_y --expand_y 
+		-expand_z --expand_z -expand_xy --expand_xy -expand_xyz --expand_xyz -shrink_x --shrink_x 
+		-shrink_y --shrink_y -shrink_z --shrink_z -shrink_xy --shrink_xy -elevate --elevate 
+		-ow --ow -outputw --outputw -op --op -outputp --outputp -on --on -outputn --outputn 
+		-d0 --d0 -display0 --display0 -dfft --dfft -display_fft --display_fft -drgba --drgba 
+		-display_rgba --display_rgba -dh --dh -display_histogram --display_histogram -dt --dt 
+		-display_tensors --display_tensors -float2int8 --float2int8 -int82float --int82float 
+		-float2fft8 --float2fft8 -fft82float --fft82float -apply_camera --apply_camera -ball 
+		--ball -sierpinski --sierpinski -text_outline --text_outline -histogram_cumul --histogram_cumul 
+		-direction2rgb --direction2rgb -vector2tensor --vector2tensor -rgb2bayer --rgb2bayer 
+		-bayer2rgb --bayer2rgb -lic --lic -gaussian --gaussian -function1d --function1d -pointcloud 
+		--pointcloud -blur_x --blur_x -blur_y --blur_y -blur_z --blur_z -blur_xy --blur_xy 
+		-blur_xyz --blur_xyz -blur_angular --blur_angular -blur_radial --blur_radial -blur_linear 
+		--blur_linear -dog --dog -pde_flow --pde_flow -heat_flow --heat_flow -meancurvature_flow 
+		--meancurvature_flow -tv_flow --tv_flow -inpaint_flow --inpaint_flow -remove_hotpixels 
+		--remove_hotpixels -richardson_lucy --richardson_lucy -oriented_richardson_lucy --oriented_richardson_lucy 
 		-unsharp --unsharp -unsharp_octave --unsharp_octave -normalize_local --normalize_local 
 		-map_tones --map_tones -fftpolar --fftpolar -ifftpolar --ifftpolar -convolve_fft --convolve_fft 
 		-deconvolve_fft --deconvolve_fft -bandpass --bandpass -watermark --watermark -split_freq 
@@ -509,12 +516,14 @@ _gmic()
 		--normalized_cross_correlation -phase_correlation --phase_correlation -morph --morph -register_nonrigid 
 		--register_nonrigid -register_rigid --register_rigid -deinterlace --deinterlace -animate 
 		--animate -empty3d --empty3d -apply_pose3d --apply_pose3d -animate3d --animate3d -balls3d 
-		--balls3d -imageplane3d --imageplane3d -imagecube3d --imagecube3d -image6cube3d --image6cube3d 
-		-imagepyramid3d --imagepyramid3d -pyramid3d --pyramid3d -text3d --text3d -gmic3d --gmic3d 
-		-sierpinski3d --sierpinski3d -snapshot3d --snapshot3d -x_mandelbrot --x_mandelbrot -x_fish_eye 
-		--x_fish_eye -x_spline --x_spline -x_tictactoe --x_tictactoe -x_fourier --x_fourier 
-		-x_life --x_life -x_fire --x_fire -x_light --x_light -x_jawbreaker --x_jawbreaker -x_paint 
-		--x_paint ÿ";
+		--balls3d -imageplane3d --imageplane3d -imagesphere3d --imagesphere3d -imagecube3d --imagecube3d 
+		-image6cube3d --image6cube3d -imagepyramid3d --imagepyramid3d -pyramid3d --pyramid3d 
+		-gyroid3d --gyroid3d -weird3d --weird3d -text3d --text3d -gmic3d --gmic3d -sierpinski3d 
+		--sierpinski3d -parametric3d --parametric3d -snapshot3d --snapshot3d -texturize3d --texturize3d 
+		-label_points3d --label_points3d -x_mandelbrot --x_mandelbrot -x_fish_eye --x_fish_eye 
+		-x_spline --x_spline -x_tictactoe --x_tictactoe -x_fourier --x_fourier -x_life --x_life 
+		-x_fire --x_fire -x_light --x_light -x_jawbreaker --x_jawbreaker -x_paint --x_paint 
+		ÿ";
 
 	case "${prev}" in 
 			-help | --help)
@@ -1365,6 +1374,14 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$append_tiles"))
 			return 0
 			;;
+			-rr2d | --rr2d)
+			COMPREPLY=( $(compgen -W "$rr2d"))
+			return 0
+			;;
+			-resize_ratio2d | --resize_ratio2d)
+			COMPREPLY=( $(compgen -W "$resize_ratio2d"))
+			return 0
+			;;
 			-r2dx | --r2dx)
 			COMPREPLY=( $(compgen -W "$r2dx"))
 			return 0
@@ -2009,6 +2026,14 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$pyramid3d"))
 			return 0
 			;;
+			-gyroid3d | --gyroid3d)
+			COMPREPLY=( $(compgen -W "$gyroid3d"))
+			return 0
+			;;
+			-weird3d | --weird3d)
+			COMPREPLY=( $(compgen -W "$weird3d"))
+			return 0
+			;;
 			-text3d | --text3d)
 			COMPREPLY=( $(compgen -W "$text3d"))
 			return 0
@@ -2017,8 +2042,16 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$sierpinski3d"))
 			return 0
 			;;
+			-parametric3d | --parametric3d)
+			COMPREPLY=( $(compgen -W "$parametric3d"))
+			return 0
+			;;
 			-snapshot3d | --snapshot3d)
 			COMPREPLY=( $(compgen -W "$snapshot3d"))
+			return 0
+			;;
+			-label_points3d | --label_points3d)
+			COMPREPLY=( $(compgen -W "$label_points3d"))
 			return 0
 			;;
 			-x_mandelbrot | --x_mandelbrot)
