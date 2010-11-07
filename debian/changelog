@@ -1,3 +1,9 @@
+gmic (1.4.4.2+dfsg-1) experimental; urgency=low
+
+  * [3253ce08] Merge commit 'upstream/1.4.4.2+dfsg'
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 07 Nov 2010 18:47:00 +0100
+
 gmic (1.4.2.0+dfsg-1) experimental; urgency=low
 
   * [f93deb46] Merge commit 'upstream/1.4.2.0+dfsg'
