@@ -54,10 +54,10 @@
     (plug-in-gmic 1 img drawable 1
                   (string-append
                    "-v - " ; To have a silent output. Remove it to display errors from the G'MIC interpreter on stderr.
-                   "-gimp_imageobject3d 1,{w},{h},{max(w,h)/2},"
+                   "-gimp_imageobject3d 1,{w},{h},0.5,"
                    (number->string x) ","
                    (number->string y) ","
-                   (number->string z)
+                   (number->string z) ",45,0,0,-100,0.5,0.7,4"
                    ))
 
     ;; Merge two layers together, using the G'MIC 'edges' mode (this layer mode does not exist by default in GIMP).

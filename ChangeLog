@@ -16,6 +16,13 @@
 
 --------------------------------------------------------------------------------
 
+# CHANGES from 1.4.2 to 1.4.3
+#------------------------------
+
+  - Corrected bug in command file loader (Windows-specific).
+  - Added support of multi-spectral TIFF file IO.
+  - Added option to enable compression when writting TIFF files.
+
 # CHANGES from 1.3.4 to 1.3.6
 #-----------------------------
 

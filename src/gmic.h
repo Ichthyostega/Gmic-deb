@@ -46,7 +46,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 1420
+#define gmic_version 1442
 
 // Define environment variables.
 #ifndef cimg_verbosity
@@ -145,7 +145,7 @@ struct gmic {
 #endif
   static gmic_list<char> default_command_names, default_command_definitions;
   gmic_list<char> command_names, command_definitions, scope;
-  gmic_list<unsigned int> dowhiles, repeatdones;
+  gmic_list<unsigned int> dowhiles, repeatdones, whiledones;
   gmic_image<unsigned char> background3d, light3d;
   gmic_image<float> pose3d;
   gmic_image<char> status;
@@ -154,11 +154,6 @@ struct gmic {
   int verbosity, render3d, renderd3d;
   volatile int _cancel, *cancel;
   unsigned int nb_carriages, position;
-
-
-#define _GDEBUG(img) std::fprintf(stderr,#img"(%u,%u,%u,%u,%u,%p) / ",img._width,img._height,img._depth,img._spectrum,img._is_shared,img._data)
-#define GDEBUG(x) std::fprintf(stderr,"DEBUG"#x" : "); _GDEBUG(background3d); _GDEBUG(light3d); _GDEBUG(pose3d); _GDEBUG(status); std::fprintf(stderr,"\n")
-
 
   // Constructors - Destructors.
   // Use them to run the G'MIC interpreter from your C++ source.

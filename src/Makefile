@@ -171,13 +171,16 @@ CUST_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LD
 
 DEBUG_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
                     $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) $(OPENCV_CFLAGS) \
-	            $(FFTW_CFLAGS) $(FFMPEG_CFLAGS)
+	            $(MAGICK_CFLAGS) $(FFTW_CFLAGS) # $(FFMPEG_CFLAGS)
 DEBUG_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
 	  	     $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) $(OPENCV_LDFLAGS) \
-		     $(FFTW_LDFLAGS) $(FFMPEG_LDFLAGS)
+		     $(MAGICK_LDFLAGS) $(FFTW_LDFLAGS) # $(FFMPEG_LDFLAGS)
 
 MINIMAL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS)
 MINIMAL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS)
+
+DEBUG_WINDOWS_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(GDI32_CFLAGS)
+DEBUG_WINDOWS_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(GDI32_LDFLAGS)
 
 STD_MACOSX_CFLAGS= $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) \
                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) \
@@ -254,6 +257,9 @@ macosx:
 windows:
 	$(MAKE) "CFLAGS+=$(STD_WINDOWS_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_WINDOWS_LDFLAGS)" "STRIP_EXE=1" gmic_gmic
 
+windebug:
+	$(MAKE) "CFLAGS+=$(DEBUG_WINDOWS_CFLAGS)" "LDFLAGS+=$(DEBUG_WINDOWS_LDFLAGS)" gmic_minimal
+
 # Rules to build compilation modules.
 gmic_lib.o: gmic.cpp gmic_def.h
 	$(CC) -o gmic_lib.o -c gmic.cpp -fPIC -Dgmic_minimal -Dgmic_float $(CFLAGS)
@@ -307,8 +313,8 @@ install:
 	cp -f ../man/gmic.1.gz $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
 	cp -f ../man/gmic.1.gz $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz
 	mkdir -p $(DESTDIR)$(USR)/share/doc/gmic/html/img/
-	if test -d /etc/bash_completion.d/; then mkdir -p $(DESTDIR)/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/etc/bash_completion.d/gmic; fi
-	if test -d /opt/local/etc/bash_completion.d/; then mkdir -p $(DESTDIR)/opt/local/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/opt/local/etc/bash_completion.d/gmic; fi
+#	if test -d /etc/bash_completion.d/; then mkdir -p $(DESTDIR)/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/etc/bash_completion.d/gmic; fi
+#	if test -d /opt/local/etc/bash_completion.d/; then mkdir -p $(DESTDIR)/opt/local/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/opt/local/etc/bash_completion.d/gmic; fi
 	for pixmap in ../html/*.*; do \
 	  if test -f $$pixmap; then \
 	    cp -f  $$pixmap  $(DESTDIR)$(USR)/share/doc/gmic/html/; \

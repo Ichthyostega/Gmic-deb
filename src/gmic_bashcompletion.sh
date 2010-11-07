@@ -135,11 +135,12 @@ _gmic()
 	local color3d="R,G,B,_opacity .";
 	local opacity3d="opacity .";
 	local primitives3d="mode .";
+	local texturize3d="[ind_texture],_[ind_coords] .";
 	local light3d="position_x,position_y,position_z [image] (noargs)";
 	local focale3d="focale .";
 	local pose3d="value1,..,value16 (noargs)";
-	local specl3d="value .";
-	local specs3d="value .";
+	local specl3d="value>=0 .";
+	local specs3d="value>=0 .";
 	local double3d="is_double={0|1} .";
 	local mode3d="mode .";
 	local moded3d="mode .";
@@ -189,6 +190,7 @@ _gmic()
 	local o3d="eq.to\'-opacity3d\'. .";
 	local rv3d="eq.to\'-reverse3d\'. .";
 	local p3d="eq.to\'-primitives3d\'. .";
+	local t3d="eq.to\'-texturize3d\'. .";
 	local s3d="eq.to\'-split3d\'. .";
 	local l3d="eq.to\'-light3d\'. .";
 	local f3d="eq.to\'-focale3d\'. .";
@@ -223,7 +225,7 @@ _gmic()
 	local apply_curve="0<=smoothness<=1,x0,y0,x1,y1,x2,y2,...,xN,yN .";
 	local tones="N>0 .";
 	local t2="eq.to\'-threshold2\'. .";
-	local threshold2="_min,_max .";
+	local threshold2="_min[%],_max[%] .";
 	local chessboard="size1>0,_size2>0,_offset1,_offset2,_angle,_opacity,_color1,..,_color2,.. .";
 	local split_tiles="M!=0,_N!=0,_is_homogeneous={0|1} .";
 	local append_tiles="M>0,_N>0 .";
@@ -272,6 +274,7 @@ _gmic()
 	local lic="_amplitude>0,_channels>0 .";
 	local gaussian="_sigma1[%],_sigma2[%],_angle .";
 	local function1d="0<=smoothness<=1,x0,y0,x1,y1,...,xn,yn .";
+	local snowflake="_recursion>=0,_x0,_y0,_x1,_y1,_x2,_y2,_opacity,_col1,..._colN .";
 	local blur_x="amplitude[%]>=0,_borders={0|1} .";
 	local blur_y="amplitude[%]>=0,_borders={0|1} .";
 	local blur_z="amplitude[%]>=0,_borders={0|1} .";
@@ -294,7 +297,7 @@ _gmic()
 	local normalize_local="_amplitude>=0,_radius>0,_n_smooth>=0[%],_a_smooth>=0[%],_is_cut={0|1},_min=0,_max=255 .";
 	local map_tones="_threshold>=0,_gamma>=0,_smoothness>=0,iter>=0 .";
 	local bandpass="_min_freq[%],_max_freq[%] .";
-	local watermark="_text .";
+	local watermark_fourier="_text,_size>0 .";
 	local split_freq="smoothness>0[%] .";
 	local erode_oct="_size>=0 .";
 	local dilate_oct="_size>=0 .";
@@ -302,7 +305,7 @@ _gmic()
 	local dilate_circ="_size>=0 .";
 	local gradient_orientation="_dimension={1,2,3} .";
 	local gradient2rgb="_orientation={0|1} .";
-	local edges="_threshold>=0 .";
+	local edges="_threshold[%]>=0 .";
 	local isophotes="_nb_levels>0 .";
 	local topographic_map="_nb_levels>0,_smoothness .";
 	local segment_watershed="_threshold>=0,_edge_threshold>0,_keep_watershed={0|1} .";
@@ -366,6 +369,7 @@ _gmic()
 	local noise_hurl="_amplitude>=0 .";
 	local pixelize="_scale_x>0,_scale_y>0,_scale_z>0 .";
 	local cracks="_density>=0,_amplitude,_relief={0|1} .";
+	local watermark_visible="_text,0<_opacity<1,_size>0,_angle,_mode={0=remove|1=add} .";
 	local apply_channels="\"command\",_channels={All,RGBA,RGB,Y,CbCr,Cb,Cr,L,ab,a,b,H,S,V,K,A,ch,c,h},_normalize={0=cut|1=normalize} .";
 	local to_colormode="mode={0=adaptive|1=G|2=GA|3=RGB|4=RGBA} .";
 	local select_color="_tolerance[%]>=0,col1,..,colN .";
@@ -393,6 +397,9 @@ _gmic()
 	local gyroid3d="_resolution>0,_zoom .";
 	local weird3d="_resolution>0 .";
 	local text3d="text,_font_height>0,_depth>0,_smoothness .";
+	local extrude3d="_depth>0,_resolution>0,_smoothness[%]>=0 .";
+	local lathe3d="_resolution>0,_smoothness[%]>=0,_max_angle>=0 .";
+	local cup3d="_resolution>0 .";
 	local sierpinski3d="_recursion_level>=0,_width,_height .";
 	local parametric3d="_x(a,b),_y(a,b),_z(a,b),_amin,_amax,_bmin,_bmax,_res_a>0,_res_b>0,_res_x>0,_res_y>0,_res_z>0,_smoothness>=0,_isovalue>=0 .";
 	local snapshot3d="_size>0,_zoom>=0,_backgroundR,_backgroundG,_backgroundB .";
@@ -433,97 +440,99 @@ _gmic()
 		--isoline3d -isosurface3d --isosurface3d -streamline3d --streamline3d -add3d --add3d 
 		-sub3d --sub3d -mul3d --mul3d -div3d --div3d -center3d --center3d -normalize3d --normalize3d 
 		-rotate3d --rotate3d -color3d --color3d -opacity3d --opacity3d -reverse3d --reverse3d 
-		-primitives3d --primitives3d -split3d --split3d -light3d --light3d -focale3d --focale3d 
-		-pose3d --pose3d -specl3d --specl3d -specs3d --specs3d -double3d --double3d -mode3d 
-		--mode3d -moded3d --moded3d -background3d --background3d -skip --skip -return --return 
-		-status --status -exec --exec -do --do -while --while -repeat --repeat -done --done 
-		-break --break -continue --continue -if --if -elif --elif -else --else -endif --endif 
-		-local --local -endlocal --endlocal -check --check -quit --quit -push --push -push= 
-		--push= -pop --pop -error --error -progress --progress -input --input -output --output 
-		-verbose --verbose -print --print -echo --echo -warning --warning -command --command 
-		-type --type -shell --shell -shared --shared -camera --camera -display --display 
-		-display3d --display3d -plot --plot -window --window -wait --wait -select --select 
-		-h --h -f --f -t --t -c --c -n --n -r --r -s --s -a --a -rm --rm -k --k 
-		-mv --mv -rv --rv -nm --nm -c3d --c3d -n3d --n3d -rot3d --rot3d -col3d --col3d 
-		-o3d --o3d -rv3d --rv3d -p3d --p3d -s3d --s3d -l3d --l3d -f3d --f3d -sl3d --sl3d 
-		-ss3d --ss3d -db3d --db3d -m3d --m3d -md3d --md3d -b3d --b3d -x --x -u --u -b 
-		--b -l --l -endl --endl -q --q -p --p -p= --p= -pp --pp -e --e -i --i -o 
-		--o -sh --sh -v --v -m --m -d --d -d3d --d3d -w --w -replace_nan --replace_nan 
-		-replace_inf --replace_inf -roundify --roundify -complex2polar --complex2polar -polar2complex 
-		--polar2complex -plot2value --plot2value -transfer_histogram --transfer_histogram -normalize_sum 
-		--normalize_sum -apply_gamma --apply_gamma -apply_curve --apply_curve -negative --negative 
-		-tones --tones -t2 --t2 -threshold2 --threshold2 -chessboard --chessboard -split_tiles 
-		--split_tiles -append_tiles --append_tiles -rr2d --rr2d -resize_ratio2d --resize_ratio2d 
-		-r2dx --r2dx -resize2dx --resize2dx -r3dx --r3dx -resize3dx --resize3dx -r2dy --r2dy 
-		-resize2dy --resize2dy -r3dy --r3dy -resize3dy --resize3dy -r3dz --r3dz -resize3dz 
-		--resize3dz -upscale_smart --upscale_smart -expand_x --expand_x -expand_y --expand_y 
-		-expand_z --expand_z -expand_xy --expand_xy -expand_xyz --expand_xyz -shrink_x --shrink_x 
-		-shrink_y --shrink_y -shrink_z --shrink_z -shrink_xy --shrink_xy -elevate --elevate 
-		-ow --ow -outputw --outputw -op --op -outputp --outputp -on --on -outputn --outputn 
-		-d0 --d0 -display0 --display0 -dfft --dfft -display_fft --display_fft -drgba --drgba 
-		-display_rgba --display_rgba -dh --dh -display_histogram --display_histogram -dt --dt 
-		-display_tensors --display_tensors -float2int8 --float2int8 -int82float --int82float 
-		-float2fft8 --float2fft8 -fft82float --fft82float -apply_camera --apply_camera -ball 
-		--ball -sierpinski --sierpinski -text_outline --text_outline -histogram_cumul --histogram_cumul 
-		-direction2rgb --direction2rgb -vector2tensor --vector2tensor -rgb2bayer --rgb2bayer 
-		-bayer2rgb --bayer2rgb -lic --lic -gaussian --gaussian -function1d --function1d -pointcloud 
-		--pointcloud -blur_x --blur_x -blur_y --blur_y -blur_z --blur_z -blur_xy --blur_xy 
-		-blur_xyz --blur_xyz -blur_angular --blur_angular -blur_radial --blur_radial -blur_linear 
-		--blur_linear -dog --dog -pde_flow --pde_flow -heat_flow --heat_flow -meancurvature_flow 
-		--meancurvature_flow -tv_flow --tv_flow -inpaint_flow --inpaint_flow -remove_hotpixels 
-		--remove_hotpixels -richardson_lucy --richardson_lucy -oriented_richardson_lucy --oriented_richardson_lucy 
+		-primitives3d --primitives3d -texturize3d --texturize3d -split3d --split3d -light3d 
+		--light3d -focale3d --focale3d -pose3d --pose3d -specl3d --specl3d -specs3d --specs3d 
+		-double3d --double3d -mode3d --mode3d -moded3d --moded3d -background3d --background3d 
+		-skip --skip -return --return -status --status -exec --exec -do --do -while --while 
+		-repeat --repeat -done --done -break --break -continue --continue -if --if -elif 
+		--elif -else --else -endif --endif -local --local -endlocal --endlocal -check --check 
+		-quit --quit -push --push -push= --push= -pop --pop -error --error -progress --progress 
+		-input --input -output --output -verbose --verbose -print --print -echo --echo -warning 
+		--warning -command --command -type --type -shell --shell -shared --shared -camera 
+		--camera -display --display -display3d --display3d -plot --plot -window --window -wait 
+		--wait -select --select -h --h -f --f -t --t -c --c -n --n -r --r -s --s -a 
+		--a -rm --rm -k --k -mv --mv -rv --rv -nm --nm -c3d --c3d -n3d --n3d -rot3d 
+		--rot3d -col3d --col3d -o3d --o3d -rv3d --rv3d -p3d --p3d -t3d --t3d -s3d --s3d 
+		-l3d --l3d -f3d --f3d -sl3d --sl3d -ss3d --ss3d -db3d --db3d -m3d --m3d -md3d 
+		--md3d -b3d --b3d -x --x -u --u -b --b -l --l -endl --endl -q --q -p --p -p= 
+		--p= -pp --pp -e --e -i --i -o --o -sh --sh -v --v -m --m -d --d -d3d --d3d 
+		-w --w -replace_nan --replace_nan -replace_inf --replace_inf -roundify --roundify -complex2polar 
+		--complex2polar -polar2complex --polar2complex -plot2value --plot2value -transfer_histogram 
+		--transfer_histogram -normalize_sum --normalize_sum -apply_gamma --apply_gamma -apply_curve 
+		--apply_curve -negative --negative -tones --tones -t2 --t2 -threshold2 --threshold2 
+		-chessboard --chessboard -split_tiles --split_tiles -append_tiles --append_tiles -rr2d 
+		--rr2d -resize_ratio2d --resize_ratio2d -r2dx --r2dx -resize2dx --resize2dx -r3dx --r3dx 
+		-resize3dx --resize3dx -r2dy --r2dy -resize2dy --resize2dy -r3dy --r3dy -resize3dy 
+		--resize3dy -r3dz --r3dz -resize3dz --resize3dz -upscale_smart --upscale_smart -expand_x 
+		--expand_x -expand_y --expand_y -expand_z --expand_z -expand_xy --expand_xy -expand_xyz 
+		--expand_xyz -shrink_x --shrink_x -shrink_y --shrink_y -shrink_z --shrink_z -shrink_xy 
+		--shrink_xy -elevate --elevate -ow --ow -outputw --outputw -op --op -outputp --outputp 
+		-on --on -outputn --outputn -d0 --d0 -display0 --display0 -dfft --dfft -display_fft 
+		--display_fft -drgba --drgba -display_rgba --display_rgba -dh --dh -display_histogram 
+		--display_histogram -dt --dt -display_tensors --display_tensors -float2int8 --float2int8 
+		-int82float --int82float -float2fft8 --float2fft8 -fft82float --fft82float -apply_camera 
+		--apply_camera -rainbow_lut --rainbow_lut -ball --ball -sierpinski --sierpinski -text_outline 
+		--text_outline -histogram_cumul --histogram_cumul -direction2rgb --direction2rgb -vector2tensor 
+		--vector2tensor -rgb2bayer --rgb2bayer -bayer2rgb --bayer2rgb -lic --lic -gaussian 
+		--gaussian -function1d --function1d -pointcloud --pointcloud -snowflake --snowflake 
+		-blur_x --blur_x -blur_y --blur_y -blur_z --blur_z -blur_xy --blur_xy -blur_xyz --blur_xyz 
+		-blur_angular --blur_angular -blur_radial --blur_radial -blur_linear --blur_linear -dog 
+		--dog -pde_flow --pde_flow -heat_flow --heat_flow -meancurvature_flow --meancurvature_flow 
+		-tv_flow --tv_flow -inpaint_flow --inpaint_flow -remove_hotpixels --remove_hotpixels 
+		-richardson_lucy --richardson_lucy -oriented_richardson_lucy --oriented_richardson_lucy 
 		-unsharp --unsharp -unsharp_octave --unsharp_octave -normalize_local --normalize_local 
 		-map_tones --map_tones -fftpolar --fftpolar -ifftpolar --ifftpolar -convolve_fft --convolve_fft 
-		-deconvolve_fft --deconvolve_fft -bandpass --bandpass -watermark --watermark -split_freq 
-		--split_freq -compose_freq --compose_freq -erode_oct --erode_oct -dilate_oct --dilate_oct 
-		-erode_circ --erode_circ -dilate_circ --dilate_circ -gradient_norm --gradient_norm -gradient_orientation 
-		--gradient_orientation -gradient2rgb --gradient2rgb -laplacian --laplacian -divergence 
-		--divergence -inn --inn -iee --iee -curvature --curvature -edges --edges -isophotes 
-		--isophotes -topographic_map --topographic_map -segment_watershed --segment_watershed 
-		-array --array -array_fade --array_fade -array_mirror --array_mirror -array_random --array_random 
-		-array_pattern --array_pattern -taquin --taquin -imagegrid --imagegrid -frame --frame 
-		-frame_fuzzy --frame_fuzzy -frame_round --frame_round -frame_blur --frame_blur -frame_pattern 
-		--frame_pattern -rotate_tiles --rotate_tiles -shift_tiles --shift_tiles -linearize_tiles 
-		--linearize_tiles -quadratize_tiles --quadratize_tiles -tunnel --tunnel -polaroid --polaroid 
-		-drop_shadow --drop_shadow -tetris --tetris -mosaic --mosaic -puzzle --puzzle -sponge 
-		--sponge -hearts --hearts -color_ellipses --color_ellipses -ellipsionism --ellipsionism 
-		-whirls --whirls -cartoon --cartoon -drawing --drawing -draw_whirl --draw_whirl -stencil 
-		--stencil -stencilbw --stencilbw -pencilbw --pencilbw -sketchbw --sketchbw -ditheredbw 
-		--ditheredbw -dotsbw --dotsbw -warhol --warhol -cubism --cubism -glow --glow -old_photo 
-		--old_photo -euclidean2polar --euclidean2polar -polar2euclidean --polar2euclidean -warp_perspective 
-		--warp_perspective -water --water -wave --wave -twirl --twirl -map_sphere --map_sphere 
-		-flower --flower -zoom --zoom -deform --deform -fish_eye --fish_eye -transform_polar 
-		--transform_polar -kaleidoscope --kaleidoscope -rotoidoscope --rotoidoscope -spread --spread 
-		-shade_stripes --shade_stripes -stripes_y --stripes_y -shadow_patch --shadow_patch -light_patch 
-		--light_patch -light_relief --light_relief -noise_hurl --noise_hurl -pixelize --pixelize 
-		-paper --paper -cracks --cracks -apply_channels --apply_channels -to_gray --to_gray 
-		-to_graya --to_graya -to_rgb --to_rgb -to_rgba --to_rgba -to_colormode --to_colormode 
-		-remove_opacity --remove_opacity -select_color --select_color -replace_color --replace_color 
-		-fc --fc -fill_color --fill_color -luminance --luminance -mix_rgb --mix_rgb -mix_channels 
-		--mix_channels -solarize --solarize -sepia --sepia -split_opacity --split_opacity -red_eye 
-		--red_eye -rgb2lch --rgb2lch -lch2rgb --lch2rgb -lab2lch --lab2lch -lch2lab --lch2lab 
-		-fade_x --fade_x -fade_y --fade_y -fade_z --fade_z -fade_radial --fade_radial -fade_diamond 
-		--fade_diamond -fade_linear --fade_linear -compose_rgba --compose_rgba -compose_channels 
-		--compose_channels -compose_average --compose_average -compose_multiply --compose_multiply 
-		-compose_screen --compose_screen -compose_darken --compose_darken -compose_lighten --compose_lighten 
-		-compose_difference --compose_difference -compose_negation --compose_negation -compose_exclusion 
-		--compose_exclusion -compose_overlay --compose_overlay -compose_hardlight --compose_hardlight 
-		-compose_softlight --compose_softlight -compose_dodge --compose_dodge -compose_colorburn 
-		--compose_colorburn -compose_reflect --compose_reflect -compose_freeze --compose_freeze 
-		-compose_stamp --compose_stamp -compose_interpolation --compose_interpolation -compose_xor 
-		--compose_xor -compose_edges --compose_edges -compose_fade --compose_fade -compose_shapeaverage 
-		--compose_shapeaverage -cross_correlation --cross_correlation -normalized_cross_correlation 
-		--normalized_cross_correlation -phase_correlation --phase_correlation -morph --morph -register_nonrigid 
-		--register_nonrigid -register_rigid --register_rigid -deinterlace --deinterlace -animate 
-		--animate -empty3d --empty3d -apply_pose3d --apply_pose3d -animate3d --animate3d -balls3d 
-		--balls3d -imageplane3d --imageplane3d -imagesphere3d --imagesphere3d -imagecube3d --imagecube3d 
-		-image6cube3d --image6cube3d -imagepyramid3d --imagepyramid3d -pyramid3d --pyramid3d 
-		-gyroid3d --gyroid3d -weird3d --weird3d -text3d --text3d -gmic3d --gmic3d -sierpinski3d 
-		--sierpinski3d -parametric3d --parametric3d -snapshot3d --snapshot3d -texturize3d --texturize3d 
-		-label_points3d --label_points3d -x_mandelbrot --x_mandelbrot -x_fish_eye --x_fish_eye 
-		-x_spline --x_spline -x_tictactoe --x_tictactoe -x_fourier --x_fourier -x_life --x_life 
-		-x_fire --x_fire -x_light --x_light -x_jawbreaker --x_jawbreaker -x_paint --x_paint 
-		ÿ";
+		-deconvolve_fft --deconvolve_fft -bandpass --bandpass -watermark_fourier --watermark_fourier 
+		-split_freq --split_freq -compose_freq --compose_freq -erode_oct --erode_oct -dilate_oct 
+		--dilate_oct -erode_circ --erode_circ -dilate_circ --dilate_circ -skeleton --skeleton 
+		-gradient_norm --gradient_norm -gradient_orientation --gradient_orientation -gradient2rgb 
+		--gradient2rgb -laplacian --laplacian -divergence --divergence -inn --inn -iee --iee 
+		-curvature --curvature -edges --edges -isophotes --isophotes -topographic_map --topographic_map 
+		-segment_watershed --segment_watershed -array --array -array_fade --array_fade -array_mirror 
+		--array_mirror -array_random --array_random -array_pattern --array_pattern -taquin --taquin 
+		-imagegrid --imagegrid -frame --frame -frame_fuzzy --frame_fuzzy -frame_round --frame_round 
+		-frame_blur --frame_blur -frame_pattern --frame_pattern -rotate_tiles --rotate_tiles 
+		-shift_tiles --shift_tiles -linearize_tiles --linearize_tiles -quadratize_tiles --quadratize_tiles 
+		-tunnel --tunnel -polaroid --polaroid -drop_shadow --drop_shadow -tetris --tetris -mosaic 
+		--mosaic -puzzle --puzzle -sponge --sponge -hearts --hearts -color_ellipses --color_ellipses 
+		-ellipsionism --ellipsionism -whirls --whirls -cartoon --cartoon -drawing --drawing 
+		-draw_whirl --draw_whirl -stencil --stencil -stencilbw --stencilbw -pencilbw --pencilbw 
+		-sketchbw --sketchbw -ditheredbw --ditheredbw -dotsbw --dotsbw -warhol --warhol -cubism 
+		--cubism -glow --glow -old_photo --old_photo -euclidean2polar --euclidean2polar -polar2euclidean 
+		--polar2euclidean -warp_perspective --warp_perspective -water --water -wave --wave -twirl 
+		--twirl -map_sphere --map_sphere -flower --flower -zoom --zoom -deform --deform -fish_eye 
+		--fish_eye -transform_polar --transform_polar -kaleidoscope --kaleidoscope -rotoidoscope 
+		--rotoidoscope -spread --spread -shade_stripes --shade_stripes -stripes_y --stripes_y 
+		-shadow_patch --shadow_patch -light_patch --light_patch -light_relief --light_relief 
+		-noise_hurl --noise_hurl -pixelize --pixelize -paper --paper -cracks --cracks -watermark_visible 
+		--watermark_visible -apply_channels --apply_channels -to_gray --to_gray -to_graya --to_graya 
+		-to_rgb --to_rgb -to_rgba --to_rgba -to_colormode --to_colormode -remove_opacity --remove_opacity 
+		-select_color --select_color -replace_color --replace_color -fc --fc -fill_color --fill_color 
+		-luminance --luminance -mix_rgb --mix_rgb -mix_channels --mix_channels -solarize --solarize 
+		-sepia --sepia -split_opacity --split_opacity -red_eye --red_eye -rgb2lch --rgb2lch 
+		-lch2rgb --lch2rgb -lab2lch --lab2lch -lch2lab --lch2lab -fade_x --fade_x -fade_y 
+		--fade_y -fade_z --fade_z -fade_radial --fade_radial -fade_diamond --fade_diamond -fade_linear 
+		--fade_linear -compose_rgba --compose_rgba -compose_channels --compose_channels -compose_average 
+		--compose_average -compose_multiply --compose_multiply -compose_screen --compose_screen 
+		-compose_darken --compose_darken -compose_lighten --compose_lighten -compose_difference 
+		--compose_difference -compose_negation --compose_negation -compose_exclusion --compose_exclusion 
+		-compose_overlay --compose_overlay -compose_hardlight --compose_hardlight -compose_softlight 
+		--compose_softlight -compose_dodge --compose_dodge -compose_colorburn --compose_colorburn 
+		-compose_reflect --compose_reflect -compose_freeze --compose_freeze -compose_stamp --compose_stamp 
+		-compose_interpolation --compose_interpolation -compose_xor --compose_xor -compose_edges 
+		--compose_edges -compose_fade --compose_fade -compose_shapeaverage --compose_shapeaverage 
+		-cross_correlation --cross_correlation -normalized_cross_correlation --normalized_cross_correlation 
+		-phase_correlation --phase_correlation -morph --morph -register_nonrigid --register_nonrigid 
+		-register_rigid --register_rigid -deinterlace --deinterlace -animate --animate -empty3d 
+		--empty3d -apply_pose3d --apply_pose3d -animate3d --animate3d -histogram3d --histogram3d 
+		-balls3d --balls3d -imageplane3d --imageplane3d -imagesphere3d --imagesphere3d -imagecube3d 
+		--imagecube3d -image6cube3d --image6cube3d -imagepyramid3d --imagepyramid3d -pyramid3d 
+		--pyramid3d -gyroid3d --gyroid3d -weird3d --weird3d -text3d --text3d -gmic3d --gmic3d 
+		-extrude3d --extrude3d -lathe3d --lathe3d -cup3d --cup3d -sierpinski3d --sierpinski3d 
+		-parametric3d --parametric3d -snapshot3d --snapshot3d -label_points3d --label_points3d 
+		-x_mandelbrot --x_mandelbrot -x_fish_eye --x_fish_eye -x_spline --x_spline -x_tictactoe 
+		--x_tictactoe -x_fourier --x_fourier -x_life --x_life -x_fire --x_fire -x_light --x_light 
+		-x_jawbreaker --x_jawbreaker -x_paint --x_paint ÿ";
 
 	case "${prev}" in 
 			-help | --help)
@@ -1006,6 +1015,10 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$primitives3d"))
 			return 0
 			;;
+			-texturize3d | --texturize3d)
+			COMPREPLY=( $(compgen -W "$texturize3d"))
+			return 0
+			;;
 			-light3d | --light3d)
 			COMPREPLY=( $(compgen -W "$light3d"))
 			return 0
@@ -1220,6 +1233,10 @@ _gmic()
 			;;
 			-p3d | --p3d)
 			COMPREPLY=( $(compgen -W "$p3d"))
+			return 0
+			;;
+			-t3d | --t3d)
+			COMPREPLY=( $(compgen -W "$t3d"))
 			return 0
 			;;
 			-s3d | --s3d)
@@ -1554,6 +1571,10 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$function1d"))
 			return 0
 			;;
+			-snowflake | --snowflake)
+			COMPREPLY=( $(compgen -W "$snowflake"))
+			return 0
+			;;
 			-blur_x | --blur_x)
 			COMPREPLY=( $(compgen -W "$blur_x"))
 			return 0
@@ -1642,8 +1663,8 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$bandpass"))
 			return 0
 			;;
-			-watermark | --watermark)
-			COMPREPLY=( $(compgen -W "$watermark"))
+			-watermark_fourier | --watermark_fourier)
+			COMPREPLY=( $(compgen -W "$watermark_fourier"))
 			return 0
 			;;
 			-split_freq | --split_freq)
@@ -1930,6 +1951,10 @@ _gmic()
 			COMPREPLY=( $(compgen -W "$cracks"))
 			return 0
 			;;
+			-watermark_visible | --watermark_visible)
+			COMPREPLY=( $(compgen -W "$watermark_visible"))
+			return 0
+			;;
 			-apply_channels | --apply_channels)
 			COMPREPLY=( $(compgen -W "$apply_channels"))
 			return 0
@@ -2036,6 +2061,18 @@ _gmic()
 			;;
 			-text3d | --text3d)
 			COMPREPLY=( $(compgen -W "$text3d"))
+			return 0
+			;;
+			-extrude3d | --extrude3d)
+			COMPREPLY=( $(compgen -W "$extrude3d"))
+			return 0
+			;;
+			-lathe3d | --lathe3d)
+			COMPREPLY=( $(compgen -W "$lathe3d"))
+			return 0
+			;;
+			-cup3d | --cup3d)
+			COMPREPLY=( $(compgen -W "$cup3d"))
 			return 0
 			;;
 			-sierpinski3d | --sierpinski3d)

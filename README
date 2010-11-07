@@ -12,7 +12,7 @@
 
                        ( http://gmic.sourceforge.net/ )
 
-                                    1.4.2.0
+                                    1.4.4.2
 
 --------------------------------------------------------------------------------
 
@@ -58,6 +58,7 @@
     * Jérome Ferrari (testing).
     * Stephane de la Linuxerie (design).
     * Karsten Rodenacker (mac support).
+    * Yuri Shemanin (debugging).
     * Stepanekos (German translation).
     * PhotoComiX (Italian translation).
     * Mauro Quercia (Italian translation).
