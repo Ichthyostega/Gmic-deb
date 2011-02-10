@@ -16,6 +16,12 @@
 
 --------------------------------------------------------------------------------
 
+# FROM 1.4.4
+#------------
+
+  - Changelog has been discontinued. Take too much time to write, regarding
+    the quick evolution of the G'MIC framework :)
+
 # CHANGES from 1.4.2 to 1.4.3
 #------------------------------
 
