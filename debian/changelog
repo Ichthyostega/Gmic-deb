@@ -1,3 +1,10 @@
+gmic (1.4.8.0+dfsg-1) unstable; urgency=low
+
+  * [33847b44] Merge commit 'upstream/1.4.8.0+dfsg'
+  * [6e771817] Refreshing patches.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Thu, 10 Feb 2011 13:13:22 +0100
+
 gmic (1.4.4.2+dfsg-1) experimental; urgency=low
 
   * [3253ce08] Merge commit 'upstream/1.4.4.2+dfsg'
