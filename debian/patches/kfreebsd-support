@@ -10,5 +10,5 @@
 +endif
 +
  CC = g++
- ifeq ($(OS),Darwin)
- PLUGINDIR = ~/Library/Application\ Support/Gimp/plug-ins
+ ifeq ($(OS),GNU/kFreeBSD)
+ OS = Linux
