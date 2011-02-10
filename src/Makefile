@@ -48,6 +48,9 @@
 #---------------------------------
 OS := $(shell uname)
 CC = g++
+ifeq ($(OS),GNU/kFreeBSD)
+OS = Linux
+endif
 ifeq ($(OS),Darwin)
 PLUGINDIR = ~/Library/Application\ Support/Gimp/plug-ins
 USR = /opt/local
@@ -76,8 +79,8 @@ endif
 MANDATORY_CFLAGS = -Dgmic_build -I$(USR)/include
 MANDATORY_LDFLAGS = -L$(USR)/lib
 ifeq ($(IS_GCC),yes)
-MANDATORY_CFLAGS += -Wall -W -I$(USR)/include
-MANDATORY_LDFLAGS = -lm -L$(USR)/lib
+MANDATORY_CFLAGS += -Wall -W
+MANDATORY_LDFLAGS = -lm
 endif
 
 # Flags to enable debugging.
@@ -85,7 +88,7 @@ DEBUG_CFLAGS = -Dcimg_use_vt100 -Dcimg_verbosity=3 -g
 
 # Flags to enable optimizations.
 ifeq ($(IS_GCC),yes)
-OPT_CFLAGS = -O3 -fno-tree-pre
+OPT_CFLAGS = -O3 -fno-tree-pre -ffast-math
 endif
 ifeq ($(CC),icc)
 OPT_CFLAGS = -O3 -ipo -no-prec-div -override-limits
@@ -93,8 +96,8 @@ endif
 
 # Flags to enable image display, using X11
 # (keep /usr/ dirname here since X11 is located in /usr/ on Mac too).
-X11_CFLAGS = -Dcimg_display=1 -Dcimg_use_xrandr -I/usr/X11R6/include
-X11_LDFLAGS = -L/usr/X11R6/lib -lX11 -lXrandr -lpthread
+X11_CFLAGS = -Dcimg_display=1 -Dcimg_display_classname=\\\"G\'MIC\\\" -I/usr/X11R6/include #-Dcimg_use_xrandr
+X11_LDFLAGS = -L/usr/X11R6/lib -lX11 -lpthread #-lXrandr
 
 # Flags to enable fast display, using XShm.
 XSHM_CFLAGS = -Dcimg_use_xshm
@@ -117,7 +120,7 @@ TIFF_CFLAGS = -Dcimg_use_tiff
 TIFF_LDFLAGS = -ltiff
 
 # Flags to enable native support for various video files, using the FFMPEG library.
-FFMPEG_CFLAGS = -Dcimg_use_ffmpeg -I$(USR)/include/libavcodec -I$(USR)/include/libavformat -I$(USR)/include/libswscale -I$(USR)/include/ffmpeg
+FFMPEG_CFLAGS = -Dcimg_use_ffmpeg -D__STDC_CONSTANT_MACROS -I$(USR)/include/libavcodec -I$(USR)/include/libavformat -I$(USR)/include/libswscale -I$(USR)/include/ffmpeg
 FFMPEG_LDFLAGS = -lavcodec -lavformat -lswscale
 
 # Flags to enable native support for compressed .cimgz files, using the Zlib library.
@@ -126,7 +129,12 @@ ZLIB_LDFLAGS = -lz
 
 # Flags to enable native support of webcams, using the OpenCV library.
 OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv
+ifeq ($(OS),Darwin)
+OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
+else
 OPENCV_LDFLAGS = -lcv -lhighgui
+# OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
+endif
 
 # Flags to enable native support of most classical image file formats, using the GraphicsMagick++ library.
 MAGICK_CFLAGS = -Dcimg_use_magick -I$(USR)/include/GraphicsMagick
@@ -138,10 +146,7 @@ endif
 
 # Flags to enable native support of EXR file format, using the OpenEXR library/
 EXR_CFLAGS = -Dcimg_use_openexr -I$(USR)/include/OpenEXR
-EXR_LDFLAGS = -lIlmImf
-ifeq ($(OS),Darwin)
-EXR_LDFLAGS += -lHalf
-endif
+EXR_LDFLAGS = -lIlmImf -lHalf
 
 # Flags to enable the use of the FFTW3 library.
 FFTW_CFLAGS = -Dcimg_use_fftw3
@@ -171,10 +176,10 @@ CUST_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LD
 
 DEBUG_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
                     $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) $(OPENCV_CFLAGS) \
-	            $(MAGICK_CFLAGS) $(FFTW_CFLAGS) # $(FFMPEG_CFLAGS)
+	            $(MAGICK_CFLAGS) $(FFTW_CFLAGS) $(FFMPEG_CFLAGS)
 DEBUG_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
 	  	     $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) $(OPENCV_LDFLAGS) \
-		     $(MAGICK_LDFLAGS) $(FFTW_LDFLAGS) # $(FFMPEG_LDFLAGS)
+		     $(MAGICK_LDFLAGS) $(FFTW_LDFLAGS) $(FFMPEG_LDFLAGS)
 
 MINIMAL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS)
 MINIMAL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS)
@@ -192,8 +197,8 @@ STD_MACOSX_LDFLAGS = $(X11_LDFLAGS) $(ZLIB_LDFLAGS) $(MANDATORY_LDFLAGS) \
 STD_WINDOWS_CFLAGS= $(MANDATORY_CFLAGS) $(GDI32_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(FFTW_CFLAGS)
 STD_WINDOWS_LDFLAGS = $(MANDATORY_LDFLAGS) $(GDI32_LDFLAGS) $(ZLIB_LDFLAGS) $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(FFTW_LDFLAGS)
 
-STD_GIMP_CFLAGS = -Dgmic_build -Dcimg_display=0 $(FFTW_CFLAGS) $(PNG_CFLAGS) $(ZLIB_CFLAGS)
-STD_GIMP_LDFLAGS = -lpthread $(FFTW_LDFLAGS) $(PNG_LDFLAGS) $(ZLIB_LDFLAGS)
+STD_GIMP_CFLAGS = -Dgmic_build -Dcimg_display=0 -I$(USR)/include $(FFTW_CFLAGS) $(PNG_CFLAGS) $(ZLIB_CFLAGS)
+STD_GIMP_LDFLAGS = -L$(USR)/lib -lpthread $(FFTW_LDFLAGS) $(PNG_LDFLAGS) $(ZLIB_LDFLAGS)
 ifeq ($(OS),MINGW32_NT-5.1)
 STD_GIMP_LDFLAGS += -mwindows
 endif
@@ -212,6 +217,7 @@ ifeq ($(OS),Linux)
 	@echo "** Linux configuration"
 	@echo "**"
 	$(MAKE) linux
+	$(MAKE) bashcompletion
 	$(MAKE) gimp
 else
 ifeq ($(OS),Darwin)
@@ -219,12 +225,14 @@ ifeq ($(OS),Darwin)
 	@echo "** MacOSX configuration"
 	@echo "**"
 	$(MAKE) macosx
+	$(MAKE) bashcompletion
 	$(MAKE) gimp
 else
 	@echo "**"
 	@echo "** Windows configuration"
 	@echo "**"
 	$(MAKE) windows
+	$(MAKE) bashcompletion
 	$(MAKE) gimp
 endif
 endif
@@ -302,6 +310,9 @@ gmic_gmic: gmic.cpp gmic_bool.o gmic_uchar.o gmic_char.o gmic_ushort.o gmic_shor
 def:
 	cd ../../CImg/examples && $(MAKE) gmic_def
 
+bashcompletion:
+	$(CC) -o gmic_bashcompletion gmic_bashcompletion.cpp
+
 # Install/uninstall/clean.
 install:
 	mkdir -p $(DESTDIR)$(PLUGINDIR)/
@@ -313,8 +324,8 @@ install:
 	cp -f ../man/gmic.1.gz $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
 	cp -f ../man/gmic.1.gz $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz
 	mkdir -p $(DESTDIR)$(USR)/share/doc/gmic/html/img/
-#	if test -d /etc/bash_completion.d/; then mkdir -p $(DESTDIR)/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/etc/bash_completion.d/gmic; fi
-#	if test -d /opt/local/etc/bash_completion.d/; then mkdir -p $(DESTDIR)/opt/local/etc/bash_completion.d/; cp gmic_bashcompletion.sh $(DESTDIR)/opt/local/etc/bash_completion.d/gmic; fi
+	if test -d /etc/bash_completion.d/; then mkdir -p $(DESTDIR)/etc/bash_completion.d/; cp -f gmic_bashcompletion.sh $(DESTDIR)/etc/bash_completion.d/gmic; fi
+	if test -d /opt/local/etc/bash_completion.d/; then mkdir -p $(DESTDIR)/opt/local/etc/bash_completion.d/; cp -f gmic_bashcompletion.sh $(DESTDIR)/opt/local/etc/bash_completion.d/gmic; fi
 	for pixmap in ../html/*.*; do \
 	  if test -f $$pixmap; then \
 	    cp -f  $$pixmap  $(DESTDIR)$(USR)/share/doc/gmic/html/; \

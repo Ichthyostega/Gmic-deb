@@ -12,63 +12,50 @@
 
                        ( http://gmic.sourceforge.net/ )
 
-                                    1.4.4.2
+                                    1.4.8.0
 
 --------------------------------------------------------------------------------
 
 # Summary
 #---------
 
- G'MIC stands for 'GREYC's Magic Image Converter'. This project aims to :
+ G'MIC stands for GREYC's Magic Image Converter. This project aims to :
 
-   * Define a minimal but powerful script language (G'MIC) dedicated to the design of image processing pipelines.
-   * Provide an interpreter of this language (in C++), distributes as an open-source module/library embeddable
-     in third-party applications.
-   * Propose two binary tools embedding this interpreter :
+ * Define a minimal but powerful script language (G'MIC) dedicated to the
+   design of image processing pipelines.
+ * Provide an interpreter of this language (in C++), distributed as an
+   open-source module/library embeddable in third-party applications.
+ * Propose two binary tools embedding this interpreter :
 
-     - The command-line executable 'gmic' to use the G'MIC framework from a console.
-     - The interactive plug-in 'gmic_gimp' to bring G'MIC capabilities to the image retouching software GIMP.
+   - The command-line executable gmic to use the G'MIC framework from a
+     shell.
+   - The interactive plug-in gmic_gimp to bring G'MIC capabilities to the
+     image retouching software GIMP.
 
- G'MIC is focused on the design of complex pipelines for converting, manipulating, filtering and visualizing generic 1d/2d/3d
- multi-spectral image datasets. Of course, it is able to manage color images, but also more complex data as image sequences
- or 3d volumetric datasets.
+ G'MIC is focused on the design of complex pipelines for converting,
+ manipulating, filtering and visualizing generic 1d/2d/3d multi-spectral image
+ datasets. Of course, it is able to manage color images, but also more complex
+ data as image sequences or 3d volumetric datasets.
 
- G'MIC is an open framework : it is possible to extend the proposed default language with custom G'MIC-written commands,
- defining thus new image filters or effects. By the way, it already contains a substantial set of pre-defined image
+ G'MIC is an open framework : it is possible to extend the proposed default
+ language with custom G'MIC-written commands, defining thus new image filters or
+ effects. By the way, it already contains a substantial set of pre-defined image
  processing algorithms.
 
- G'MIC has been designed with portability in mind and runs on different platforms (Windows, Unix, MacOSX).
- It is distributed under the CeCILL license (GPL-compatible). It is developed in the Image Team of the GREYC laboratory,
- in Caen/France, by permanent researchers working in the field of image processing on a daily basis.
+ G'MIC has been designed with portability in mind and runs on different
+ platforms (Windows, Unix, MacOSX). It is distributed under the CeCILL license
+ (GPL-compatible). It has been developed in the Image Team of the GREYC
+ laboratory, in Caen/France, by permanent researchers working in the field of
+ image processing on a daily basis.
 
-
-# Project Manager and Main Developer
-#------------------------------------
+# Project Manager
+#----------------
 
   David Tschumperlé  ( http://www.greyc.ensicaen.fr/~dtschump/ )
 
-# Contributors
-#-------------
+  A complete list of contributors is available on the project web page :
 
-    * Members of the Image Team at the GREYC laboratory, in Caen/France (testing).
-    * Claude Bulin (packaging).
-    * Sébastien Fourey (packaging).
-    * Angelo Lama (testing).
-    * François Collard (testing).
-    * Jérome Ferrari (testing).
-    * Stephane de la Linuxerie (design).
-    * Karsten Rodenacker (mac support).
-    * Yuri Shemanin (debugging).
-    * Stepanekos (German translation).
-    * PhotoComiX (Italian translation).
-    * Mauro Quercia (Italian translation).
-    * Dani Sardaà (Catalan translation).
-    * Mark (Dutch translation).
-    * Claes Holmerson (tutorials).
-    * Vincent Roullier (testing).
-    * Guillaume Née (testing).
-    * Alaa Dou-Nassre (testing).
-    * Seddik Moumen (testing).
+                       http://gmic.sourceforge.net
 
 # Institution
 #-------------

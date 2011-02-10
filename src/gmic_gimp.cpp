@@ -83,6 +83,7 @@ bool is_block_preview = false;                // Flag to block preview computati
 void **event_infos;                           // Infos that are passed to the GUI callback functions.
 int image_id = 0;                             // The image concerned by the plug-in execution.
 unsigned int indice_faves = 0;                // The starting index of favorite filters.
+std::FILE *logfile = 0;                       // The log file if any.
 GimpRunMode run_mode;                         // Run-mode used to call the plug-in.
 GtkTreeStore *tree_view_store = 0;            // The list of the filters as a GtkTreeView model.
 GimpDrawable *drawable_preview = 0;           // The drawable used by the preview window.
@@ -219,6 +220,22 @@ unsigned int get_verbosity_mode(const bool normalized=true) {
   return normalized?(verbosity_mode<2?0:(verbosity_mode-2)):verbosity_mode;
 }
 
+void set_logfile() {
+  const unsigned int verbosity = get_verbosity_mode();
+  if (verbosity==2 || verbosity==4 || verbosity==6) {
+    if (!logfile) {
+      char filename[2048];
+      cimg_snprintf(filename,sizeof(filename),"%s%cgmic_log",cimg::temporary_path(),cimg_file_separator);
+      logfile = std::fopen(filename,"a");
+    }
+    cimg::output(logfile?logfile:stdout);
+  } else {
+    if (logfile) std::fclose(logfile);
+    logfile = 0;
+    cimg::output(stdout);
+  }
+}
+
 // Set/get the tree collapse/expand mode.
 void set_tree_mode(const bool expand) {
   gimp_set_data("gmic_tree_mode",&expand,sizeof(bool));
@@ -254,6 +271,15 @@ const char *get_locale() {
   *locale = 0;
   gimp_get_data("gmic_locale",locale);
   return locale;
+}
+
+// Test if a drawable is valid.
+bool gmic_drawable_is_valid(const GimpDrawable *const drawable) {
+#if GIMP_MINOR_VERSION<=6
+  return gimp_drawable_is_valid(drawable->drawable_id);
+#else
+  return gimp_item_is_valid(drawable->drawable_id);
+#endif
 }
 
 // Translate string into the current locale.
@@ -303,9 +329,12 @@ const char *t(const char *const s) {
     _t("All outputs","Toutes les images");
     _t("Output messages...","Messages de sortie...");
     _t("Quiet (default)","Aucun message (d\303\251faut)");
-    _t("Verbose","Mode verbeux");
-    _t("Very verbose","Mode tr\303\250s verbeux");
-    _t("Debug mode","Mode d\303\251bogage");
+    _t("Verbose (console)","Mode verbeux (console)");
+    _t("Verbose (logfile)","Mode verbeux (fichier log)");
+    _t("Very verbose (console)","Mode tr\303\250s verbeux (console)");
+    _t("Very verbose (logfile)","Mode tr\303\250s verbeux (fichier log)");
+    _t("Debug mode (console)","Mode d\303\251bogage (console)");
+    _t("Debug mode (logfile)","Mode d\303\251bogage (fichier log)");
     _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
     _t("_Maximize","_Maximiser");
     _t("_Restore","_R\303\251duire");
@@ -356,9 +385,12 @@ const char *t(const char *const s) {
     _t("All outputs","Totes les imatges");
     _t("Output messages...","Missatges de sortida...");
     _t("Quiet (default)","Sense missatges (predet.)");
-    _t("Verbose","Verb\303\263s");
-    _t("Very verbose","Molt verb\303\263s");
-    _t("Debug mode","Depuraci\303\263");
+    _t("Verbose (console)","Verb\303\263s (consola)");
+    _t("Verbose (logfile)","Verb\303\263s (arxiu)");
+    _t("Very verbose (console)","Molt verb\303\263s (consola)");
+    _t("Very verbose (logfile)","Molt verb\303\263s (arxiu)");
+    _t("Debug mode (console)","Depuraci\303\263 (consola)");
+    _t("Debug mode (logfile)","Depuraci\303\263 (arxiu)");
     _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
     _t("_Maximize","_Maximitzar");
     _t("_Restore","_Restaurar");
@@ -408,10 +440,69 @@ const char *t(const char *const s) {
     _t("All outputs","Tutti i layers");
     _t("Output messages...","Messaggi di Output...");
     _t("Quiet (default)","Nessun Messaggio (default)");
-    _t("Very verbose","Messaggi Dettagliati");
-    _t("Debug mode","Debug Mode");
+    _t("Verbose (console)","Messagi (console)");
+    _t("Verbose (logfile)","Messagi (logfile)");
+    _t("Very verbose (console)","Messaggi Dettagliati (console)");
+    _t("Very verbose (logfile)","Messaggi Dettagliati (logfile)");
+    _t("Debug mode (console)","Debug Mode (console)");
+    _t("Debug mode (logfile)","Debug Mode (logfile)");
     _t(" Available filters (%u) :"," Filtri disponibili (%u) :");
     _t("Update","Aggiornare");
+  }
+
+  // Portuguese translation
+  if (!std::strcmp(get_locale(),"pt")) {
+    if (!s) {
+      static const char *const ns = "<b>A atualiza\303\247\303\243o pela internet falhou !</b>\n\n"
+        "Por favor verifique o status da sua conex\303\243o. Voc\303\252 tamb\303\251m pode\n"
+        "atualizar sua lista de filtros manualmente se desejar :\n\n"
+        "<u><small>%s%s</small></u>\n\n"
+        "E copie o mesmo como o arquivo <i>.%s</i>\n"
+        "para dentro do seu diret\303\263rio <i>Home</i> ou <i>Aplicativos de dados</i> pasta.";
+      return ns;
+    }
+    _t("G'MIC for GIMP","G'MIC para o GIMP");
+    _t("<i>Select a filter...</i>","<i>Escolha um filtro</i>");
+    _t("<i>No parameters to set...</i>","<i>Sem par\303\242metros para configurar...</i>");
+    _t("<b> Input / Output : </b>","<b> Entrada / Saida : </b>");
+    _t("Input layers...","Camadas de Entrada...");
+    _t("None","Nenhuma");
+    _t("Active (default)","Ativo (Padr\303\243o)");
+    _t("All","Todos");
+    _t("Active & below","Ativo & abaixo");
+    _t("Active & above","Ativo & acima");
+    _t("All visibles","Todos vis\303\255veis");
+    _t("All invisibles","Todos invis\303\255veis");
+    _t("All visibles (decr.)","Todos vis\303\255veis (decr.)");
+    _t("All invisibles (decr.)","Todos invis\303\255veis (decr.)");
+    _t("All (decr.)","Todos (decr.)");
+    _t("Output mode...","Modo de saida...");
+    _t("In place (default)","No lugar (Padr\303\243o)");
+    _t("New layer(s)","Nova(s) camada(s)");
+    _t("New active layer(s)","Nova(s) camadas(s) ativa");
+    _t("New image","Nova imagem");
+    _t("Output preview...","Pr\303\251 Visualiza\303\247\303\243o");
+    _t("1st output (default)","Primeira pr\303\251via (Padr\303\243o)");
+    _t("2nd output","2 pr\303\251via imagem");
+    _t("3rd output","3 pr\303\251via imagem");
+    _t("4th output","4 pr\303\251via imagem");
+    _t("1st -> 2nd","1st -> 2nd");
+    _t("1st -> 3rd","1st -> 3rd");
+    _t("1st -> 4th","1st -> 4th");
+    _t("All outputs","Todas as imagens");
+    _t("Output messages...","Mensagens de saida...");
+    _t("Quiet (default)","Quieto (Padr\303\243o)");
+    _t("Verbose (console)","Mode verbose (console)");
+    _t("Verbose (logfile)","Mode verbose (arquivo)");
+    _t("Very verbose (console)","Modo verbose ampliada (console)");
+    _t("Very verbose (logfile)","Modo verbose ampliada (arquivo)");
+    _t("Debug mode (console)","Modo Debug (console)");
+    _t("Debug mode (logfile)","Modo Debug (arquivo)");
+    _t(" Available filters (%u) :"," Filtros dispon\303\255veis (%u) :");
+    _t("_Maximize","_Maximizar");
+    _t("_Restore","Restaurar");
+    _t("Update","Atualizar");
+    _t("Rename","Renomear");
   }
 
   // German translation
@@ -456,10 +547,12 @@ const char *t(const char *const s) {
     _t("All outputs","Alle Ausgaben");
     _t("Output messages...","Ausgabemeldungen...");
     _t("Quiet (default)","Keine Meldung (Standard)");
-    _t("Verbose","Ausf\303\274hrlich");
-    _t("Very verbose","Sehr ausf\303\274hrlich");
-    _t("Debug mode","Debug-Modus");
-    _t("Internet","Internet");
+    _t("Verbose (console)","Ausf\303\274hrlich (Konsole)");
+    _t("Verbose (logfile)","Ausf\303\274hrlich (Logfile)");
+    _t("Very verbose (console)","Sehr ausf\303\274hrlich (Konsole)");
+    _t("Very verbose (logfile)","Sehr ausf\303\274hrlich (Logfile)");
+    _t("Debug mode (console)","Debug-Modus (Konsole)");
+    _t("Debug mode (logfile)","Debug-Modus (Logfile)");
     _t(" Available filters (%u) :"," Verf\303\274gbare Filter (%u) :");
     _t("Rename","Umbenennen");
   }
@@ -505,10 +598,12 @@ const char *t(const char *const s) {
     _t("All outputs","Alle resultaten");
     _t("Output messages...","Output berichten...");
     _t("Quiet (default)","Geen melding (standaard)");
-    _t("Verbose","Uitgebreid");
-    _t("Very verbose","Heel uitgebreid");
-    _t("Debug mode","Debug mode");
-    _t("Internet","Internet");
+    _t("Verbose (console)","Uitgebreid (console)");
+    _t("Verbose (logfile)","Uitgebreid (logfile)");
+    _t("Very verbose (console)","Heel uitgebreid (console)");
+    _t("Very verbose (logfile)","Heel uitgebreid (logfile)");
+    _t("Debug mode (console)","Debug mode (console)");
+    _t("Debug mode (logfile)","Debug mode (logfile)");
     _t(" Available filters (%u) :"," Beschikbare filters (%u) :");
     _t("_Maximize","_Maximaliseren");
     _t("_Restore","_Vermindering");
@@ -704,11 +799,11 @@ bool update_filters(const bool try_net_update) {
     size_gmic = (unsigned int)std::ftell(file_gmic);
     std::rewind(file_gmic);
   }
-  const unsigned int size_final = size_gmic_def + size_gmic + size_data_gmic_def + 1;
+  const unsigned int size_final = size_gmic_def + size_gmic + size_data_gmic_def + 3;
   gmic_additional_commands.assign(size_final);
   char *ptrd = gmic_additional_commands;
-  if (size_gmic) { ptrd+=std::fread(ptrd,1,size_gmic,file_gmic); std::fclose(file_gmic); }
-  if (size_gmic_def) { ptrd+=std::fread(ptrd,1,size_gmic_def,file_gmic_def); std::fclose(file_gmic_def); }
+  if (size_gmic) { ptrd+=std::fread(ptrd,1,size_gmic,file_gmic); std::fclose(file_gmic); *(ptrd++) = '\n'; }
+  if (size_gmic_def) { ptrd+=std::fread(ptrd,1,size_gmic_def,file_gmic_def); std::fclose(file_gmic_def); *(ptrd++) = '\n'; }
   if (size_data_gmic_def) { std::memcpy(ptrd,data_gmic_def,size_data_gmic_def-1); ptrd+=size_data_gmic_def-1; }
   *ptrd = 0;
 
@@ -778,7 +873,7 @@ bool update_filters(const bool try_net_update) {
             else factor = -1;
             CImg<char>::string(preview_command).move_to(gmic_preview_commands);
             CImg<double>::vector(factor).move_to(gmic_preview_factors);
-          } else gmic_preview_commands.insert(1);
+          } else { gmic_preview_commands.insert(1); gmic_preview_factors.insert(1); }
           gtk_tree_store_append(tree_view_store,&iter,level?&parent[level-1]:0);
           gtk_tree_store_set(tree_view_store,&iter,0,gmic_entries.size()-1,1,nentry,-1);
         }
@@ -814,13 +909,18 @@ bool update_filters(const bool try_net_update) {
                (std::strcmp(gmic_entries[filter].data(),entry) ||
                 std::strcmp(gmic_commands[filter].data(),command) ||
                 std::strcmp(gmic_preview_commands[filter].data(),preview_command)); ++filter) {}
-        if (filter<gmic_entries.size()) {
+
+        if (filter==gmic_entries.size())
+          std::fprintf(cimg::output(),
+                       "\n[gmic_gimp]./warning/ Skipping reference to unknown filter '%s : %s, %s' in fave file '%s'.\n",
+                       entry,command,preview_command,filename_gmic_faves);
+        else {
           CImg<char>::string(line).move_to(gmic_faves);
           for (char *p = std::strchr(label,_rbrace); p; p = std::strchr(p,_rbrace)) *p = '}';  // Get back '}' if necessary.
           for (char *p = std::strchr(entry,_rbrace); p; p = std::strchr(p,_rbrace)) *p = '}';
           CImg<char>::string(label).move_to(gmic_entries);
-          gmic_preview_commands.insert(gmic_preview_commands[filter]);
           gmic_commands.insert(gmic_commands[filter]);
+          gmic_preview_commands.insert(gmic_preview_commands[filter]);
           gmic_arguments.insert(gmic_arguments[filter]);
           gmic_preview_factors.insert(gmic_preview_factors[filter]);
           unsigned int nbp = 0;
@@ -1053,6 +1153,7 @@ CImg<int> get_input_layers(CImgList<T>& images) {
   gint x1, y1, x2, y2;
   cimglist_for(images,l) {
     GimpDrawable *drawable = gimp_drawable_get(input_layers[l]);
+    if (!gmic_drawable_is_valid(drawable)) continue;
     gimp_drawable_mask_bounds(drawable->drawable_id,&x1,&y1,&x2,&y2);
     const int channels = drawable->bpp;
     gimp_pixel_rgn_init(&region,drawable,x1,y1,x2-x1,y2-y1,false,false);
@@ -1110,7 +1211,7 @@ CImg<int> get_input_layers(CImgList<T>& images) {
 
 // Return the G'MIC command line needed to run the selected filter.
 //-----------------------------------------------------------------
-const char* get_command_line(const bool preview) {
+const char* get_commands_line(const bool preview) {
   const unsigned int
     filter = get_current_filter(),
     nbparams = get_filter_nbparams(filter);
@@ -1118,9 +1219,9 @@ const char* get_command_line(const bool preview) {
   static CImg<char> res;
   CImgList<char> lres;
   switch (get_verbosity_mode()) {
-  case 0: case 1: CImg<char>("-v -99 -",8).move_to(lres); break;
-  case 2: CImg<char>("-",1).move_to(lres); break;
-  default: CImg<char>("-debug -",8).move_to(lres);
+  case 0: case 1: case 2: CImg<char>("-v -99 -",8).move_to(lres); break;  // Quiet or Verbose.
+  case 3: case 4 : CImg<char>("-",1).move_to(lres); break;                // Very verbose.
+  default: CImg<char>("-debug -",8).move_to(lres);                        // Debug.
   }
   const CImg<char> &command_item = (preview?gmic_preview_commands[filter]:gmic_commands[filter]);
   if (command_item) {
@@ -1149,7 +1250,7 @@ const char* get_command_line(const bool preview) {
 //----------------------------------------------------------
 void set_preview_factor() {
   const unsigned int filter = get_current_filter();
-  if (filter && GIMP_IS_PREVIEW(gui_preview)) {
+  if (filter && gmic_preview_factors[filter] && GIMP_IS_PREVIEW(gui_preview)) {
     double factor = gmic_preview_factors(filter,0);
     if (factor>=0) {
       if (!factor) { // Compute factor so that 1:1 preview of the image is displayed.
@@ -1172,13 +1273,7 @@ void process_preview();
 // Secure function for invalidate preview.
 void _gimp_preview_invalidate() {
   computed_preview.assign();
-  if (GIMP_IS_PREVIEW(gui_preview) &&
-#if GIMP_MINOR_VERSION<=6
-      gimp_drawable_is_valid(drawable_preview->drawable_id)
-#else
-      gimp_item_is_valid(drawable_preview->drawable_id)
-#endif
-      )
+  if (GIMP_IS_PREVIEW(gui_preview) && gmic_drawable_is_valid(drawable_preview))
     gimp_preview_invalidate(GIMP_PREVIEW(gui_preview));
   else {
     if (GTK_IS_WIDGET(gui_preview)) gtk_widget_destroy(gui_preview);
@@ -1292,6 +1387,7 @@ void on_dialog_verbosity_mode_changed(GtkComboBox *const combobox) {
   g_object_get(combobox,"active",&value,NULL);
   if (value<2) gtk_combo_box_set_active(combobox,value=2);
   set_verbosity_mode((unsigned int)value);
+  set_logfile();
   _gimp_preview_invalidate();
 }
 
@@ -1393,7 +1489,7 @@ void on_dialog_fave_clicked(GtkWidget *const tree_view) {
         const unsigned int _filter = filter - indice_faves;
         if (gmic_faves.size()==1) { std::fclose(file); std::remove(filename); }
         else {
-          cimglist_for(gmic_faves,l) if (l!=_filter) std::fprintf(file,"%s\n",gmic_faves[l].data());
+          cimglist_for(gmic_faves,l) if (l!=(int)_filter) std::fprintf(file,"%s\n",gmic_faves[l].data());
           std::fclose(file);
           for (unsigned int i = filter; i<gmic_entries.size()-1; ++i) { // Shift current parameters.
             const unsigned int nbp = get_filter_nbparams(i+1);
@@ -1458,16 +1554,18 @@ void on_filter_selected(GtkWidget *const tree_view) {
 
 void _on_filter_doubleclicked(GtkWidget *const entry) {
   const unsigned int filter = get_current_filter();
+  cimg::unused(entry);
   gtk_widget_hide(relabel_hbox);
   if (filter>=indice_faves) {
-    const char *const label = gtk_entry_get_text(GTK_ENTRY(relabel_entry));
+    const char *const __label = gtk_entry_get_text(GTK_ENTRY(relabel_entry));
+    char *const label = g_markup_escape_text(__label,std::strlen(__label));
     char filename[1024] = { 0 };
     cimg_snprintf(filename,sizeof(filename),"%s/.gmic_faves",
                   getenv(cimg_OS!=2?"HOME":"APPDATA"));
     std::FILE *file = std::fopen(filename,"wb");
     if (file) {
       const unsigned int _filter = filter - indice_faves;
-      cimglist_for(gmic_faves,l) if (l!=_filter) std::fprintf(file,"%s\n",gmic_faves[l].data());
+      cimglist_for(gmic_faves,l) if (l!=(int)_filter) std::fprintf(file,"%s\n",gmic_faves[l].data());
       else {
         CImg<char> _label = CImg<char>::string(label);
         for (char *p = std::strchr(_label,'}'); p; p = std::strchr(p,'}')) *p = _rbrace; // Convert '}' if necessary.
@@ -1489,6 +1587,7 @@ void _on_filter_doubleclicked(GtkWidget *const entry) {
     gtk_tree_selection_select_path(selection,path);
     gtk_tree_path_free(path);
     create_parameters_gui(false);
+    g_free(label);
   }
 }
 
@@ -1506,7 +1605,10 @@ void on_filter_doubleclicked(GtkWidget *const tree_view) {
     }
   } else if (filter>=indice_faves) { // Rename fave filter.
     is_block_preview = true;
-    gtk_entry_set_text(GTK_ENTRY(relabel_entry),gmic_entries[filter].data());
+    GtkWidget *const markup2ascii = gtk_label_new(0);
+    gtk_label_set_markup(GTK_LABEL(markup2ascii),gmic_entries[filter].data());
+    gtk_entry_set_text(GTK_ENTRY(relabel_entry),gtk_label_get_text(GTK_LABEL(markup2ascii)));
+    gtk_widget_destroy(markup2ascii);
     gtk_widget_show(relabel_hbox);
     gtk_widget_grab_focus(relabel_entry);
   } else on_dialog_fave_clicked(tree_view); // Add fave filter.
@@ -1520,8 +1622,8 @@ struct st_process_thread {
   CImgList<float> images;
   CImg<char> error_message;
   bool is_thread, is_preview;
-  const char *command_line;
   unsigned int verbosity_mode;
+  const char *commands_line;
   float progress;
 #if !defined(__MACOSX__)  && !defined(__APPLE__)
   pthread_mutex_t is_running;
@@ -1547,7 +1649,7 @@ void *process_thread(void *arg) {
 #endif
   try {
     if (spt.verbosity_mode) {
-      CImg<char> cl = CImg<char>::string(spt.command_line);
+      CImg<char> cl = CImg<char>::string(spt.commands_line);
       gmic_strreplace(cl);
       std::fprintf(cimg::output(),
                    "\n[gmic_gimp]./%s/ %s\n",
@@ -1555,8 +1657,7 @@ void *process_thread(void *arg) {
                    cl.data());
       std::fflush(cimg::output());
     }
-    std::setlocale(LC_NUMERIC,"C");
-    gmic(spt.command_line,spt.images,gmic_additional_commands,true,&spt.progress);
+    gmic(spt.commands_line,spt.images,gmic_additional_commands,true,&spt.progress);
   } catch (gmic_exception &e) {
     spt.images.assign();
     CImg<char>::string(e.what()).move_to(spt.error_message);
@@ -1578,29 +1679,30 @@ void *process_thread(void *arg) {
 
 // Process the selected image/layers.
 //------------------------------------
-void process_image(const char *const command_line) {
+void process_image(const char *const commands_line) {
   if (!gimp_image_is_valid(image_id)) return;
   const unsigned int filter = get_current_filter();
-  if (!command_line && !filter) return;
-  const char *const _command_line = command_line?command_line:get_command_line(false);
-  if (!_command_line || std::strstr(_command_line,"-_none_")) return;
+  if (!commands_line && !filter) return;
+  const char *const _commands_line = commands_line?commands_line:get_commands_line(false);
+  if (!_commands_line || std::strstr(_commands_line,"-_none_")) return;
 
   char new_label[256] = { 0 };
   if (run_mode!=GIMP_RUN_NONINTERACTIVE) {
-    GtkWidget *markup2ascii = gtk_label_new(0);
+    GtkWidget *const markup2ascii = gtk_label_new(0);
     gtk_label_set_markup(GTK_LABEL(markup2ascii),gmic_entries[filter].data());
     gimp_progress_init_printf(" G'MIC : %s...",gtk_label_get_text(GTK_LABEL(markup2ascii)));
-    const char *const cl = _command_line + (!std::strncmp(_command_line,"-v -99 ",7) || !std::strncmp(_command_line,"-debug ",7)?7:0);
+    const char *const cl = _commands_line + (!std::strncmp(_commands_line,"-v -99 ",7) || !std::strncmp(_commands_line,"-debug ",7)?7:0);
     cimg_snprintf(new_label,sizeof(new_label),"[G'MIC] %s : %s",gtk_label_get_text(GTK_LABEL(markup2ascii)),cl);
     gtk_widget_destroy(markup2ascii);
-  } else cimg_snprintf(new_label,sizeof(new_label),"[G'MIC] : %s",_command_line);
+  } else cimg_snprintf(new_label,sizeof(new_label),"[G'MIC] : %s",_commands_line);
 
   // Get input layers for the chosen filter.
   st_process_thread spt;
   spt.is_preview = false;
-  spt.command_line = _command_line;
+  spt.commands_line = _commands_line;
   spt.verbosity_mode = get_verbosity_mode();
   spt.progress = -1;
+
   const CImg<int> layers = get_input_layers(spt.images);
   CImg<int> dimensions(spt.images.size(),4);
   cimglist_for(spt.images,l) {
@@ -1685,7 +1787,11 @@ void process_image(const char *const command_line) {
           gimp_drawable_detach(drawable);
         } else { // Indirect replacement : create new layers.
         gimp_selection_none(image_id);
+#if GIMP_MINOR_VERSION<=6
         const int layer_pos = gimp_image_get_layer_position(image_id,layers[0]);
+#else
+        const int layer_pos = gimp_image_get_item_position(image_id,layers[0]);
+#endif
         for (unsigned int i = 0; i<layers._height; ++i) gimp_image_remove_layer(image_id,layers[i]);
         cimglist_for(spt.images,p) {
           CImg<float> &img = spt.images[p];
@@ -1697,7 +1803,11 @@ void process_image(const char *const command_line) {
                                          img.spectrum()==2?GIMP_GRAYA_IMAGE:
                                          img.spectrum()==3?GIMP_RGB_IMAGE:GIMP_RGBA_IMAGE,
                                          100.0,GIMP_NORMAL_MODE);
+#if GIMP_MINOR_VERSION<=6
           gimp_image_add_layer(image_id,layer_id,layer_pos+p);
+#else
+          gimp_image_insert_layer(image_id,layer_id,-1,layer_pos+p);
+#endif
           GimpDrawable *drawable = gimp_drawable_get(layer_id);
           gimp_pixel_rgn_init(&region,drawable,0,0,drawable->width,drawable->height,true,true);
           convert_image_float2uchar(img);
@@ -1728,7 +1838,11 @@ void process_image(const char *const command_line) {
                                   img.spectrum()==2?GIMP_GRAYA_IMAGE:
                                   img.spectrum()==3?GIMP_RGB_IMAGE:GIMP_RGBA_IMAGE,
                                   100.0,GIMP_NORMAL_MODE);
+#if GIMP_MINOR_VERSION<=6
         gimp_image_add_layer(image_id,layer_id,p);
+#else
+        gimp_image_insert_layer(image_id,layer_id,-1,p);
+#endif
         GimpDrawable *drawable = gimp_drawable_get(layer_id);
         gimp_pixel_rgn_init(&region,drawable,0,0,drawable->width,drawable->height,true,true);
         convert_image_float2uchar(img);
@@ -1757,7 +1871,11 @@ void process_image(const char *const command_line) {
                                          img.spectrum()==2?GIMP_GRAYA_IMAGE:
                                          img.spectrum()==3?GIMP_RGB_IMAGE:GIMP_RGBA_IMAGE,
                                          100.0,GIMP_NORMAL_MODE);
+#if GIMP_MINOR_VERSION<=6
           gimp_image_add_layer(nimage_id,layer_id,p);
+#else
+          gimp_image_insert_layer(nimage_id,layer_id,-1,p);
+#endif
           GimpDrawable *drawable = gimp_drawable_get(layer_id);
           GimpPixelRgn dest_region;
           gimp_pixel_rgn_init(&dest_region,drawable,0,0,drawable->width,drawable->height,true,true);
@@ -1788,8 +1906,8 @@ void process_preview() {
   if (!gimp_image_is_valid(image_id)) return;
   const unsigned int filter = get_current_filter();
   if (!filter) return;
-  const char *const command_line = get_command_line(true);
-  if (!command_line || std::strstr(command_line,"-_none_")) return;
+  const char *const commands_line = get_commands_line(true);
+  if (!commands_line || std::strstr(commands_line,"-_none_")) return;
   int w, h, channels;
   guchar *const ptr0 = gimp_zoom_preview_get_source(GIMP_ZOOM_PREVIEW(gui_preview),&w,&h,&channels);
   static int _xp = -1, _yp = -1;
@@ -1801,7 +1919,7 @@ void process_preview() {
     st_process_thread spt;
     spt.is_preview = true;
     spt.is_thread = false;
-    spt.command_line = command_line;
+    spt.commands_line = commands_line;
     spt.verbosity_mode = get_verbosity_mode();
     spt.progress = -1;
 
@@ -2024,6 +2142,7 @@ void create_parameters_gui(const bool reset_params) {
                                       argument_name,_argument_type,argument_arg);
         if (err!=3) err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-Z_]{%4095[^}]",
                                       argument_name,_argument_type,argument_arg);
+
         if (err>=2) {
           argument += std::strlen(argument_name) + std::strlen(_argument_type) + std::strlen(argument_arg) + 3;
           if (*argument) ++argument;
@@ -2048,8 +2167,8 @@ void create_parameters_gui(const bool reset_params) {
             GtkObject *const
               scale = gimp_scale_entry_new(GTK_TABLE(table),0,current_table_line,argument_name,50,6,
                                            (double)value,(double)min_value,(double)max_value,
-                                           (double)(max_value-min_value)/40,
-                                           (double)(max_value-min_value)/10,
+                                           (double)(max_value-min_value)/100,
+                                           (double)(max_value-min_value)/20,
                                            2,true,0,0,0,0);
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
@@ -2074,7 +2193,7 @@ void create_parameters_gui(const bool reset_params) {
                                            (double)(int)cimg::round(min_value,1.0f),
                                            (double)(int)cimg::round(max_value,1.0f),
                                            (double)1,
-                                           (double)cimg::round((max_value-min_value)/10,1,1),
+                                           (double)cimg::max(1.0,cimg::round((max_value-min_value)/20,1,1)),
                                            0,true,0,0,0,0);
             event_infos[2*current_argument] = (void*)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
@@ -2317,6 +2436,7 @@ void create_parameters_gui(const bool reset_params) {
       set_filter_nbparams(filter,current_argument);
     }
   }
+
   gtk_container_add(GTK_CONTAINER(right_frame),table);
 
   // Take care of the size of the parameter table.
@@ -2405,7 +2525,7 @@ bool create_dialog_gui() {
   gtk_label_set_markup(GTK_LABEL(frame_title),t("<b> Input / Output : </b>"));
   gtk_frame_set_label_widget(GTK_FRAME(left_frame),frame_title);
 
-  GtkWidget *const left_table = gtk_table_new(6,1,false);
+  GtkWidget *const left_table = gtk_table_new(4,1,false);
   gtk_widget_show(left_table);
   gtk_table_set_row_spacings(GTK_TABLE(left_table),6);
   gtk_table_set_col_spacings(GTK_TABLE(left_table),6);
@@ -2443,14 +2563,17 @@ bool create_dialog_gui() {
   gtk_table_attach_defaults(GTK_TABLE(left_table),output_combobox,0,1,1,2);
   g_signal_connect(output_combobox,"changed",G_CALLBACK(on_dialog_output_mode_changed),0);
 
-  GtkWidget *const verbosity_combobox = gtk_combo_box_new_text();
+ GtkWidget *const verbosity_combobox = gtk_combo_box_new_text();
   gtk_widget_show(verbosity_combobox);
   gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Output messages..."));
   gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),"-");
   gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Quiet (default)"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Verbose"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Very verbose"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Debug mode"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Verbose (console)"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Verbose (logfile)"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Very verbose (console)"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Very verbose (logfile)"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Debug mode (console)"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(verbosity_combobox),t("Debug mode (logfile)"));
   gtk_combo_box_set_active(GTK_COMBO_BOX(verbosity_combobox),get_verbosity_mode(false));
   gtk_table_attach_defaults(GTK_TABLE(left_table),verbosity_combobox,0,1,2,3);
   g_signal_connect(verbosity_combobox,"changed",G_CALLBACK(on_dialog_verbosity_mode_changed),0);
@@ -2587,9 +2710,8 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
   return_values[0].type = GIMP_PDB_STATUS;
   cimg::unused(name,nparams);
   run_mode = (GimpRunMode)param[0].data.d_int32;
-  cimg::output(stdout);
+  set_logfile();
   set_locale();
-
   status = GIMP_PDB_SUCCESS;
 
   try {
@@ -2605,11 +2727,11 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
     case GIMP_RUN_INTERACTIVE : {
       if (create_dialog_gui()) {
         process_image(0);
-        const char *const command_line = get_command_line(false);
-        if (command_line) { // Remember command line for the next use of the filter.
+        const char *const commands_line = get_commands_line(false);
+        if (commands_line) { // Remember command line for the next use of the filter.
           char s_tmp[64] = { 0 };
-          cimg_snprintf(s_tmp,sizeof(s_tmp),"gmic_command_line%u",get_current_filter());
-          gimp_set_data(s_tmp,command_line,std::strlen(command_line));
+          cimg_snprintf(s_tmp,sizeof(s_tmp),"gmic_commands_line%u",get_current_filter());
+          gimp_set_data(s_tmp,commands_line,std::strlen(commands_line));
         }
       }
     } break;
@@ -2618,10 +2740,10 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
       const unsigned int filter = get_current_filter();
       if (filter) {
         char s_tmp[64] = { 0 };
-        cimg_snprintf(s_tmp,sizeof(s_tmp),"gmic_command_line%u",filter);
-        char command_line[4096] = { 0 };
-        gimp_get_data(s_tmp,&command_line);
-        process_image(command_line);
+        cimg_snprintf(s_tmp,sizeof(s_tmp),"gmic_commands_line%u",filter);
+        char commands_line[4096] = { 0 };
+        gimp_get_data(s_tmp,&commands_line);
+        process_image(commands_line);
       }
     } break;
 
@@ -2638,6 +2760,7 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
     status = GIMP_PDB_CALLING_ERROR;
   }
 
+  if (logfile) std::fclose(logfile);
   return_values[0].data.d_status = status;
 }
 
@@ -2658,8 +2781,8 @@ void gmic_query() {
   gimp_install_procedure("plug-in-gmic",             // name
                          "G'MIC",                    // blurb
                          "G'MIC",                    // help
-                         "David Tschumperlé",        // author
-                         "David Tschumperlé",        // copyright
+                         "David Tschumperl\303\251", // author
+                         "David Tschumperl\303\251", // copyright
                          "2008",                     // date
                          "_G'MIC...",                // menu_path
                          "RGB*, GRAY*",              // image_types
