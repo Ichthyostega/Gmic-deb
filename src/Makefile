@@ -119,6 +119,10 @@ JPEG_LDFLAGS = -ljpeg
 TIFF_CFLAGS = -Dcimg_use_tiff
 TIFF_LDFLAGS = -ltiff
 
+# Flags to enable native support for MINC image files, using the MINC2 library.
+MINC2_CFLAGS = -Dcimg_use_minc2
+MINC2_LDFLAGS = -lminc2
+
 # Flags to enable native support for various video files, using the FFMPEG library.
 FFMPEG_CFLAGS = -Dcimg_use_ffmpeg -D__STDC_CONSTANT_MACROS -I$(USR)/include/libavcodec -I$(USR)/include/libavformat -I$(USR)/include/libswscale -I$(USR)/include/ffmpeg
 FFMPEG_LDFLAGS = -lavcodec -lavformat -lswscale
@@ -168,10 +172,10 @@ STD_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDF
 	           $(MAGICK_LDFLAGS) $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(FFMPEG_LDFLAGS)
 
 CUST_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
-                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) $(OPENCV_CFLAGS) \
+                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(MINC2_CFLAGS) $(ZLIB_CFLAGS) $(OPENCV_CFLAGS) \
 	           $(MAGICK_CFLAGS) $(FFTW_CFLAGS) $(FFMPEG_CFLAGS) $(BOARD_CFLAGS) $(EXR_CFLAGS)
 CUST_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
-                    $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) $(OPENCV_LDFLAGS) \
+                    $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(MINC2_LDFLAGS) $(ZLIB_LDFLAGS) $(OPENCV_LDFLAGS) \
 	    	    $(MAGICK_LDFLAGS) $(FFTW_LDFLAGS) $(FFMPEG_LDFLAGS) $(BOARD_LDFLAGS) $(EXR_LDFLAGS)
 
 DEBUG_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \

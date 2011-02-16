@@ -1237,7 +1237,7 @@ _gmic()
 		return 0
 		;;
 		"-segment_watershed" | "--segment_watershed")
-		COMPREPLY=( $(compgen -W "_threshold>=0,_edge_threshold>0,_keep_watershed={0|1} >") )
+		COMPREPLY=( $(compgen -W "_threshold>=0,_keep_watershed={0|1} >") )
 		return 0
 		;;
 		"-array" | "--array")
@@ -1601,7 +1601,7 @@ _gmic()
 		return 0
 		;;
 		"-pyramid3d" | "--pyramid3d")
-		COMPREPLY=( $(compgen -W "_width,_height >") )
+		COMPREPLY=( $(compgen -W "width,height >") )
 		return 0
 		;;
 		"-gyroid3d" | "--gyroid3d")
