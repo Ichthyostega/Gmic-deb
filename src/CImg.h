@@ -274,6 +274,19 @@ extern "C" {
 }
 #endif
 
+// LibMINC2 configuration.
+// (http://en.wikibooks.org/wiki/MINC/Reference/MINC2.0_File_Format_Reference)
+//
+// Define 'cimg_use_minc2' to enable LibMINC2 support.
+//
+// LibMINC2 can be used in functions 'CImg<T>::{load,save}_minc2()'
+// to get a builtin support of MINC2 files. Using LibMINC2 is not mandatory.
+#ifdef cimg_use_minc2
+extern "C" {
+#include "minc2.h"
+}
+#endif
+
 // FFMPEG Avcodec and Avformat libraries configuration.
 // (http://www.ffmpeg.org)
 //
@@ -19641,7 +19654,7 @@ namespace cimg_library {
         do {
           pv = values._data;
           while (_ps<pe && *_ps!=(T)*pv) ++_ps;
-          if (ps<pe) {
+          if (_ps<pe) {
             const T *__ps = _ps + 1;
             ++pv;
             while (__ps<pe && pv<pve && *__ps==(T)*pv) { ++__ps; ++pv; }
@@ -28031,7 +28044,7 @@ namespace cimg_library {
                        const float opacity=1, const unsigned int font_height=13, ...) {
       if (!font_height) return *this;
       char tmp[2048] = { 0 }; std::va_list ap; va_start(ap,font_height); cimg_vsnprintf(tmp,sizeof(tmp),text,ap); va_end(ap);
-      return draw_text(x0,y0,tmp,foreground_color,(const tc*)background_color,opacity,font_height);
+      return draw_text(x0,y0,"%s",foreground_color,(const tc*)background_color,opacity,font_height,tmp);
     }
 
     template<typename tc>
@@ -28041,7 +28054,7 @@ namespace cimg_library {
                        const float opacity=1, const unsigned int font_height=13, ...) {
       if (!font_height) return *this;
       char tmp[2048] = { 0 }; std::va_list ap; va_start(ap,font_height); cimg_vsnprintf(tmp,sizeof(tmp),text,ap); va_end(ap);
-      return draw_text(x0,y0,tmp,(tc*)0,background_color,opacity,font_height);
+      return draw_text(x0,y0,"%s",(tc*)0,background_color,opacity,font_height,tmp);
     }
 
     // Draw a text (internal routine).
@@ -31071,6 +31084,7 @@ namespace cimg_library {
                  !cimg::strcasecmp(ext,"nii")) load_analyze(filename);
         else if (!cimg::strcasecmp(ext,"par") ||
                  !cimg::strcasecmp(ext,"rec")) load_parrec(filename);
+        else if (!cimg::strcasecmp(ext,"mnc")) load_minc2(filename);
         else if (!cimg::strcasecmp(ext,"inr")) load_inr(filename);
         else if (!cimg::strcasecmp(ext,"pan")) load_pandore(filename);
         else if (!cimg::strcasecmp(ext,"cimg") ||
@@ -32398,6 +32412,99 @@ namespace cimg_library {
       return *this;
     }
 #endif
+
+    //! Load an image from a MINC2 file.
+    // (Original code by Haz-Edine Assemlal).
+    CImg<T>& load_minc2(const char *const filename) {
+      if (!filename)
+        throw CImgArgumentException(_cimg_instance
+                                    "load_minc2() : Specified filename is (null).",
+                                    cimg_instance);
+#ifndef cimg_use_minc2
+      return load_other(filename);
+#else
+
+      // Open the MINC2 volume in read-only access.
+      mihandle_t hvol;
+      int result = miopen_volume(filename,MI2_OPEN_RDWR,&hvol);
+      if (result!=MI_NOERROR)
+        throw CImgIOException(_cimg_instance
+                              "load_minc2() : Invalid MINC2 format for file '%s'.",
+                              cimg_instance,filename);
+
+      mitype_t volume_data_type;
+      result = miget_data_type(hvol,&volume_data_type);
+
+      int slice_scaling_flag;
+      result = miget_slice_scaling_flag(hvol,&slice_scaling_flag);
+
+      double valid_max, valid_min;
+      result = miget_volume_valid_range(hvol,&valid_max,&valid_min);
+
+      miclass_t volume_data_class;
+      result = miget_data_class(hvol,&volume_data_class);
+
+      midimhandle_t *const hdims = (midimhandle_t*)std::malloc(4*sizeof(midimhandle_t));
+      result = miget_volume_dimensions(hvol,MI_DIMCLASS_ANY,MI_DIMATTR_ALL,MI_DIMORDER_FILE,4,hdims);
+
+      CImg<uintT> minc_dims(4,1,1,1,0);
+      cimg_forX(minc_dims,d) {
+        miboolean_t irregular;
+        result = miget_dimension_sampling_flag(hdims[d],&irregular);
+        if (irregular) {
+          char* name;
+          result = miget_dimension_name(hdims[d],&name);
+          const CImg<charT> _name = CImg<charT>::string(name);
+          mifree_name(name);
+          throw CImgIOException(_cimg_instance
+                                "load_minc2() : Unsupported dimension (%s) detected in file '%s'.",
+                                cimg_instance,name,filename);
+        }
+      }
+
+      result = miget_dimension_sizes(hdims,4,minc_dims.data());
+      miflipping_t file_order;
+      miflipping_t sign;
+      result = miget_dimension_apparent_voxel_order(*hdims,&file_order,&sign);
+      if (file_order)
+        cimg::warn(_cimg_instance
+                   "load_minc2() : Unsupported voxel order (%d) detected in file '%s'.",
+                   cimg_instance,file_order,filename);
+
+      CImg<intT> permutations, permutations_inv;
+      const CImg<uintT>
+        minc_dims_sort = minc_dims.get_sort(permutations,true),
+        minc_dims_sort_inv = minc_dims.get_sort(permutations_inv,false);
+
+      int nb_useful_dims = 0;
+      if (minc_dims(0)!=0) ++nb_useful_dims;
+      if (minc_dims(1)!=0) ++nb_useful_dims;
+      if (minc_dims(2)!=0) ++nb_useful_dims;
+      if (minc_dims(3)!=0) ++nb_useful_dims;
+
+      // BUG in MINC2 ? count as to be equal to 4, not to nb_useful_dims.
+      CImg<ulongT> count(4,1,1,1,1);
+      unsigned int c = 0;
+      cimg_foroff(minc_dims,d) if (minc_dims(d)) count(c++) = minc_dims(d);
+      assign(!minc_dims(0)?1:minc_dims(0),
+             !minc_dims(1)?1:minc_dims(1),
+             !minc_dims(2)?1:minc_dims(2),
+             !minc_dims(3)?1:minc_dims(3));
+      if (nb_useful_dims==2) permute_axes("yxzc");
+      else if (nb_useful_dims==3) permute_axes("zyxc");
+      else if (nb_useful_dims==4) permute_axes("czyx");
+
+      // Read the entire file in one operation.
+      CImg<ulongT> start(4,1,1,1,0);
+      if (slice_scaling_flag) result = miget_real_value_hyperslab(hvol,MI_TYPE_FLOAT,start.data(),count.data(),data());
+      else result = miget_voxel_value_hyperslab(hvol,MI_TYPE_FLOAT,start.data(),count.data(),data());
+
+      // Close the MINC2 volume.
+      result = mifree_dimension_handle(*hdims);
+      miclose_volume(hvol);
+      return mirror('y');
+#endif
+    }
 
     //! Load an image from an ANALYZE7.5/NIFTI file.
     CImg<T>& load_analyze(const char *const filename, float *const voxsize=0) {
@@ -34643,6 +34750,7 @@ namespace cimg_library {
       else if (!cimg::strcasecmp(ext,"hdr") ||
                !cimg::strcasecmp(ext,"nii")) return save_analyze(fn);
       else if (!cimg::strcasecmp(ext,"inr")) return save_inr(fn);
+      else if (!cimg::strcasecmp(ext,"mnc")) return save_minc2(fn);
       else if (!cimg::strcasecmp(ext,"pan")) return save_pandore(fn);
       else if (!cimg::strcasecmp(ext,"raw")) return save_raw(fn);
 
@@ -35775,6 +35883,70 @@ namespace cimg_library {
       return save_other(filename);
 #endif
       return *this;
+    }
+
+    //! Save the image as a MINC2 file.
+    // (Original code by Haz-Edine Assemlal).
+    const CImg<T>& save_minc2(const char *const filename) const {
+      if (!filename)
+        throw CImgArgumentException(_cimg_instance
+                                    "save_minc2() : Specified filename is (null).",
+                                    cimg_instance);
+      if (is_empty())
+        throw CImgInstanceException(_cimg_instance
+                                    "save_minc2() : Empty instance, for file '%s'.",
+                                    cimg_instance,
+                                    filename);
+#ifndef cimg_use_minc2
+      return save_other(filename);
+#else
+      int nb_useful_dims = 0;
+      if (width()!=1) ++nb_useful_dims;
+      if (height()!=1) ++nb_useful_dims;
+      if (depth()!=1) ++nb_useful_dims;
+      if (spectrum()!=1) ++nb_useful_dims;
+
+      int result;
+      mihandle_t hvol;
+      midimhandle_t *const hdims = (midimhandle_t*)std::malloc(nb_useful_dims*sizeof(midimhandle_t));
+      CImg<ulongT>
+        start(nb_useful_dims,1,1,1,0),
+        count(nb_useful_dims,1,1,1,0);
+      CImg<floatT> output(*this);
+      const char* dim_name[] = {"xspace", "yspace", "zspace", "time"};
+      const midimclass_t dim_class[] = { MI_DIMCLASS_SPATIAL,MI_DIMCLASS_SPATIAL,MI_DIMCLASS_SPATIAL,MI_DIMCLASS_TIME };
+      const midimattr_t dim_attr = MI_DIMATTR_REGULARLY_SAMPLED;
+
+      // Strange stuffs here
+      /* The conversion from CImg data to Minc works only for
+       * specific orders (increasing dimensions and data in decreasing)
+       */
+      CImg<charT> permutations, permutations_inv;
+      CImg<uintT>
+        dim_vec = CImg<uintT>::vector(width(),height(),depth(),spectrum()),
+        dim_sort = dim_vec.get_sort(permutations,true);
+      dim_vec.get_sort(permutations_inv,false);
+
+      int d = 0;
+      cimg_foroff(dim_sort,dv) {
+        if (dim_sort(dv)<=1) continue;
+        result = micreate_dimension(dim_name[(int)permutations(dv)],dim_class[(int)permutations(dv)],
+                                    dim_attr,dim_sort(dv),&hdims[d]);
+        count(d++) = dim_sort(dv);
+      }
+      cimg_for(permutations_inv,ptr,char) if (*ptr<3) (*ptr)+='x'; else *ptr='c';
+      output.permute_axes(permutations_inv.append(CImg<uintT>::vector(0),'y').data()).mirror('y');
+
+      // End of strange stuffs.
+
+      result = micreate_volume(filename,nb_useful_dims,hdims,MI_TYPE_FLOAT,MI_CLASS_REAL,0,&hvol);
+      result = micreate_volume_image(hvol);
+      result = miset_volume_range(hvol,max(),min());
+      result = miset_voxel_value_hyperslab(hvol,MI_TYPE_FLOAT,start,count,output.data());
+      result = miclose_volume(hvol);
+      result = mifree_dimension_handle(*hdims);
+      return *this;
+#endif
     }
 
     //! Save the image as an ANALYZE7.5 or NIFTI file.
@@ -38230,7 +38402,8 @@ namespace cimg_library {
                 &img2d = _img2d?_img2d:src;
               CImg<ucharT> res = old_normalization==1?CImg<ucharT>(img2d.get_normalize(0,255)):CImg<ucharT>(img2d);
               if (res._spectrum>3) res.channels(0,2);
-              res.resize(x - x0,cimg::max(32U,res._height*disp._height/max_height),1,res._spectrum==1?3:-100);
+              const unsigned int h = CImgDisplay::_fitscreen(res._width,res._height,1,256,-85,true);
+              res.resize(x - x0,cimg::max(32U,h*disp._height/max_height),1,res._spectrum==1?3:-100);
               positions(ind,0) = positions(ind,2) = (int)x0;
               positions(ind,1) = positions(ind,3) = (int)(align*(visu0.height()-res.height()));
               positions(ind,2)+=res._width;
@@ -38246,7 +38419,8 @@ namespace cimg_library {
                 &img2d = _img2d?_img2d:src;
               CImg<ucharT> res = old_normalization==1?CImg<ucharT>(img2d.get_normalize(0,255)):CImg<ucharT>(img2d);
               if (res._spectrum>3) res.channels(0,2);
-              res.resize(cimg::max(32U,res._width*disp._width/max_width),y - y0,1,res._spectrum==1?3:-100);
+              const unsigned int w = CImgDisplay::_fitscreen(res._width,res._height,1,256,-85,false);
+              res.resize(cimg::max(32U,w*disp._width/max_width),y - y0,1,res._spectrum==1?3:-100);
               positions(ind,0) = positions(ind,2) = (int)(align*(visu0.width()-res.width()));
               positions(ind,1) = positions(ind,3) = (int)y0;
               positions(ind,2)+=res._width - 1;
@@ -39335,7 +39509,7 @@ namespace cimg_library {
               w = CImgDisplay::_fitscreen(img._width,img._height,img._depth,256,-85,false),
               h = CImgDisplay::_fitscreen(img._width,img._height,img._depth,256,-85,true);
             sum_width+=w;
-            max_height = cimg::max(max_height,h);
+            if (h>max_height) max_height = h;
           }
           disp.assign(cimg_fitscreen(sum_width,max_height,1),title?title:0,1);
         } else {
@@ -39345,7 +39519,7 @@ namespace cimg_library {
             const unsigned int
               w = CImgDisplay::_fitscreen(img._width,img._height,img._depth,256,-85,false),
               h = CImgDisplay::_fitscreen(img._width,img._height,img._depth,256,-85,true);
-            max_width = cimg::max(max_width,w);
+            if (w>max_width) max_width = w;
             sum_height+=h;
           }
           disp.assign(cimg_fitscreen(max_width,sum_height,1),title?title:0,1);

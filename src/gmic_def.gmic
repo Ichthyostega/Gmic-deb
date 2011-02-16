@@ -1696,9 +1696,9 @@ _topographic_map :
     -endif
   -while 1
 
-#@gmic segment_watershed : _threshold>=0,_edge_threshold>0,_keep_watershed={ 0 | 1 }
+#@gmic segment_watershed : _threshold>=0,_keep_watershed={ 0 | 1 }
 #@gmic : Apply watershed segmentation on selected images.
-segment_watershed : -check "${1=2}>=0 && ${2=11}>0" -skip ${3=1}
+segment_watershed : -check "${1=2}>=0" -skip ${2=1}
   -e[^-1] "Apply watershed segmentation on image$?, with edge threshold $1."
   -v - -repeat @#
     -+[-1] {1+@{-1,m}}
@@ -1706,7 +1706,7 @@ segment_watershed : -check "${1=2}>=0 && ${2=11}>0" -skip ${3=1}
     -if {d>1} --f[-1] "if(i<$1 && i<i(x+1) && i<i(x-1) && i<i(x,y+1) && i<i(x,y-1) && i<i(x,y,z+1) && i<i(x,y,z-1),1,0)"
     -else --f[-1] "if(i<$1 && i<i(x+1) && i<i(x-1) && i<i(x,y+1) && i<i(x,y-1),1,0)"
     -endif
-    -*[-3,-1] -*[-1] -1 -watershed[-2] [-1],$3 -rm[-1]
+    -*[-3,-1] -*[-1] -1 -watershed[-2] [-1],$2 -rm[-1]
   -mv[-1] 0 -done -v +
 
 #-------------------------------
@@ -1962,7 +1962,7 @@ mosaic : -skip ${1=0.8},${2=1}
   -e[^-1] "Apply mosaic effect on image$?, with density $1."
   -v - -repeat @#
     label0={1+@{-1,m}} -+[-1] $label0
-    100%,100% -noise[-1] $1,2 -*[-2] [-1] -distance[-1] 1 -*[-1] -1 -watershed[-2] [-1],{if($2,0,1)} -rm[-1]
+    100%,100% -noise[-1] {$1*2},2 -*[-2] [-1] -distance[-1] 1 -*[-1] -1 -watershed[-2] [-1],{if($2,0,1)} -rm[-1]
     -if $2 --l[-1] -t 0.0001 -s c -and -endl --[-2] $label0 -*[-2,-1] -else --[-1] $label0 -endif
   -mv[-1] 0 -done -v +
 
@@ -2518,7 +2518,7 @@ watermark_visible : -skip "${1=\251\ G'MIC}" -check "${2=0.3}>0 && $2<1 && ${3=5
   -repeat @#
     1 -text[-1] "$1",0,0,$3,1,255 -rotate[-1] $4,0,0 -r[-1] [-2],0,2 -+[-1] [-2] -c[-1] 0,255  # Generate opaque watermark image
     -if $5 -*[-1] $2 -*[-2] {1-$2} -+[-2,-1]  # Add watermark
-    -else -*[-1] $2 --[-2,-1] -/[-1] {1-$2}   # Remove watermak
+    -else -*[-1] $2 --[-2,-1] -/[-1] {1-$2}   # Remove watermark
     -endif
     -c[-1] 0,255
   -mv[-1] 0 -done
@@ -3802,9 +3802,9 @@ projections3d : -skip ${1=50%},${2=50%},${3=50%},${4=1}
     -if $4 -box3d $w,$h,$d -p3d[-1] 1 -o3d[-1] 0.4 -+3d[-2,-1] -endif
   -mv[-1] 0 -done -v +
 
-#@gmic pyramid3d : _width,_height
+#@gmic pyramid3d : width,height
 #@gmic : Generate 3d pyramid at (0,0,0), with specified geometry.
-pyramid3d : -skip ${1=1},${2=1}
+pyramid3d :
   -e[^-1] "Create new 3d pyramid, with width $1 and height $2."
   -v -
   (67.5;73.5;109.5;103.5;51.5;100.5;\  # Magick number for CImg3d.
@@ -4909,96 +4909,146 @@ x_paint :
 #@gmic gpt : _scorefile,_title,_photo_width>0
 #@gmic : Generate score board for the GPT championship (GREYC Poker Tour).
 #@gmic : (works probably only on Unix-based machines, need 'wget','rm','gunzip','cp' and 'mv').
-gpt : -skip "${1=http://www.greyc.ensicaen.fr/~dtschump/gpt.raw}",${2="GREYC Poker Tour"} -check ${3=48}>0
-  -e[^-1] "Generate score board for the GPT championship (GREYC Poker Tour), from file '$1'."
+gpt : -skip "${1=http://www.greyc.ensicaen.fr/~dtschump/gpt.raw}",${2="GREYC Poker Tour"} -check "${3=48}>0 && ${4=0.75}"
+  -e[^-1] "Generate score board for GPT-like championship (GREYC Poker Tour), from file '$1'."
   -v - -rm
 
   # Load score file.
-  -x "rm -f /tmp/gpt.raw" ({'"$1"'})
+  score_basename=@{-path_tmp}/gpt{round(?(0,100000))}
+  -x "rm -f "$score_basename.raw ({'"$1"'})
   -if {@{-1,0}==104&&@{-1,1}==116&&@{-1,2}==116&&@{-1,3}==112&&@{-1,4}==58}  # File is on web server (starts with 'http').
-    -x "wget --no-cache -q -O /tmp/gpt.gz $1"
-    -x "gunzip -q -f /tmp/gpt.gz"
-    -if /tmp/gpt scorefile=/tmp/gpt
-    -elif /tmp/gpt.gz scorefile=/tmp/gpt.gz
+    -x "wget --no-cache -q -O "$score_basename.gz" $1"
+    -x "gunzip -q -f "$score_basename.gz
+    -if $score_basename score_file=$score_basename
+    -elif $score_basename.gz score_file=$score_basename.gz
     -else -error "Unable to load score file from server. Check your Internet connection."
     -endif
-    -x "mv -f "$scorefile" /tmp/gpt.raw"
+    -x "mv -f "$score_file" "$score_basename.raw
   -else
-    -x "cp -f \"$1\" /tmp/gpt.raw"
+    -x "cp -f \"$1\" "$score_basename.raw
   -endif
-  -rm -type uchar /tmp/gpt.raw,10000 -type float
+  -rm -type uchar $score_basename.raw,10000 -type float
   -autocrop[-1] 0 -s[-1] -,10 -transpose
+  -x "rm -f "$score_basename.raw
 
-  # Parse player informations.
+  # Parse score file.
   nb_players=@#
   -repeat $nb_players -l[0]
     -s -,32
     -if {@#!=4} -error[0--4] "Invalid score file (line "{$>+1}" defines "@#" items instead of 4)." -endif
     -replace_color[0] 0,0,95,32
-    name$>=@{0,t} url$>=@{1,t} file$>=@{2,t} history$>=@{3,t} -rm
-  -endl -done
+    player$>_name=@{0,t} player$>_url=@{1,t} player$>_file=@{2,t} player$>_history=@{3,t}
+  -rm -endl -done
 
-  # Build complete game history and compute statistics.
-  -l[] -repeat $nb_players (${history$>}) -done -a y -endl
+  # Build complete game history.
+  -l[] -repeat $nb_players (${player$>_history}) -done -a y,1 -endl
   nb_sessions={w}
-  max_nb_players={round(iM,1,1)}
-  rank=1
-  rank_increment=1
-  -repeat $nb_sessions --columns[-1] $> max_score$>={iM} -rm[-1] -done              # Count max score for each session.
+  max_score={round(iM,1,1)}
 
-  session_losers=                                                                   # Retrieve last session losers.
+  # Get session statistics.
+  session_nb_players_history=
+  -repeat $nb_sessions --columns[-1] $> -l[-1]
+    -s -,0 -a y
+    session$>_max_score={iM}
+    session$>_min_score={im}
+    session$>_avg_score={ia}
+    session$>_nb_players={h}
+    session_nb_players_history=$session_nb_players_history@{"-if "$>" -u , -else -u \"\" -endif"}${session$>_nb_players}
+  -endl -rm[-1] -done
+
+  # Get last session winners and losers.
+  last_session_losers=
+  last_session_winners=
+  sm=${session{$nb_sessions-1}_min_score}
+  sM=${session{$nb_sessions-1}_max_score}
   --columns[-1] 100% -repeat $nb_players
-    -if {@{-1,$>}==${max_score{$nb_sessions-1}}}
-      -if {narg($session_losers)} session_losers=$session_losers" "${name$>}
-      -else session_losers=${name$>}
-      -endif
+    -if {@{-1,$>}==$sm}   last_session_winners=$last_session_winners@{"-if "$>" -u \" \" -else -u \"\" -endif"}${player$>_name}
+    -elif {@{-1,$>}==$sM} last_session_losers=$last_session_losers@{"-if "$>" -u \" \" -else -u \"\" -endif"}${player$>_name}
     -endif
   -done -rm[-1]
 
+  # Get player scores and statistics.
   -repeat $nb_players -sh[-1] $>,$>,0,0
-    --histogram[-1] $max_nb_players,0,$max_nb_players absences$>=@{-1,0} -rm[-1]    # Count absences.
-    l=0 s=0
-    -repeat $nb_sessions
-      -if {@{-1,$>}==${max_score$>}} l={$l+1} -endif
-      -if {@{-1,$>}==0}
-        s={$s+0.75*${max_score$>}}
-      -else
-        s={$s+@{-1,$>}}
+    --histogram[-1] $nb_players,0,$nb_players player$>_absences=@{-1,0} -rm[-1]
+    w=0 l=0 s=0 ps=0 la=0 -repeat $nb_sessions
+      ps=$s la=@{-1,$>}
+      -if {$la==${session$>_min_score}} w={$w+1}
+      -elif {$la==${session$>_max_score}} l={$l+1}
       -endif
+      -if {$la==0} s={$s+$4*${session$>_nb_players}} -else s={$s+$la} -endif
     -done
-    losts$>=$l score$>=$s
+    player$>_wons=$w
+    player$>_losts=$l
+    player$>_score=$s
+    player$>_previous_score=$ps
+    player$>_last_result=$la
+
+    # Retrieve score history (played games only).
     --l[-1] -s[-1] -,0 -a y
-      -if @# played_history$>=@-1 average_score$>={round(ia,0.01)} is_playing$>=1   # Get history and average score of played games only.
-      -else played_history$>=0 average_score$>=0 is_playing$>=0
+      -if @# player$>_score_history=@-1 player$>_avg_score={round(ia,0.01)} player$>_is_playing=1
+      -else player$>_score_history=0 player$>_avg_score=0 player$>_is_playing=0
       -endif
     -rm -endl
+
+    # Retrieve nb player history (played games only).
+    --l[-1] ($session_nb_players_history) -a y -f if(i(x,0),i,0) -transpose -s -,0
+      -if @# -a y -r 2,{h/2},1,1,-1 -columns 1 player$>_nb_players_history=@-1 -rm
+      -else player$>_nb_players_history=0
+      -endif
+    -endl
+
+    # Retrieve percentage history (played games only).
+    -if ${player$>_is_playing}
+      (${player$>_score_history}) (${player$>_nb_players_history}) --[-2,-1] 1 -/[-2,-1]
+      player$>_percentage_history=@-1 -rm[-1]
+    -else
+      player$>_percentage_history=0
+    -endif
+
+    # Compute performance indice.
+    -if ${player$>_is_playing}
+      (${player$>_score_history}) (${player$>_nb_players_history}) --[-2,-1] 1 -/[-2,-1]
+      player$>_performance={100*(1-ia)} -rm[-1]
+    -else
+      player$>_performance=200
+    -endif
+
   -rm[-1] -done
   -rm[-1]
-  -l[] -repeat $nb_players (${score$>};$>) -done -a x -endl -sort[-1] +,x           # Sort players by increasing score.
-  min_score={i} -lines[-1] 1 -repeat $nb_players position$>=@{-1,$>} -done -rm[-1]  # Get board position of each player.
-  -l[] -repeat $nb_players (${average_score$>};$>) -done -a x -endl -sort[-1] +,x   # Sort players by average position (alt. ranking)
-  -lines[-1] 1 -repeat $nb_players average_position@{-1,$>}=$> -done -rm[-1]
+
+  # Get player ranking according to different measures.
+  -l[] -repeat $nb_players (${player$>_score};$>) -done -a x -endl -sort[-1] +,x min_score={i}                   # Sort by regular score.
+   -lines[-1] 1 -repeat $nb_players player$>_position=@{-1,$>} player@{-1,$>}_current_position=$> -done -rm[-1]  # Get corresponding ranks.
+  -l[] -repeat $nb_players (${player$>_avg_score};$>) -done -a x -endl -sort[-1] +,x                             # Sort by average score.
+  -lines[-1] 1 -repeat $nb_players player@{-1,$>}_avg_position=$> -done -rm[-1]                                  # Get corresponding ranks.
+  -l[] -repeat $nb_players (${player$>_previous_score};$>) -done -a x -endl -sort[-1] +,x min_previous_score={i} # Sort by previous regular score.
+  -lines[-1] 1 -repeat $nb_players player@{-1,$>}_previous_position=$> -done -rm[-1]                             # Get corresponding ranks.
+  -l[] -repeat $nb_players (${player$>_performance};$>) -done -a x -endl -sort[-1] -,x                           # Sort by performance.
+  -lines[-1] 1 -repeat $nb_players player@{-1,$>}_performance_position=$> -done -rm[-1]                          # Get corresponding ranks.
 
   # Load player avatars.
   max_height=0
-  -repeat $nb_players i=${position$>}
-    -if /tmp/${file$i} -else -x "wget --no-cache -q -O /tmp/"${file$i}" "${url$i}${file$i} -endif
-    /tmp/${file$i} -n[-1] 0,255 -to_rgb[-1] -r2dx[-1] $3 max_height={max(h,$max_height)}
+  -repeat $nb_players i=${player$>_position}
+    -if /tmp/${player${i}_file} -else -x "wget --no-cache -q -O /tmp/"${player${i}_file}" "${player${i}_url}${player${i}_file} -endif
+    /tmp/${player${i}_file} -n[-1] 0,255 -to_rgb[-1] -r2dx[-1] $3 max_height={max(h,$max_height)}
   -done
   -- 255 -r 100%,$max_height,1,3,0,0,0,0.5 -+ 255
 
-  # Generate each player board line.
+  # Generate each player board row.
+  rank=1
+  rank_increment=1
+
   -repeat $nb_players -l[$>]
-    i=${position$>}
+    i=${player$>_position}
 
     # Rank.
     _rank=$rank
-    -if {${is_playing$i}}
+    -if {${player${i}_is_playing}}
       1 -text[-1] $rank,0,0,57,1,255,255,255
       -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 45,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
       -if {$>!=$nb_players-1}
-        ni=${position{$>+1}}
-        -if {${score$i}==${score$ni}} rank_increment={$rank_increment+1}
+        ni=${player{$>+1}_position}
+        -if {${player${i}_score}==${player${ni}_score}} rank_increment={$rank_increment+1}
         -else rank={$rank+$rank_increment} rank_increment=1
         -endif
       -endif
@@ -5011,7 +5061,7 @@ gpt : -skip "${1=http://www.greyc.ensicaen.fr/~dtschump/gpt.raw}",${2="GREYC Pok
     width_picture={w}
 
     # Name.
-    1 -text[-1] ${name$i},0,0,57,1,255,255,255
+    1 -text[-1] ${player${i}_name},0,0,57,1,255,255,255
     -r[-1] 100%,100%,1,4
     -sh[-1] 0,2 -*[-1] '(2-c)*0.9*y/h' -rm[-1]
     -drop_shadow[-1] 2,2,1.5
@@ -5021,90 +5071,163 @@ gpt : -skip "${1=http://www.greyc.ensicaen.fr/~dtschump/gpt.raw}",${2="GREYC Pok
     width_name={w}
 
     # Score.
-    1 -text[-1] {${score$i}-$min_score},0,0,57,1,255,255,255
-    -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 100,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
+    1 -text[-1] {round(${player${i}_score}-$min_score,0.25)},0,0,57,1,255,255,255
+    -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 80,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
     width_score={w}
 
-    # Lost games.
-    -if ${is_playing$i}
-      1 -text[-1] ${losts$i}" game"@{"-if "{${losts$i}>1}" -u s -else -u \"\" -endif"}" lost",0,0,57,1,255,255,255
-      -autocrop[-1] 0 -r2dy[-1] 12 -r[-1] 100,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
+    # Won/lost
+    -if ${player${i}_is_playing}
+      1 -text[-1] ${player${i}_wons}/${player${i}_losts},0,0,57,1,255,255,255
+      -autocrop[-1] 0 -r2dy[-1] 12 -r[-1] 60,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
     -else
-      100,$max_height,1,3,255
+      60,$max_height,1,3,255
     -endif
-    width_losts={w}
+    width_won_lost={w}
 
-    # Absences.
-    1 -text[-1] ${absences$i}" absence"@{"-if "{${absences$i}>1}" -u s -else -u \"\" -endif"},0,0,57,1,255,255,255
+    # Player absences.
+    1 -text[-1] ${player${i}_absences}" absence"@{"-if "{${player${i}_absences}>1}" -u s -else -u \"\" -endif"},0,0,57,1,255,255,255
     -autocrop[-1] 0 -r2dy[-1] 10 -r[-1] 100,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
-    width_absences={w}
+    width_player_absences={w}
+
+    # Last session.
+    -if ${player${i}_is_playing}
+      1 -text[-1] @{"-if "{${player${i}_last_result}==0}" -u abs. -else -u "${player${i}_last_result}/${session{$nb_sessions-1}_nb_players}" -endif"},0,0,57,1,255,255,255
+      -autocrop[-1] 0 -r2dy[-1] 10 -r[-1] 60,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
+    -else
+      60,$max_height,1,3,255
+    -endif
+    width_last_result={w}
 
     # Statistics.
-    -if ${is_playing$i}
+    -if ${player${i}_is_playing}
       256,{2*$max_height},1,3,255
-      -grid[-1] {100/$max_nb_players}%,10%,0,0,1,0xCCCCCCCC,64
-      (${played_history$i})
-      --histogram[-1] $max_nb_players,1,$max_nb_players -graph[-3] [-1],3,0,0,0,1,200,200,255         # Histogram bars.
-      (${average_score$i}) -graph[-4] [-1],2,0,0.5,{$max_nb_players+0.5},1,164,0,0 -rm[-1]            # Average score.
-      --columns[-2] 0,{min(9,@{-2,w}-1)} -graph[-4] [-1],2,4,0.5,{$max_nb_players+0.5},1,0 -rm[-3,-1] # Rank of last 10 sessions.
-      (${absences$i}) -a[-2,-1] x -_gpt_piechart[-1] -r2dy[-1] {2*$max_height}                        # Histogram pie-chart.
+      -grid[-1] {100/$max_score}%,10%,0,0,1,0xCCCCCCCC,64
+
+      (${player${i}_score_history}) # Histogram of positions.
+      -histogram[-1] $max_score,1,$max_score
+      -graph[-2] [-1],3,0,0,0,1,200,200,255 -rm[-1]
+
+      (${player${i}_avg_score}) # Average player score.
+      -graph[-2] [-1],2,0,0.5,{$max_score+0.5},1,164,0,0 -rm[-1]
+
+      (${player${i}_score_history}) # History of player scores.
+      -columns[-1] {max(0,w-15)},{w-1}
+      -graph[-2] [-1],2,4,0.5,{$max_score+0.5},1,134,134,134 -rm[-1]
+
+      (${player${i}_percentage_history}) # History of player percentages.
+      -columns[-1] {max(0,w-15)},{w-1}
+      -graph[-2] [-1],2,4,-0.1,1.1,1,0,0,0 -rm[-1]
+
+      (${player${i}_score_history}) # Histogram pie-chart.
+      -histogram[-1] $max_score,1,$max_score (${player${i}_absences})
+      -a[-2,-1] x -_gpt_piechart[-1] -r2dy[-1] {2*$max_height}
       -a[-2,-1] x -frame[-1] 1,1,0 -frame[-1] 6,6,255 -r2dy[-1] $max_height -c[-1] 0,255
     -else
-      179,$max_height,1,3,255
+      {if(narg($width_stats),0$width_stats,179)},$max_height,1,3,255
     -endif
     width_stats={w}
 
-    # Average.
-    -if ${is_playing$i}
-      1 -text[-1] ${average_score$i}" "(${average_position$i}),0,0,57,1,255,255,255
-      -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 100,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
+    # Trend.
+    -if ${player${i}_is_playing}
+      delta_position={${player${i}_current_position}-${player${i}_previous_position}}
+      -if {$delta_position==0}
+        -if $>
+          pi=${player{$>-1}_position}
+          delta_score={round((${player${i}_score}-${player${pi}_score})-(${player${i}_previous_score}-${player${pi}_previous_score}),1,-1)}
+        -else
+          delta_score=0
+        -endif
+        -if {$delta_score>0}
+          -_gpt_arrow {2*$max_height},-22 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 0.9,0.7,0.7
+        -elif {$delta_score<0}
+          -_gpt_arrow {2*$max_height},22 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 0.7,0.9,0.8
+        -else
+          -_gpt_arrow {2*$max_height},0 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 0.9,0.9,0.9
+        -endif
+
+      -elif {$delta_position<0}
+        -_gpt_arrow {2*$max_height},45 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 0.1,0.8,0.2
+      -else
+        -_gpt_arrow {2*$max_height},-45 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 1,0.1,0.1
+      -endif
+      -frame[-1] 15,15,255 -drop_shadow[-1] 6,6,3 -i[-2] {w},{h},1,3,255 -compose_rgba[-2,-1]
+      -if {$delta_position>0}
+        -text[-1] "+"$delta_position,3,{h-60},57,0.8,0
+      -elif {$delta_position<0}
+        -text[-1] $delta_position,3,3,57,0.8,0
+      -endif
+      -r2dy[-1] $max_height
+      -- 255 -r[-1] 70,$max_height,1,3,0,0,0.5,0.5 -+ 255
     -else
-      100,$max_height,1,3,255
+      70,$max_height,1,3,255
+    -endif
+    width_tendency={w}
+
+    # Performance.
+    -if ${player${i}_is_playing}
+      1 -text[-1] {round(${player${i}_performance})}%" "(${player${i}_performance_position}),0,0,57,1,255,255,255
+      -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 90,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
+    -else
+      90,$max_height,1,3,255
+    -endif
+    width_performance={w}
+
+    # Average position/percentage and corresponding ranking.
+    -if ${player${i}_is_playing}
+      1 -text[-1] ${player${i}_avg_score}" "(${player${i}_avg_position}),0,0,57,1,255,255,255
+      -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 90,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
+    -else
+      90,$max_height,1,3,255
     -endif
     width_avg_score={w}
 
     # Arrange fields of the same row together.
-    -if {!${is_playing$i}} -f[^1] "i*(0.7+0.3*(((x+y)%8)!=0))"
-    -elif {$_rank==1} -_gpt_shade[0,2-5] 1,0.95,0.6
-    -elif {$_rank==2} -_gpt_shade[0,2-5] 0.87,0.87,0.87
-    -elif {$_rank==3} -_gpt_shade[0,2-5] 0.91,0.82,0.77
-    -elif {$>=={$nb_players-1}" && "$nb_players>3} -_gpt_shade[0,2-5] 1,0.6,0.6
-    -elif {$>=={$nb_players-2}" && "$nb_players>4} -_gpt_shade[0,2-5] 1,0.8,0.8
+    -if {!${player${i}_is_playing}} -f[^1] "i*(0.7+0.3*(((x+y)%8)!=0))"
+    -elif {$_rank==1} -_gpt_shade[0,2-6,8] 1,0.95,0.6
+    -elif {$_rank==2} -_gpt_shade[0,2-6,8] 0.87,0.87,0.87
+    -elif {$_rank==3} -_gpt_shade[0,2-6,8] 0.91,0.82,0.77
+    -elif {$>=={$nb_players-1}" && "$nb_players>3} -_gpt_shade[0,2-6,8] 1,0.6,0.6
+    -elif {$>=={$nb_players-2}" && "$nb_players>4} -_gpt_shade[0,2-6,8] 1,0.8,0.8
     -endif
-    -if {${average_position$i}==1} -_gpt_shade[7] 1,0.95,0.6
-    -elif {${average_position$i}==2} -_gpt_shade[7] 0.87,0.87,0.87
-    -elif {${average_position$i}==3} -_gpt_shade[7] 0.91,0.82,0.77
-    -elif {${average_position$i}=={$nb_players-1}" && "$nb_players>3} -_gpt_shade[7] 1,0.6,0.6
-    -elif {${average_position$i}=={$nb_players-2}" && "$nb_players>4} -_gpt_shade[7] 1,0.8,0.8
+    -if {${player${i}_performance_position}==1} -_gpt_shade[9] 1,0.95,0.6
+    -elif {${player${i}_performance_position}==2} -_gpt_shade[9] 0.87,0.87,0.87
+    -elif {${player${i}_performance_position}==3} -_gpt_shade[9] 0.91,0.82,0.77
+    -elif {${player${i}_performance_position}=={$nb_players-1}" && "$nb_players>3} -_gpt_shade[9] 1,0.6,0.6
+    -elif {${player${i}_performance_position}=={$nb_players-2}" && "$nb_players>4} -_gpt_shade[9] 1,0.8,0.8
+    -endif
+    -if {${player${i}_avg_position}==1} -_gpt_shade[10] 1,0.95,0.6
+    -elif {${player${i}_avg_position}==2} -_gpt_shade[10] 0.87,0.87,0.87
+    -elif {${player${i}_avg_position}==3} -_gpt_shade[10] 0.91,0.82,0.77
+    -elif {${player${i}_avg_position}=={$nb_players-1}" && "$nb_players>3} -_gpt_shade[10] 1,0.6,0.6
+    -elif {${player${i}_avg_position}=={$nb_players-2}" && "$nb_players>4} -_gpt_shade[10] 1,0.8,0.8
     -endif
     -frame 1,1,0 -a x
 
   -endl -done
 
   # Generate table title.
-  1 -text[-1] "** "$2" ** Session \#"$nb_sessions,0,0,57,1,255 -dilate[-1] 3
+  1 -text[-1] "** "$2" ** Session \#"$nb_sessions,0,0,57,1,255 -dilate[-1] 2
   -r[-1] 100%,100%,1,4 -sh[-1] 0,1 -*[-1] 0.8 -rm[-1] -drop_shadow[-1] 5,5,3
   -i[-2] 1,3,1,3,32,0,64,32,64,128,64,200,256 -r[-2] {w},{h},1,3,5 -compose_rgba[-2,-1]
   -r2dy[-1] 32 -r[-1] {@{0,w}-2},64,1,3,0,1,0.5,0.5 -frame[-1] 1,1,0
   -mv[-1] 0
 
-  # Generate row for session losers.
-  -text2img $session_losers," "
-  nb_session_losers={h}
-  -l[-1] -repeat $nb_session_losers
-    -sh[0] 0,{@{0,w}-1},$>,0,0 loser=@{-1,t} -rm[-1]
-    -repeat $nb_players # Find loser's pictures.
-      -if {@{"-strcmp "\"$loser\",\"${name$>}\"}}
-        /tmp/${file$>} -r2dy[-1] 96
-      -endif
+  # Generate row for session winners.
+  -text2img $last_session_winners," "
+  nb_session_winners={h}
+  -l[-1] -repeat $nb_session_winners
+    -sh[0] 0,{@{0,w}-1},$>,0,0 winner=@{-1,t} -rm[-1]
+    -repeat $nb_players # Find winner's pictures.
+      -if {@{"-strcmp "\"$winner\",\"${player$>_name}\"}} /tmp/${player$>_file} -r2dy[-1] 96 -endif
     -done
   -done
   -rm[0] -frame 1,1,0 -a x -endl
-  1 -text[-1] "Session loser"@{"-if "{$nb_session_losers>1}" -u s -else -u \"\" -endif"}" : "$session_losers,0,0,57,1,255
+  1 -text[-1] "Session winner"@{"-if "{$nb_session_winners>1}" -u s -else -u \"\" -endif"}" : "$last_session_winners,0,0,57,1,255
   -r[-1] 100%,100%,1,4 -drop_shadow[-1] 5,5,3
-  -i[-2] 1,2,1,3,48,128,0,96,48,200 -r[-2] {w},{h},1,3,3 -compose_rgba[-2,-1]
-  -r2dy[-1] 32 -r[-1] {@{0,w}-2},@{-2,h},1,3,0,1,0.1,0.5 -frame[-1] 1,1,0
-  -image[-1] [-2],{w-@{-2,w}},0 -rm[-2]
+  -i[-2] 1,2,1,3,0,48,128,200,96,48 -r[-2] {w},{h},1,3,3 -compose_rgba[-2,-1] -r2dy[-1] 32
+  -r[-1] {@{0,w}-2},{@{-2,h}-2},1,3,0,1,0.1,0.5
+  -image[-1] [-2],{w+1-@{-2,w}},-1 -rm[-2]
+  -frame[-1] 1,1,0
   -mv[-1] 1
 
   # Generate first board row.
@@ -5113,11 +5236,31 @@ gpt : -skip "${1=http://www.greyc.ensicaen.fr/~dtschump/gpt.raw}",${2="GREYC Pok
   $width_picture,$max_height,1,3,255
   1 -text[-1] "Player",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_name,$max_height,1,3,0,0,0.5,0.5
   1 -text[-1] "Score",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_score,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Lost games",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_losts,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Absences",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_absences,$max_height,1,3,0,0,0.5,0.5
+  1 -text[-1] "Won/\nLost",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 25 -r[-1] $width_won_lost,$max_height,1,3,0,0,0.5,0.5
+  1 -text[-1] "Absences",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_player_absences,$max_height,1,3,0,0,0.5,0.5
+  1 -text[-1] "Last\nsession",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 30 -r[-1] $width_last_result,$max_height,1,3,0,0,0.5,0.5
   1 -text[-1] "Statistics",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_stats,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Avg. (rank)",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_avg_score,$max_height,1,3,0,0,0.5,0.5
+  1 -text[-1] "Trend",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_tendency,$max_height,1,3,0,0,0.5,0.5
+  1 -text[-1] "Performance\n  (rank)",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 30 -r[-1] $width_performance,$max_height,1,3,0,0,0.5,0.5
+  1 -text[-1] "Average\n (rank)",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 30 -r[-1] $width_avg_score,$max_height,1,3,0,0,0.5,0.5
   -negative[^1] -frame 1,1,0 -a x -*[-1] 0.9 -endl -mv[-1] 2
+
+  # Generate row for session losers.
+  -text2img $last_session_losers," "
+  nb_session_losers={h}
+  -l[-1] -repeat $nb_session_losers
+    -sh[0] 0,{@{0,w}-1},$>,0,0 loser=@{-1,t} -rm[-1]
+    -repeat $nb_players # Find loser's pictures.
+      -if {@{"-strcmp "\"$loser\",\"${player$>_name}\"}} /tmp/${player$>_file} -r2dy[-1] 96 -endif
+    -done
+  -done
+  -rm[0] -frame 1,1,0 -a x -endl
+  1 -text[-1] "Session loser"@{"-if "{$nb_session_losers>1}" -u s -else -u \"\" -endif"}" : "$last_session_losers,0,0,57,1,255
+  -r[-1] 100%,100%,1,4 -drop_shadow[-1] 5,5,3
+  -i[-2] 1,2,1,3,200,128,48,0,48,96 -r[-2] {w},{h},1,3,3 -compose_rgba[-2,-1] -r2dy[-1] 32
+  -r[-1] {@{0,w}-2},{@{-2,h}-2},1,3,0,1,0.1,0.5
+  -image[-1] [-2],{w+1-@{-2,w}},-1 -rm[-2]
+  -frame[-1] 1,1,0
 
   # Finalize rendering and return.
   -a y 100%,100%,1,1,255 -a c -drop_shadow 6,6,4 -i[-2] {w},{h},1,3,255 -compose_rgba[-2,-1]
@@ -5161,6 +5304,10 @@ _gpt_piechart :
     -endif
     -shift[-2] 0,-1
   -done -rm[-3,-2] -frame[-1] 1,1,0
+
+_gpt_arrow :
+  -cone3d 1.5,2 -rot3d[-1] 0,1,0,90 -box3d 4,1,0 -+3d[-1] 0,-0.5 -+3d[-2,-1] -rot3d[-1] 0,0,1,{180+$2} -c3d[-1] -col3d[-1] 255,255,255 -*3d[-1] {$1/7}
+  $1,$1 -m3d 2 -object3d[-1] [-2],50%,50%,0 -rm[-2]
 
 #--------------------------
 #
@@ -5609,7 +5756,7 @@ gimp_logo_ca :
 #@gimp : - <b>2009/01/13</b> : version <i>1.3</i> (Initial).\n
 #@gimp : - <b>2010/09/03</b> : version <i>1.4</i>.\n
 #@gimp : - <b>2010/12/17</b> : version <i>1.4.7</i>.\n
-#@gimp : - <span foreground="purple"><b>2011/02/02</b> : version <i>1.4.8.0</i> (Latest stable).</span>\n
+#@gimp : - <span foreground="purple"><b>2011/02/11</b> : version <i>1.4.8.1</i> (Latest stable).</span>\n
 #@gimp : "}
 
 #@gimp Contributors : _none_, _none_
@@ -5637,25 +5784,26 @@ gimp_logo_ca :
 
 #@gimp Friends Hall of Fame : _none_, gimp_friends
 #@gimp : note = note{"\n<span foreground="purple" underline="single">Donators :</span>"}
-#@gimp : note = note{" <b>-</b> We've received <b>1</b> donation from <b>G'MIC</b> mega-enthusiasts so far.
+#@gimp : note = note{" <b>-</b> We've received <b>2</b> donations from <b>G'MIC</b> mega-enthusiasts so far.
 #@gimp :               You could be the 2nd donator :)"}
 #@gimp : note = note{" <b>-</b> A big hug goes to these folks (recently received first) :"}
 #@gimp : link = link(0,"[1] Flavio Casadei Della Chiesa","http://www.flaviocdc.net/wiki/")
 #@gimp : link = link(0,"[2] Lyle Kroll","http://www.artwanted.com/artist.cfm?artid=10918")
 #@gimp : sep = separator()
 #@gimp : note = note{"\n<span foreground="purple" underline="single">Postcard senders :</span>"}
-#@gimp : note = note{" <b>-</b> We've received <b>9</b> postcards from <b>G'MIC</b> enthusiasts so far.
-#@gimp :               You could be the 10th sender :)"}
+#@gimp : note = note{" <b>-</b> We've received <b>10</b> postcards from <b>G'MIC</b> enthusiasts so far.
+#@gimp :               You could be the 11th sender :)"}
 #@gimp : note = note{" <b>-</b> A big hug goes to these folks (recently received first) :"}
-#@gimp : link = link(0,"[1] Mahvin - Portland/USA","http://cimg.sourceforge.net/img/postcard27.jpg")
-#@gimp : link = link(0,"[2] Vincent Roullier - Caen/France","http://cimg.sourceforge.net/img/postcard26.jpg")
-#@gimp : link = link(0,"[3] M???? - Munich/Germany","http://cimg.sourceforge.net/img/postcard24.jpg")
-#@gimp : link = link(0,"[4] F. Albior - Jaca/Spain","http://cimg.sourceforge.net/img/postcard23.jpg")
-#@gimp : link = link(0,"[5] PhotoComIX - Frascati/Italy","http://cimg.sourceforge.net/img/postcard22.jpg")
-#@gimp : link = link(0,"[6] Guy Poizat - Cabestany/France","http://cimg.sourceforge.net/img/postcard21.jpg")
-#@gimp : link = link(0,"[7] Institut for Biomathematik und Biometrie - Neuherberg/Germany","http://cimg.sourceforge.net/img/postcard20.jpg")
-#@gimp : link = link(0,"[8] Jaime - Barcelona/Spain","http://cimg.sourceforge.net/img/postcard14.jpg")
-#@gimp : link = link(0,"[9] Jean-Michel Webbe - Guadeloupe/France","http://cimg.sourceforge.net/img/postcard15.jpg")
+#@gimp : link = link(0,"[1] Corinne Masimann - Neuchatel/Switzerland","http://cimg.sourceforge.net/img/postcard29.jpg")
+#@gimp : link = link(0,"[2] Mahvin - Portland/USA","http://cimg.sourceforge.net/img/postcard27.jpg")
+#@gimp : link = link(0,"[3] Vincent Roullier - Caen/France","http://cimg.sourceforge.net/img/postcard26.jpg")
+#@gimp : link = link(0,"[4] M???? - Munich/Germany","http://cimg.sourceforge.net/img/postcard24.jpg")
+#@gimp : link = link(0,"[5] F. Albior - Jaca/Spain","http://cimg.sourceforge.net/img/postcard23.jpg")
+#@gimp : link = link(0,"[6] PhotoComIX - Frascati/Italy","http://cimg.sourceforge.net/img/postcard22.jpg")
+#@gimp : link = link(0,"[7] Guy Poizat - Cabestany/France","http://cimg.sourceforge.net/img/postcard21.jpg")
+#@gimp : link = link(0,"[8] Institut for Biomathematik und Biometrie - Neuherberg/Germany","http://cimg.sourceforge.net/img/postcard20.jpg")
+#@gimp : link = link(0,"[9] Jaime - Barcelona/Spain","http://cimg.sourceforge.net/img/postcard14.jpg")
+#@gimp : link = link(0,"[10] Jean-Michel Webbe - Guadeloupe/France","http://cimg.sourceforge.net/img/postcard15.jpg")
 
 #@gimp : sep = separator()
 #@gimp : note = note{"\nMay the force be with you !"}
@@ -6457,6 +6605,139 @@ gimp_photoillustration :
 gimp_photoillustration_preview :
   -gimp_split_preview "-gimp_photoillustration ${1--2}",$-1
 
+#***********************************************
+#Watercolor effect filter Version 1.0 02.07.2011
+#***********************************************
+
+#@gimp Watercolor effect: gimp_watercolor, gimp_watercolor_preview(1)
+
+#@gimp : sep = separator(), note = note("General settings:")
+#@gimp : Color intensity = float(1.8,0,4)
+#@gimp : Light colors = float(0.1,0,1)
+#@gimp : Dark colors = float(1,0,10)
+#@gimp : sep = separator(), note = note("Line art settings:")
+#@gimp : Line art details = float (80,50,100)
+#@gimp : Line art smoothness = float(0,0,10)
+#@gimp : Line art strength = float(0.5,0,1)
+#@gimp : Line art style = choice("pencil","ink")
+#@gimp : Line art fade = float(0,0,100)
+#@gimp : sep = separator(), note = note("Color brushes settings:")
+#@gimp : Brush style = choice("modern","classic","abstract","line")
+#@gimp : Cyan brush size = float(2,0,50)
+#@gimp : Cyan stroke strength = float(0,-5,5)
+#@gimp : Cyan edge distance = float(2,0,10)
+#@gimp : Cyan abstraction = float(4,0,10)
+#@gimp : Magenta brush size = float(2,0,50)
+#@gimp : Magenta stroke strength = float(0,-5,5)
+#@gimp : Magenta edge distance = float(3,0,10)
+#@gimp : Magenta abstraction = float(3,0,10)
+#@gimp : Yellow brush size = float(2,0,50)
+#@gimp : Yellow stroke strength = float(0,-5,5)
+#@gimp : Yellow edge distance = float(4,0,10)
+#@gimp : Yellow abstraction = float(2,0,10)
+#@gimp : sep = separator(), note = note("Paper and ambience settings:")
+#@gimp : Paper color black = bool(0)
+#@gimp : Add paper texture = bool(0)
+#@gimp : Invert colors = bool(0)
+#@gimp : Ambient light = float(0,-50,50)
+#@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
+#@gimp : sep = separator(), note = note("Author : Tom Keil / Last update : 2011/02/07")
+#@gimp : note = link("Filter explained here","http://vimeo.com/19713850")
+gimp_watercolor :
+  -repeat @# -l[$>]
+
+  #secure details:
+  -if {$7==0} --gimp_gradient_norm $5,0.5,{99.99-$4},$4,1,0
+  -else --gimp_edges {$5/3.5},{95-$4},0,0  -endif
+  -gimp_frame_round[1] 5,$8,15,0,255,255,255,255,0,0.1,3
+
+  #image preparation:
+  -gimp_anisotropic_smoothing[0]
+  60,0.16,{{20/50}+0.6},{{20/9}+0.6},2.35,0.8,30,2,0,1,1,0,1
+  --gimp_do_nothing[0] --negative[0] -move[1] 4
+  -gimp_gaussian_blur[2] {{w+h}/100},0,0,1,0,0,0
+
+  -gimp_compose_dodge[1,2] 1
+
+  -gimp_mix_lab[0] 1,0,0,$1,0,0,$1,0,0,0,2,0
+
+  -reverse[0,1]
+  -gimp_compose_colorburn[0,1] $2
+
+  --luminance[0] -reverse[1,2]
+  -gimp_channel_processing[1] 1,1,0,0,4,{$3*5},100,256,0,0,0,2,0,0
+  -gimp_gaussian_blur[1] $3,0,0,1,0,0,0
+  -gimp_channel_processing[1] 1,1,0,0,4,0,99,256,0,1,0,2,0,0
+  -gimp_replace_color[1] 1,0,255,255,255,255,0,0,0,0
+  -gimp_spread[1] {$3*2},{$3*2},0,0
+  -gimp_gaussian_blur[1] {{w+h}/1000},0,0,1,0,0,0
+  -reverse[0,1] -gimp_compose_multiply[0,1] 1
+
+  #channel and mask creation:
+  -split[0] c
+  -if {$9==0} --negative[0] --negative[1] --negative[2]
+  -elif {$9==1} --fill_color[0] 255,255,255 --fill_color[0] 255,255,255
+  --fill_color[0] 255,255,255
+  -elif {$9==2} --fill_color[0] 255,255,255 --fill_color[0] 255,255,255
+  --fill_color[0] 255,255,255
+  -elif {$9==3} --gimp_edges[0] {$10/5},{$13*5},1,0
+  --gimp_edges[1] {$14/5},{$17*5},1,0 --gimp_edges[2] {$18/5},{$21*5},1,0
+  -endif
+
+  #channel and mask processing:
+  -gimp_channel_processing[0] 1,{{$11/5}+1},{$11/50},0,0,0,100,256,0,0,0,2,0,0
+  -if {$9!=2}
+  -gimp_gaussian_blur[0] $10,0,0,1,0,0,0
+  -else -cubism[0] 300,$13,{$13*20},0.7,0 -endif
+  -if {$9==0}
+  -gimp_channel_processing[-3] 1,{{$11/5}+1},{$11/50},0,0,0,100,256,0,0,0,2,0,0
+  -cubism[-3] 300,$13,{$13*20},0.7,0 -endif
+  -gimp_frame_fuzzy[-3] {$12*5},{$12*5},40,1,0,0,0,255
+
+  -gimp_channel_processing[1] 1,{{$15/5}+1},{$15/50},0,0,0,100,256,0,0,0,2,0,0
+  -if {$9!=2}
+  -gimp_gaussian_blur[1] $14,0,0,1,0,0,0
+  -else -cubism[1] 300,$17,{$17*20},0.7,0 -endif
+  -if {$9==0}
+  -gimp_channel_processing[-2] 1,{{$15/5}+1},{$15/50},0,0,0,100,256,0,0,0,2,0,0
+  -cubism[-2] 300,$17,{$17*20},0.7,0 -endif
+  -gimp_frame_fuzzy[-2] {$16*5},{$16*5},40,1,0,0,0,255
+
+  -gimp_channel_processing[2] 1,{{$19/5}+1},{$19/50},0,0,0,100,256,0,0,0,2,0,0
+  -if {$9!=2}
+  -gimp_gaussian_blur[2] $18,0,0,1,0,0,0
+  -else -cubism[2] 300,$21,{$21*20},0.7,0 -endif
+  -if {$9==0}
+  -gimp_channel_processing[-1] 1,{{$19/5}+1},{$19/50},0,0,0,100,256,0,0,0,2,0,0
+  -cubism[-1] 300,$21,{$21*20},0.7,0 -endif
+  -gimp_frame_fuzzy[-1] {$20*5},{$20*5},40,1,0,0,0,255
+
+  -to_gray[-1] -to_gray[-2] -to_gray[-3] -to_rgba[0] -to_rgba[1] -to_rgba[2]
+
+  #recombine image:
+  -split[0] c -reverse[3,-3] -compose_multiply[3,-3] -append[0,1,2,3] c
+  -split[1] c -reverse[4,-2] -compose_multiply[4,-2] -append[1,2,3,4] c
+  -split[2] c -reverse[5,-1] -compose_multiply[5,-1] -append[2,3,4,5] c
+  -if {$22==0} --fill_color[0] 255,255,255 -else --fill_color[0] 0 -endif
+
+  -reverse[0,-1]  -compose_rgba[0,-1]
+  -if {$22==0} --fill_color[1] 255,255,255 -else --fill_color[1] 0 -endif
+
+  -reverse[1,-1] -compose_rgba[1,-1]
+  -if {$22==0} --fill_color[2] 255,255,255 -else --fill_color[2] 0 -endif
+
+  -reverse[2,-1] -compose_rgba[2,-1]
+  -to_gray[0] -to_gray[1] -to_gray[2] -append[0,1,2] c
+
+  -if {$23==1} -gimp_paper 0,0 -endif
+  -if {$24==1} -negative[0] -endif
+  -gimp_mix_lab 1,$25,0,1,0,0,1,0,0,0,2,0
+
+  -reverse[0,1] -gimp_compose_multiply[0,1] $6
+  -endl -done
+
+gimp_watercolor_preview :
+  -gimp_split_preview "-gimp_watercolor ${1--2}",$-1
 
 #@gimp _<b>Colors</b>
 #---------------------
@@ -8093,7 +8374,7 @@ gimp_stripes_y :
 gimp_stripes_y_preview :
   -gimp_split_preview "-gimp_stripes_y ${1--2}",$-1
 
-#@gimp Visible watermak : gimp_watermark_visible, gimp_watermark_visible(0)
+#@gimp Visible watermark : gimp_watermark_visible, gimp_watermark_visible(0)
 #@gimp : Text = text("\251 G'MIC")
 #@gimp : Opacity = float(0.4,0.1,0.9)
 #@gimp : Size = int(57,13,128)
@@ -8508,9 +8789,15 @@ gimp_upscale_smart_preview :
 #@gimp : Map Tones = float(0,0,1)
 #@gimp : Recover Shadows = float(0,0,1)
 #@gimp : Recover Highlights = float(0,0,1)
+#@gimp : Enhance Details = float (1,0,5)
+#@gimp : Detail Strength = float (0.5,0,1)
+#@gimp : Map Tones = bool(1)
+#@gimp : Enhance Details = bool(1)
 #@gimp : sep = separator(), Preview type = choice("Full","Forward horizontal","Forward vertical","Backward horizontal","Backward vertical")
-#@gimp : sep = separator(), note = note("<small>Author : <i>Tom Keil</i>.      Last update : <i>2010/12/29</i>.</small>")
+#@gimp : sep = separator(), note = note("Author : Tom Keil / Last update : 2011/01/05")
 gimp_dri :
+  -repeat @# -l[$>]
+  -if {$6==1}
   --negative --to_rgba[0] --luminance[0] --to_rgba[0] --luminance[0]
   -gimp_gaussian_blur[1] {{{w+h}/20}*{1.1-$1}},0,0,1,0,0,0 -to_gray[1]
   -rv[0,1] -gimp_compose_softlight[0,1] $1
@@ -8519,7 +8806,12 @@ gimp_dri :
   -gimp_compose_dodge[0,1] $2
   -gimp_gaussian_blur[2] {{w+h}/200},0,0,1,1,0,0 -to_gray[2] -s[1] c
   -rv[4,5] -compose_multiply[4,5] -a[1,2,3,4] c -rv[0,1]
-  -gimp_compose_colorburn[0,1] $3
+  -gimp_compose_colorburn[0,1] $3 -endif
+  -if {$7==1} --map_tones[0] 0.50,0.70,$4,50
+  --normalize_local[0] $4,6.00,5.00,1.00
+  -rv[0,1] -gimp_compose_value[0,1] $5
+  -rv[0,1] -gimp_compose_value[0,1] $5 -endif
+  -endl -done
 
 gimp_dri_preview :
   -gimp_split_preview "-gimp_dri ${1--2}",$-1
@@ -10234,3 +10526,4 @@ gimp_unsharp16_preview :
 # End:
 #
 # (End of G'MIC custom commands)
+

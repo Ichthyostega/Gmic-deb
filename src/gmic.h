@@ -47,7 +47,7 @@
 
 #include <locale>
 #ifndef gmic_version
-#define gmic_version 1480
+#define gmic_version 1481
 
 // Define environment variables.
 #ifndef cimg_verbosity
