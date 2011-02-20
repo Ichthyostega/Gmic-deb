@@ -1,3 +1,10 @@
+gmic (1.4.8.1+dfsg-2) unstable; urgency=low
+
+  * [24dc0e58] Add patch to fix FTBFS on various architectures.
+    Thanks to Hector Oron (Closes: #614273)
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 20 Feb 2011 22:52:04 +0100
+
 gmic (1.4.8.1+dfsg-1) unstable; urgency=low
 
   * [fab6cc4d] Merge commit 'upstream/1.4.8.1+dfsg'
