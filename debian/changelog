@@ -1,3 +1,14 @@
+gmic (1.5.0.0+dfsg-1) unstable; urgency=low
+
+  * [20fc4583] Merge commit 'upstream/1.5.0.0+dfsg'
+  * [ec62b62d] Dropping patch for configure fixes, not necessary anymore.
+  * [87daddc5] Refreshing patches.
+  * [833f51b5] Remove lib*magick++*-dev build-deps, not needed anymore.
+  * [7592f26e] Add libopenexr-dev as build-dependency.
+  * [5a8d6059] Don't try to install upstream's changelog, not shipped anymore.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Tue, 26 Jul 2011 15:17:46 +0200
+
 gmic (1.4.8.1+dfsg-2) unstable; urgency=low
 
   * [24dc0e58] Add patch to fix FTBFS on various architectures.
