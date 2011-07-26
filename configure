@@ -2316,7 +2316,7 @@ fi
 
 
 PACKAGE=gmic
-VERSION=1
+VERSION=1.5
 
 am__api_version='1.11'
 
@@ -4432,58 +4432,13 @@ $as_echo "yes" >&6; }
 fi
 
 # Checks for mandatory libraries.
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for InitializeMagick in -lMagick++" >&5
-$as_echo_n "checking for InitializeMagick in -lMagick++... " >&6; }
-if test "${ac_cv_lib_Magickpp_InitializeMagick+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lMagick++  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char InitializeMagick ();
-int
-main ()
-{
-return InitializeMagick ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_Magickpp_InitializeMagick=yes
-else
-  ac_cv_lib_Magickpp_InitializeMagick=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_Magickpp_InitializeMagick" >&5
-$as_echo "$ac_cv_lib_Magickpp_InitializeMagick" >&6; }
-if test "x$ac_cv_lib_Magickpp_InitializeMagick" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBMAGICK__ 1
-_ACEOF
-
-  LIBS="-lMagick++ $LIBS"
-
-else
-
-    echo "***"
-    echo "** Fatal Error : Header or library files for 'libMagick++' are missing but are mandatory to compile G'MIC. **"
-    echo "***"
-    exit -1
-
-fi
+#AC_CHECK_LIB([Magick++], [InitializeMagick],,
+#[
+#    echo "***"
+#    echo "** Fatal Error : Header or library files for 'libMagick++' are missing but are mandatory to compile G'MIC. **"
+#    echo "***"
+#    exit -1
+#])
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lXext" >&5
 $as_echo_n "checking for main in -lXext... " >&6; }
@@ -4807,52 +4762,13 @@ else
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lnsl" >&5
-$as_echo_n "checking for main in -lnsl... " >&6; }
-if test "${ac_cv_lib_nsl_main+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lnsl  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_nsl_main=yes
-else
-  ac_cv_lib_nsl_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_nsl_main" >&5
-$as_echo "$ac_cv_lib_nsl_main" >&6; }
-if test "x$ac_cv_lib_nsl_main" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBNSL 1
-_ACEOF
-
-  LIBS="-lnsl $LIBS"
-
-else
-
-    echo "***"
-    echo "** Fatal Error : Header or library files for 'libnsl' are missing but are mandatory to compile G'MIC. **"
-    echo "***"
-    exit -1
-
-fi
-
+#AC_CHECK_LIB([nsl], [main],,
+#[
+#    echo "***"
+#    echo "** Fatal Error : Header or library files for 'libnsl' are missing but are mandatory to compile G'MIC. **"
+#    echo "***"
+#    exit -1
+#])
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lpng" >&5
 $as_echo_n "checking for main in -lpng... " >&6; }
 if test "${ac_cv_lib_png_main+set}" = set; then :
@@ -5129,58 +5045,13 @@ else
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for InitializeMagick in -lGraphicsMagick++" >&5
-$as_echo_n "checking for InitializeMagick in -lGraphicsMagick++... " >&6; }
-if test "${ac_cv_lib_GraphicsMagickpp_InitializeMagick+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lGraphicsMagick++  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char InitializeMagick ();
-int
-main ()
-{
-return InitializeMagick ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_GraphicsMagickpp_InitializeMagick=yes
-else
-  ac_cv_lib_GraphicsMagickpp_InitializeMagick=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_GraphicsMagickpp_InitializeMagick" >&5
-$as_echo "$ac_cv_lib_GraphicsMagickpp_InitializeMagick" >&6; }
-if test "x$ac_cv_lib_GraphicsMagickpp_InitializeMagick" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBGRAPHICSMAGICK__ 1
-_ACEOF
-
-  LIBS="-lGraphicsMagick++ $LIBS"
-
-else
-
-    echo "***"
-    echo "** Fatal Error : Header or library files for 'GraphicsMagick++' are missing but are mandatory to compile G'MIC. **"
-    echo "***"
-    exit -1
-
-fi
-
+#AC_CHECK_LIB([GraphicsMagick++], [InitializeMagick],,
+#[
+#    echo "***"
+#    echo "** Fatal Error : Header or library files for 'GraphicsMagick++' are missing but are mandatory to compile G'MIC. **"
+#    echo "***"
+#    exit -1
+#])
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ImfInputReadPixels in -lIlmImf" >&5
 $as_echo_n "checking for ImfInputReadPixels in -lIlmImf... " >&6; }
 if test "${ac_cv_lib_IlmImf_ImfInputReadPixels+set}" = set; then :
