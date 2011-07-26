@@ -5,8 +5,8 @@ Maintainer: Bernd Zeimetz <bzed@debian.org>
 Uploaders: Jakub Wilk <jwilk@debian.org>
 Build-Depends: debhelper (>= 7.0.50),
  libgimp2.0-dev (>= 2.4),
- libavcodec-dev, libavformat-dev, libswscale-dev, libgraphicsmagick++-dev,
- libx11-dev, libxrandr-dev, libmagick++-dev, libfftw3-dev | fftw3-dev,
+ libavcodec-dev, libavformat-dev, libswscale-dev,
+ libx11-dev, libxrandr-dev, libfftw3-dev | fftw3-dev,
  libcv-dev, libhighgui-dev
 Standards-Version: 3.8.4
 Homepage: http://gmic.sourceforge.net/
