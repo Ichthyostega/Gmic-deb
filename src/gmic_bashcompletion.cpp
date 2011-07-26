@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   // Go directly to the command reference section.
   char line[65536] = { 0 };
   while (std::fscanf(stdin," %[^\n]",line)==1 &&
-         std::strncmp(line,"** Command reference",20)) {}
+         std::strncmp(line,"** Global options :",19)) {}
 
   // Begin options and arguments parsing.
   CImgList<char> commands, arguments;

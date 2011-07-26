@@ -47,9 +47,12 @@
 
 #include <locale>
 #ifndef gmic_version
-#define gmic_version 1481
+#define gmic_version 1500
 
 // Define environment variables.
+#ifndef gmic_is_beta
+#define gmic_is_beta 0
+#endif
 #ifndef cimg_verbosity
 #define cimg_verbosity 1
 #endif
@@ -71,14 +74,15 @@
 #endif
 
 // Define some special character codes used for replacement in double quoted strings.
-const char _dollar = 23, _lbrace = 24, _rbrace = 25, _comma = 26, _dquote = 28, _arobace = 29;
+const char _dollar = 23, _lbrace = 24, _rbrace = 25, _comma = 26, _dquote = 28, _arobace = 29, _newline = 30;
 
 // Replace special characters in a string.
 inline char *gmic_strreplace(char *const str) {
   for (char *s = str ; *s; ++s) {
     const char c = *s;
-    if (c<' ') *s = c==_dollar?'$':c==_lbrace?'{':c==_rbrace?'}':c==_comma?',':
-                 c==_dquote?'\"':c==_arobace?'@':c;
+    if (c<' ')
+      *s = c==_dollar?'$':c==_lbrace?'{':c==_rbrace?'}':c==_comma?',':
+        c==_dquote?'\"':c==_arobace?'@':c;
   }
   return str;
 }
@@ -168,7 +172,7 @@ struct gmic {
   gmic_image<char> status;
   float focale3d, light3d_x, light3d_y, light3d_z, specular_light3d,
     specular_shine3d, _progress, *progress;
-  bool is_released, is_debug, is_start, is_quit, is_double3d, is_default_type, is_shell, check_elif;
+  bool is_released, is_debug, is_start, is_quit, is_return, is_double3d, is_default_type, is_shell, check_elif;
   int verbosity, render3d, renderd3d;
   volatile int _cancel, *cancel;
   unsigned int nb_carriages, position;
