@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 7.0.50),
  libavcodec-dev, libavformat-dev, libswscale-dev,
  libx11-dev, libxrandr-dev, libfftw3-dev | fftw3-dev,
  libcv-dev, libhighgui-dev, libopenexr-dev
-Standards-Version: 3.8.4
+Standards-Version: 3.9.2
 Homepage: http://gmic.sourceforge.net/
 Vcs-Git: git://git.debian.org/collab-maint/gmic.git
 Vcs-Browser: http://git.debian.org/?p=collab-maint/gmic.git
