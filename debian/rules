@@ -17,47 +17,32 @@ else
   endif
 endif
 
-.PHONY: override_dh_auto_test
-override_dh_auto_test: ;
 
-.PHONY: override_dh_compress
+%:
+	dh $@
+
+override_dh_auto_test: 
+	# no tests please.
+
 override_dh_compress:
 	dh_compress -X.shtml -X.rss -X.js -X.ppm
 
-config.status:
-	dh_testdir
-	dh_auto_configure
-
-.PHONY: build
-build: build-stamp
-
-build-stamp: config.status
+override_dh_auto_build:
 	dh_auto_build -- \
 		LDFLAGS="-Wl,--as-needed" \
 		CFLAGS="$(GMIC_CFLAGS) -I. -I/usr/include/libavcodec/ -I/usr/include/libavformat/ -I/usr/include/libswscale/"
-	touch $(@)
 
-.PHONY: clean
-clean:
+override_dh_clean:
 	rm -f src/gmic_use_lib
-	dh clean
+	dh_clean
 
-.PHONY: install
-install: build
-	dh install
+override_dh_install:
+	dh_install
 	install -d $(CURDIR)/debian/gmic/etc/bash_completion.d
 	install -D -m644 src/gmic_bashcompletion.sh \
 	                 $(CURDIR)/debian/gmic/etc/bash_completion.d/gmic
 
-.PHONY: binary-indep
-binary-indep: install
-	dh binary-indep
 
-.PHONY: binary-arch
-binary-arch: install
-	dh binary-arch
-
-.PHONY: binary
-binary: binary-indep binary-arch
+.PHONY: override_dh_auto_test override_dh_compress override_dh_auto_build override_dh_clean override_dh_install
 
 # vim:ts=4 sw=2 noet
