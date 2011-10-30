@@ -1,3 +1,13 @@
+gmic (1.5.0.5+dfsg-1) unstable; urgency=low
+
+  * [4978288c] Removing Jakub Wilk from Uploaders as requested.
+    Thanks for your work Jakub!
+  * [b7314e4e] Merge commit 'upstream/1.5.0.5+dfsg'
+  * [866550ef] Refactoring debian/rules
+  * [fce14609] Bumping Standards-Version, no changes needed.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 30 Oct 2011 19:06:34 +0100
+
 gmic (1.5.0.0+dfsg-1) unstable; urgency=low
 
   * [20fc4583] Merge commit 'upstream/1.5.0.0+dfsg'
