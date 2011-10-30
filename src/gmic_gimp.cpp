@@ -659,7 +659,7 @@ void flush_tree_view(GtkWidget *const tree_view) {
 
 // Retrieve files and update filter tree structure.
 //-------------------------------------------------
-bool update_filters(const bool try_net_update) {
+CImgList<char> update_filters(const bool try_net_update) {
 
   // Free existing definitions.
   if (tree_view_store) g_object_unref(tree_view_store);
@@ -683,21 +683,22 @@ bool update_filters(const bool try_net_update) {
     cimg::exception_mode(0);
     sources.load_cimg(filename);
   } catch(...) {
-    if (get_verbosity_mode())
+    if (get_verbosity_mode()) {
       std::fprintf(cimg::output(),
                    "\n[gmic_gimp]./update/ Source file '%s' not found.\n",
                    filename);
-    std::fflush(cimg::output());
+      std::fflush(cimg::output());
+    }
   }
   cimg::exception_mode(old_exception_mode);
-  cimg_snprintf(filename,sizeof(filename),"http://gmic.sourceforge.net/gmic_def.%u",gmic_version);
+  cimg_snprintf(filename,sizeof(filename),gmic_update_server "gmic_def.%u",gmic_version);
   sources.insert(CImg<char>::string(filename),0);
   sources.insert(CImg<char>::string("gmic"),1);
   if (try_net_update) gimp_progress_pulse();
 
   // Get filter definition files from external web servers.
   char command[1024] = { 0 }, filename_tmp[1024] = { 0 }, sep = 0;
-  bool is_net_update_successful = true;
+  CImgList<char> invalid_servers;
   cimglist_for(sources,l) if (try_net_update && !cimg::strncasecmp(sources[l],"http://",7)) {
     const char *const s_basename = gmic_basename(sources[l]);
     gimp_progress_set_text_printf(" G'MIC : Update filters '%s'...",s_basename);
@@ -755,7 +756,7 @@ bool update_filters(const bool try_net_update) {
       std::fclose(file);
       CImg<unsigned char>::get_load_raw(filename_tmp).save_raw(filename);
       std::remove(filename_tmp);
-    } else is_net_update_successful = false;
+    } else invalid_servers.insert(sources[l]);
 
     gimp_progress_pulse();
   }
@@ -814,6 +815,7 @@ bool update_filters(const bool try_net_update) {
   cimg_snprintf(line,sizeof(line),"#@gimp_%s ",locale);
 
   // Use English for default language if no translated filters found.
+  CImgList<char> gmic_1stlevel_names;
   if (!std::strstr(gmic_additional_commands,line)) { locale[0] = 'e'; locale[1] = 'n'; locale[2] = 0; }
   for (const char *data = gmic_additional_commands; *data; ) {
     char *_line = line;
@@ -839,19 +841,32 @@ bool update_filters(const bool try_net_update) {
         if (level<0) level = 0; else if (level>7) level = 7;
         cimg::strpare(nentry,' ',false,true); cimg::strpare(nentry,'\"',true);
         if (*nentry) {
-          gtk_tree_store_append(tree_view_store,&parent[level],level?&parent[level-1]:0);
-          gtk_tree_store_set(tree_view_store,&parent[level],0,0,1,nentry,-1);
-          if (!level) {
-            const char *treepath = gtk_tree_model_get_string_from_iter(GTK_TREE_MODEL(tree_view_store),
-                                                                       &parent[level]);
-            CImg<char>::string(treepath).move_to(gmic_1stlevel_entries);
-            GtkWidget *const markup2ascii = gtk_label_new(0);
-            gtk_label_set_markup(GTK_LABEL(markup2ascii),nentry);
-            const char *_nentry = gtk_label_get_text(GTK_LABEL(markup2ascii));
-            unsigned int order = 0;
-            for (unsigned int i = 0; i<4; ++i) { order<<=8; if (*_nentry) order|=(unsigned char)cimg::uncase(*(_nentry++)); }
-            CImg<unsigned int>::vector(order).move_to(_sorting_criterion);
-            gtk_widget_destroy(markup2ascii);
+          if (level) {
+            gtk_tree_store_append(tree_view_store,&parent[level],level?&parent[level-1]:0);
+            gtk_tree_store_set(tree_view_store,&parent[level],0,0,1,nentry,-1);
+          } else { // 1st-level folder.
+            bool is_duplicate = false;
+            cimglist_for(gmic_1stlevel_names,l) if (!std::strcmp(nentry,gmic_1stlevel_names[l].data())) { // Folder name is a duplicate.
+              if (gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(tree_view_store),&parent[level],gmic_1stlevel_entries[l].data())) {
+                is_duplicate = true;
+                break;
+              }
+            }
+            if (!is_duplicate) {
+              gtk_tree_store_append(tree_view_store,&parent[level],level?&parent[level-1]:0);
+              gtk_tree_store_set(tree_view_store,&parent[level],0,0,1,nentry,-1);
+              const char *treepath = gtk_tree_model_get_string_from_iter(GTK_TREE_MODEL(tree_view_store),
+                                                                         &parent[level]);
+              CImg<char>::string(nentry).move_to(gmic_1stlevel_names);
+              CImg<char>::string(treepath).move_to(gmic_1stlevel_entries);
+              GtkWidget *const markup2ascii = gtk_label_new(0);
+              gtk_label_set_markup(GTK_LABEL(markup2ascii),nentry);
+              const char *_nentry = gtk_label_get_text(GTK_LABEL(markup2ascii));
+              unsigned int order = 0;
+              for (unsigned int i = 0; i<4; ++i) { order<<=8; if (*_nentry) order|=(unsigned char)cimg::uncase(*(_nentry++)); }
+              CImg<unsigned int>::vector(order).move_to(_sorting_criterion);
+              gtk_widget_destroy(markup2ascii);
+            }
           }
           ++level;
         }
@@ -993,7 +1008,7 @@ bool update_filters(const bool try_net_update) {
     gimp_progress_update(1);
     gimp_progress_end();
   }
-  return try_net_update?is_net_update_successful:true;
+  return invalid_servers;
 }
 
 // 'Convert' a CImg<float> image to a RGB[A] CImg<unsigned char> image, withing the same buffer.
@@ -1627,7 +1642,14 @@ void on_dialog_remove_fave_clicked(GtkWidget *const tree_view) {
 void on_dialog_refresh_clicked(GtkWidget *const tree_view) {
   gtk_widget_hide(relabel_hbox);
   gtk_widget_hide(fave_delete_button);
-  if (!update_filters(get_net_update())) {
+  const CImgList<char> invalid_servers = update_filters(get_net_update());
+  if (invalid_servers) {
+    if (get_verbosity_mode()) cimglist_for(invalid_servers,l) {
+        std::fprintf(cimg::output(),
+                     "\n[gmic_gimp]./update/ External filters source '%s' not responding.\n",
+                     invalid_servers[l].data());
+        std::fflush(cimg::output());
+      }
     GtkWidget *const
       message = gtk_message_dialog_new_with_markup(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,
                                                    t(0),gmic_update_server,gmic_update_file,gmic_update_file);
@@ -1868,6 +1890,7 @@ void process_image(const char *const commands_line) {
     // Get output layers dimensions and check if input/output layers have compatible dimensions.
     unsigned int max_width = 0, max_height = 0, max_channels = 0;
     cimglist_for(spt.images,l) {
+      if (spt.images[l].is_empty()) { spt.images.remove(l--); continue; }          // Discard possible empty images.
       if (spt.images[l]._width>max_width) max_width = spt.images[l]._width;
       if (spt.images[l]._height>max_height) max_height = spt.images[l]._height;
       if (spt.images[l]._spectrum>max_channels) max_channels = spt.images[l]._spectrum;
