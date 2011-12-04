@@ -1,3 +1,9 @@
+gmic (1.5.0.7+dfsg-1) unstable; urgency=low
+
+  * [97e3ecbd] Merge commit 'upstream/1.5.0.7+dfsg'
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 04 Dec 2011 19:55:28 +0100
+
 gmic (1.5.0.5+dfsg-1) unstable; urgency=low
 
   * [4978288c] Removing Jakub Wilk from Uploaders as requested.
