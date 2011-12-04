@@ -406,8 +406,8 @@ CImg<T> get_draw_image(const int x, const int y, const int z, const int c,
   return (+*this).draw_image(x,y,z,c,sprite,opacity);
 }
 
-CImg<T> get_draw_plasma(const float alpha, const float beta, const float opacity) const {
-  return (+*this).draw_plasma(alpha,beta,opacity);
+CImg<T> get_draw_plasma(const float alpha, const float beta, const unsigned int scale) const {
+  return (+*this).draw_plasma(alpha,beta,scale);
 }
 
 CImg<T> get_draw_mandelbrot(const CImg<T>& color_palette, const float opacity,
@@ -1968,7 +1968,25 @@ CImg<char> gmic::substitute_item(const char *const source,
             substitution_done = true;
           }
 
-          if (!substitution_done && inbraces.width()>=4) {
+          if (!substitution_done && inbraces.width()>=3 && *inbraces=='`' &&
+              inbraces[inbraces.width()-2]=='`') {
+            if (inbraces.width()>3) {
+              unsigned int nb_values = 1;
+              cimg_for(inbraces,p,char) if (*p==',') ++nb_values;
+              inbraces[inbraces.width()-2] = 0;
+              try {
+                CImg<char>(nb_values,1,1,1,inbraces.data()+1,false).move_to(substituted_items);
+                substitution_done = true;
+              } catch (CImgException &e) {
+                const char *const e_ptr = std::strstr(e.what()," : ");
+                error(images,"Item substitution '{`value1,..,valueN`}' : %s",
+                      e_ptr?e_ptr+3:e.what());
+              }
+            }
+            substitution_done = true;
+          }
+
+          if (!substitution_done && inbraces.width()>=5) {
             char *const peq = std::strstr(inbraces,"'=='");
             if (peq) {
               *peq = 0;
@@ -2566,7 +2584,10 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
         if (std::sscanf(argument,"%f%c",&level,&end)==1) verbosity = (int)cimg::round(level);
         else if (*argument=='+' && !argument[1]) ++verbosity;
         else if (*argument=='-' && !argument[1]) --verbosity;
-        else arg_error("verbose");
+        else {
+          if (is_start) { print(images,"Start G'MIC instance."); is_start = false; }
+          arg_error("verbose");
+        }
       }
       if (is_start) { print(images,"Start G'MIC instance."); is_start = false; }
 
@@ -2627,7 +2648,7 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
             if (file) {
               add_commands(file,command_names,commands);
               cimg::fclose(file);
-            } else error(images,"Command '-command' : Unable to reach custom command file '%s' from network.",
+            } else error(images,"Command '-command' : Unable to reach custom commands file '%s' from network.",
                          argument_text);
             std::remove(filename_tmp);
           } else {
@@ -2936,8 +2957,9 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
         gmic_simple_item("-sqr",sqr,"Compute pointwise square function of image%s.");
         gmic_simple_item("-sqrt",sqrt,"Compute pointwise square root of image%s.");
         gmic_simple_item("-exp",exp,"Compute pointwise exponential of image%s.");
-        gmic_simple_item("-log",log,"Compute pointwise logarithm of image%s.");
-        gmic_simple_item("-log10",log10,"Compute pointwise logarithm-10 of image%s.");
+        gmic_simple_item("-log",log,"Compute pointwise base-e logarithm of image%s.");
+        gmic_simple_item("-log2",log2,"Compute pointwise base-2 logarithm of image%s.");
+        gmic_simple_item("-log10",log10,"Compute pointwise base-10 logarithm of image%s.");
 
         if (!std::strcmp("-atan2",command)) {
           CImg<unsigned int> ind;
@@ -3609,7 +3631,7 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
         }
 
         //------------------------
-        // Color base conversion
+        // Colors manipulations
         //------------------------
         gmic_simple_item("-rgb2hsv",RGBtoHSV,"Convert image%s from RGB to HSV color bases.");
         gmic_simple_item("-rgb2hsl",RGBtoHSL,"Convert image%s from RGB to HSL color bases.");
@@ -6159,20 +6181,22 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
 
         // Draw plasma fractal.
         if (!std::strcmp("-plasma",command)) {
-          float alpha = 1, beta = 1, opacity = 1;
-          if (std::sscanf(argument,"%f%c",
-                          &alpha,&end)==1 ||
-              std::sscanf(argument,"%f,%f%c",
-                          &alpha,&beta,&end)==2 ||
-              std::sscanf(argument,"%f,%f,%f%c",
-                          &alpha,&beta,&opacity,&end)==3) {
-            print(images,"Draw plasma fractal on image%s, with alpha %g, beta %g and opacity %g.",
+          float alpha = 1, beta = 1, scale = 8;
+          if ((std::sscanf(argument,"%f%c",
+                           &alpha,&end)==1 ||
+               std::sscanf(argument,"%f,%f%c",
+                           &alpha,&beta,&end)==2 ||
+               std::sscanf(argument,"%f,%f,%f%c",
+                           &alpha,&beta,&scale,&end)==3) &&
+              scale>=0) {
+            const unsigned int _scale = (unsigned int)cimg::round(scale);
+            print(images,"Draw plasma fractal on image%s, with alpha %g, beta %g and scale %u.",
                   gmic_selection,
                   alpha,
                   beta,
-                  opacity);
+                  _scale);
             cimg_forY(selection,l)
-	      gmic_apply(images[selection[l]],draw_plasma(alpha,beta,opacity));
+	      gmic_apply(images[selection[l]],draw_plasma(alpha,beta,_scale));
           } else arg_error("plasma");
           is_released = false; ++position; continue;
         }
@@ -6600,17 +6624,27 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
                   ind0);
             CImgList<T> _images, nimages;
             CImgList<char> _images_names, nimages_names;
-            if (is_get_version) { _images.assign(images); _images_names.assign(images_names); }
+            if (is_get_version) {
+              _images.insert(images.width());
+              cimglist_for(_images,l) _images[l].assign(images[l],images[l].is_shared()); // Copy original list while preserving shared state of each item.
+              _images_names.assign(images_names);
+            }
+            nimages.insert(selection.height());
             cimg_forY(selection,l) {
               const unsigned int ind = selection[l];
-              images[ind].move_to(nimages);
+              if (is_get_version) images[ind].move_to(nimages[l]); else images[ind].swap(nimages[l]);
+              images[ind]._is_shared = true; // Empty shared image as a special item to be removed later.
               images_names[ind].move_to(nimages_names);
             }
-            nimages.move_to(images,ind0);
+            images.insert(nimages.width(),ind0);
+            cimglist_for(nimages,l) nimages[l].swap(images[ind0+l]);
             nimages_names.move_to(images_names,ind0);
-            cimglist_for(images,l) if (!images[l]) { images.remove(l); images_names.remove(l--); }
+            cimglist_for(images,l) if (!images[l] && images[l].is_shared()) { images.remove(l); images_names.remove(l--); } // Remove special items.
             if (is_get_version) {
-	      _images.move_to(images,0);
+              cimglist_for(images,l) // Replace shared items by non-shared one for a get version.
+                if (images[l].is_shared()) { CImg<T> tmp; (images[l].move_to(tmp)).swap(images[l]); }
+              images.insert(_images.width(),0);
+              cimglist_for(_images,l) images[l].swap(_images[l]);
 	      _images_names.move_to(images_names,0);
 	    }
           } else arg_error("move");
@@ -9136,10 +9170,13 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
           } else {
             print(images,"Set random generator seed to random.");
             cimg::srand();
+#if cimg_OS==1
+            std::srand((unsigned int)cimg::time()+(unsigned int)getpid());
+#elif cimg_OS==2
+            std::srand((unsigned int)cimg::time()+(unsigned int)_getpid());
+#else
             std::srand((unsigned int)cimg::time());
-            unsigned char *const rand_ptr = new unsigned char[sizeof(unsigned int)+std::rand()%2048];
-            std::srand((unsigned int)std::rand() + *(unsigned int*)(void*)rand_ptr);
-            delete[] rand_ptr;
+#endif
           }
           continue;
         }
@@ -9151,8 +9188,10 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
           if (std::sscanf(argument,"%8[a-zA-Z]:%4095[^,],%255s",cext,_filename,options)<2 ||
               std::strlen(cext)<=1) {
             *cext = *_filename = *options = 0;
-            if (std::sscanf(argument,"%4095[^,],%255s",_filename,options)!=2)
+            if (std::sscanf(argument,"%4095[^,],%255s",_filename,options)!=2) {
               std::strncpy(_filename,argument,sizeof(_filename)-1);
+              _filename[sizeof(_filename)-1] = 0;
+            }
           }
           gmic_strreplace(_filename);
           gmic_strreplace(options);
@@ -9173,6 +9212,7 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
             static char nfilename[4096];
             *nfilename = 0;
             std::strncpy(nfilename,filename,sizeof(nfilename)-1);
+            nfilename[sizeof(nfilename)-1] = 0;
             cimg_forY(selection,l) {
               const unsigned int ind = selection[l];
               if (selection.height()!=1) cimg::number_filename(filename,l,6,nfilename);
@@ -9439,6 +9479,12 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
                     nsource+=2;
                     cimg_snprintf(substr,substr.width(),"%u",nb_arguments);
                     CImg<char>(substr.data(),std::strlen(substr)).move_to(substituted_items);
+                    has_arguments = true;
+
+                    // Substitute $* -> verbatim copy of the specified arguments string.
+                  } else if (nsource[1]=='*') {
+                    nsource+=2;
+                    CImg<char>(argument,std::strlen(argument)).move_to(substituted_items);
                     has_arguments = true;
 
                     // Substitute $i and ${i} -> value of the i^th argument.
@@ -9708,6 +9754,7 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
 						       "-input",true,false,CImg<char>::empty());
         static char st_tmp[256];
         std::strncpy(st_tmp,selection2string(inds,images_names,true),sizeof(st_tmp)-1);
+        st_tmp[sizeof(st_tmp)-1] = 0;
         if (nb<=0) arg_error("input");
         if (nb!=1)
           print(images,"Input %u copies of image%s at position%s",
@@ -9869,6 +9916,7 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
         if (file) {
 	  std::fclose(file);
 	  std::strncpy(filename,arg_input,sizeof(filename)-1);
+          filename[sizeof(filename)-1] = 0;
 	  file = 0;
 	} else { // Check for filename with specified options and constrained extensions.
           if (std::sscanf(arg_input,"%8[a-zA-Z]:%4095[^,],%255s",cext,filename,options)<2 ||
@@ -9886,7 +9934,7 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
                   error(images,"Unable to reach network file '%s'.",
                         argument_text);
                 }
-                if (file) { std::strncpy(filename,filename_tmp,sizeof(filename)-1); is_temp_input = true; }
+                if (file) { std::strncpy(filename,filename_tmp,sizeof(filename)-1); filename[sizeof(filename)-1] = 0; is_temp_input = true; }
               }
               if (!file) {
                 if (cimg::type<T>::id()==cimg::type<float>::id() || *arg_input!='-')
@@ -9919,6 +9967,7 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
                     filename,filename_tmp);
             }
             std::strncpy(filename,filename_tmp,sizeof(filename)-1);
+            filename[sizeof(filename)-1] = 0;
             file = std::fopen(filename,"r");
             is_temp_input = true;
           }
@@ -10089,8 +10138,8 @@ gmic& gmic::parse(const CImgList<char>& commands_line, unsigned int& position,
                   filename,options);
         } else if (!cimg::strcasecmp("gmic",ext)) {
 
-          // G'MIC custom command file
-          print(images,"Input custom command file '%s'",
+          // G'MIC custom commands file
+          print(images,"Input custom commands file '%s'",
                 argument_text);
           const unsigned int siz = command_names.size();
           std::FILE *const file = cimg::fopen(filename,"rb");
@@ -10399,15 +10448,7 @@ extern char data_gmic_def[];
                "<td><tt>%s</tt></td></tr>\n", \
                index,str,str); \
   is_pre = false; is_option_carriage = is_help_carriage = true; \
-  std::fprintf(file,"gmic_reference%u :\n  -v - -rm -reset\n  -v + %s -v -\n" \
-               "  -normalize 0,255 -repeat @# -if {s==1} -r[-1] 100%%,100%%,1,3 -else -r[-1] 100%%,100%%,1,3,0 -endif -mv[-1] 0 -done -frame 1,1,0 -frame 3,3,255\n" \
-               "  -if {@#>1} -repeat @# -l[$>]\n"\
-               "    {w},24,1,3,255"\
-               "    -if {w>75} -text[-1] \"Image [\"$>\"] :\",3,3,18 -else -text[-1] [$>]\\ :,3,3,18 -endif"\
-               "    -rv[-2,-1] -a[-2,-1] y\n" \
-               "  -endl -done -endif\n"  \
-               "  -- 255 -a x -+ 255 -o ../html/img/reference_%u.jpg,95 -v +\n\n", \
-               index,str,index); \
+  std::fprintf(file,"gmic_reference%u :\n  -v - -rm -reset -v +\n %s\n  -v - -_gmic_reference %u\n\n",index,str,index); \
   ++index
 
 #define gmic_help(str) \
@@ -10420,7 +10461,7 @@ extern char data_gmic_def[];
 #else
 
 // ASCII output.
-bool help(const int argc, const char *const *const argv, const char *const command_name=0, const bool display_usage=true);
+bool help(const int argc, const char *const *const argv, const char *const command_name=0, const unsigned int display_usage=1);
 
 bool _gmic_section(const char *const str, const char *const command_name,
                    const bool is_help_displayed,
@@ -10469,7 +10510,7 @@ bool _gmic_option(const int argc, const char *const *const argv,
 		   name,defaut,usage);
     if (is_command_name) {
       if (std::sscanf(defaut," eq. to '%1023[^']%c",tmp,&end)==2 && end=='\'') {
-        if (!help(argc,argv,tmp,false)) std::fputc('\n',cimg::output()); return true;
+        if (!help(argc,argv,tmp,0)) std::fputc('\n',cimg::output()); return true;
       }
       is_help_displayed = true;
     }
@@ -10508,7 +10549,7 @@ void _gmic_help(const char *const str, const char *const command_name,
 
 #endif
 
-bool help(const int argc, const char *const *const argv, const char *const command_name, const bool display_usage) {
+bool help(const int argc, const char *const *const argv, const char *const command_name, const unsigned int display_usage) {
   bool
     is_command_name = false, is_help_displayed = false,
     is_subsection_carriage = true, is_option_carriage = (bool)command_name,
@@ -10531,47 +10572,53 @@ bool help(const int argc, const char *const *const argv, const char *const comma
                  __DATE__,__TIME__,
                  gmic_version/1000,(gmic_version/100)%10,(gmic_version/10)%10,gmic_version%10,
                  gmic_is_beta?" (beta)":"");
+  if (display_usage>=2) { std::fputc('\n',cimg::output()); std::fflush(cimg::output()); return true; }
 
   gmic_section("Usage");
 
   gmic_help(" gmic [command1 [arg1_1,arg1_2,..]] .. [commandN [argN_1,argN_2,..]]\n");                       //
   gmic_help(" 'gmic' is an open-source interpreter of the G'MIC language, a script-based programming");      //
   gmic_help("  language dedicated to the design of image processing pipelines. It can be used to");          //
-  gmic_help("  convert, manipulate, filter and visualize datasets made of one or several 1d/2d/3d");         //
+  gmic_help("  convert, manipulate, filter and visualize datasets made of one or several 1d/2d or 3d");      //
   gmic_help("  multi-spectral images.\n");                                                                   //
-  gmic_help(" The G'MIC language is entirely defined by the following rules :");                             //
+  gmic_help(" Here you will find a complete description of the G'MIC language basics and rules.");           //
 
   gmic_subsection("Overall context");
 
   gmic_help("  - At any time, G'MIC manages one list of numbered (and optionally named) pixel-based");       //
-  gmic_help("     images, entirely stored in computer memory. Each image can represent a 1d/2d/3d array");   //
-  gmic_help("     of scalar or multi-spectral pixel values.");                                               //
-  gmic_help("  - The first image of the list has indice '0' and is denoted by '[0]'.");                      //
-  gmic_help("  - Negative indices are treated in a cyclic way (i.e. '[-1]' stands for the last image of");   //
-  gmic_help("     the list, '[-2]' the penultimate one, and so on..). Thus, in a list of 4 images,");        //
-  gmic_help("     notations '[1]' and '[-3]' both refer to the second image.");                              //
-  gmic_help("  - A named image is referenced by '[name]'. Names can be specified when inserting new");       //
-  gmic_help("     images on the list. Names use characters [a-zA-Z0-9_] and cannot start with a number.");   //
-  gmic_help("  - G'MIC defines a set of commands and substitution mechanisms for creating pipelines to");    //
-  gmic_help("     manage the image list in a very flexible way.");                                           //
-  gmic_help("  - A user-defined pipeline can be written itself as a new custom G'MIC command, and thus can");//
-  gmic_help("     be re-used afterwards in any G'MIC call.");                                                //
+  gmic_help("     images, entirely stored in computer memory.");                                             //
+  gmic_help("  - The first image of the list has indice '0' and is denoted by '[0]'. The second image of");  //
+  gmic_help("     the list is denoted by '[1]', and so on.");                                                //
+  gmic_help("  - Negative indices are treated in a cyclic way : '[-1]' denotes the last image of the");      //
+  gmic_help("     list, '[-2]' the penultimate one, etc. Thus, if the list has 4 images, expressions");      //
+  gmic_help("     '[1]' and '[-3]' both refer to the second image of the list.");                            //
+  gmic_help("  - A named image may be denoted by '[name]' if its 'name' only uses characters [a-zA-Z0-9_]"); //
+  gmic_help("     and does not start with a number. Image names can be set at any moment during the");       //
+  gmic_help("     processing pipeline (see commands '-name' and '-input').");                                //
+  gmic_help("  - G'MIC defines a set of various commands and substitution mechanisms to allow the design");  //
+  gmic_help("     of complex pipelines managing this list of images, in a very flexible way :");             //
+  gmic_help("     You can insert or remove images in the list, rearrange image indices, process images");    //
+  gmic_help("     (individually or as a group), merge image data together and output image files.");         //
+  gmic_help("  - Such a pipeline can be then written itself as a custom G'MIC command storable in a custom");//
+  gmic_help("     commands file, and that can be re-used afterwards in another pipeline.");                  //
 
   gmic_subsection("Image definition and terminology");
 
-  gmic_help("  - In G'MIC, an image can represent up to a 4d array of scalar-valued pixels, whose");         //
-  gmic_help("     dimensions are respectively denoted by :");                                                //
+  gmic_help("  - In G'MIC, an image is modeled as a 1d, 2d, 3d or 4d array of scalar values, uniformly");    //
+  gmic_help("     discretized on a rectangular/parallelepipedic domain.");                                   //
+  gmic_help("  - The four dimensions of these arrays are respectively denoted by :");                        //
   gmic_help("    . 'width', the number of image columns (size along the 'x'-axis).");                        //
   gmic_help("    . 'height', the number of image lines (size along the 'y'-axis).");                         //
   gmic_help("    . 'depth', the number of image slices (size along the 'z'-axis).");                         //
   gmic_help("        The depth is equal to 1 for usual 2d color or grayscale images.");                      //
   gmic_help("    . 'spectrum', the number of image channels (size along the 'c'-axis).");                    //
-  gmic_help("        The spectrum is equal respectively to 3 and 4 for usual RGB and RGBA color images.");   //
-  gmic_help("  - There are no limitations on image dimensions, particularly the number of image slices or"); //
-  gmic_help("      channels G'MIC can handle, except the amount of available memory.");                      //
+  gmic_help("        The spectrum is respectively equal to 3 and 4 for usual RGB and RGBA color images.");   //
+  gmic_help("  - There are no limitations on the image size along each dimension. Particularly, the number");//
+  gmic_help("     of image slices or channels can be of any size within the limits of available memory.");   //
   gmic_help("  - The width, height and depth of an image are considered as 'spatial' dimensions, while the");//
-  gmic_help("     spectrum has a 'multi-spectral' meaning. Thus, a 4d image in G'MIC should preferably be"); //
-  gmic_help("     regarded as a 3d dataset of multi-spectral voxels.");                                      //
+  gmic_help("     spectrum has a 'multi-spectral' meaning. Thus, a 4d image in G'MIC should be most often"); //
+  gmic_help("     regarded as a 3d dataset of multi-spectral voxels. Most of the G'MIC commands stick with");//
+  gmic_help("     this philosophy.");                                                                        //
   gmic_help("  - All pixel values of all images of the list have the same datatype. It can be one of :");    //
   gmic_help("    . 'bool' : Stands for 'boolean'. Value range is { 0=false | 1=true }.");                    //
   gmic_help("    . 'uchar' : Stands for 'unsigned char'. Value range is [0,255] (8bits).");                  //
@@ -10584,26 +10631,28 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("    . 'int' : Value range is [-2^31,2^31-1] (32 bits).");                                       //
   gmic_help("    . 'float' : Value range is [-3.4E38,+3.4E38] (32bits).");                                   //
   gmic_help("        This type of coding is able to store pixels as 32 bits float-valued numbers. This is"); //
-  gmic_help("        the datatype considered for all G'MIC image processing operations.");                   //
-  gmic_help("    . 'double' : Value range is [-1.7E308,-1.7E308] (64bits).");                                //
+  gmic_help("        the default datatype considered in most of the G'MIC image processing operations.");    //
+  gmic_help("    . 'double' : Value range is [-1.7E308,1.7E308] (64bits).");                                 //
   gmic_help("        This type of coding is able to store pixels as 64 bits float-valued numbers.");         //
   gmic_help("  - Considering pixel datatypes different than 'float' is generally useless, except to force"); //
   gmic_help("     the input/output of image data to a prescribed binary format. Hence, most G'MIC image");   //
   gmic_help("     image processing commands are available only for the default 'float' pixel datatype.");    //
+  gmic_help("     (see command '-type' to switch to other pixel types).");                                   //
 
-  gmic_subsection("Items in a processing pipeline");
+  gmic_subsection("Items of a processing pipeline");
 
   gmic_help("  - In G'MIC, an image processing pipeline is described as a sequence of items separated by");  //
-  gmic_help("     spaces ' '. Such items are interpreted and executed from the left to the right. For");     //
-  gmic_help("     instance, the expression 'input.jpg -blur 3,0 -sharpen 10 -r 200%,200% -o output.jpg'");   //
+  gmic_help("     the space character ' '. Such items are interpreted and executed from the left to the");   //
+  gmic_help("     right. For instance, the expression :");                                                   //
+  gmic_help("       'input.jpg -blur 3,0 -sharpen 10 -resize 200%,200% -output output.jpg'");                //
   gmic_help("     defines a valid pipeline composed of nine G'MIC items.");                                  //
-  gmic_help("  - A G'MIC item is a string which represents either a command, command arguments,");           //
+  gmic_help("  - A G'MIC item is a string which represents either a command, a command arguments,");         //
   gmic_help("     a filename, or a special input string.");                                                  //
   gmic_help("  - When invoking G'MIC from the command-line, any word following the executable name 'gmic'"); //
   gmic_help("     is considered as one specified G'MIC item.");                                              //
   gmic_help("  - Escape characters '\\' and double quotes '\"' can be used (as usual) to define items");     //
   gmic_help("     containing spaces, or any other character sequences. For instance, the strings");          //
-  gmic_help("     'single\\ item' and '\"single item\"' define the same single item.");                      //
+  gmic_help("     'single\\ item' and '\"single item\"' define the same string item, with a space in it.");  //
 
   gmic_subsection("Input data items");
 
@@ -10611,43 +10660,45 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("     data are loaded and inserted at the end of the image list.");                              //
   gmic_help("  - Special filenames '-' and '-.ext' stand for the standard input/output streams, optionally");//
   gmic_help("     forced to be in a specific 'ext' file format (e.g. '-.jpg' or '-.png').");                 //
-  gmic_help("  - The following special input strings are used as G'MIC items to create and insert new");     //
+  gmic_help("  - The following special input strings may be used as G'MIC items to create and insert new");  //
   gmic_help("     images with prescribed values, at the end of the image list :");                           //
-  gmic_help("    . '[image]' or '[image]xN' : Insert 1 or N copies of the existing image [image].");         //
+  gmic_help("    . '[selection]' or '[selection]xN' : Insert 1 or N copies of selected existing images.");   //
+  gmic_help("       'selection' may denote one or several images at the same time (see next section).");     //
   gmic_help("    . 'width[%],_height[%],_depth[%],_spectrum[%],_values' : Insert a new image with ");        //
-  gmic_help("       size and values (optionnally, adding '%' to a dimension means 'percentage of the size"); //
-  gmic_help("       along the same axis, taken from the last available image'). Any specified dimension");   //
+  gmic_help("       specified size and values (adding '%' to a dimension means 'percentage of the size");    //
+  gmic_help("       along the same axis, taken from the last image '[-1]''). Any specified dimension");      //
   gmic_help("       can be also written as '[image]', and is then set to the size (along the same axis)");   //
   gmic_help("       of the existing specified image [image]. 'values' can be either a sequence of numbers"); //
   gmic_help("       separated by commas ',', or a mathematical expression, as e.g. in input item");          //
   gmic_help("       '256,256,1,3,if(c==0,x,if(c==1,y,255))' which creates a 256x256 RGB color image with a");//
   gmic_help("       spatial shading on the red and green channels.");                                        //
-  gmic_help("    . '(v1,v2,..)' : Insert a new image containing specified prescribed values");               //
-  gmic_help("        Value separator inside parentheses can be ',' (column separator.), ';' (line sep.),");  //
-  gmic_help("        '/' (slice sep.) or '^' (channel sep.). For instance, expression");                     //
-  gmic_help("        '(1,2,3;4,5,6;7,8,9)' creates a 3x3 matrix (scalar image), with values from 1 to 9.");  //
-  gmic_help("    . '0' : Insert a new 'empty' image, containing no pixel data (rarely used actually).");     //
-  gmic_help("  - The input string 'name=value' is used to declare a new local or global variable 'name',");  //
-  gmic_help("    or to assign a new value to an existing variable. Variable names use characters");          //
-  gmic_help("    [a-zA-Z0-9_] and cannot start with a number. A variable is local to the current command");  //
-  gmic_help("    except when its name starts by the underscore character '_'. In that case, it becomes");    //
-  gmic_help("    also accessible in any subcommand invoked from the current command scope.");                //
+  gmic_help("    . '(v1,v2,..)' : Insert a new image from specified prescribed values.");                    //
+  gmic_help("       Value separator inside parentheses can be ',' (column separator.), ';' (line sep.),");   //
+  gmic_help("       '/' (slice sep.) or '^' (channel sep.). For instance, expression");                      //
+  gmic_help("       '(1,2,3;4,5,6;7,8,9)' creates a 3x3 matrix (scalar image), with values from 1 to 9.");   //
+  gmic_help("    . '0' : Insert a new 'empty' image, containing no pixel data. Empty images are used only"); //
+  gmic_help("       in rare occasions.");                                                                    //
+  gmic_help("  - The input item 'name=value' declares a new variable 'name' (local or global), or assign a");//
+  gmic_help("     new value to an existing variable. Variable names use characters [a-zA-Z0-9_] and cannot");//
+  gmic_help("     start with a number. A variable definition is local to the current command except when");  //
+  gmic_help("     it starts by the underscore character '_'. In that case, it becomes also accessible by");  //
+  gmic_help("     any command invoked outside the current command scope.");                                  //
 
   gmic_subsection("Command items and selections");
 
   gmic_help("  - A G'MIC item starting by '-' designates a command, most of the time. Generally, commands"); //
-  gmic_help("    perform image processing operations on one or several available image(s) of the list.");    //
-  gmic_help("  - Usual commands may have two equivalent names (regular and short). For instance,");          //
-  gmic_help("     command names '-resize' and '-r' refer to the same processing action (image resizing).");  //
+  gmic_help("     perform image processing operations on one or several available images of the list.");     //
+  gmic_help("  - Common commands have two equivalent names (regular and short). For instance, command");     //
+  gmic_help("     names '-resize' and '-r' refer to the same process of image resizing.");                   //
   gmic_help("  - A G'MIC command may have mandatory or optional arguments. Command arguments must be");      //
-  gmic_help("     specified in the item next to the command name. Commas ',' are used to separate multiple");//
+  gmic_help("     specified in the next item on the command line. Commas ',' are used to separate multiple");//
   gmic_help("     arguments, if any required.");                                                             //
   gmic_help("  - The execution of a G'MIC command may be restricted only to a subset of the image list, by");//
-  gmic_help("     appending '[subset]' to the command name. Several combinations are possible, such as :");  //
+  gmic_help("     appending '[subset]' to the command name. Several syntaxes are possible for 'subset' :");  //
   gmic_help("    . '-com[0,1,3]'        : Apply command only on images [0],[1] and [3].");                   //
   gmic_help("    . '-com[3-5]'          : Apply command only on images [3] to [5] (i.e, [3],[4] and [5])."); //
   gmic_help("    . '-com[50%-100%]'     : Apply command only on the second half of the image list.");        //
-  gmic_help("    . '-com[0,-4--1]'      : Apply command only on the first image, and the four latest ones.");//
+  gmic_help("    . '-com[0,-4--1]'      : Apply command only on the first and the four latest images.");     //
   gmic_help("    . '-com[0-9:3]'        : Apply command only on images [0] to [9], with a step of 3");       //
   gmic_help("                              (i.e. on images [0], [3], [6] and [9]).");                        //
   gmic_help("    . '-com[0--1:2]'       : Apply command only on images of the list with even indices.");     //
@@ -10655,14 +10706,26 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("                              of the image list.");                                             //
   gmic_help("    . '-com[^0,1]'         : Apply command on all images except the two first ones.");          //
   gmic_help("    . '-com[name1,name2]'  : Apply command on named images 'name1' and 'name2'.");              //
-  gmic_help("  - Indices in selections are always sorted in increasing order, and duplicates are removed."); //
-  gmic_help("     For instance, selections '[3-1,1-3]' and '[1,1,1,3,3,2]' are equivalent to '[1-3]'.");     //
-  gmic_help("     If you want to repeat a single command multiple times on an image, use a");                //
-  gmic_help("     '-repeat..-done' loop. Inverting the order of a selection can be achieved by inverting");  //
-  gmic_help("     the order of the images in the list instead, with command '-reverse[selection]'.");        //
+  gmic_help("  - Indices in selections are always sorted in increasing order, and duplicate indices are");   //
+  gmic_help("     discarded. For instance, selections '[3-1,1-3]' and '[1,1,1,3,2]' are both equivalent to");//
+  gmic_help("     '[1-3]'. If you want to repeat a single command multiple times on an image, use a");       //
+  gmic_help("     '-repeat..-done' loop. Inverting the order of images in a selection can be achieved by");  //
+  gmic_help("     inverting first the order of the images in the list, with command '-reverse[selection]'.");//
   gmic_help("  - G'MIC commands invoked without '[subset]' are applied on all images of the list.");         //
   gmic_help("  - A G'MIC command starting with '--' instead of '-' does not act 'in-place' but inserts its");//
-  gmic_help("     result as one or several new images, at the end of the image list.");                      //
+  gmic_help("     result as one or several new images at the end of the image list.");                       //
+  gmic_help("  - There are two different types of commands that can be run by the G'MIC interpreter : ");    //
+  gmic_help("    . Native commands, are hard-coded functionalities in the interpreter core.");               //
+  gmic_help("       They are thus compiled as machine code and run quickly, most of the time.");             //
+  gmic_help("       Omitting arguments when invoking a native command is not permitted, except if all");     //
+  gmic_help("       remaining arguments are also omitted. For instance, call to '-plasma 10,,5' is invalid");//
+  gmic_help("       but '-plasma 10' is correct.");                                                          //
+  gmic_help("    . Custom commands, are defined as sequences of native commands.");                          //
+  gmic_help("       They are interpreted by the G'MIC interpreter, and run slower than native commands.");   //
+  gmic_help("       But omitting arguments when invoking a custom command is permitted. For instance,");     //
+  gmic_help("       expressions '-flower ,,,100,,2' or '-flower ,' are correct.");                           //
+  gmic_help("  - A user may easily add its own custom commands to the G'MIC interpreter (see section");      //
+  gmic_help("     'Adding custom commands'), but cannot add it own native commands of course.");             //
 
   gmic_subsection("Input/output properties");
 
@@ -10674,23 +10737,24 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("    . 3d object files : .off.");                                                                //
   gmic_help("  - When dealing with color images, G'MIC generally reads, writes and displays data using the");//
   gmic_help("     usual RGB color space.");                                                                  //
-  gmic_help("  - G'MIC is able to manage 3d objects that may be read or generated by G'MIC commands. These");//
-  gmic_help("     objects are stored as one-column scalar images containing the object data, in the");       //
+  gmic_help("  - G'MIC is able to manage 3d objects that may be read from files or generated by G'MIC");     //
+  gmic_help("     commands. They are stored as one-column scalar images containing the object data, in the");//
   gmic_help("     following order : { header; sizes; vertices; primitives; colors; opacities }.");           //
-  gmic_help("     These 3d representations can be processed as any other regular float-valued images.");     //
-  gmic_help("  - Classical image file formats may be not always adapted to store all image data");           //
-  gmic_help("    (e.g. using .jpeg for 16bits/channels images), resulting in possible loss of pixel");       //
-  gmic_help("    informations. Use the .cimg file format (or .cimgz, its compressed version) to ensure");    //
-  gmic_help("    that all data will be preserved when saving files.");                                       //
+  gmic_help("     These 3d representations can be processed as regular float-valued images.");               //
+  gmic_help("     (see command '-split3d' for accessing the 3d object data separately).");                   //
+  gmic_help("  - Usual image file formats may be not adapted to store all the available image data (e.g.");  //
+  gmic_help("     using .jpeg for 16bits/channels images), resulting in possible loss of informations");     //
+  gmic_help("     during the conversion. Use the .cimg file format (or .cimgz, its compressed version) to"); //
+  gmic_help("     ensure that all data will be indeed preserved when saving image data.");                   //
   gmic_help("  - File options can/must be set for specific file formats :");                                 //
   gmic_help("    . Video files : Only sub-frames of an image sequence may be loaded, using the input");      //
   gmic_help("       expression 'video.ext,[first_frame[%][,last_frame[%][,step]]]'.");                       //
   gmic_help("       Output framerate and bitrate (in Kb/s) can be also set by using the output expression"); //
-  gmic_help("       'file.mpg,fps,bitrate'.");                                                               //
+  gmic_help("       'file.mpg,_fps,_bitrate'.");                                                             //
   gmic_help("    . .raw binary files : Image dimensions and input pixel type may be specified when loading");//
   gmic_help("       .raw files with input expresssion 'file.raw,width[,type][,height[,depth[,dim]]]]'.");    //
   gmic_help("       If no dimensions are specified, the resulting image is a one-column vector with");       //
-  gmic_help("       maximum possible height. Output pixel type can also be specified with output");          //
+  gmic_help("       maximum possible height. Output pixel type can also be specified with the output");      //
   gmic_help("       expression 'file.raw[,type]'.");                                                         //
   gmic_help("       'type' can be { bool | uchar | char | ushort | short | uint | int | float | double }."); //
   gmic_help("    . .yuv files : Image dimensions must be specified, and only sub-frames of an image");       //
@@ -10698,23 +10762,24 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("      'file.yuv,width,height[,first_frame[,last_frame[,step]]]'.");                             //
   gmic_help("    . .jpeg files : The output quality may be specified (in %), using the output expression");  //
   gmic_help("       'file.jpg,30' (here, to get a 30% quality output).");                                    //
-  gmic_help("    . Filenames with extension '.gmic' are assumed to be G'MIC custom command files.");         //
+  gmic_help("    . Filenames with extension '.gmic' are assumed to be G'MIC custom commands files. Loading");//
+  gmic_help("       such a file will add the commands it defines to the interpreter.");                      //
   gmic_help("    . Inserting 'ext:' on the beginning of a filename (e.g. 'jpg:filename') forces G'MIC to");  //
-  gmic_help("       read/write the file as it would have been done with the specified extension.");          //
-  gmic_help("  - Note that some formats or options may be not supported by your current version of 'gmic',");//
-  gmic_help("     depending on how compilation flags have been set for the build of the G'MIC interpreter.");//
+  gmic_help("       read/write the file as it would have been done if it had the specified extension.");     //
+  gmic_help("  - Some input/output formats and options may be not supported by your current version of");    //
+  gmic_help("     'gmic', depending on the configuration flags set for the build of the 'gmic' binaries.");  //
 
   gmic_subsection("Substitution rules");
 
   gmic_help("  - G'MIC items containing '@', '$' or '{}' may be substituted before being interpreted. Use"); //
-  gmic_help("     the expressions below to access the current state of the interpreter environment :");      //
+  gmic_help("     the substituting expressions below to access data from the interpreter environment :");    //
   gmic_help("    . '@#' is substituted by the current number of images in the list.");                       //
   gmic_help("    . '@%' is substituted by the pid of the current process.");                                 //
   gmic_help("    . '@|' is substituted by the current value of a millisecond-precision timer.");             //
   gmic_help("    . '@?' is substituted by the current type of image pixels.");                               //
   gmic_help("    . '@^' is substituted by the current verbosity level.");                                    //
   gmic_help("    . '@*' is substituted by the current 3d rendering mode.");                                  //
-  gmic_help("    . '@/' is substituted by the current command scope.");                                      //
+  gmic_help("    . '@/' is substituted by the current number of levels in the command scope.");              //
   gmic_help("    . '@{/}' or '@{/,subset}' are substituted by the content of the global scope, or a");       //
   gmic_help("       subset of it. If specified subset refers to multiple scope items, they are separated");  //
   gmic_help("       by slashes '/'.");                                                                       //
@@ -10782,50 +10847,53 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("         . 'm' : boolean telling if the instant display has been moved recently.");             //
   gmic_help("         . Any other feature stands for a keycode name in capital letters, and is substi-");    //
   gmic_help("            -tuted by a boolean describing the current key state { 0=pressed | 1=released }."); //
-  gmic_help("    . '@{\"command line\"}' is substituted by the status value set during the execution of");   //
-  gmic_help("       the specified command line (see command '-status'). Verbosity is decremented before");   //
-  gmic_help("       the execution, and incremented back afterwards.");                                       //
+  gmic_help("    . '@{\"command line\"}' is substituted by the status value set by the execution of the");   //
+  gmic_help("       specified command line (see command '-status'). Verbosity level is decremented before"); //
+  gmic_help("       the execution of the command, and incremented back afterwards.");                        //
   gmic_help("    . Expression '@{}' stands thus for the current status value.");                             //
-  gmic_help("  - $name and '${name}' are both substituted by the value of the specified named local");       //
-  gmic_help("     variable (set previously by input item 'name=value'), or by the current indice of the");   //
-  gmic_help("     named image '[name]', or by the value of the named OS environment variable.");             //
+  gmic_help("  - $name and '${name}' are both substituted by the value of the specified named variable");    //
+  gmic_help("     (set previously by item 'name=value'), or by the current positive indice of the named");   //
+  gmic_help("     image '[name]', or by the value of the named OS environment variable (in this order).");   //
   gmic_help("  - '$>' and '$<' (resp. '${>}' and '${<}') are shortcuts respectively for '@{>,-1}' and");     //
-  gmic_help("     '@{<,-1}'. They refer to the increasing/decreasing indice of the latest (currently)");     //
-  gmic_help("     running 'repeat..done' loop.");                                                            //
+  gmic_help("     '@{<,-1}'. They refer to the increasing/decreasing indice of the latest (currently");      //
+  gmic_help("     running) 'repeat..done' loop.");                                                           //
   gmic_help("  - Any other expression inside braces (as in '{expression}') is considered as a mathematical");//
-  gmic_help("     expression, and is evaluated, except for the two following cases :");                      //
-  gmic_help("    . If expression starts and ends by simple quotes, it is substituted by the sequence of");   //
+  gmic_help("     expression, and is evaluated, except for the three following cases :");                    //
+  gmic_help("    . If expression starts and ends by single quotes, it is substituted by the sequence of");   //
   gmic_help("       ascii codes that composes the specified string, separated by commas ','. For instance,");//
   gmic_help("       item '{'foo'}' is substituted by '102,111,111'.");                                       //
-  gmic_help("    . If expression contains operator '==' or '!=', it is substituted by 0 or 1, whether the"); //
-  gmic_help("       strings beside the operator are the same or not (case-sensitive). For instance, both");  //
-  gmic_help("       items '{foo'=='foo}' and '{foo'!='FOO}' are substituted by '1'.");
-  gmic_help("  - Item substitution is never done in double-quoted items. One must break double quotes to");  //
-  gmic_help("    enable substitution if needed, as in \"3+8 kg = \"{3+8}\" kg\". Use then double quotes ");  //
-  gmic_help("    to disable substitutions in items, when desired.");                                         //
-  gmic_help("  - One can also disable the substitution mechanism outside double-quoted items, by escaping"); //
-  gmic_help("      the '@','{','}' or '$' characters, as in '\\{3+4\\}\\ doesn't\\ evaluate'.");             //
+  gmic_help("    . If expression starts and ends with backquotes '`', it is substituted by the string");     //
+  gmic_help("       whose ascii codes are given by the list of values in between the backquotes.");          //
+  gmic_help("       For instance, item '{`102,111,111`}' is substituted by 'foo'.");                         //
+  gmic_help("    . If expression contains operator ''=='' or ''!='', it is substituted by 0 or 1, whether"); //
+  gmic_help("       the strings beside the operator are the same or not (case-sensitive). For instance,");   //
+  gmic_help("       both items '{foo'=='foo}' and '{foo'!='FOO}' are substituted by '1'.");                  //
+  gmic_help("  - Item substitution is never performed in items between double quotes. One must break the");  //
+  gmic_help("    quotes to enable substitution if needed, as in \"3+8 kg = \"{3+8}\" kg\". Using double");   //
+  gmic_help("    quotes is then a way to disable the substitutions in items, when necessary.");              //
+  gmic_help("  - One can also disable the substitution mechanism on items outside double quotes, by");       //
+  gmic_help("     escaping the '@','{','}' or '$' characters, as in '\\{3+4\\}\\ doesn't\\ evaluate'.");     //
 
   gmic_subsection("Mathematical expressions");
 
-  gmic_help("  - G'MIC has an embedded mathematical parser. It is used to evaluate formulas inside");        //
-  gmic_help("     braces '{}', or in commands that may take formulas as arguments (e.g. '-fill').");         //
+  gmic_help("  - G'MIC has an embedded mathematical parser. It is used to evaluate expressions inside");     //
+  gmic_help("     braces '{}', or formulas in commands that may take one as an argument (e.g. '-fill').");   //
   gmic_help("  - When used in commands, a formula is evaluated for each pixel of the selected images.");     //
-  gmic_help("  - The parser understands the following set of functions, operators and variables :");         //
+  gmic_help("  - The math parser understands the following set of functions, operators and variables :");    //
   gmic_help("    _ Usual operators : || (logical or), && (logical and), | (bitwise or), & (bitwise and),");  //
   gmic_help("       !=, ==, <=, >=, <, >, << (left bitwise shift), >> (right bitwise shift), -, +, *, /,");  //
   gmic_help("       % (modulo), ^ (power), ! (logical not), ~ (bitwise not).");                              //
   gmic_help("    _ Usual functions : sin(), cos(), tan(), asin(), acos(), atan(), sinh(), cosh(), tanh(),"); //
-  gmic_help("       log10(), log(), exp(), sign(), abs(), atan2(), round(), narg(), arg(), isval(),");       //
-  gmic_help("       isnan(), isinf(), isint(), isbool(), rol() (left bit rotation),");                       //
+  gmic_help("       log(), log2(), log10(), exp(), sign(), abs(), atan2(), round(), narg(), arg(),");        //
+  gmic_help("       isval(), isnan(), isinf(), isint(), isbool(), rol() (left bit rotation),");              //
   gmic_help("       ror() (right bit rotation), min(), max(), sinc(), int().");                              //
-  gmic_help("       Function 'atan2()' is the version of atan() with two arguments 'y,x', as in C/C++.");    //
+  gmic_help("       Function 'atan2()' is the version of atan() with two arguments 'y,x' (as in C/C++).");   //
   gmic_help("       Function 'narg()' returns the number of specified arguments.");                          //
   gmic_help("       Function 'arg(i,a_1,..,a_n)' returns the ith argument a_i.");                            //
-  gmic_help("       Functions 'min()' and 'max()' can be called with a variable number of arguments.");      //
+  gmic_help("       Functions 'min()' and 'max()' can be called with an arbitrary number of arguments.");    //
   gmic_help("       Functions 'isval()', 'isnan()', 'isinf()', 'isbool()' can be used to test the type of"); //
   gmic_help("       a given number or expression.");                                                         //
-  gmic_help("    _ These special variable names are pre-defined. They cannot be overloaded :");              //
+  gmic_help("    _ The variable names below are pre-defined. They cannot be overloaded :");                  //
   gmic_help("         . 'w' : width of the associated image, if any (0 otherwise).");                        //
   gmic_help("         . 'h' : height of the associated image, if any (0 otherwise).");                       //
   gmic_help("         . 'd' : depth of the associated image, if any (0 otherwise).");                        //
@@ -10844,15 +10912,16 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("            associated image, if any (0 otherwise).");                                          //
   gmic_help("         . 'pi' : value of pi, i.e. 3.1415926..");                                              //
   gmic_help("         . 'e' : value of e, i.e. 2.71828..");                                                  //
-  gmic_help("         . '?' or 'u' : a random value between [0,1], following an uniform distribution.");     //
+  gmic_help("         . '?' or 'u' : a random value between [0,1], following a uniform distribution.");      //
   gmic_help("         . 'g' : a random value, following a gaussian distribution of variance 1");             //
   gmic_help("            (roughly in [-5,5]).");                                                             //
   gmic_help("    _ These special operators can be used :");                                                  //
   gmic_help("         . ';' : expression separator. The returned value is always the last encountered");     //
   gmic_help("            expression. For instance expression '1;2;pi' is evaluated as '3.14159'.");          //
-  gmic_help("         . '=' : variable assignment. Parser variables can only refer to numerical values.");   //
-  gmic_help("            Variable names are case-sensitive. Use this operator in conjunction with ';' to");  //
-  gmic_help("            define complex evaluable expressions, such as 't=cos(x);3*t^2+2*t+1'.");            //
+  gmic_help("         . '=' : variable assignment. Variables in mathematical parser can only refer to.");    //
+  gmic_help("            numerical values. Variable names are case-sensitive. Use this operator in");        //
+  gmic_help("            conjunction with ';' to define complex evaluable expressions, such as");            //
+  gmic_help("             't=cos(x);3*t^2+2*t+1'.");                                                         //
   gmic_help("            These variables remain local to the mathematical parser and cannot be accessed");   //
   gmic_help("            outside the evaluated expression.");                                                //
   gmic_help("    _ The following specific functions are also defined :");                                    //
@@ -10861,49 +10930,16 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("            G'MIC command '-fill if(x%10==0,255,i)' will draw blank vertical lines on every");  //
   gmic_help("            10th column of an image.");                                                         //
   gmic_help("         . '?(max)' or '?(min,max)' : return a random value between [0,max] or [min,max],");    //
-  gmic_help("            following an uniform distribution. 'u(max)' and 'u(min,max)' mean the same.");      //
+  gmic_help("            following a uniform distribution. 'u(max)' and 'u(0,max)' mean the same.");         //
   gmic_help("         . 'i(a,_b,_c,_d,_boundary)' : return the value of the pixel located at position");     //
   gmic_help("            (a,b,c,d) in the associated image, if any (0 otherwise). Boundary conditions can"); //
-  gmic_help("            be { 0=dirichlet | 1=neumann | 2=cyclic }. Omitted coordinates are replaced by");   //
-  gmic_help("            their default values which are respectively x, y, z, c and 0. For instance,");      //
-  gmic_help("            command '-fill 0.5*(i(x+1)-i(x-1))' will estimate the X-derivative of an image.");  //
+  gmic_help("            be set to { 0=dirichlet | 1=neumann | 2=cyclic }. Omitted coordinates will be");    //
+  gmic_help("            replaced by their default values which are respectively x, y, z, c and 0.");        //
+  gmic_help("            Nearest neighbor interpolation is used when given coordinates are float-valued.");  //
+  gmic_help("            For instance command '-fill 0.5*(i(x+1)-i(x-1))' will estimate the X-derivative");  //
+  gmic_help("            of an image with a classical finite difference scheme.");                           //
   gmic_help("  - The last image of the list is always associated to the evaluations of '{expressions}',");   //
   gmic_help("     e.g. G'MIC sequence '256,128 -f {w}' will create a 256x128 image filled with value 256."); //
-
-  gmic_subsection("Adding custom commands");
-
-  gmic_help("  - Custom commands can be defined by the user, through the use of G'MIC command files.");      //
-  gmic_help("  - A command file is a simple ascii text file, where each line starts either by");             //
-  gmic_help("     'command_name : substitution' or 'substitution (continuation)' or '# comment'.");          //
-  gmic_help("  - Custom command names use characters [a-zA-Z0-9_] and cannot start with a number.");         //
-  gmic_help("  - Any ' # comment' expression found in a custom command file is discarded by the G'MIC");     //
-  gmic_help("     interpreter, wherever it is located in a line.");                                          //
-  gmic_help("  - A default command file is already provided within the G'MIC package. It is located");       //
-  gmic_help("     at 'http://gmic.sourceforge.net/gmic_def.xxxx', where 'xxxx' has to be replaced by");      //
-  gmic_help("     the 4 digits of the current G'MIC version number. Looking at it is a good place to start");//
-  gmic_help("     learning to create your own custom commands. All the commands from this default command"); //
-  gmic_help("     file are already included by default in the current version of the G'MIC interpreter.");   //
-  gmic_help("  - The default command file located at 'http://gmic.sourceforge.net/gmic_def.xxxx' may be");   //
-  gmic_help("     updated/corrected by the G'MIC developers. You can thus download and include it with the");//
-  gmic_help("     '-command' (or -'m') directive to update your default command definitions as well.");      //
-  gmic_help("  - In custom commands, the following $-expressions are substituted :");                        //
-  gmic_help("    . '$#' is substituted by the maximum indice of known arguments (either specified by the");  //
-  gmic_help("       user or set to a default value in the custom command).");                                //
-  gmic_help("    . '$?' is substituted by a string telling about the command subset restriction (only");     //
-  gmic_help("       useful when custom commands need to output descriptive messages).");                     //
-  gmic_help("    . '$i' and '${i}' are both substituted by the i-th specified argument. Negative indices");  //
-  gmic_help("       such as '${-j}' are allowed and refer to the j^th latest argument. '$0' is substituted");//
-  gmic_help("       by the custom command name.");                                                           //
-  gmic_help("    . '${i=default}' is substituted by the value of $i (if defined) or by its new");            //
-  gmic_help("        value set to 'default' otherwise ('default' may be a $-expression as well).");          //
-  gmic_help("    . '${subset}' is substituted by the arguments values (separated by commas ',') of a");      //
-  gmic_help("       specified argument subset. For instance expression '${2--2}' is substitued by all");     //
-  gmic_help("       specified arguments except the first and the last ones. Useful expression '${^0}' is");  //
-  gmic_help("       substituted by all specified arguments.");                                               //
-  gmic_help("  - Specifying arguments may be skipped when invoking a custom command, by replacing them by"); //
-  gmic_help("     commas ',' as in expression '-flower ,,3'. Omitted arguments are set to their default");   //
-  gmic_help("     values, which must be thus explicitely defined in the code of the corresponding custom");  //
-  gmic_help("     command (using default argument expressions as '${1=default}').");                         //
 
   gmic_subsection("Image and data viewers");
 
@@ -10936,7 +10972,49 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("    . CTRL+G                        : Save 3d object, as numbered file 'gmic_xxxx.off'.");      //
   gmic_help("    . CTRL+T                        : Switch between single/double-sided 3d modes.");           //
 
-  gmic_section("Native commands");
+  gmic_subsection("Adding custom commands");
+
+  gmic_help("  - Custom commands can be defined by a user, through the use of G'MIC custom commands files.");//
+  gmic_help("  - A command file is a simple ascii text file, where each line starts either by");             //
+  gmic_help("     'command_name : command_definition' or 'command_definition (continuation)'.");             //
+  gmic_help("  - Custom command names must use characters [a-zA-Z0-9_] and cannot start with a number.");    //
+  gmic_help("  - Any ' # comment' expression found in a custom commands file is discarded by the G'MIC");    //
+  gmic_help("     interpreter, wherever it is located in a line.");                                          //
+  gmic_help("  - A default command file is already provided within the G'MIC package. It is located");       //
+  gmic_help("     at 'http://gmic.sourceforge.net/gmic_def.xxxx', where 'xxxx' has to be replaced by");      //
+  gmic_help("     the 4 digits of the current G'MIC version number. Looking at it is a good place to start");//
+  gmic_help("     learning to create your own custom commands. All the commands from this default command"); //
+  gmic_help("     file are already included by default in the current version of the G'MIC interpreter.");   //
+  gmic_help("  - The default command file located at 'http://gmic.sourceforge.net/gmic_def.xxxx' may be");   //
+  gmic_help("     updated/corrected by the G'MIC developers. You can thus download and include it with the");//
+  gmic_help("     '-command' directive to update your default command definitions as well.");                //
+  gmic_help("  - In custom commands, the following $-expressions are substituted :");                        //
+  gmic_help("    . '$*' is substituted by a verbatim copy of the specified arguments string.");              //
+  gmic_help("    . '$#' is substituted by the maximum indice of known arguments (either specified by the");  //
+  gmic_help("       user or set to a default value in the custom command).");                                //
+  gmic_help("    . '$?' is substituted by a string telling about the command subset restriction (only");     //
+  gmic_help("       useful when custom commands need to output descriptive messages).");                     //
+  gmic_help("    . '$i' and '${i}' are both substituted by the i-th specified argument. Negative indices");  //
+  gmic_help("       such as '${-j}' are allowed and refer to the j^th latest argument. '$0' is substituted");//
+  gmic_help("       by the custom command name.");                                                           //
+  gmic_help("    . '${i=default}' is substituted by the value of $i (if defined) or by its new value set");  //
+  gmic_help("        to 'default' otherwise ('default' may be a $-expression as well).");                    //
+  gmic_help("    . '${subset}' is substituted by the arguments values (separated by commas ',') of a");      //
+  gmic_help("       specified argument subset. For instance expression '${2--2}' is substitued by all");     //
+  gmic_help("       specified arguments except the first and the last one. Expression '${^0}' is then");     //
+  gmic_help("       substituted by all arguments of the invoked command (eq. to '$*' if all specified");     //
+  gmic_help("       arguments have indeed a value).");                                                       //
+  gmic_help("  - These particular $-expressions are always substituted, even in double quoted items or");    //
+  gmic_help("     when the dollar sign '$' is escaped with a backslash '\\'. To avoid substitution, place"); //
+  gmic_help("     an empty double quoted string just after the '$' (as in '$\"\"1').");                      //
+  gmic_help("  - Specifying arguments may be skipped when invoking a custom command, by replacing them by"); //
+  gmic_help("     commas ',' as in expression '-flower ,,3'. Omitted arguments are set to their default");   //
+  gmic_help("     values, which must be thus explicitely defined in the code of the corresponding custom");  //
+  gmic_help("     command (using default argument expressions as '${1=default}').");                         //
+  gmic_help("  - If one numbered argument encoutered in a custom command has no values, the interpreter");   //
+  gmic_help("     throws an error.");                                                                        //
+
+  gmic_section("List of native commands");
 
   gmic_help(" All native G'MIC commands are listed below, classified by themes.");                           //
   gmic_help(" When several choices of command arguments are possible, they appear separated by '|'.");       //
@@ -10944,19 +11022,189 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(" existing image [image], where 'image' can be either an indice number or an image name.");      //
   gmic_help(" In this case, the '[]' characters are mandatory when writing the item. A command marked with");//
   gmic_help(" (*) is available for all image types, else only for the default 'float' pixel datatype.");     //
+  gmic_help(" Remember that native commands are faster than custom commands, so use then when possible.");   //
 
   gmic_subsection("Global options");
-
-  gmic_option("-help","_command","(*)");
-  gmic_help(_"Display help (optionally for specified command only) and quit.");
-  gmic_help(_"(eq. to '-h').");
 
   gmic_option("-debug","","(*)");
   gmic_help(_"Activate debug mode.");
   gmic_help(_"When activated, the G'MIC interpreter becomes very verbose and outputs additionnal log");
   gmic_help(_"messages describing the internal state of the interpreter on the standard output.");
+  gmic_help(_"This is very useful for debugging the execution of a custom command.");
 
-  gmic_subsection("Mathematical operators and functions");
+  gmic_option("-help","_command","(*)");
+  gmic_help(_"Display help (optionally for specified command only) and exit.");
+  gmic_help(_"(eq. to '-h').");
+
+  gmic_option("-version","","(*)");
+  gmic_help(_"Display current version number and exit.");
+
+  gmic_subsection("Inputs / outputs");
+
+  gmic_option("-camera","_camera_index>=-1,_nb_frames>0,_skip_frames>=0,release_camera={ 0 | 1 }","(*)");
+  gmic_help(_"Insert one or several frames from specified camera, with custom delay between frames (in ms).");
+  gmic_help(_"Set 'camera_index' to -1 to use the default camera device.");
+  gmic_help(_"When 'release_camera==1', the camera stream is released instead of capturing new images.");
+  gmic_help(_"Default values : 'camera_index=-1', 'nb_frames=1', 'skip_frames=0', 'release_camera=0'.");
+
+  gmic_option("-command","filename |","(*)");
+  gmic_argument("http://URL |");
+  gmic_argument("\"string\"");
+  gmic_help(_"Import G'MIC custom commands from specified file, URL or string.");
+  gmic_help(_"(eq. to '-m').");
+  gmic_help(_"Imported commands are available directly after the '-command' invokation.");
+  gmic_help("$ image.jpg -command \"foo : -mirror y -deform $\"\"1\" --foo[0] 5 --foo[0] 15");
+
+  gmic_option("-display","","");
+  gmic_help(_"Display selected images in an interactive viewer (use the instant window [0] if opened).");
+  gmic_help(_"(eq. to '-d').");
+
+  gmic_option("-display3d","","");
+  gmic_help(_"Display selected 3d objects in an interactive viewer (use the instant window [0] if opened).");
+  gmic_help(_"(eq. to '-d3d').");
+
+  gmic_option("-echo","message","(*)");
+  gmic_help(_"Output specified message, on the standard output.");
+  gmic_help(_"(eq. to '-e').");
+  gmic_help(_"Command subset (if any) stands for displayed scope indices instead of image indices.");
+
+  gmic_option("-input","[type:]filename |","(*)");
+  gmic_argument("[type:]http://URL |");
+  gmic_argument("[selection]x_nb_copies>0 |");
+  gmic_argument("{ width>0[%] | [image_w] },{ _height>0[%] | [image_h] },{ _depth>0[%] | [image_d] },");
+  gmic_argument("{ _spectrum>0[%] | [image_s] },_{ value1,_value2,.. | 'formula' } |");
+  gmic_argument("(value1{,|;|/|^}value2{,|;|/|^}..) |");
+  gmic_argument("0");
+  gmic_help(_"Insert a new image taken from a filename or from a copy of an existing image ['indice'],");
+  gmic_help(_" or insert new image with specified dimensions and values. Single quotes may be omitted in");
+  gmic_help(_" 'formula'. Specifying argument '0' inserts an 'empty' image.");
+  gmic_help(_"(eq. to '-i' | (no args)).");
+  gmic_help(_"Default values : 'nb_copies=1', 'height=depth=spectrum=1' and 'value1=0'.");
+  gmic_help("$ -input image.jpg");
+  gmic_help("$ -i (1,2,3;4,5,6;7,8,9^9,8,7;6,5,4;3,2,1)");
+  gmic_help("$ image.jpg (1,2,3;4,5,6;7,8,9) (255^128^64) 400,400,1,3,'if(x>w/2,x,y)*c'");
+
+  gmic_option("-output","[type:]filename,_format_options","(*)");
+  gmic_help(_"Output selected images as one or several numbered file(s).");
+  gmic_help(_"(eq. to '-o').");
+  gmic_help(_"Default value : 'format_options=(undefined).");
+
+  gmic_option("-plot","_plot_type,_vertex_type,_xmin,_xmax,_ymin,_ymax |","");
+  gmic_argument("'formula',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax");
+  gmic_help(_"Display selected image or formula in an interactive viewer (use the instant window [0] if");
+  gmic_help(_" opened).");
+  gmic_help(_"'plot_type' can be { 0=none | 1=lines | 2=splines | 3=bar }.");
+  gmic_help(_"'vertex_type' can be { 0=none | 1=points | 2,3=crosses | 4,5=circles | 6,7=squares }.");
+  gmic_help(_"'xmin','xmax','ymin','ymax' set the coordinates of the displayed xy-axes.");
+  gmic_help(_"Default values : 'plot_type=1', 'vertex_type=1' and 'xmin=xmax=ymin=ymax=0 (auto)'.");
+
+  gmic_option("-print","","(*)");
+  gmic_help(_"(eq. to '-p').");
+  gmic_help(_"Output informations on selected images, on the standard output.");
+
+  gmic_option("-select","feature_type","");
+  gmic_help(_"Interactively select a feature from selected images (use the instant window [0] if opened).");
+  gmic_help(_"'feature_type' can be { 0=point | 1=segment | 2=rectangle | 3=ellipse }.");
+  gmic_help(_"The retrieved feature is returned as a 3d or 6d vector containing the feature coordinates.");
+
+  gmic_option("-shared","x0[%],x1[%],y[%],z[%],v[%] |","(*)");
+  gmic_argument("y0[%],y1[%],z[%],v[%] |");
+  gmic_argument("z0[%],z1[%],v[%] |");
+  gmic_argument("v0[%],v1[%] |");
+  gmic_argument("(no args)");
+  gmic_help(_"Insert shared buffers from (opt. points/lines/planes/channels of) selected images.");
+  gmic_help(_"(eq. to '-sh').");
+  gmic_help("$ image.jpg --shared 1,1 -blur[-1] 3 -remove[-1]");
+  gmic_help("$ image.jpg -repeat {s} --shared 25%,75%,0,$> -mirror[-1] x -remove[-1] -done");
+
+  gmic_option("-shell","","(*)");
+  gmic_help(_"Start shell environment, with selected images.");
+
+  gmic_option("-srand","value |","(*)");
+  gmic_argument("(no args)");
+  gmic_help(_"Set random generator seed.");
+  gmic_help(_"If no argument is specified, a random value is used as the random generator seed.");
+
+  gmic_option("-type","datatype","(*)");
+  gmic_help(_"Set pixel datatype for all images of the list.");
+  gmic_help(_"'datatype' can be { bool | uchar | char | ushort | short | uint |");
+  gmic_help(_"                     int | float | double }.");
+
+  gmic_option("-uncommand","command_name","(*)");
+  gmic_help(_"Discard last definition of specified custom command.");
+
+  gmic_option("-verbose","level |","(*)");
+  gmic_argument("{ + | - }");
+  gmic_help(_"Set or increment/decrement the verbosity level.");
+  gmic_help(_"(eq. to '-v').");
+  gmic_help(_"When 'level'>=0, G'MIC log messages are displayed on the standard output.");
+  gmic_help(_"Default value for the verbosity level is 0.");
+
+  gmic_option("-wait","delay |","");
+  gmic_argument("(no args)");
+  gmic_help(_"Wait for a given delay (in ms) or for a user event occuring on the selected instant window.");
+  gmic_help(_"'delay' can be { <0=delay+flush |  0=event | >0=delay }.");
+  gmic_help(_"Command subset (if any) stands for instant window indices instead of image indices.");
+
+  gmic_option("-warning","message","(*)");
+  gmic_help(_"Print specified warning message, on the standard output.");
+  gmic_help(_"Command subset (if any) stands for displayed scope indices instead of image indices.");
+
+  gmic_option("-window","_width[%]>=-1,_height[%]>=-1,_normalization,_fullscreen,_title","");
+  gmic_help(_"Display selected images into an instant window with specified size, normalization type,");
+  gmic_help(_" fullscreen mode and title.");
+  gmic_help(_"(eq. to '-w').");
+  gmic_help(_"If 'width' or 'height' is set to -1, the corresponding dimension is adjusted to the window");
+  gmic_help(_" or image size.");
+  gmic_help(_"'width'=0 or 'height'=0 closes the instant window.");
+  gmic_help(_"'normalization' can be { -1=keep same | 0=none | 1=always | 2=1st-time | 3=auto }.");
+  gmic_help(_"'fullscreen' can be { -1=keep same | 0=no | 1=yes }.");
+  gmic_help(_"You can manage up to 10 different instant windows by using the numbered variants");
+  gmic_help(_" '-w0' (default, eq. to '-w'),'-w1',..,'-w9' of the command '-w'.");
+  gmic_help(_"Default values : 'width=height=normalization=fullscreen=-1' and 'title=(undefined)'.");
+
+  gmic_subsection("List manipulation");
+
+  gmic_option("-keep","","(*)");
+  gmic_help(_"Keep only selected images.");
+  gmic_help(_"(eq. to '-k').");
+  gmic_help("$ image.jpg -split x -keep[0-50%:2] -append x");
+  gmic_help("$ image.jpg -split x -keep[^30%-70%] -append x");
+
+  gmic_option("-move","position[%]","(*)");
+  gmic_help(_"Move selected images at specified position.");
+  gmic_help(_"(eq. to '-mv').");
+  gmic_help("$ image.jpg -split x,3 -move[1] 0");
+  gmic_help("$ image.jpg -split x -move[50%--1:2] 0 -append x");
+
+  gmic_option("-name","name","(*)");
+  gmic_help(_"Set name of selected images.");
+  gmic_help(_"(eq. to '-nm').");
+  gmic_help("$ image.jpg -name image -blur[image] 0");
+
+  gmic_option("-remove","","(*)");
+  gmic_help(_"Remove selected images.");
+  gmic_help(_"(eq. to '-rm').");
+  gmic_help("$ image.jpg -split x -remove[30%-70%] -append x");
+  gmic_help("$ image.jpg -split x -remove[0-50%:2] -append x");
+
+  gmic_option("-reverse","","(*)");
+  gmic_help(_"Reverse positions of selected images.");
+  gmic_help(_"(eq. to '-rv').");
+  gmic_help("$ image.jpg -split x,3 -reverse[-2,-1]");
+  gmic_help("$ image.jpg -split x,-16 -reverse[50%-100%] -append x");
+
+  gmic_subsection("Mathematical operators");
+
+  gmic_option("-abs","","");
+  gmic_help(_"Compute the pointwise absolute values of selected images.");
+  gmic_help("$ image.jpg --sub {ia} -abs[-1]");
+  gmic_help("$ 300,1,1,1,'cos(20*x/w)' --abs -display_graph 400,300");
+
+  gmic_option("-acos","","");
+  gmic_help(_"Compute the pointwise arc-cosine of selected images.");
+  gmic_help("$ image.jpg --normalize -1,1 -acos[-1]");
+  gmic_help("$ 300,1,1,1,'x/w+0.1*u' --acos -display_graph 400,300");
 
   gmic_option("-add","value[%] |","");
   gmic_argument("[image] |");
@@ -10970,94 +11218,6 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg -add '80*cos(80*(x/w-0.5)*(y/w-0.5)+c)' -cut 0,255");
   gmic_help("$ image.jpg -repeat 9 --rotate[0] {$>*36},0,1,50%,50% -done -add -div 10");
 
-  gmic_option("-sub","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Subtract specified value, image or mathematical expression to selected images,");
-  gmic_help(_" or compute the pointwise difference of selected images.");
-  gmic_help(_"(eq. to '--').");
-  gmic_help("$ image.jpg --sub 30% -cut 0,255");
-  gmic_help("$ image.jpg --mirror x -sub[-1] [0]");
-  gmic_help("$ image.jpg -sub 'i(w/2+0.9*(x-w/2),y)'");
-  gmic_help("$ image.jpg --mirror x -sub");
-
-  gmic_option("-mul","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Multiply selected images by specified value, image or mathematical expression,");
-  gmic_help(_" or compute the pointwise product of selected images.");
-  gmic_help(_"(eq. to '-*').");
-  gmic_help("$ image.jpg --mul 2 -cut 0,255");
-  gmic_help("$ image.jpg (1,2,3,4,5,6,7,8) -resize[-1] [0] -mul[0] [-1]");
-  gmic_help("$ image.jpg -mul '1-3*abs(x/w-0.5)' -cut 0,255");
-  gmic_help("$ image.jpg --luminance -negative[-1] --mul");
-
-  gmic_option("-mmul","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the matrix multiplication of selected matrices/vectors by specified value, image or");
-  gmic_help(_" mathematical expression, or compute the matrix multiplication of selected images.");
-  gmic_help(_"(eq. to '-**').");
-  gmic_help("$ (0,1,0;0,0,1;1,0,0) (1;2;3) --mmul -resize2dy 300");
-
-  gmic_option("-div","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Divide selected image by specified value, image or mathematical expression,");
-  gmic_help(_" or compute the pointwise quotient of selected images.");
-  gmic_help(_"(eq. to '-/').");
-  gmic_help("$ image.jpg -div '1+abs(cos(x/10)*sin(y/10))'");
-  gmic_help("$ image.jpg --luminance --div");
-
-  gmic_option("-mdiv","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the matrix division of selected matrices/vectors by specified value, image or");
-  gmic_help(_" mathematical expression, or compute the matrix division of selected images.");
-  gmic_help(_"(eq. to '-//').");
-
-  gmic_option("-pow","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Raise selected image to the power of specified value, image or mathematical");
-  gmic_help(_" expression, or compute the pointwise sequential powers of selected images.");
-  gmic_help(_"(eq. to '-^').");
-  gmic_help("$ image.jpg -div 255 --pow 0.5 -mul 255");
-  gmic_help("$ image.jpg -gradient -pow 2 -add -pow 0.2");
-
-  gmic_option("-min","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the minimum between selected images and specified value, image or");
-  gmic_help(_" mathematical expression, or compute the pointwise minima between selected images.");
-  gmic_help("$ image.jpg --mirror x -min");
-  gmic_help("$ image.jpg -min 'R=((x/w-0.5)^2+(y/h-0.5)^2)^0.5;255*R'");
-
-  gmic_option("-max","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the maximum between selected images and specified value, image or");
-  gmic_help(_" mathematical expression, or compute the pointwise maxima between selected images.");
-  gmic_help("$ image.jpg --mirror x -max");
-  gmic_help("$ image.jpg -max 'R=((x/w-0.5)^2+(y/h-0.5)^2)^0.5;255*R'");
-
-  gmic_option("-mod","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the modulo of selected images with specified value, image or mathematical");
-  gmic_help(_" expression, or compute the pointwise sequential modulo of selected images.");
-  gmic_help("$ image.jpg --mirror x -mod");
-  gmic_help("$ image.jpg -mod 'R=((x/w-0.5)^2+(y/h-0.5)^2)^0.5;255*R'");
-
   gmic_option("-and","value[%] |","");
   gmic_argument("[image] |");
   gmic_argument("'formula' |");
@@ -11067,23 +11227,21 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg -and {128+64}");
   gmic_help("$ image.jpg --mirror x -and");
 
-  gmic_option("-or","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the bitwise OR of selected images with specified value, image or mathematical");
-  gmic_help(_" expression, or compute the pointwise sequential bitwise OR of selected images.");
-  gmic_help("$ image.jpg -or 128");
-  gmic_help("$ image.jpg --mirror x -or");
+  gmic_option("-asin","","");
+  gmic_help(_"Compute the pointwise arc-sine of selected images.");
+  gmic_help("$ image.jpg --normalize -1,1 -asin[-1]");
+  gmic_help("$ 300,1,1,1,'x/w+0.1*u' --asin -display_graph 400,300");
 
-  gmic_option("-xor","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the bitwise XOR of selected images with specified value, image or mathematical");
-  gmic_help(_" expression, or compute the pointwise sequential bitwise XOR of selected images.");
-  gmic_help("$ image.jpg -xor 128");
-  gmic_help("$ image.jpg --mirror x -xor");
+  gmic_option("-atan","","");
+  gmic_help(_"Compute the pointwise arc-tangent of selected images.");
+  gmic_help("$ image.jpg --normalize 0,8 -atan[-1]");
+  gmic_help("$ 300,1,1,1,'4*x/w+u' --atan -display_graph 400,300");
+
+  gmic_option("-atan2","[x_argument]","");
+  gmic_help(_"Compute the pointwise oriented arc-tangent of selected images.");
+  gmic_help(_"Each selected image is regarded as the y-argument of the arc-tangent function, while the ");
+  gmic_help(_" specified image gives the corresponding x-argument.");
+  gmic_help("$ (-1,1) (-1;1) -resize 400,400,1,1,3 -atan2[1] [0] -keep[1] -mod {pi/8}");
 
   gmic_option("-bsl","value[%] |","");
   gmic_argument("[image] |");
@@ -11105,6 +11263,180 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_"(eq. to '->>').");
   gmic_help("$ image.jpg -bsr 'round(3*x/w,0)' -cut 0,255");
 
+  gmic_option("-cos","","");
+  gmic_help(_"Compute the pointwise cosine of selected images.");
+  gmic_help("$ image.jpg --normalize 0,{2*pi} -cos[-1]");
+  gmic_help("$ 300,1,1,1,'20*x/w+u' --cos -display_graph 400,300");
+
+  gmic_option("-cosh","","");
+  gmic_help(_"Compute the pointwise hyperbolic cosine of selected images.");
+  gmic_help("$ image.jpg --normalize -3,3 -cosh[-1]");
+  gmic_help("$ 300,1,1,1,'4*x/w+u' --cosh -display_graph 400,300");
+
+  gmic_option("-div","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Divide selected image by specified value, image or mathematical expression,");
+  gmic_help(_" or compute the pointwise quotient of selected images.");
+  gmic_help(_"(eq. to '-/').");
+  gmic_help("$ image.jpg -div '1+abs(cos(x/10)*sin(y/10))'");
+  gmic_help("$ image.jpg --luminance --div");
+
+  gmic_option("-eq","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the boolean equality of selected images with specified value, image or");
+  gmic_help(_" mathematical expression, or compute the boolean equality of selected images.");
+  gmic_help(_"(eq. to '-==').");
+  gmic_help("$ image.jpg -round 40 -eq {round(ia,40)}");
+  gmic_help("$ image.jpg --mirror x -eq");
+
+  gmic_option("-exp","","");
+  gmic_help(_"Compute the pointwise exponential of selected images.");
+  gmic_help("$ image.jpg --normalize 0,2 -exp[-1]");
+  gmic_help("$ 300,1,1,1,'7*x/w+u' --exp -display_graph 400,300");
+
+  gmic_option("-ge","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the boolean 'greater or equal than' of selected images with specified value, image");
+  gmic_help(_" or mathematical expression, or compute the boolean 'greater or equal than' of selected images.");
+  gmic_help(_"(eq. to '->=').");
+  gmic_help("$ image.jpg -ge {ia}");
+  gmic_help("$ image.jpg --mirror x -ge");
+
+  gmic_option("-gt","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the boolean 'greater than' of selected images with specified value, image or");
+  gmic_help(_" mathematical expression, or compute the boolean 'greater than' of selected images.");
+  gmic_help(_"(eq. to '->').");
+  gmic_help("$ image.jpg -gt {ia}");
+  gmic_help("$ image.jpg --mirror x -gt");
+
+  gmic_option("-le","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the boolean 'less or equal than' of selected images with specified value, image or");
+  gmic_help(_" mathematical expression, or compute the boolean 'less or equal than' of selected images.");
+  gmic_help(_"(eq. to '-<=').");
+  gmic_help("$ image.jpg -le {ia}");
+  gmic_help("$ image.jpg --mirror x -le");
+
+  gmic_option("-lt","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the boolean 'less than' of selected images with specified value, image or");
+  gmic_help(_" mathematical expression, or compute the boolean 'less than' of selected images.");
+  gmic_help(_"(eq. to '-<').");
+  gmic_help("$ image.jpg -lt {ia}");
+  gmic_help("$ image.jpg --mirror x -lt");
+
+  gmic_option("-log","","");
+  gmic_help(_"Compute the pointwise base-e logarithm of selected images.");
+  gmic_help("$ image.jpg --add 1 -log[-1]");
+  gmic_help("$ 300,1,1,1,'7*x/w+u' --log -display_graph 400,300");
+
+  gmic_option("-log10","","");
+  gmic_help(_"Compute the pointwise base-10 logarithm of selected images.");
+  gmic_help("$ image.jpg --add 1 -log10[-1]");
+  gmic_help("$ 300,1,1,1,'7*x/w+u' --log10 -display_graph 400,300");
+
+  gmic_option("-log2","","");
+  gmic_help(_"Compute the pointwise base-2 logarithm of selected images.");
+  gmic_help("$ image.jpg --add 1 -log2[-1]");
+  gmic_help("$ 300,1,1,1,'7*x/w+u' --log2 -display_graph 400,300");
+
+  gmic_option("-max","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the maximum between selected images and specified value, image or");
+  gmic_help(_" mathematical expression, or compute the pointwise maxima between selected images.");
+  gmic_help("$ image.jpg --mirror x -max");
+  gmic_help("$ image.jpg -max 'R=((x/w-0.5)^2+(y/h-0.5)^2)^0.5;255*R'");
+
+  gmic_option("-mdiv","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the matrix division of selected matrices/vectors by specified value, image or");
+  gmic_help(_" mathematical expression, or compute the matrix division of selected images.");
+  gmic_help(_"(eq. to '-//').");
+
+  gmic_option("-min","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the minimum between selected images and specified value, image or");
+  gmic_help(_" mathematical expression, or compute the pointwise minima between selected images.");
+  gmic_help("$ image.jpg --mirror x -min");
+  gmic_help("$ image.jpg -min 'R=((x/w-0.5)^2+(y/h-0.5)^2)^0.5;255*R'");
+
+  gmic_option("-mod","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the modulo of selected images with specified value, image or mathematical");
+  gmic_help(_" expression, or compute the pointwise sequential modulo of selected images.");
+  gmic_help("$ image.jpg --mirror x -mod");
+  gmic_help("$ image.jpg -mod 'R=((x/w-0.5)^2+(y/h-0.5)^2)^0.5;255*R'");
+
+  gmic_option("-mmul","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the matrix multiplication of selected matrices/vectors by specified value, image or");
+  gmic_help(_" mathematical expression, or compute the matrix multiplication of selected images.");
+  gmic_help(_"(eq. to '-**').");
+  gmic_help("$ (0,1,0;0,0,1;1,0,0) (1;2;3) --mmul");
+
+  gmic_option("-mul","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Multiply selected images by specified value, image or mathematical expression,");
+  gmic_help(_" or compute the pointwise product of selected images.");
+  gmic_help(_"(eq. to '-*').");
+  gmic_help("$ image.jpg --mul 2 -cut 0,255");
+  gmic_help("$ image.jpg (1,2,3,4,5,6,7,8) -resize[-1] [0] -mul[0] [-1]");
+  gmic_help("$ image.jpg -mul '1-3*abs(x/w-0.5)' -cut 0,255");
+  gmic_help("$ image.jpg --luminance -negative[-1] --mul");
+
+  gmic_option("-neq","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the boolean inequality of selected images with specified value, image or");
+  gmic_help(_" mathematical expression, or compute the boolean inequality of selected images.");
+  gmic_help(_"(eq. to '-!=').");
+  gmic_help("$ image.jpg -round 40 -neq {round(ia,40)}");
+
+  gmic_option("-or","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the bitwise OR of selected images with specified value, image or mathematical");
+  gmic_help(_" expression, or compute the pointwise sequential bitwise OR of selected images.");
+  gmic_help("$ image.jpg -or 128");
+  gmic_help("$ image.jpg --mirror x -or");
+
+  gmic_option("-pow","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Raise selected image to the power of specified value, image or mathematical");
+  gmic_help(_" expression, or compute the pointwise sequential powers of selected images.");
+  gmic_help(_"(eq. to '-^').");
+  gmic_help("$ image.jpg -div 255 --pow 0.5 -mul 255");
+  gmic_help("$ image.jpg -gradient -pow 2 -add -pow 0.2");
+
   gmic_option("-rol","value[%] |","");
   gmic_argument("[image] |");
   gmic_argument("'formula' |");
@@ -11123,69 +11455,10 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_" selected images.");
   gmic_help("$ image.jpg -ror 'round(3*x/w,0)' -cut 0,255");
 
-  gmic_option("-eq","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the boolean equality of selected images with specified value, image or");
-  gmic_help(_" mathematical expression, or compute the boolean equality of selected images.");
-  gmic_help(_"(eq. to '-==').");
-  gmic_help("$ image.jpg -round 40 -eq {round(ia,40)}");
-  gmic_help("$ image.jpg --mirror x -eq");
-
-  gmic_option("-neq","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the boolean inequality of selected images with specified value, image or");
-  gmic_help(_" mathematical expression, or compute the boolean inequality of selected images.");
-  gmic_help(_"(eq. to '-!=').");
-  gmic_help("$ image.jpg -round 40 -neq {round(ia,40)}");
-
-  gmic_option("-gt","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the boolean 'greater than' of selected images with specified value, image or");
-  gmic_help(_" mathematical expression, or compute the boolean 'greater than' of selected images.");
-  gmic_help(_"(eq. to '->').");
-  gmic_help("$ image.jpg -gt {ia}");
-  gmic_help("$ image.jpg --mirror x -gt");
-
-  gmic_option("-ge","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the boolean 'greater or equal than' of selected images with specified value, image");
-  gmic_help(_" or mathematical expression, or compute the boolean 'greater or equal than' of selected images.");
-  gmic_help(_"(eq. to '->=').");
-  gmic_help("$ image.jpg -ge {ia}");
-  gmic_help("$ image.jpg --mirror x -ge");
-
-  gmic_option("-lt","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the boolean 'less than' of selected images with specified value, image or");
-  gmic_help(_" mathematical expression, or compute the boolean 'less than' of selected images.");
-  gmic_help(_"(eq. to '-<').");
-  gmic_help("$ image.jpg -lt {ia}");
-  gmic_help("$ image.jpg --mirror x -lt");
-
-  gmic_option("-le","value[%] |","");
-  gmic_argument("[image] |");
-  gmic_argument("'formula' |");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the boolean 'less or equal than' of selected images with specified value, image or");
-  gmic_help(_" mathematical expression, or compute the boolean 'less or equal than' of selected images.");
-  gmic_help(_"(eq. to '-<=').");
-  gmic_help("$ image.jpg -le {ia}");
-  gmic_help("$ image.jpg --mirror x -le");
-
-  gmic_option("-cos","","");
-  gmic_help(_"Compute the pointwise cosine of selected images.");
-  gmic_help("$ image.jpg --normalize 0,{2*pi} -cos[-1]");
-  gmic_help("$ 300,1,1,1,'20*x/w+u' --cos -display_graph 400,300");
+  gmic_option("-sign","","");
+  gmic_help(_"Compute the pointwise sign of selected images.");
+  gmic_help("$ image.jpg --sub {ia} -sign[-1]");
+  gmic_help("$ 300,1,1,1,'cos(20*x/w+u)' --sign -display_graph 400,300");
 
   gmic_option("-sin","","");
   gmic_help(_"Compute the pointwise sine of selected images.");
@@ -11197,56 +11470,10 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg --normalize {-2*pi},{2*pi} -sinc[-1]");
   gmic_help("$ 300,1,1,1,'20*x/w+u' --sinc -display_graph 400,300");
 
-  gmic_option("-tan","","");
-  gmic_help(_"Compute the pointwise tangent of selected images.");
-  gmic_help("$ image.jpg --normalize {-0.47*pi},{0.47*pi} -tan[-1]");
-  gmic_help("$ 300,1,1,1,'20*x/w+u' --tan -display_graph 400,300");
-
-  gmic_option("-cosh","","");
-  gmic_help(_"Compute the pointwise hyperbolic cosine of selected images.");
-  gmic_help("$ image.jpg --normalize -3,3 -cosh[-1]");
-  gmic_help("$ 300,1,1,1,'4*x/w+u' --cosh -display_graph 400,300");
-
   gmic_option("-sinh","","");
   gmic_help(_"Compute the pointwise hyperbolic sine of selected images.");
   gmic_help("$ image.jpg --normalize -3,3 -sinh[-1]");
   gmic_help("$ 300,1,1,1,'4*x/w+u' --sinh -display_graph 400,300");
-
-  gmic_option("-tanh","","");
-  gmic_help(_"Compute the pointwise hyperbolic tangent of selected images.");
-  gmic_help("$ image.jpg --normalize -3,3 -tanh[-1]");
-  gmic_help("$ 300,1,1,1,'4*x/w+u' --tanh -display_graph 400,300");
-
-  gmic_option("-acos","","");
-  gmic_help(_"Compute the pointwise arc-cosine of selected images.");
-  gmic_help("$ image.jpg --normalize -1,1 -acos[-1]");
-  gmic_help("$ 300,1,1,1,'x/w+0.1*u' --acos -display_graph 400,300");
-
-  gmic_option("-asin","","");
-  gmic_help(_"Compute the pointwise arc-sine of selected images.");
-  gmic_help("$ image.jpg --normalize -1,1 -asin[-1]");
-  gmic_help("$ 300,1,1,1,'x/w+0.1*u' --asin -display_graph 400,300");
-
-  gmic_option("-atan","","");
-  gmic_help(_"Compute the pointwise arc-tangent of selected images.");
-  gmic_help("$ image.jpg --normalize 0,8 -atan[-1]");
-  gmic_help("$ 300,1,1,1,'4*x/w+u' --atan -display_graph 400,300");
-
-  gmic_option("-atan2","[x_argument]","");
-  gmic_help(_"Compute the pointwise oriented arc-tangent of selected images.");
-  gmic_help(_"Each selected image is regarded as the y-argument of the arc-tangent function, while the ");
-  gmic_help(_" specified image gives the corresponding x-argument.");
-  gmic_help("$ (-1,1) (-1;1) -resize 400,400,1,1,3 -atan2[1] [0] -keep[1] -mod {pi/8}");
-
-  gmic_option("-abs","","");
-  gmic_help(_"Compute the pointwise absolute values of selected images.");
-  gmic_help("$ image.jpg --sub {ia} -abs[-1]");
-  gmic_help("$ 300,1,1,1,'cos(20*x/w+u)' --abs -display_graph 400,300");
-
-  gmic_option("-sign","","");
-  gmic_help(_"Compute the pointwise sign of selected images.");
-  gmic_help("$ image.jpg --sub {ia} -sign[-1]");
-  gmic_help("$ 300,1,1,1,'cos(20*x/w+u)' --sign -display_graph 400,300");
 
   gmic_option("-sqr","","");
   gmic_help(_"Compute the pointwise square function of selected images.");
@@ -11258,53 +11485,38 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg --sqrt");
   gmic_help("$ 300,1,1,1,'40*x/w+u' --sqrt -display_graph 400,300");
 
-  gmic_option("-exp","","");
-  gmic_help(_"Compute the pointwise exponential of selected images.");
-  gmic_help("$ image.jpg --normalize 0,2 -exp[-1]");
-  gmic_help("$ 300,1,1,1,'7*x/w+u' --exp -display_graph 400,300");
-
-  gmic_option("-log","","");
-  gmic_help(_"Compute the pointwise logarithm of selected images.");
-  gmic_help("$ image.jpg --add 1 -log[-1]");
-  gmic_help("$ 300,1,1,1,'7*x/w+u' --log -display_graph 400,300");
-
-  gmic_option("-log10","","");
-  gmic_help(_"Compute the pointwise logarithm_10 of selected images.");
-  gmic_help("$ image.jpg --add 1 -log10[-1]");
-  gmic_help("$ 300,1,1,1,'7*x/w+u' --log10 -display_graph 400,300");
-
-  gmic_subsection("Basic pixel manipulation");
-
-  gmic_option("-endian","","(*)");
-  gmic_help(_"Reverse data endianness of selected images.");
-
-  gmic_option("-set","value,_x[%],_y[%],_z[%],_c[%]","(*)");
-  gmic_help(_"Set pixel value in selected images, at specified coordinates.");
-  gmic_help(_"(eq. to '-=').");
-  gmic_help(_"If specified coordinates are outside the image bounds, no action is performed.");
-  gmic_help(_"Default values : 'x=y=z=c=0'.");
-  gmic_help("$ 2,2 -set 1,0,0 -set 2,1,0 -set 3,0,1 -set 4,1,1 -resize 300,300");
-  gmic_help("$ image.jpg -repeat 10000 -set 255,{?(100)}%,{?(100)}%,0,{?(100)}% -done");
-
-  gmic_option("-fill","value1,_value2,.. |","");
+  gmic_option("-sub","value[%] |","");
   gmic_argument("[image] |");
-  gmic_argument("'formula'");
-  gmic_help(_"Fill selected images with values read from the specified value list, existing image");
-  gmic_help(_" or mathematical expression. Single quotes may be omitted in 'formula'.");
-  gmic_help(_"(eq. to '-f').");
-  gmic_help("$ 4,4 -fill 1,2,3,4,5,6,7 -resize 300,300");
-  gmic_help("$ 4,4 (1,2,3,4,5,6,7) -fill[-2] [-1] -keep[0] -resize 300,300");
-  gmic_help("$ 400,400,1,3 -fill \"X=x-w/2; Y=y-h/2; R=sqrt(X^2+Y^2); a=atan2(Y,X); "
-            "if (R<=180,255*abs(cos(c+200*(x/w-0.5)*(y/h-0.5))),850*(a%(0.1*(c+1))))\"");
-
-  gmic_option("-threshold","value[%],_soft |","");
+  gmic_argument("'formula' |");
   gmic_argument("(no args)");
-  gmic_help(_"Threshold values of selected images.");
-  gmic_help(_"(eq. to '-t').");
-  gmic_help(_"'soft' can be { 0=hard-thresholding | 1=soft-thresholding }.");
-  gmic_help(_"(noargs) runs interactive mode (uses the instant window [0] if opened).");
-  gmic_help(_"Default value : 'soft=0'.");
-  gmic_help("$ image.jpg --threshold[0] 50% --threshold[0] 50%,1");
+  gmic_help(_"Subtract specified value, image or mathematical expression to selected images,");
+  gmic_help(_" or compute the pointwise difference of selected images.");
+  gmic_help(_"(eq. to '--').");
+  gmic_help("$ image.jpg --sub 30% -cut 0,255");
+  gmic_help("$ image.jpg --mirror x -sub[-1] [0]");
+  gmic_help("$ image.jpg -sub 'i(w/2+0.9*(x-w/2),y)'");
+  gmic_help("$ image.jpg --mirror x -sub");
+
+  gmic_option("-tan","","");
+  gmic_help(_"Compute the pointwise tangent of selected images.");
+  gmic_help("$ image.jpg --normalize {-0.47*pi},{0.47*pi} -tan[-1]");
+  gmic_help("$ 300,1,1,1,'20*x/w+u' --tan -display_graph 400,300");
+
+  gmic_option("-tanh","","");
+  gmic_help(_"Compute the pointwise hyperbolic tangent of selected images.");
+  gmic_help("$ image.jpg --normalize -3,3 -tanh[-1]");
+  gmic_help("$ 300,1,1,1,'4*x/w+u' --tanh -display_graph 400,300");
+
+  gmic_option("-xor","value[%] |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula' |");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the bitwise XOR of selected images with specified value, image or mathematical");
+  gmic_help(_" expression, or compute the pointwise sequential bitwise XOR of selected images.");
+  gmic_help("$ image.jpg -xor 128");
+  gmic_help("$ image.jpg --mirror x -xor");
+
+  gmic_subsection("Values manipulation");
 
   gmic_option("-cut","{ value0[%] | [image0] },{ value1[%] | [image1] } |","");
   gmic_argument("[image] |");
@@ -11315,19 +11527,8 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg --add 30% -cut[-1] 0,255");
   gmic_help("$ image.jpg --cut 25%,75%");
 
-  gmic_option("-normalize","{ value0[%] | [image0] },{ value1[%] | [image1] } |","");
-  gmic_argument("[image]");
-  gmic_help(_"Linearly normalize values of selected images in specified range.");
-  gmic_help(_"(eq. to '-n').");
-  gmic_help("$ image.jpg --threshold 50% -normalize[-1] 0,255");
-
-  gmic_option("-round","rounding_value>=0,_rounding_type |","");
-  gmic_argument("(no args)");
-  gmic_help(_"Round values of selected images.");
-  gmic_help(_"'rounding_type' can be { -1=backward | 0=nearest | 1=forward }.");
-  gmic_help(_"Default value : 'rounding_type=0'.");
-  gmic_help("$ image.jpg --round 100");
-  gmic_help("$ image.jpg -mul {pi/180} -sin --round");
+  gmic_option("-endian","","(*)");
+  gmic_help(_"Reverse data endianness of selected images.");
 
   gmic_option("-equalize","nb_levels>0[%],_value0[%],_value1[%]","");
   gmic_help(_"Equalize histograms of selected images.");
@@ -11337,11 +11538,32 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg --equalize 256");
   gmic_help("$ image.jpg --equalize 4,0,128");
 
-  gmic_option("-quantize","nb_levels>0[%],_preserve_value_range={ 0 | 1 }","");
-  gmic_help(_"Uniformly quantize selected images.");
-  gmic_help(_"Default value : 'preserve_value_range=1'.");
-  gmic_help("$ image.jpg -luminance --quantize 3");
-  gmic_help("$ 200,200,1,1,'cos(x/10)*sin(y/10)' --quantize[0] 6 --quantize[0] 4 --quantize[0] 3 --quantize[0] 2");
+  gmic_option("-fill","value1,_value2,.. |","");
+  gmic_argument("[image] |");
+  gmic_argument("'formula'");
+  gmic_help(_"Fill selected images with values read from the specified value list, existing image");
+  gmic_help(_" or mathematical expression. Single quotes may be omitted in 'formula'.");
+  gmic_help(_"(eq. to '-f').");
+  gmic_help("$ 4,4 -fill 1,2,3,4,5,6,7");
+  gmic_help("$ 4,4 (1,2,3,4,5,6,7) -fill[-2] [-1]");
+  gmic_help("$ 400,400,1,3 -fill \"X=x-w/2; Y=y-h/2; R=sqrt(X^2+Y^2); a=atan2(Y,X); "
+            "if (R<=180,255*abs(cos(c+200*(x/w-0.5)*(y/h-0.5))),850*(a%(0.1*(c+1))))\"");
+
+  gmic_option("-index","{ [palette] | predefined_palette },_is_dithered={ 0 | 1 },_map_palette={ 0 | 1 }","");
+  gmic_help(_"Index selected vector-valued images by specified vector-valued palette.");
+  gmic_help(_"'predefined_palette' can be { 0=default | 1=HSV | 2=lines | 3=hot |");
+  gmic_help(_"                              4=cool | 5=jet | 6=flag | 7=cube }.");
+  gmic_help(_"Default values : 'is_dithered=0' and 'map_palette=0'.");
+  gmic_help("$ image.jpg --index 1,1,1");
+  gmic_help("$ image.jpg (0;255;255^0;128;255^0;0;255) --index[-2] [-1],1,1");
+
+  gmic_option("-map","[palette] |","");
+  gmic_argument("predefined_palette");
+  gmic_help(_"Map specified vector-valued palette to selected indexed scalar images.");
+  gmic_help(_"'predefined_palette' can be { 0=default | 1=HSV | 2=lines | 3=hot |");
+  gmic_help(_"                              4=cool | 5=jet | 6=flag | 7=cube }.");
+  gmic_help("$ image.jpg --luminance -map[-1] 3");
+  gmic_help("$ image.jpg --rgb2ycbcr -split[-1] c (0,255,0) -resize[-1] 256,1,1,1,3 -map[-4] [-1] -remove[-1] -append[-3--1] c -ycbcr2rgb[-1]");
 
   gmic_option("-noise","std_variation>=0[%],_noise_type","");
   gmic_help(_"Add random noise to selected images.");
@@ -11350,67 +11572,77 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg --noise[0] 50,0 --noise[0] 50,1 --noise[0] 10,2 -cut 0,255");
   gmic_help("$ 300,300,1,3 [0] -noise[0] 20,0 -noise[1] 20,1 --histogram 100 -display_graph[-2,-1] 400,300,3");
 
-  gmic_option("-rand","{ value0[%] | [image0] },{ value1[%] | [image1] } |","");
-  gmic_argument("[image]");
-  gmic_help(_"Fill selected images with random values uniformly distributed in the specified range.");
-  gmic_help("$ 400,400,1,3 -rand -10,10 --blur 10 -sign[-1]");
-
   gmic_option("-norm","","");
   gmic_help(_"Compute the pointwise euclidean norm of vector-valued pixels in selected images.");
   gmic_help("$ image.jpg --norm");
+
+  gmic_option("-normalize","{ value0[%] | [image0] },{ value1[%] | [image1] } |","");
+  gmic_argument("[image]");
+  gmic_help(_"Linearly normalize values of selected images in specified range.");
+  gmic_help(_"(eq. to '-n').");
+  gmic_help("$ image.jpg -split x,2 -normalize[-1] 64,196 -append x");
 
   gmic_option("-orientation","","");
   gmic_help(_"Compute the pointwise orientation of vector-valued pixels in selected images.");
   gmic_help("$ image.jpg --orientation --norm[-2] -negative[-1] -mul[-2] [-1] -reverse[-2,-1]");
 
-  gmic_option("-map","[palette] |","");
-  gmic_argument("predefined_palette");
-  gmic_help(_"Map specified vector-valued palette to selected indexed scalar images.");
-  gmic_help(_"'predefined_palette' can be { 0=default | 1=HSV | 2=lines | 3=hot |");
-  gmic_help(_"                              4=cool | 5=jet | 6=flag | 7=cube }.");
-  gmic_help("$ image.jpg -luminance -map 1");
-  gmic_help("$ image.jpg --rgb2ycbcr -split[-1] c (0,255,0) -resize[-1] 256,1,1,1,3 -map[-4] [-1] -remove[-1] -append[-3--1] c -ycbcr2rgb[-1]");
+  gmic_option("-quantize","nb_levels>0[%],_preserve_value_range={ 0 | 1 }","");
+  gmic_help(_"Uniformly quantize selected images.");
+  gmic_help(_"Default value : 'preserve_value_range=1'.");
+  gmic_help("$ image.jpg -luminance --quantize 3");
+  gmic_help("$ 200,200,1,1,'cos(x/10)*sin(y/10)' --quantize[0] 6 --quantize[0] 4 --quantize[0] 3 --quantize[0] 2");
 
-  gmic_option("-index","{ [palette] | predefined_palette },_is_dithered={ 0 | 1 },_map_palette={ 0 | 1 }","");
-  gmic_help(_"Index selected vector-valued images by specified vector-valued palette.");
-  gmic_help(_"'predefined_palette' can be { 0=default | 1=HSV | 2=lines | 3=hot |");
-  gmic_help(_"                              4=cool | 5=jet | 6=flag | 7=cube }.");
-  gmic_help(_"Default values : 'is_dithered=0' and 'map_palette=0'.");
-  gmic_help("$ image.jpg --index 1,1,1");
-  gmic_help("$ image.jpg (0,255,255^0,128,255^0,0,255) --index[-2] [-1],1,1 -resize2dy[-2] {h/3}");
+  gmic_option("-rand","{ value0[%] | [image0] },{ value1[%] | [image1] } |","");
+  gmic_argument("[image]");
+  gmic_help(_"Fill selected images with random values uniformly distributed in the specified range.");
+  gmic_help("$ 400,400,1,3 -rand -10,10 --blur 10 -sign[-1]");
 
-  gmic_subsection("Color base conversion");
+  gmic_option("-round","rounding_value>=0,_rounding_type |","");
+  gmic_argument("(no args)");
+  gmic_help(_"Round values of selected images.");
+  gmic_help(_"'rounding_type' can be { -1=backward | 0=nearest | 1=forward }.");
+  gmic_help(_"Default value : 'rounding_type=0'.");
+  gmic_help("$ image.jpg --round 100");
+  gmic_help("$ image.jpg -mul {pi/180} -sin --round");
 
-  gmic_option("-rgb2hsv","","");
-  gmic_help(_"Convert selected images from RGB to HSV colorbases.");
-  gmic_help("$ image.jpg -rgb2hsv -split c");
-  gmic_help("$ image.jpg -rgb2hsv --split c -add[-2] 0.3 -cut[-2] 0,1 -append[-3--1] c -hsv2rgb");
+  gmic_option("-set","value,_x[%],_y[%],_z[%],_c[%]","(*)");
+  gmic_help(_"Set pixel value in selected images, at specified coordinates.");
+  gmic_help(_"(eq. to '-=').");
+  gmic_help(_"If specified coordinates are outside the image bounds, no action is performed.");
+  gmic_help(_"Default values : 'x=y=z=c=0'.");
+  gmic_help("$ 2,2 -set 1,0,0 -set 2,1,0 -set 3,0,1 -set 4,1,1");
+  gmic_help("$ image.jpg -repeat 10000 -set 255,{?(100)}%,{?(100)}%,0,{?(100)}% -done");
 
-  gmic_option("-rgb2hsl","","");
-  gmic_help(_"Convert selected images from RGB to HSL colorbases.");
-  gmic_help("$ image.jpg -rgb2hsl -split c");
-  gmic_help("$ image.jpg -rgb2hsl --split c -add[-3] 100 -mod[-3] 360 -append[-3--1] c -hsl2rgb");
+  gmic_option("-threshold","value[%],_soft |","");
+  gmic_argument("(no args)");
+  gmic_help(_"Threshold values of selected images.");
+  gmic_help(_"(eq. to '-t').");
+  gmic_help(_"'soft' can be { 0=hard-thresholding | 1=soft-thresholding }.");
+  gmic_help(_"(noargs) runs interactive mode (uses the instant window [0] if opened).");
+  gmic_help(_"Default value : 'soft=0'.");
+  gmic_help("$ image.jpg --threshold[0] 50% --threshold[0] 50%,1");
 
-  gmic_option("-rgb2hsi","","");
-  gmic_help(_"Convert selected images from RGB to HSI colorbases.");
-  gmic_help("$ image.jpg -rgb2hsi -split c");
+  gmic_subsection("Colors manipulation");
 
-  gmic_option("-rgb2yuv","","");
-  gmic_help(_"Convert selected images from RGB to YUV colorbases.");
-  gmic_help("$ image.jpg -rgb2yuv -split c");
+  gmic_option("-cmy2rgb","","");
+  gmic_help(_"Convert selected images from CMY to RGB colorbases.");
 
-  gmic_option("-rgb2ycbcr","","");
-  gmic_help(_"Convert selected images from RGB to YCbCr colorbases.");
-  gmic_help("$ image.jpg -rgb2ycbcr -split c");
+  gmic_option("-cmyk2rgb","","");
+  gmic_help(_"Convert selected images from CMYK to RGB colorbases.");
 
-  gmic_option("-rgb2xyz","","");
-  gmic_help(_"Convert selected images from RGB to XYZ colorbases.");
-  gmic_help("$ image.jpg -rgb2xyz -split c");
+  gmic_option("-hsi2rgb","","");
+  gmic_help(_"Convert selected images from HSI to RGB colorbases.");
 
-  gmic_option("-rgb2lab","","");
-  gmic_help(_"Convert selected images from RGB to Lab colorbases.");
-  gmic_help("$ image.jpg -rgb2lab -split c");
-  gmic_help("$ image.jpg -rgb2lab --split c -mul[-2,-1] 2.5 -append[-3--1] c -lab2rgb");
+  gmic_option("-hsl2rgb","","");
+  gmic_help(_"Convert selected images from HSL to RGB colorbases.");
+
+  gmic_option("-hsv2rgb","","");
+  gmic_help(_"Convert selected images from HSV to RGB colorbases.");
+  gmic_help("$ (0,360;0,360^0,0;1,1^1,1;1,1) -resize 400,400,1,3,3 -hsv2rgb");
+
+  gmic_option("-lab2rgb","","");
+  gmic_help(_"Convert selected images from Lab to RGB colorbases.");
+  gmic_help("$ (50,50;50,50^-3,3;-3,3^-3,-3;3,3) -resize 400,400,1,3,3 -lab2rgb");
 
   gmic_option("-rgb2cmy","","");
   gmic_help(_"Convert selected images from RGB to CMY colorbases.");
@@ -11421,42 +11653,104 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg -rgb2cmyk -split c");
   gmic_help("$ image.jpg -rgb2cmyk -split c -fill[3] 0 -append c -cmyk2rgb");
 
+  gmic_option("-rgb2hsi","","");
+  gmic_help(_"Convert selected images from RGB to HSI colorbases.");
+  gmic_help("$ image.jpg -rgb2hsi -split c");
+
+  gmic_option("-rgb2hsl","","");
+  gmic_help(_"Convert selected images from RGB to HSL colorbases.");
+  gmic_help("$ image.jpg -rgb2hsl -split c");
+  gmic_help("$ image.jpg -rgb2hsl --split c -add[-3] 100 -mod[-3] 360 -append[-3--1] c -hsl2rgb");
+
+  gmic_option("-rgb2hsv","","");
+  gmic_help(_"Convert selected images from RGB to HSV colorbases.");
+  gmic_help("$ image.jpg -rgb2hsv -split c");
+  gmic_help("$ image.jpg -rgb2hsv --split c -add[-2] 0.3 -cut[-2] 0,1 -append[-3--1] c -hsv2rgb");
+
+  gmic_option("-rgb2lab","","");
+  gmic_help(_"Convert selected images from RGB to Lab colorbases.");
+  gmic_help("$ image.jpg -rgb2lab -split c");
+  gmic_help("$ image.jpg -rgb2lab --split c -mul[-2,-1] 2.5 -append[-3--1] c -lab2rgb");
+
   gmic_option("-rgb2srgb","","");
   gmic_help(_"Convert selected images from RGB to sRGB colorbases.");
+
+  gmic_option("-rgb2ycbcr","","");
+  gmic_help(_"Convert selected images from RGB to YCbCr colorbases.");
+  gmic_help("$ image.jpg -rgb2ycbcr -split c");
+
+  gmic_option("-rgb2yuv","","");
+  gmic_help(_"Convert selected images from RGB to YUV colorbases.");
+  gmic_help("$ image.jpg -rgb2yuv -split c");
+
+  gmic_option("-rgb2xyz","","");
+  gmic_help(_"Convert selected images from RGB to XYZ colorbases.");
+  gmic_help("$ image.jpg -rgb2xyz -split c");
 
   gmic_option("-srgb2rgb","","");
   gmic_help(_"Convert selected images from sRGB to RGB colorbases.");
 
-  gmic_option("-hsv2rgb","","");
-  gmic_help(_"Convert selected images from HSV to RGB colorbases.");
-  gmic_help("$ (0,360;0,360^0,0;1,1^1,1;1,1) -resize 400,400,1,3,3 -hsv2rgb");
-
-  gmic_option("-hsl2rgb","","");
-  gmic_help(_"Convert selected images from HSL to RGB colorbases.");
-
-  gmic_option("-hsi2rgb","","");
-  gmic_help(_"Convert selected images from HSI to RGB colorbases.");
-
-  gmic_option("-yuv2rgb","","");
-  gmic_help(_"Convert selected images from YUV to RGB colorbases.");
+  gmic_option("-xyz2rgb","","");
+  gmic_help(_"Convert selected images from XYZ to RGB colorbases.");
 
   gmic_option("-ycbcr2rgb","","");
   gmic_help(_"Convert selected images from YCbCr to RGB colorbases.");
 
-  gmic_option("-xyz2rgb","","");
-  gmic_help(_"Convert selected images from XYZ to RGB colorbases.");
-
-  gmic_option("-lab2rgb","","");
-  gmic_help(_"Convert selected images from Lab to RGB colorbases.");
-  gmic_help("$ (50,50;50,50^-3,3;-3,3^-3,-3;3,3) -resize 400,400,1,3,3 -lab2rgb");
-
-  gmic_option("-cmy2rgb","","");
-  gmic_help(_"Convert selected images from CMY to RGB colorbases.");
-
-  gmic_option("-cmyk2rgb","","");
-  gmic_help(_"Convert selected images from CMYK to RGB colorbases.");
+  gmic_option("-yuv2rgb","","");
+  gmic_help(_"Convert selected images from YUV to RGB colorbases.");
 
   gmic_subsection("Geometry manipulation");
+
+  gmic_option("-append","axis={ x | y | z | c },_alignment","(*)");
+  gmic_help(_"Append selected images along specified axis.");
+  gmic_help(_"(eq. to '-a').");
+  gmic_help(_"Usual 'alignment' values are { 0=left-justified | 0.5=centered | 1=right-justified }.");
+  gmic_help(_"Default value : 'alignment=0'.");
+  gmic_help("$ image.jpg -split y,10 -reverse -append y");
+  gmic_help("$ image.jpg -repeat 5 --lines[0] 0,{10+18*$>}% -done -rm[0] -append x,0.5");
+
+  gmic_option("-autocrop","value1,value2,..","(*)");
+  gmic_help(_"Autocrop selected images by specified vector-valued intensity.");
+  gmic_help("$ 400,400,1,3 -fill_color 64,128,255 -ellipse 50%,50%,120,120,0,1,255 --autocrop 64,128,255");
+
+  gmic_option("-channels","{ [image0] | c0[%] },_{ [image1] | c1[%] }","(*)");
+  gmic_help(_"Keep only specified channels of selected images.");
+  gmic_help(_"Dirichlet boundary is used when specified channels are out of range.");
+  gmic_help("$ image.jpg -channels 0,1");
+  gmic_help("$ image.jpg -luminance -channels 0,2");
+
+  gmic_option("-columns","{ [image0] | x0[%] },_{ [image1] | x1[%] }","(*)");
+  gmic_help(_"Keep only specified columns of selected images.");
+  gmic_help(_"Dirichlet boundary is used when specified columns are out of range.");
+  gmic_help("$ image.jpg -columns -25%,50%");
+
+  gmic_option("-crop","x0[%],x1[%],_boundary |","(*)");
+  gmic_argument("x0[%],y0[%],x1[%],y1[%],_boundary |");
+  gmic_argument("x0[%],y0[%],z0[%],x1[%],y1[%],z1[%],_boundary |");
+  gmic_argument("x0[%],y0[%],z0[%],c0[%],x1[%],y1[%],z1[%],c1[%],_boundary |");
+  gmic_argument("(noargs)");
+  gmic_help(_"Crop selected images with specified region coordinates.");
+  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
+  gmic_help(_"(noargs) runs interactive mode (uses the instant window [0] if opened).");
+  gmic_help(_"Default value : 'boundary=0'.");
+  gmic_help("$ image.jpg --crop -230,-230,280,280,1 -crop[0] -230,-230,280,280,0");
+  gmic_help("$ image.jpg -crop 25%,25%,75%,75%");
+
+  gmic_option("-lines","{ [image0] | y0[%] },_{ [image1] | y1[%] }","(*)");
+  gmic_help(_"Keep only specified lines of selected images.");
+  gmic_help(_"Dirichlet boundary is used when specified lines are out of range.");
+  gmic_help("$ image.jpg -lines -25%,50%");
+
+  gmic_option("-mirror","{ x | y | z }..{ x | y | z }","(*)");
+  gmic_help(_"Mirror selected images along specified axes.");
+  gmic_help("$ image.jpg --mirror y --mirror[0] c");
+  gmic_help("$ image.jpg --mirror x --mirror y -append_tiles 2,2");
+
+  gmic_option("-permute","permutation_string","(*)");
+  gmic_help(_"Permute selected image axes by specified permutation.");
+  gmic_help(_"'permutation' is a combination of the character set {x|y|z|c},");
+  gmic_help(_"e.g. 'xycz', 'cxyz', ..");
+  gmic_help("$ image.jpg -permute yxzc");
 
   gmic_option("-resize","[image],_interpolation,_boundary,_cx,_cy,_cz,_cc |","(*)");
   gmic_argument("{[image_w] | width>0[%]},_{[image_h] | height>0[%]},_{[image_d] | depth>0[%]},");
@@ -11483,42 +11777,6 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_"Resize selected images using the Scale3x algorithm.");
   gmic_help("$ image.jpg -threshold 50% -resize 33%,33% --resize3x");
 
-  gmic_option("-crop","x0[%],x1[%],_boundary |","(*)");
-  gmic_argument("x0[%],y0[%],x1[%],y1[%],_boundary |");
-  gmic_argument("x0[%],y0[%],z0[%],x1[%],y1[%],z1[%],_boundary |");
-  gmic_argument("x0[%],y0[%],z0[%],c0[%],x1[%],y1[%],z1[%],c1[%],_boundary |");
-  gmic_argument("(noargs)");
-  gmic_help(_"Crop selected images with specified region coordinates.");
-  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
-  gmic_help(_"(noargs) runs interactive mode (uses the instant window [0] if opened).");
-  gmic_help(_"Default value : 'boundary=0'.");
-  gmic_help("$ image.jpg --crop -230,-230,280,280,1 -crop[0] -230,-230,280,280,0");
-  gmic_help("$ image.jpg -crop 25%,25%,75%,75%");
-
-  gmic_option("-autocrop","value1,value2,..","(*)");
-  gmic_help(_"Autocrop selected images by specified vector-valued intensity.");
-  gmic_help("$ 400,400,1,3 -fill_color 64,128,255 -ellipse 50%,50%,120,120,0,1,255 --autocrop 64,128,255");
-
-  gmic_option("-channels","{ [image0] | c0[%] },_{ [image1] | c1[%] }","(*)");
-  gmic_help(_"Keep only specified channels of selected images.");
-  gmic_help(_"Dirichlet boundary is used when specified channels are out of range.");
-  gmic_help("$ image.jpg -channels 0,1");
-  gmic_help("$ image.jpg -luminance -channels 0,2");
-
-  gmic_option("-slices","{ [image0] | z0[%] },_{ [image1] | z1[%] }","(*)");
-  gmic_help(_"Keep only specified slices of selected images.");
-  gmic_help(_"Dirichlet boundary is used when specified slices are out of range.");
-
-  gmic_option("-lines","{ [image0] | y0[%] },_{ [image1] | y1[%] }","(*)");
-  gmic_help(_"Keep only specified lines of selected images.");
-  gmic_help(_"Dirichlet boundary is used when specified lines are out of range.");
-  gmic_help("$ image.jpg -lines -25%,50%");
-
-  gmic_option("-columns","{ [image0] | x0[%] },_{ [image1] | x1[%] }","(*)");
-  gmic_help(_"Keep only specified columns of selected images.");
-  gmic_help(_"Dirichlet boundary is used when specified columns are out of range.");
-  gmic_help("$ image.jpg -columns -25%,50%");
-
   gmic_option("-rotate","angle,_boundary,_interpolation,_cx[%],_cy[%],_zoom","(*)");
   gmic_help(_"Rotate selected images with specified angle (in deg.).");
   gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann | 2=cyclic }.");
@@ -11527,60 +11785,22 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_"Default values : 'boundary=0', 'interpolation=1', 'cx=cy=(undefined)' and 'zoom=1'.");
   gmic_help("$ image.jpg --rotate -25,2,1,50%,50%,0.6  -rotate[0] 25");
 
-  gmic_option("-mirror","{ x | y | z }..{ x | y | z }","(*)");
-  gmic_help(_"Mirror selected images along specified axes.");
-  gmic_help("$ image.jpg --mirror y --mirror[0] c");
-  gmic_help("$ image.jpg --mirror x --mirror y -append_tiles 2,2");
-
   gmic_option("-shift","vx[%],_vy[%],_vz[%],_vc[%],_boundary","(*)");
   gmic_help(_"Shift selected images by specified displacement vector.");
   gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann | 2=cyclic }.");
   gmic_help(_"Default value : 'boundary=0'.");
   gmic_help("$ image.jpg --shift 50%,50%,0,0,1 --shift[0] 50%,50%,0,0,2 -shift[0] 50%,50%,0,0,0");
 
-  gmic_option("-transpose","","(*)");
-  gmic_help(_"Transpose selected images.");
-  gmic_help("$ image.jpg -transpose");
+  gmic_option("-slices","{ [image0] | z0[%] },_{ [image1] | z1[%] }","(*)");
+  gmic_help(_"Keep only specified slices of selected images.");
+  gmic_help(_"Dirichlet boundary is used when specified slices are out of range.");
 
-  gmic_option("-diagonal","","");
-  gmic_help(_"Transform selected vectors as diagonal matrices.");
-  gmic_help("$ 1,10,1,1,'y' -diagonal -resize2dy 300");
-
-  gmic_option("-invert","","");
-  gmic_help(_"Compute the inverse of the selected matrices.");
-  gmic_help("$ (0,1,0;0,0,1;1,0,0) --invert -resize2dy 200");
-
-  gmic_option("-solve","[image]","");
-  gmic_help(_"Solve linear system AX = B for selected B-vectors and specified A-matrix.");
-  gmic_help(_"If the system is under- or over-determined, least square solution is returned.");
-  gmic_help("$ (0,1,0;1,0,0;0,0,1) (1;2;3) --solve[-1] [-2] -resize2dy 200");
-
-  gmic_option("-trisolve","[image]","");
-  gmic_help(_"Solve tridiagonal system AX = B for selected B-vectors and specified tridiagonal A-matrix.");
-  gmic_help(_"Tridiagonal matrix must be stored as a 3 column vector, where 2nd column contains the");
-  gmic_help(_" diagonal coefficients, while 1st and 3rd columns contain the left and right coefficients.");
-  gmic_help("$ (0,0,1;1,0,0;0,1,0) (1;2;3) --trisolve[-1] [-2] -resize2dy 200");
-
-  gmic_option("-eigen","","");
-  gmic_help(_"Compute the eigenvalues and eigenvectors of selected symmetric matrices.");
-  gmic_help("$ (1,0,0;0,2,0;0,0,3) --eigen -resize2dy 200");
-
-  gmic_option("-svd","","");
-  gmic_help(_"Compute SVD decomposition of selected matrices.");
-  gmic_help("$ 10,10,1,1,'if(x==y,x+?(-0.2,0.2),0)' --svd -resize2dy 300");
-
-  gmic_option("-dijkstra","starting_node>=0,ending_node>=0","");
-  gmic_help(_"Compute minimal distances and pathes from specified adjacency matrices by the Dijkstra algorithm.");
-
-  gmic_option("-permute","permutation_string","(*)");
-  gmic_help(_"Permute selected image axes by specified permutation.");
-  gmic_help(_"'permutation' is a combination of the character set {x|y|z|c},");
-  gmic_help(_"e.g. 'xycz', 'cxyz', ..");
-  gmic_help("$ image.jpg -permute yxzc");
-
-  gmic_option("-unroll","axis={ x | y | z | c }","(*)");
-  gmic_help(_"Unroll selected images along specified axis.");
-  gmic_help("$ (1,2,3;4,5,6;7,8,9) --unroll y -resize2dy 200");
+  gmic_option("-sort","_ordering={ + | - },_axis={ x | y | z | c }","");
+  gmic_help(_"Sort pixel values of selected images.");
+  gmic_help(_"If 'axis' is specified, the sorting is done according to the data of the first column/line/slice/channel");
+  gmic_help(_" of selected images.");
+  gmic_help(_"Default values : 'ordering=+' and 'axis=(undefined)'.");
+  gmic_help("$ 64 -rand 0,100 --sort -display_graph 400,300,3");
 
   gmic_option("-split","{ x | y | z | c }..{ x | y | z | c },_nb_parts |","(*)");
   gmic_argument("keep_splitting_values={ + | - },value1,value2,...");
@@ -11593,13 +11813,9 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg -split y,3");
   gmic_help("$ image.jpg -split x,-128");
 
-  gmic_option("-append","axis={ x | y | z | c },_alignment","(*)");
-  gmic_help(_"Append selected images along specified axis.");
-  gmic_help(_"(eq. to '-a').");
-  gmic_help(_"Usual 'alignment' values are { 0=left-justified | 0.5=centered | 1=right-justified }.");
-  gmic_help(_"Default value : 'alignment=0'.");
-  gmic_help("$ image.jpg -split y,10 -reverse -append y");
-  gmic_help("$ image.jpg -repeat 5 --lines[0] 0,{10+18*$>}% -done -rm[0] -append x,0.5");
+  gmic_option("-unroll","axis={ x | y | z | c }","(*)");
+  gmic_help(_"Unroll selected images along specified axis.");
+  gmic_help("$ (1,2,3;4,5,6;7,8,9) --unroll y");
 
   gmic_option("-warp","[warping_field],_is_relative={ 0 | 1 },_interpolation={ 0 | 1 },_boundary,_nb_frames>0","");
   gmic_help(_"Warp selected image with specified displacement field.");
@@ -11608,7 +11824,37 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg 100%,100%,1,2,'X=x/w-0.5;Y=y/h-0.5;R=(X*X+Y*Y)^0.5;A=atan2(Y,X);130*R*if(c==0,cos(4*A),sin(8*A))' "
             "-warp[-2] [-1],1,1,0 -quiver[-1] [-1],10,0.2,1,1,100");
 
-  gmic_subsection("Image filtering");
+  gmic_subsection("Filtering");
+
+  gmic_option("-bilateral","std_variation_s>0[%],std_variation_r>0","");
+  gmic_help(_"Blur selected images by anisotropic bilateral filtering.");
+  gmic_help("$ image.jpg [0] -repeat 5 -bilateral[-1] 10,10 -done");
+
+  gmic_option("-blur","std_variation>=0[%],_boundary","");
+  gmic_help(_"Blur selected images by a quasi-gaussian recursive filter.");
+  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
+  gmic_help(_"Default value : 'boundary=1'.");
+  gmic_help("$ image.jpg --blur 5,0 --blur[0] 5,1");
+
+  gmic_option("-convolve","[mask],_boundary,_is_normalized={ 0 | 1 }","");
+  gmic_help(_"Convolve selected images by specified mask.");
+  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
+  gmic_help(_"Default values : 'boundary=1' and 'is_normalized=0'.");
+  gmic_help("$ image.jpg (0,1,0;1,-4,1;0,1,0) -convolve[-2] [-1] -keep[-2]");
+  gmic_help("$ image.jpg (0,1,0) -resize[-1] 130,1,1,1,3 --convolve[0] [1]");
+
+  gmic_option("-correlate","[mask],_boundary,_is_normalized={ 0 | 1 }","");
+  gmic_help(_"Correlate selected images by specified mask.");
+  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
+  gmic_help(_"Default values : 'boundary=1' and 'is_normalized=0'.");
+  gmic_help("$ image.jpg (0,1,0;1,-4,1;0,1,0) -correlate[-2] [-1] -keep[-2]");
+  gmic_help("$ image.jpg --crop 40%,40%,60%,60% --correlate[0] [-1],0,1");
+
+  gmic_option("-denoise","std_variation_s>=0,_std_variation_p>=0,_patch_size>=0,_lookup_size>=0,_smoothness,","");
+  gmic_argument(" _fast_approx={ 0 | 1 }");
+  gmic_help(_"Denoise selected images by non-local patch averaging.");
+  gmic_help(_"Default values : 'std_variation_p=10', 'patch_size=5', 'lookup_size=6' and 'smoothness=1'.");
+  gmic_help("$ image.jpg --denoise 5,5,8");
 
   gmic_option("-deriche","std_variation>=0[%],order={ 0 | 1 | 2 },axis={ x | y | z | c },_boundary","");
   gmic_help(_"Apply Deriche recursive filter with specified standard deviation, order, axis and border");
@@ -11618,21 +11864,78 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg --deriche 3,1,x");
   gmic_help("$ image.jpg --deriche 30,0,x -deriche[-2] 30,0,y -add");
 
-  gmic_option("-blur","std_variation>=0[%],_boundary","");
-  gmic_help(_"Blur selected images by a quasi-gaussian recursive filter.");
+  gmic_option("-dilate","size>=0 |","");
+  gmic_argument("size_x>=0,size_y>=0,size_z>=0 |");
+  gmic_argument("[mask],_boundary,_is_normalized={ 0 | 1 }");
+  gmic_help(_"Dilate selected images by a rectangular or the specified structuring element.");
   gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
-  gmic_help(_"Default value : 'boundary=1'.");
-  gmic_help("$ image.jpg --blur 5,0 --blur[0] 5,1");
+  gmic_help(_"Default values : 'size_z=1', 'boundary=1' and 'is_normalized=0'.");
+  gmic_help("$ image.jpg --dilate 10");
 
-  gmic_option("-bilateral","std_variation_s>0[%],std_variation_r>0","");
-  gmic_help(_"Blur selected images by anisotropic bilateral filtering.");
-  gmic_help("$ image.jpg [0] -repeat 5 -bilateral[-1] 10,10 -done");
+  gmic_option("-edgetensors","sharpness>=0,_anisotropy,_alpha,_sigma,is_sqrt={ 0 | 1 }","");
+  gmic_help(_"Compute the diffusion tensors of selected images for edge-preserving smoothing algorithms.");
+  gmic_help(_"'anisotropy' must be in [0,1].");
+  gmic_help(_"Default values : 'anisotropy=0.3', 'alpha=0.6', 'sigma=1.1' and 'is_sqrt=0'.");
+  gmic_help("$ image.jpg -edgetensors 0.8 -abs -pow 0.2");
 
-  gmic_option("-denoise","std_variation_s>=0,_std_variation_p>=0,_patch_size>=0,_lookup_size>=0,_smoothness,","");
-  gmic_argument(" _fast_approx={ 0 | 1 }");
-  gmic_help(_"Denoise selected images by non-local patch averaging.");
-  gmic_help(_"Default values : 'std_variation_p=10', 'patch_size=5', 'lookup_size=6' and 'smoothness=1'.");
-  gmic_help("$ image.jpg --denoise 5,5,8");
+  gmic_option("-eikonal","nb_iterations>=0,_band_size>=0","");
+  gmic_help(_"Compute iterations of the eikonal equation (signed distance function) on selected images.");
+  gmic_help(_"When 'band_size==0', the algorithm performs on all image pixels.");
+  gmic_help(_"Default value : 'band_size=0'.");
+  gmic_help("$ image.jpg -blur 3 -threshold 50% -eikonal 40");
+
+  gmic_option("-erode","size>=0 |","");
+  gmic_argument("size_x>=0,size_y>=0,_size_z>=0 |");
+  gmic_argument("[mask],_boundary,_is_normalized={ 0 | 1 }");
+  gmic_help(_"Erode selected images by a rectangular or the specified structuring element.");
+  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
+  gmic_help(_"Default values : 'size_z=1', 'boundary=1' and 'is_normalized=0'.");
+  gmic_help("$ image.jpg --erode 10");
+
+  gmic_option("-fft","","");
+  gmic_help(_"Compute the direct fourier transform (real and imaginary parts) of selected images.");
+  gmic_help("$ image.jpg -luminance --fft -append[-2,-1] c -norm[-1] -log[-1] -shift[-1] 50%,50%,0,0,2");
+  gmic_help("$ image.jpg -fft -shift 50%,50%,0,0,2 -ellipse 50%,50%,30,30,0,1,0 -shift -50%,-50%,0,0,2 -ifft -remove[-1]");
+
+  gmic_option("-gradient","{ x | y | z }..{ x | y | z },_scheme |","");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the gradient components (first derivatives) of selected images.");
+  gmic_help(_"'scheme' can be { -1=backward | 0=centered | 1=forward | 2=sobel |");
+  gmic_help(_"                   3=rotation-invariant (default) | 4=recursive }.");
+  gmic_help(_"(no args) compute all significant 2d/3d components.");
+  gmic_help(_"Default value : 'scheme=3'.");
+  gmic_help("$ image.jpg -gradient");
+
+  gmic_option("-haar","scale>0","");
+  gmic_help(_"Compute the direct haar multiscale wavelet transform of selected images.");
+
+  gmic_option("-hessian","{ xx | xy | xz | yy | yz | zz }..{ xx | xy | xz | yy | yz | zz } |","");
+  gmic_argument("(no args)");
+  gmic_help(_"Compute the hessian components (second derivatives) of selected images.");
+  gmic_help(_"(no args) compute all significant components.");
+  gmic_help("$ image.jpg -hessian");
+
+  gmic_option("-ifft","","");
+  gmic_help(_"Compute the inverse fourier transform (real and imaginary parts) of selected images.");
+
+  gmic_option("-ihaar","scale>0","");
+  gmic_help(_"Compute the inverse haar multiscale wavelet transform of selected images.");
+
+  gmic_option("-inpaint","[mask]","");
+  gmic_help(_"Inpaint selected images by specified mask.");
+  gmic_help("$ image.jpg 100%,100% -ellipse 50%,50%,30,30,0,1,255 -ellipse 20%,20%,30,10,0,1,255 --inpaint[-2] [-1] -remove[-2]");
+
+  gmic_option("-median","radius>=0","");
+  gmic_help(_"Apply median filter of specified radius on selected images.");
+  gmic_help("$ image.jpg --median 5");
+
+  gmic_option("-sharpen","amplitude>=0 |","");
+  gmic_argument("amplitude>=0,edge>=0,_alpha,_sigma");
+  gmic_help(_"Sharpen selected images by inverse diffusion or shock filters methods.");
+  gmic_help(_"'edge' must be specified to enable shock-filter method.");
+  gmic_help(_"Default values : 'alpha=0' and 'sigma=0'.");
+  gmic_help("$ image.jpg --sharpen 300");
+  gmic_help("$ image.jpg -blur 5 --sharpen[-1] 300,1");
 
   gmic_option("-smooth","amplitude>=0,_sharpness>=0,_anisotropy,_alpha,_sigma,_dl>0,_da>0,_precision>0,","");
   gmic_argument(" interpolation,_fast_approx={ 0 | 1 } |");
@@ -11648,101 +11951,27 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg [0] -repeat 3 -smooth[-1] 20 -done");
   gmic_help("$ image.jpg 100%,100%,1,2 -rand[-1] -100,100 -repeat 2 -smooth[-1] 100,0.2,1,4,4 -done --warp[0] [-1],1,1");
 
-  gmic_option("-median","radius>=0","");
-  gmic_help(_"Apply median filter of specified radius on selected images.");
-  gmic_help("$ image.jpg --median 5");
-
-  gmic_option("-sharpen","amplitude>=0 |","");
-  gmic_argument("amplitude>=0,edge>=0,_alpha,_sigma");
-  gmic_help(_"Sharpen selected images by inverse diffusion or shock filters methods.");
-  gmic_help(_"'edge' must be specified to enable shock-filter method.");
-  gmic_help(_"Default values : 'alpha=0' and 'sigma=0'.");
-  gmic_help("$ image.jpg --sharpen 300");
-  gmic_help("$ image.jpg -blur 5 --sharpen[-1] 300,1");
-
-  gmic_option("-convolve","[mask],_boundary,_is_normalized={ 0 | 1 }","");
-  gmic_help(_"Convolve selected images by specified mask.");
-  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
-  gmic_help(_"Default values : 'boundary=1' and 'is_normalized=0'.");
-  gmic_help("$ image.jpg (0,1,0;1,-4,1;0,1,0) -convolve[-2] [-1] -keep[-2]");
-  gmic_help("$ image.jpg (0,1,0) -resize[-1] 130,1,1,1,3 --convolve[0] [1] -resize[1] 400,200");
-
-  gmic_option("-correlate","[mask],_boundary,_is_normalized={ 0 | 1 }","");
-  gmic_help(_"Correlate selected images by specified mask.");
-  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
-  gmic_help(_"Default values : 'boundary=1' and 'is_normalized=0'.");
-  gmic_help("$ image.jpg (0,1,0;1,-4,1;0,1,0) -correlate[-2] [-1] -keep[-2]");
-  gmic_help("$ image.jpg --crop 40%,40%,60%,60% --correlate[0] [-1],0,1 -resize2dy[-2] {h}");
-
-  gmic_option("-erode","size>=0 |","");
-  gmic_argument("size_x>=0,size_y>=0,_size_z>=0 |");
-  gmic_argument("[mask],_boundary,_is_normalized={ 0 | 1 }");
-  gmic_help(_"Erode selected images by a rectangular or the specified structuring element.");
-  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
-  gmic_help(_"Default values : 'size_z=1', 'boundary=1' and 'is_normalized=0'.");
-  gmic_help("$ image.jpg --erode 10");
-
-  gmic_option("-dilate","size>=0 |","");
-  gmic_argument("size_x>=0,size_y>=0,size_z>=0 |");
-  gmic_argument("[mask],_boundary,_is_normalized={ 0 | 1 }");
-  gmic_help(_"Dilate selected images by a rectangular or the specified structuring element.");
-  gmic_help(_"'boundary' can be { 0=dirichlet | 1=neumann }.");
-  gmic_help(_"Default values : 'size_z=1', 'boundary=1' and 'is_normalized=0'.");
-  gmic_help("$ image.jpg --dilate 10");
-
-  gmic_option("-inpaint","[mask]","");
-  gmic_help(_"Inpaint selected images by specified mask.");
-  gmic_help("$ image.jpg 100%,100% -ellipse 50%,50%,30,30,0,1,255 -ellipse 20%,20%,30,10,0,1,255 --inpaint[-2] [-1] -remove[-2]");
-
-  gmic_option("-gradient","{ x | y | z }..{ x | y | z },_scheme |","");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the gradient components (first derivatives) of selected images.");
-  gmic_help(_"'scheme' can be { -1=backward | 0=centered | 1=forward | 2=sobel |");
-  gmic_help(_"                   3=rotation-invariant (default) | 4=recursive }.");
-  gmic_help(_"(no args) compute all significant 2d/3d components.");
-  gmic_help(_"Default value : 'scheme=3'.");
-  gmic_help("$ image.jpg -gradient");
-
   gmic_option("-structuretensors","_scheme","");
   gmic_help(_"Compute the structure tensor field of selected images.");
   gmic_help(_"'scheme' can be { 0=centered | 1=forward-backward1 | 2=forward-backward2 }.");
   gmic_help(_"Default value : 'scheme=2'.");
   gmic_help("$ image.jpg -structuretensors -abs -pow 0.2");
 
-  gmic_option("-edgetensors","sharpness>=0,_anisotropy,_alpha,_sigma,is_sqrt={ 0 | 1 }","");
-  gmic_help(_"Compute the diffusion tensors of selected images for edge-preserving smoothing algorithms.");
-  gmic_help(_"'anisotropy' must be in [0,1].");
-  gmic_help(_"Default values : 'anisotropy=0.3', 'alpha=0.6', 'sigma=1.1' and 'is_sqrt=0'.");
-  gmic_help("$ image.jpg -edgetensors 0.8 -abs -pow 0.2");
+  gmic_option("-watershed","[priority_image],_fill_lines={ 0 | 1 }","");
+  gmic_help(_"Compute the watershed transform of selected images.");
+  gmic_help(_"Default value : 'fill_lines=1'.");
+  gmic_help("$ 400,400 -noise 0.2,2 --distance 1 -mul[-1] -1 -label[-2] 0 -watershed[-2] [-1] -mod[-2] 256 -map[-2] 0 -reverse");
 
-  gmic_option("-hessian","{ xx | xy | xz | yy | yz | zz }..{ xx | xy | xz | yy | yz | zz } |","");
-  gmic_argument("(no args)");
-  gmic_help(_"Compute the hessian components (second derivatives) of selected images.");
-  gmic_help(_"(no args) compute all significant components.");
-  gmic_help("$ image.jpg -hessian");
+  gmic_subsection("Features extraction");
 
-  gmic_option("-haar","scale>0","");
-  gmic_help(_"Compute the direct haar multiscale wavelet transform of selected images.");
-
-  gmic_option("-ihaar","scale>0","");
-  gmic_help(_"Compute the inverse haar multiscale wavelet transform of selected images.");
-
-  gmic_option("-fft","","");
-  gmic_help(_"Compute the direct fourier transform (real and imaginary parts) of selected images.");
-  gmic_help("$ image.jpg -luminance --fft -append[-2,-1] c -norm[-1] -log[-1] -shift[-1] 50%,50%,0,0,2");
-  gmic_help("$ image.jpg -fft -shift 50%,50%,0,0,2 -ellipse 50%,50%,30,30,0,1,0 -shift -50%,-50%,0,0,2 -ifft -remove[-1]");
-
-  gmic_option("-ifft","","");
-  gmic_help(_"Compute the inverse fourier transform (real and imaginary parts) of selected images.");
-
-  gmic_subsection("Image creation and drawing");
-
-  gmic_option("-histogram","nb_levels>0[%],_val0[%],_val1[%]","");
-  gmic_help(_"Compute the histogram of selected images.");
-  gmic_help(_"If value range is specified, the histogram is estimated only for pixels in the specified");
-  gmic_help(_"value range.");
-  gmic_help(_"Default values : 'val0=minimum value' and 'val1=maximum value'.");
-  gmic_help("$ image.jpg --histogram 64 -display_graph[-1] 400,300,3");
+  gmic_option("-displacement","[source_image],_smoothness,_precision>=0,_nb_scales>=0,iteration_max>=0,","");
+  gmic_argument("is_backward={ 0 | 1 }");
+  gmic_help(_"Estimate displacement field between specified source and selected images.");
+  gmic_help(_"If 'smoothness>=0', regularization type is set to isotropic, else to anisotropic.");
+  gmic_help(_"If 'nbscales==0', the number of needed scales is estimated from the image size.");
+  gmic_help(_"Default values : 'smoothness=0.1', 'precision=5', 'nb_scales=0', 'iteration_max=10000'");
+  gmic_help(_" and 'is_backward=1'.");
+  gmic_help("$ image.jpg --rotate 3,0,1,50%,50%,0.9 --displacement[-1] [-2] -quiver[-1] [-1],15,-20,1,1,{1.5*iM}");
 
   gmic_option("-distance","isovalue[%],_metric |","");
   gmic_argument("isovalue[%],[custom_metric] |");
@@ -11754,19 +11983,15 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_" determine the distance map to specified point (x,y,z).");
   gmic_help(_"Default value : 'metric=2'.");
   gmic_help("$ image.jpg -threshold 20% -distance 0 -pow 0.3");
-  gmic_help("$ 400,400 -set 1,50%,50% --distance[0] 1,2 --distance[0] 1,1 -distance[0] 1,0 -mod 32 -t 16 -append c");
+  gmic_help("$ 400,400 -set 1,50%,50% --distance[0] 1,2 --distance[0] 1,1 -distance[0] 1,0 -mod 32 -threshold 16 -append c");
   gmic_help("$ image.jpg -luminance -distance 50%,50%,50%");
 
-  gmic_option("-eikonal","nb_iterations>=0,_band_size>=0","");
-  gmic_help(_"Compute iterations of the eikonal equation (signed distance function) on selected images.");
-  gmic_help(_"When 'band_size==0', the algorithm performs on all image pixels.");
-  gmic_help(_"Default value : 'band_size=0'.");
-  gmic_help("$ image.jpg -blur 3 -threshold 50% -eikonal 40");
-
-  gmic_option("-watershed","[priority_image],_fill_lines={ 0 | 1 }","");
-  gmic_help(_"Compute the watershed transform of selected images.");
-  gmic_help(_"Default value : 'fill_lines=1'.");
-  gmic_help("$ 400,400 -noise 0.2,2 --distance 1 -mul[-1] -1 -label[-2] 0 -watershed[-2] [-1] -mod[-2] 256 -map[-2] 0 -reverse");
+  gmic_option("-histogram","nb_levels>0[%],_val0[%],_val1[%]","");
+  gmic_help(_"Compute the histogram of selected images.");
+  gmic_help(_"If value range is specified, the histogram is estimated only for pixels in the specified");
+  gmic_help(_"value range.");
+  gmic_help(_"Default values : 'val0=minimum value' and 'val1=maximum value'.");
+  gmic_help("$ image.jpg --histogram 64 -display_graph[-1] 400,300,3");
 
   gmic_option("-label","tolerance>=0,is_high_connectivity={ 0 | 1 }","");
   gmic_help(_"Label connected components in selected images.");
@@ -11774,60 +11999,25 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg -luminance -threshold 60% -label 0 -normalize 0,255 -map 0");
   gmic_help("$ 400,400 -set 1,50%,50% -distance 1 -mod 16 -threshold 8 -label 0 -mod 255 -map 2");
 
-  gmic_option("-displacement","[source_image],_smoothness,_precision>=0,_nb_scales>=0,iteration_max>=0,","");
-  gmic_argument("is_backward={ 0 | 1 }");
-  gmic_help(_"Estimate displacement field between specified source and selected images.");
-  gmic_help(_"If 'smoothness>=0', regularization type is set to isotropic, else to anisotropic.");
-  gmic_help(_"If 'nbscales==0', the number of needed scales is estimated from the image size.");
-  gmic_help(_"Default values : 'smoothness=0.1', 'precision=5', 'nb_scales=0', 'iteration_max=10000'");
-  gmic_help(_" and 'is_backward=1'.");
-  gmic_help("$ image.jpg --rotate 3,0,1,50%,50%,0.9 --displacement[-1] [-2] -quiver[-1] [-1],15,-20,1,1,{1.5*iM}");
-
-  gmic_option("-sort","_ordering={ + | - },_axis={ x | y | z | c }","");
-  gmic_help(_"Sort pixel values of selected images.");
-  gmic_help(_"If 'axis' is specified, the sorting is done according to the data of the first column/line/slice/channel");
-  gmic_help(_" of selected images.");
-  gmic_help(_"Default values : 'ordering=+' and 'axis=(undefined)'.");
-  gmic_help("$ 64 -rand 0,100 --sort -display_graph 400,300,3");
-
   gmic_option("-mse","","");
   gmic_help(_"Compute MSE (Mean-Squared Error) matrix between selected images.");
-  gmic_help("$ image.jpg --noise 30 --noise[0] 35 --noise[0] 38 -cut[-1] 0,255 -mse -resize2dy 300");
+  gmic_help("$ image.jpg --noise 30 --noise[0] 35 --noise[0] 38 -cut[-1] 0,255 -mse");
 
   gmic_option("-psnr","_max_value","");
   gmic_help(_"Compute PSNR (Peak Signal-to-Noise Ratio) matrix between selected images.");
   gmic_help(_"Default value : 'max_value=255'.");
-  gmic_help("$ image.jpg --noise 30 --noise[0] 35 --noise[0] 38 -cut[-1] 0,255 -psnr -resize2dy 300");
+  gmic_help("$ image.jpg --noise 30 --noise[0] 35 --noise[0] 38 -cut[-1] 0,255 -psnr -replace_inf 0");
 
-  gmic_option("-point","x[%],y[%],_z[%],_opacity,_color1,..","");
-  gmic_help(_"Set specified colored pixel on selected images.");
-  gmic_help(_"Default values : 'z=0', 'opacity=1' and 'color1=0'.");
-  gmic_help("$ image.jpg -repeat 10000 -point {?(100)}%,{?(100)}%,0,1,@{-RGB} -done");
+  gmic_subsection("Image drawing");
 
-  gmic_option("-line","x0[%],y0[%],x1[%],y1[%],_opacity,_pattern,_color1,..'","");
-  gmic_help(_"Draw specified colored line on selected images.");
+  gmic_option("-axes","x0,x1,y0,y1,_opacity,_pattern,_color1,..","");
+  gmic_help(_"Draw xy-axes on selected images.");
   gmic_help(_"'pattern' is an hexadecimal number starting with '0x' which can be omitted");
   gmic_help(_" even if a color is specified.");
+  gmic_help(_"To draw only one X-axis at line Y, set both 'y0' and 'y1' to Y.");
+  gmic_help(_"To draw only one Y-axis at column X, set both 'x0' and 'x1' to X.");
   gmic_help(_"Default values : 'opacity=1', 'pattern=(undefined)' and 'color1=0'.");
-  gmic_help("$ image.jpg -repeat 500 -line 50%,50%,{?(w)},{?(h)},0.5,@{-RGB} -done "
-            "-line 0,0,100%,100%,1,0xCCCCCCCC,255 -line 100%,0,0,100%,1,0xCCCCCCCC,255");
-
-  gmic_option("-polygon","N,x1[%],y1[%],..,xN[%],yN[%],_opacity,_pattern,_color1,..","");
-  gmic_help(_"Draw specified colored N-vertices polygon on selected images.");
-  gmic_help(_"'pattern' is an hexadecimal number starting with '0x' which can be omitted");
-  gmic_help(_" even if a color is specified. If a pattern is specified, the polygon is");
-  gmic_help(_" drawn outlined instead of filled.");
-  gmic_help(_"Default values : 'opacity=1', 'pattern=(undefined)' and 'color1=0'.");
-  gmic_help("$ image.jpg -polygon 4,20%,20%,80%,30%,80%,70%,20%,80%,0.3,0,255,0 "
-            "-polygon 4,20%,20%,80%,30%,80%,70%,20%,80%,1,0xCCCCCCCC,255");
-  gmic_help("$ image.jpg 2,16,1,1,'?(if(x,@{-1,h},@{-1,w}))' -polygon[-2] {h},@-1,0.6,255,0,255 -remove[-1]");
-
-  gmic_option("-spline","x0[%],y0[%],u0[%],v0[%],x1[%],y1[%],u1[%],v1[%],_opacity,_pattern,_color1,..","");
-  gmic_help(_"Draw specified colored spline curve on selected images.");
-  gmic_help(_"'pattern' is an hexadecimal number starting with '0x' which can be omitted");
-  gmic_help(_" even if a color is specified.");
-  gmic_help(_"Default values : 'opacity=1', 'pattern=(undefined)' and 'color1=0'.");
-  gmic_help("$ image.jpg -repeat 30 -spline {?(100)}%,{?(100)}%,{?(-600,600)},{?(-600,600)},{?(100)}%,{?(100)}%,{?(-600,600)},{?(-600,600)},0.3,255 -done");
+  gmic_help("$ 400,400,1,3,255 -axes -1,1,1,-1,1");
 
   gmic_option("-ellipse","x[%],y[%],R[%],r[%],_angle,_opacity,_pattern,_color1,..","");
   gmic_help(_"Draw specified colored ellipse on selected images.");
@@ -11837,13 +12027,10 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_"Default values : 'opacity=1', 'pattern=(undefined)' and 'color1=0'.");
   gmic_help("$ image.jpg -repeat 300 -ellipse {?(100)}%,{?(100)}%,{?(30)},{?(30)},{?(180)},0.3,@{-RGB} -done -ellipse 50%,50%,100,100,0,0.7,255");
 
-  gmic_option("-text","text,_x[%],_y[%],_font_height>=0,_opacity,_color1,..","");
-  gmic_help(_"Draw specified colored text string on selected images.");
-  gmic_help(_"Exact pre-defined sizes are '13','24','32' and '57'. Any other size is interpolated.");
-  gmic_help(_"Specifying a target image with a size of 1x1x1x1 resizes it to new");
-  gmic_help(_" dimensions such that the image contains the entire text string.");
-  gmic_help(_"Default values : 'opacity=1' and 'color1=0'.");
-  gmic_help("$ image.jpg -resize2dy 600 y=0 -repeat 30 -text {2*$>}\" : This is a nice text, isn't it ?\",10,$y,{2*$>},0.9,255 y={$y+2*$>} -done");
+  gmic_option("-flood","x[%],_y[%],_z[%],_tolerance>=0,_is_high_connectivity={ 0 | 1 },_opacity,_color1,..","");
+  gmic_help(_"Flood-fill selected images using specified value and tolerance.");
+  gmic_help(_"Default values : 'y=z=0', 'tolerance=0', 'is_high_connectivity=0', 'opacity=1' and 'color1=0'.");
+  gmic_help("$ image.jpg -repeat 1000 -flood {?(100)}%,{?(100)}%,0,20,0,1,@{-RGB} -done");
 
   gmic_option("-graph","[function_image],_plot_type,_vertex_type,_ymin,_ymax,_opacity,_pattern,_color1,.. |","");
   gmic_argument("'formula',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax,_opacity,_pattern,_color1,..");
@@ -11857,21 +12044,56 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help("$ image.jpg --lines 50% -blur[-1] 3 -s[-1] c -div[0] 1.5 -graph[0] [1],2,0,0,0,1,255,0,0 -graph[0] [2],2,0,0,0,1,0,255,0 "
             "-graph[0] [3],2,0,0,0,1,0,0,255 -keep[0]");
 
-  gmic_option("-axes","x0,x1,y0,y1,_opacity,_pattern,_color1,..","");
-  gmic_help(_"Draw xy-axes on selected images.");
-  gmic_help(_"'pattern' is an hexadecimal number starting with '0x' which can be omitted");
-  gmic_help(_" even if a color is specified.");
-  gmic_help(_"To draw only one X-axis at line Y, set both 'y0' and 'y1' to Y.");
-  gmic_help(_"To draw only one Y-axis at column X, set both 'x0' and 'x1' to X.");
-  gmic_help(_"Default values : 'opacity=1', 'pattern=(undefined)' and 'color1=0'.");
-  gmic_help("$ 400,400,1,3 -noise 0.01,2 -distance 1 -round -mod 16 -eq 15 -negative -axes -1,1,1,-1,1");
-
   gmic_option("-grid","size_x[%]>=0,size_y[%]>=0,_offset_x[%],_offset_y[%],_opacity,_pattern,_color1,..","");
   gmic_help(_"Draw xy-grid on selected images.");
   gmic_help(_"'pattern' is an hexadecimal number starting with '0x' which can be omitted");
   gmic_help(_" even if a color is specified.");
   gmic_help(_"Default values : 'offset_x=offset_y=0', 'opacity=1', 'pattern=(undefined)' and 'color1=0'.");
-  gmic_help("$ 400,400,1,3,255 -grid 10%,10%,0,0,0.3,0xCCCCCCCC,128,32,16 -axes -1,1,1,-1,1");
+  gmic_help("$ image.jpg -grid 10%,10%,0,0,0.5,255");
+  gmic_help("$ 400,400,1,3,255 -grid 10%,10%,0,0,0.3,0xCCCCCCCC,128,32,16");
+
+  gmic_option("-image","[sprite],_x[%],_y[%],_z[%],_c[%],_opacity,_[sprite_mask],_max_opacity_mask","");
+  gmic_help(_"Draw specified sprite image on selected images.");
+  gmic_help(_"Default values : 'x=y=z=c=0', 'opacity=1', 'sprite_mask=(undefined)' and 'max_opacity_mask=1'.");
+  gmic_help("$ image.jpg --crop 40%,40%,60%,60% -resize[-1] 200%,200%,1,3,5 -frame[-1] 2,2,0 -image[0] [-1],30%,30% -keep[0]");
+
+  gmic_option("-line","x0[%],y0[%],x1[%],y1[%],_opacity,_pattern,_color1,..'","");
+  gmic_help(_"Draw specified colored line on selected images.");
+  gmic_help(_"'pattern' is an hexadecimal number starting with '0x' which can be omitted");
+  gmic_help(_" even if a color is specified.");
+  gmic_help(_"Default values : 'opacity=1', 'pattern=(undefined)' and 'color1=0'.");
+  gmic_help("$ image.jpg -repeat 500 -line 50%,50%,{?(w)},{?(h)},0.5,@{-RGB} -done "
+            "-line 0,0,100%,100%,1,0xCCCCCCCC,255 -line 100%,0,0,100%,1,0xCCCCCCCC,255");
+
+  gmic_option("-mandelbrot","z0r,z0i,z1r,z1i,_iteration_max>=0,_is_julia={ 0 | 1 },_c0r,_c0i,_opacity","");
+  gmic_help(_"Draw mandelbrot/julia fractal on selected images.");
+  gmic_help(_"Default values : 'iteration_max=100', 'is_julia=0', 'c0r=c0i=0' and 'opacity=1'.");
+  gmic_help("$ 400,400 -mandelbrot -2.5,-2,2,2,1024 -map 0 --blur 2 -elevation3d[-1] -0.2");
+
+  gmic_option("-object3d","[object3d],_x[%],_y[%],_z,_opacity,_is_zbuffer={ 0 | 1 }","");
+  gmic_help(_"Draw specified 3d object on selected images.");
+  gmic_help(_"Default values : 'x=y=z=0', 'opacity=1' and 'is_zbuffer=1'.");
+  gmic_help("$ image.jpg -torus3d 100,10 -cone3d 30,-120 -add3d[-2,-1] -rotate3d[-1] 1,1,0,60 -object3d[0] [-1],50%,50% -keep[0]");
+
+  gmic_option("-plasma","alpha,_beta,_scale>=0","");
+  gmic_help(_"Draw a random colored plasma on selected images.");
+  gmic_help(_"Default values : 'beta=1' and 'scale=8'.");
+  gmic_help("$ 400,400,1,3 -plasma 1");
+
+  gmic_option("-point","x[%],y[%],_z[%],_opacity,_color1,..","");
+  gmic_help(_"Set specified colored pixel on selected images.");
+  gmic_help(_"Default values : 'z=0', 'opacity=1' and 'color1=0'.");
+  gmic_help("$ image.jpg -repeat 10000 -point {?(100)}%,{?(100)}%,0,1,@{-RGB} -done");
+
+  gmic_option("-polygon","N,x1[%],y1[%],..,xN[%],yN[%],_opacity,_pattern,_color1,..","");
+  gmic_help(_"Draw specified colored N-vertices polygon on selected images.");
+  gmic_help(_"'pattern' is an hexadecimal number starting with '0x' which can be omitted");
+  gmic_help(_" even if a color is specified. If a pattern is specified, the polygon is");
+  gmic_help(_" drawn outlined instead of filled.");
+  gmic_help(_"Default values : 'opacity=1', 'pattern=(undefined)' and 'color1=0'.");
+  gmic_help("$ image.jpg -polygon 4,20%,20%,80%,30%,80%,70%,20%,80%,0.3,0,255,0 "
+            "-polygon 4,20%,20%,80%,30%,80%,70%,20%,80%,1,0xCCCCCCCC,255");
+  gmic_help("$ image.jpg 2,16,1,1,'?(if(x,@{-1,h},@{-1,w}))' -polygon[-2] {h},@-1,0.6,255,0,255 -remove[-1]");
 
   gmic_option("-quiver","[function_image],_sampling>0,_factor,_is_arrow={ 0 | 1 },_opacity,_pattern,_color1,..","");
   gmic_help(_"Draw specified 2d vector/orientation field on selected images.");
@@ -11879,130 +12101,124 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_" even if a color is specified.");
   gmic_help(_"Default values : 'sampling=25', 'factor=-20', 'is_arrow=1', 'opacity=1', 'pattern=(undefined)'");
   gmic_help(_" and 'color1=0'.");
+  gmic_help("$ 100,100,1,2,'if(c==0,x-w/2,y-h/2)' 500,500,1,3,255 -quiver[-1] [-2],10");
   gmic_help("$ image.jpg --resize2dy 600 -luminance[0] -gradient[0] -mul[1] -1 -reverse[0,1] -append[0,1] c "
             "-blur[0] 8 -orientation[0] -quiver[1] [0],10,10,1,0.8,255");
 
-  gmic_option("-flood","x[%],_y[%],_z[%],_tolerance>=0,_is_high_connectivity={ 0 | 1 },_opacity,_color1,..","");
-  gmic_help(_"Flood-fill selected images using specified value and tolerance.");
-  gmic_help(_"Default values : 'y=z=0', 'tolerance=0', 'is_high_connectivity=0', 'opacity=1' and 'color1=0'.");
-  gmic_help("$ image.jpg -repeat 1000 -flood {?(100)}%,{?(100)}%,0,20,0,1,@{-RGB} -done");
+  gmic_option("-spline","x0[%],y0[%],u0[%],v0[%],x1[%],y1[%],u1[%],v1[%],_opacity,_pattern,_color1,..","");
+  gmic_help(_"Draw specified colored spline curve on selected images.");
+  gmic_help(_"'pattern' is an hexadecimal number starting with '0x' which can be omitted");
+  gmic_help(_" even if a color is specified.");
+  gmic_help(_"Default values : 'opacity=1', 'pattern=(undefined)' and 'color1=0'.");
+  gmic_help("$ image.jpg -repeat 30 -spline {?(100)}%,{?(100)}%,{?(-600,600)},{?(-600,600)},{?(100)}%,{?(100)}%,{?(-600,600)},{?(-600,600)},0.3,255 -done");
 
-  gmic_option("-image","[sprite],_x[%],_y[%],_z[%],_c[%],_opacity,_[sprite_mask],_max_opacity_mask","");
-  gmic_help(_"Draw specified sprite image on selected images.");
-  gmic_help(_"Default values : 'x=y=z=c=0', 'opacity=1', 'sprite_mask=(undefined)' and 'max_opacity_mask=1'.");
-  gmic_help("$ image.jpg --crop 40%,40%,60%,60% -resize[-1] 200%,200%,1,3,5 -frame[-1] 2,2,0 -image[0] [-1],30%,30% -keep[0]");
+  gmic_option("-text","text,_x[%],_y[%],_font_height>=0,_opacity,_color1,..","");
+  gmic_help(_"Draw specified colored text string on selected images.");
+  gmic_help(_"Exact pre-defined sizes are '13','24','32' and '57'. Any other size is interpolated.");
+  gmic_help(_"Specifying an empty target image or having a size of 1x1x1x1 resizes it to new");
+  gmic_help(_" dimensions such that the image contains the entire text string.");
+  gmic_help(_"Default values : 'opacity=1' and 'color1=0'.");
+  gmic_help("$ image.jpg -resize2dy 600 y=0 -repeat 30 -text {2*$>}\" : This is a nice text, isn't it ?\",10,$y,{2*$>},0.9,255 y={$y+2*$>} -done");
+  gmic_help("$ 0 -text \"G'MIC\",0,0,24,1,255");
 
-  gmic_option("-object3d","[object3d],_x[%],_y[%],_z,_opacity,_is_zbuffer={ 0 | 1 }","");
-  gmic_help(_"Draw specified 3d object on selected images.");
-  gmic_help(_"Default values : 'x=y=z=0', 'opacity=1' and 'is_zbuffer=1'.");
-  gmic_help("$ image.jpg -torus3d 100,10 -cone3d 30,-120 -add3d[-2,-1] -rotate3d[-1] 1,1,0,60 -object3d[0] [-1],50%,50% -keep[0]");
+  gmic_subsection("Matrix computation");
 
-  gmic_option("-plasma","alpha,_beta,_opacity","");
-  gmic_help(_"Draw a random colored plasma on selected images.");
-  gmic_help(_"Default values : 'beta=1' and 'opacity=1'.");
-  gmic_help("$ 400,400,1,3 --plasma 1,1 -plasma[0] 1,10");
+  gmic_option("-diagonal","","");
+  gmic_help(_"Transform selected vectors as diagonal matrices.");
+  gmic_help("$ 1,10,1,1,'y' --diagonal");
 
-  gmic_option("-mandelbrot","z0r,z0i,z1r,z1i,_iteration_max>=0,_is_julia={ 0 | 1 },_c0r,_c0i,_opacity","");
-  gmic_help(_"Draw mandelbrot/julia fractal on selected images.");
-  gmic_help(_"Default values : 'iteration_max=100', 'is_julia=0', 'c0r=c0i=0' and 'opacity=1'.");
-  gmic_help("$ 400,400 -mandelbrot -2.5,-2,2,2,1024 -map 0 --blur 2 -elevation3d[-1] -0.2 -rotate3d[-1] 1,1,0,40 -snapshot3d[-1] 400");
+  gmic_option("-dijkstra","starting_node>=0,ending_node>=0","");
+  gmic_help(_"Compute minimal distances and pathes from specified adjacency matrices by the Dijkstra algorithm.");
 
-  gmic_subsection("List manipulation");
+  gmic_option("-eigen","","");
+  gmic_help(_"Compute the eigenvalues and eigenvectors of selected symmetric matrices.");
+  gmic_help("$ (1,0,0;0,2,0;0,0,3) --eigen");
 
-  gmic_option("-remove","","(*)");
-  gmic_help(_"Remove selected images.");
-  gmic_help(_"(eq. to '-rm').");
-  gmic_help("$ image.jpg -split x -remove[30%-70%] -append x");
-  gmic_help("$ image.jpg -split x -remove[0-50%:2] -append x");
+  gmic_option("-invert","","");
+  gmic_help(_"Compute the inverse of the selected matrices.");
+  gmic_help("$ (0,1,0;0,0,1;1,0,0) --invert");
 
-  gmic_option("-keep","","(*)");
-  gmic_help(_"Keep only selected images.");
-  gmic_help(_"(eq. to '-k').");
-  gmic_help("$ image.jpg -split x -keep[0-50%:2] -append x");
-  gmic_help("$ image.jpg -split x -keep[^30%-70%] -append x");
+  gmic_option("-solve","[image]","");
+  gmic_help(_"Solve linear system AX = B for selected B-vectors and specified A-matrix.");
+  gmic_help(_"If the system is under- or over-determined, least square solution is returned.");
+  gmic_help("$ (0,1,0;1,0,0;0,0,1) (1;2;3) --solve[-1] [-2]");
 
-  gmic_option("-move","position[%]","(*)");
-  gmic_help(_"Move selected images at specified position.");
-  gmic_help(_"(eq. to '-mv').");
-  gmic_help("$ image.jpg -split x,3 -move[1] 0");
-  gmic_help("$ image.jpg -split x -move[50%--1:2] 0 -append x");
+  gmic_option("-svd","","");
+  gmic_help(_"Compute SVD decomposition of selected matrices.");
+  gmic_help("$ 10,10,1,1,'if(x==y,x+?(-0.2,0.2),0)' --svd");
 
-  gmic_option("-reverse","","(*)");
-  gmic_help(_"Reverse positions of selected images.");
-  gmic_help(_"(eq. to '-rv').");
-  gmic_help("$ image.jpg -split x,3 -reverse[-2,-1]");
-  gmic_help("$ image.jpg -split x,-16 -reverse[50%-100%] -append x");
+  gmic_option("-transpose","","(*)");
+  gmic_help(_"Transpose selected images.");
+  gmic_help("$ image.jpg -transpose");
 
-  gmic_option("-name","name","(*)");
-  gmic_help(_"Set name of selected images.");
-  gmic_help(_"(eq. to '-nm').");
+  gmic_option("-trisolve","[image]","");
+  gmic_help(_"Solve tridiagonal system AX = B for selected B-vectors and specified tridiagonal A-matrix.");
+  gmic_help(_"Tridiagonal matrix must be stored as a 3 column vector, where 2nd column contains the");
+  gmic_help(_" diagonal coefficients, while 1st and 3rd columns contain the left and right coefficients.");
+  gmic_help("$ (0,0,1;1,0,0;0,1,0) (1;2;3) --trisolve[-1] [-2]");
 
   gmic_subsection("3d rendering");
 
-  gmic_option("-rotation3d","u,v,w,angle","");
-  gmic_help(_"Create a new 3x3 rotation matrix with specified axis and angle (in deg).");
-  gmic_help("$ -rotation3d 1,0,0,0 -rotation3d 1,0,0,90 -rotation3d 1,0,0,180 -resize2dy 300");
+  gmic_option("-add3d","tx,_ty,_tz |","");
+  gmic_argument("[object3d] |");
+  gmic_argument("(noargs)");
+  gmic_help(_"Shift selected 3d objects with specified displacement vector, or merge them with specified");
+  gmic_help(_" 3d object, or merge all selected 3d objects together.");
+  gmic_help(_"(eq. to '-+3d').");
+  gmic_help(_"Default values : 'ty=tz=0'.");
+  gmic_help("$ -sphere3d 10 -repeat 5 --add3d[-1] 10,{?(-10,10)},0 -color3d[-1] @{-RGB} -done -add3d");
+  gmic_help("$ -repeat 20 -torus3d 15,2 -color3d[-1] @{-RGB} -mul3d[-1] 0.5,1 -if {$>%2} -rotate3d[-1] 0,1,0,90 -endif -add3d[-1] 70 -add3d "
+            "-rotate3d[-1] 0,0,1,18 -done -double3d 0");
 
-  gmic_option("-point3d","x0,y0,z0","");
-  gmic_help(_"Create a new 3d point at specified coordinates.");
-  gmic_help("$ -repeat 1000 a={$>*pi/500} -point3d {cos(3*$a)},{sin(2*$a)},0 -color3d[-1] @{-RGB} -done "
-            "-add3d -rotate3d 1,1,0,40 -snapshot3d 400");
-
-  gmic_option("-line3d","x0,y0,z0,x1,y1,z1","");
-  gmic_help(_"Create a new 3d line at specified coordinates.");
-  gmic_help("$ -repeat 100 a={$>*pi/50} -line3d 0,0,0,{cos(3*$a)},{sin(2*$a)},0 -color3d[-1] @{-RGB} -done "
-            "-add3d -rotate3d 1,1,0,40 -snapshot3d 400");
-
-  gmic_option("-triangle3d","x0,y0,z0,x1,y1,z1,x2,y2,z2","");
-  gmic_help(_"Create a new 3d triangle at specified coordinates.");
-  gmic_help("$ -repeat 100 a={$>*pi/50} -triangle3d 0,0,0,0,0,3,{cos(3*$a)},{sin(2*$a)},0 -color3d[-1] @{-RGB} -done "
-            "-add3d -rotate3d 1,1,0,40 -snapshot3d 400");
-
-  gmic_option("-quadrangle3d","x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3","");
-  gmic_help(_"Create a new 3d quadrangle at specified coordinates.");
-  gmic_help("$ -quadrangle3d -10,-10,10,10,-10,10,10,10,10,-10,10,10 -repeat 10 --rotate3d[-1] 0,1,0,30 -color3d[-1] @{-RGB},0.3 "
-            "-done -add3d -rotate3d 1,1,0,80 -mode3d 1 -snapshot3d 400");
-
-  gmic_option("-circle3d","x0,y0,z0,radius>=0","");
-  gmic_help(_"Create a new 3d circle at specified coordinates.");
-  gmic_help("$ -repeat 500 a={$>*pi/250} -circle3d {cos(3*$a)},{sin(2*$a)},0,0.2 -color3d[-1] @{-RGB},0.4 -done "
-            "-add3d -rotate3d 1,1,0,40 -snapshot3d 400");
+  gmic_option("-background3d","R,_G,_B |","");
+  gmic_argument("[image] |");
+  gmic_argument("(no args)");
+  gmic_help(_"Define background from specified color or existing image for interactive 3d viewer.");
+  gmic_help(_"(eq. to '-b3d').");
+  gmic_help(_"(no args) resets the background to default.");
 
   gmic_option("-box3d","size |","");
   gmic_argument("size_x,size_y,size_z");
   gmic_help(_"Create a new 3d box at (0,0,0), with specified geometry.");
-  gmic_help("$ -box3d 100,40,30 --color3d[-1] @{-RGB} -rotate3d 1,1,0.2,-50 -mode3d 1 -snapshot3d[0] 400 "
-            "-double3d 0 -mode3d 4 -snapshot3d[1] 400");
+  gmic_help("$ -box3d 100,40,30 --primitives3d 1 -color3d[-2] @{-RGB}");
+
+  gmic_option("-center3d","","");
+  gmic_help(_"Center selected 3d objects at (0,0,0).");
+  gmic_help(_"(eq. to '-c3d').");
+  gmic_help("$ -repeat 100 -circle3d {?(100)},{?(100)},{?(100)},2 -done -add3d -color3d[-1] 255,0,0 --center3d -color3d[-1] 0,255,0 -add3d");
+
+  gmic_option("-circle3d","x0,y0,z0,radius>=0","");
+  gmic_help(_"Create a new 3d circle at specified coordinates.");
+  gmic_help("$ -repeat 500 a={$>*pi/250} -circle3d {cos(3*$a)},{sin(2*$a)},0,{$a/50} -color3d[-1] @{-RGB},0.4 -done -add3d");
+
+  gmic_option("-color3d","R,G,B,_opacity","");
+  gmic_help(_"Set color and opacity of selected 3d objects.");
+  gmic_help(_"(eq. to '-col3d').");
+  gmic_help(_"Default value : 'opacity=(undefined)'.");
+  gmic_help("$ -torus3d 100,10 -double3d 0 -repeat 7 --rotate3d[-1] 1,0,0,20 -color3d[-1] @{-RGB} -done -add3d");
 
   gmic_option("-cone3d","radius,height,_nb_subdivisions>0","");
   gmic_help(_"Create a new 3d cone at (0,0,0), with specified geometry.");
   gmic_help(_"Default value : 'nb_subdivisions=24'.");
-  gmic_help("$ -cone3d 10,100 --color3d[-1] @{-RGB} -rotate3d 1,1,0.2,-50 -mode3d 1 -snapshot3d[0] 400 "
-            "-double3d 0 -mode3d 4 -snapshot3d[1] 400");
+  gmic_help("$ -cone3d 10,100 --primitives3d 1 -color3d[-2] @{-RGB}");
 
   gmic_option("-cylinder3d","radius,height,_nb_subdivisions>0","");
   gmic_help(_"Create a new 3d cylinder at (0,0,0), with specified geometry.");
   gmic_help(_"Default value : 'nb_subdivisions=24'.");
-  gmic_help("$ -cylinder3d 10,100 --color3d[-1] @{-RGB} -rotate3d 1,1,0.2,-50 -mode3d 1 -snapshot3d[0] 400 "
-            "-double3d 0 -mode3d 4 -snapshot3d[1] 400");
+  gmic_help("$ -cylinder3d 10,100 --primitives3d 1 -color3d[-2] @{-RGB}");
 
-  gmic_option("-torus3d","radius1,radius2,_nb_subdivisions1>0,_nb_subdivisions2>0","");
-  gmic_help(_"Create a new 3d torus at (0,0,0), with specified geometry.");
-  gmic_help(_"Default values : 'nb_subdivisions1=24' and 'nb_subdivisions2=12'.");
-  gmic_help("$ -torus3d 10,3 --color3d[-1] @{-RGB} -rotate3d 1,1,0.2,-50 -mode3d 1 -snapshot3d[0] 400 "
-            "-double3d 0 -mode3d 4 -snapshot3d[1] 400");
+  gmic_option("-div3d","factor |","");
+  gmic_argument("factor_x,factor_y,_factor_z");
+  gmic_help(_"Scale selected 3d objects isotropically or anisotropically, with the inverse of specified");
+  gmic_help(_" factors.");
+  gmic_help(_"(eq. to '-/3d').");
+  gmic_help(_"Default value : 'factor_z=0'.");
+  gmic_help("$ -torus3d 5,2 -repeat 5 --add3d[-1] 12,0,0 -div3d[-1] 1.2 -color3d[-1] @{-RGB} -done -add3d");
 
-  gmic_option("-plane3d","size_x,_size_y,_nb_subdivisions_x>0,_nb_subdisivions_y>0","");
-  gmic_help(_"Create a new 3d plane at (0,0,0), with specified geometry.");
-  gmic_help(_"Default values : 'size_y=size_x' and 'nb_subdivisions_x=nb_subdivisions_y=24'.");
-  gmic_help("$ -plane3d 20,10 --color3d[-1] @{-RGB} -rotate3d 1,1,0.2,-50 -mode3d 1 -snapshot3d[0] 400 "
-            "-double3d 0 -mode3d 4 -snapshot3d[1] 400");
-
-  gmic_option("-sphere3d","radius,_nb_recursions>=0","");
-  gmic_help(_"Create a new 3d sphere at (0,0,0), with specified geometry.");
-  gmic_help(_"Default value : 'nb_recursions=3'.");
-  gmic_help("$ -sphere3d 100 --color3d[-1] @{-RGB} -mode3d 1 -snapshot3d[0] 400 "
-            "-double3d 0 -mode3d 4 -snapshot3d[1] 400");
+  gmic_option("-double3d","is_doubled={ 0 | 1 }","");
+  gmic_help(_"Enable/disable double-sided mode for 3d rendering.");
+  gmic_help(_"(eq. to '-db3d').");
+  gmic_help("$ -mode3d 1 -repeat 2 -torus3d 100,30 -rotate3d[-1] 1,1,0,60 -double3d $> -snapshot3d[-1] 400 -done");
 
   gmic_option("-elevation3d","z-factor |","");
   gmic_argument("[elevation] |");
@@ -12012,115 +12228,30 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_"If a z-factor is specified, each elevation map is computed as the pointwise L2 norm of the");
   gmic_help(_"  selected images. Else, elevation values are taken from the specified image or formula.");
   gmic_help(_"Default values : 'x0=y0=-3', 'x1=y1=3' and 'size_x=size_y=256'.");
-  gmic_help("$ image.jpg -blur 5 -elevation3d 0.5 -rotate3d 1,0,0.2,30 -snapshot3d 400");
+  gmic_help("$ image.jpg -blur 5 -elevation3d 0.5");
   gmic_help("$ 128,128,1,3,?(255) -plasma 10,3 -blur 4 -sharpen 10000 "
-            "128,128,1,1,'X=(x-64)/6;Y=(y-64)/6;100*exp(-(X^2+Y^2)/30)*abs(cos(X)*sin(Y))' -elevation3d[-2] [-1] "
-            "-remove[-1] -rotate3d 1,0,0,-125 -snapshot3d[-1] 400");
+            "128,128,1,1,'X=(x-64)/6;Y=(y-64)/6;-100*exp(-(X^2+Y^2)/30)*abs(cos(X)*sin(Y))' -elevation3d[-2] [-1] -remove[-1]");
+
+  gmic_option("-focale3d","focale","");
+  gmic_help(_"Set 3d focale.");
+  gmic_help(_"(eq. to '-f3d').");
+  gmic_help(_"Set 'focale' to 0 to enable parallel projection (instead of perspective).");
+  gmic_help(_"Set negative 'focale' will disable 3d sprite zooming.");
+  gmic_help("$ -repeat 5 -torus3d 100,30 -rotate3d[-1] 1,1,0,60 -focale3d {$<*90} -snapshot3d[-1] 400 -done -remove[0]");
 
   gmic_option("-isoline3d","isovalue[%] |","");
   gmic_argument("'formula',value,_x0,_y0,_x1,_y1,_size_x>0[%],_size_y>0[%]");
   gmic_help(_"Extract 3d isolines with specified value from selected images or from specified formula.");
   gmic_help(_"Default values : 'x0=y0=-3', 'x1=y1=3' and 'size_x=size_y=256'.");
-  gmic_help("$ image.jpg -blur 1 -isoline3d 50% -rotate3d 1,0,0.4,30 -snapshot3d 400,1.6");
+  gmic_help("$ image.jpg -blur 1 -isoline3d 50%");
+  gmic_help("$ -isoline3d 'X=x-w/2;Y=y-h/2;(X^2+Y^2)%20',10,-10,-10,10,10");
 
   gmic_option("-isosurface3d","isovalue[%] |","");
   gmic_argument("'formula',value,_x0,_y0,_z0,_x1,_y1,_z1,_size_x>0[%],_size_y>0[%],_size_z>0[%]");
   gmic_help(_"Extract 3d isosurfaces with specified value from selected images or from specified formula.");
   gmic_help(_"Default values : 'x0=y0=z0=-3', 'x1=y1=z1=3' and 'size_x=size_y=size_z=32'.");
-  gmic_help("$ image.jpg -resize2dy 128 -luminance -threshold 50% -expand_z 2,0 -blur 1 -isosurface3d 50% "
-            "-mul3d 1,1,30 -rotate3d 1,0,0.3,30 -snapshot3d 400");
-  gmic_help("$ -isosurface3d 'x^2+y^2+abs(z)^abs(4*cos(x*y*z*3))',3 -rotate3d 0,1,0.2,70 -snapshot3d 400");
-
-  gmic_option("-streamline3d","x[%],y[%],z[%],_L>=0,_dl>0,_interpolation,_is_backward={ 0 | 1 },_is_oriented={ 0 | 1 } |","");
-  gmic_argument("'formula',x,y,z,_L>=0,_dl>0,_interpolation,_is_backward={ 0 | 1 },_is_oriented={ 0 | 1 }");
-  gmic_help(_"Extract 3d streamlines from selected vector fields or from specified formula.");
-  gmic_help(_"'interpolation' can be { 0=nearest integer | 1=1st-order | 2=2nd-order | 3=4th-order }.");
-  gmic_help(_"Default values : 'dl=0.1', 'interpolation=2', 'is_backward=0' and 'is_oriented=0'.");
-  gmic_help("$ 100,100,100,3 -rand -10,10 -blur 3 -repeat 300 --streamline3d[0] {?(100)},{?(100)},{?(100)},1000,1,1 "
-            "-color3d[-1] @{-RGB} -done -rm[0] -box3d 100 -primitives3d[-1] 1 -add3d -rotate3d 1,1,0,40 -snapshot3d 400,1.3");
-
-  gmic_option("-add3d","tx,_ty,_tz |","");
-  gmic_argument("[object3d] |");
-  gmic_argument("(noargs)");
-  gmic_help(_"Shift selected 3d objects with specified displacement vector, or merge them with specified");
-  gmic_help(_" 3d object, or merge all selected 3d objects together.");
-  gmic_help(_"(eq. to '-+3d').");
-  gmic_help(_"Default values : 'ty=tz=0'.");
-  gmic_help("$ -sphere3d 10 -repeat 5 --add3d[-1] 10,{?(-10,10)},0 -color3d[-1] @{-RGB} -done -add3d -snapshot3d 400");
-  gmic_help("$ -repeat 20 -torus3d 15,2 -color3d[-1] @{-RGB} -mul3d[-1] 0.5,1 -if {$>%2} -rotate3d[-1] 0,1,0,90 -endif -add3d[-1] 70 -add3d "
-            "-rotate3d[-1] 0,0,1,18 -done -double3d 0 -rotate3d 1,1,0,30 -snapshot3d 400");
-
-  gmic_option("-sub3d","tx,_ty,_tz","");
-  gmic_help(_"Shift selected 3d objects with the opposite of specified displacement vector.");
-  gmic_help(_"(eq. to '--3d').");
-  gmic_help(_"Default values : 'ty=tz=0'.");
-  gmic_help("$ -sphere3d 10 -repeat 5 --sub3d[-1] 10,{?(-10,10)},0 -color3d[-1] @{-RGB} -done -add3d -snapshot3d 400");
-
-  gmic_option("-mul3d","factor |","");
-  gmic_argument("factor_x,factor_y,_factor_z");
-  gmic_help(_"Scale selected 3d objects isotropically or anisotropically, with specified factors.");
-  gmic_help(_"(eq. to '-*3d').");
-  gmic_help(_"Default value : 'factor_z=0'.");
-  gmic_help("$ -torus3d 5,2 -repeat 5 --add3d[-1] 10,0,0 -mul3d[-1] 1.2 -color3d[-1] @{-RGB} -done -add3d -rotate3d 1,0,0,40 -snapshot3d 400");
-
-  gmic_option("-div3d","factor |","");
-  gmic_argument("factor_x,factor_y,_factor_z");
-  gmic_help(_"Scale selected 3d objects isotropically or anisotropically, with the inverse of specified");
-  gmic_help(_" factors.");
-  gmic_help(_"(eq. to '-/3d').");
-  gmic_help(_"Default value : 'factor_z=0'.");
-  gmic_help("$ -torus3d 5,2 -repeat 5 --add3d[-1] 10,0,0 -div3d[-1] 1.2 -color3d[-1] @{-RGB} -done -add3d -rotate3d 1,0,0,40 -snapshot3d 400");
-
-  gmic_option("-center3d","","");
-  gmic_help(_"Center selected 3d objects at (0,0,0).");
-  gmic_help(_"(eq. to '-c3d').");
-  gmic_help("$ -repeat 100 -circle3d {?(100)},{?(100)},{?(100)},2 -done -add3d -color3d[-1] 255,0,0 --center3d -color3d[-1] 0,255,0 -add3d -snapshot3d 400");
-
-  gmic_option("-normalize3d","","");
-  gmic_help(_"Normalize selected 3d objects to unit size.");
-  gmic_help(_"(eq. to '-n3d').");
-  gmic_help("$ -repeat 100 -circle3d {?(3)},{?(3)},{?(3)},0.1 -done -add3d -color3d[-1] 255,0,0 --normalize3d[-1] -color3d[-1] 0,255,0 -add3d -snapshot3d 400");
-
-  gmic_option("-rotate3d","u,v,w,angle","");
-  gmic_help(_"Rotate selected 3d objects around specified axis with specified angle (in deg.).");
-  gmic_help(_"(eq. to '-r3d').");
-  gmic_help("$ -torus3d 100,10 -double3d 0 -repeat 7 --rotate3d[-1] 1,0,0,20 -done -add3d -rotate3d 1,1,0,80 -snapshot3d 400");
-
-  gmic_option("-color3d","R,G,B,_opacity","");
-  gmic_help(_"Set color and opacity of selected 3d objects.");
-  gmic_help(_"(eq. to '-col3d').");
-  gmic_help(_"Default value : 'opacity=(undefined)'.");
-  gmic_help("$ -torus3d 100,10 -double3d 0 -repeat 7 --rotate3d[-1] 1,0,0,20 -color3d[-1] @{-RGB} -done -add3d -rotate3d 1,1,0,80 -snapshot3d 400");
-
-  gmic_option("-opacity3d","opacity","");
-  gmic_help(_"Set opacity of selected 3d objects.");
-  gmic_help(_"(eq. to '-o3d').");
-  gmic_help("$ -torus3d 100,10 -double3d 0 -repeat 7 --rotate3d[-1] 1,0,0,20 -opacity3d[-1] {?} -done -add3d -rotate3d 1,1,0,80 -snapshot3d 400");
-
-  gmic_option("-reverse3d","","");
-  gmic_help(_"Reverse primitive orientations of selected 3d objects.");
-  gmic_help(_"(eq. to '-rv3d').");
-  gmic_help("$ -torus3d 100,40 -rotate3d[-1] 1,1,0,30 -double3d 0 --reverse3d -snapshot3d 400");
-
-  gmic_option("-primitives3d","mode","");
-  gmic_help(_"Convert primitives of selected 3d objects.");
-  gmic_help(_"(eq. to '-p3d').");
-  gmic_help(_"'mode' can be { 0=points | 1=segments | 2=non-textured }.");
-  gmic_help("$ -sphere3d 30 -primitives3d 1 -torus3d 50,10 -color3d[-1] @{-RGB} -add3d -rotate3d 1,1,0,60 -snapshot3d 400");
-
-  gmic_option("-texturize3d","[ind_texture],_[ind_coords]","");
-  gmic_help(_"Texturize selected 3d objects with specified texture and coordinates.");
-  gmic_help(_"(eq. to '-t3d').");
-  gmic_help(_"When '[ind_coords]' is omitted, default XY texture projection is performed.");
-  gmic_help(_"Default value : 'ind_coords=(undefined)'.");
-  gmic_help("$ image.jpg -torus3d 100,30 -texturize3d[-1] [-2] -keep[-1] -rotate3d 1,1,0,60 -snapshot3d 400");
-
-  gmic_option("-split3d","","");
-  gmic_help(_"Split selected 3d objects into 6 feature vectors :");
-  gmic_help(_" { header, sizes, vertices, primitives, colors, opacities }.");
-  gmic_help(_"(eq. to '-s3d').");
-  gmic_help(_"To recreate the 3d object, append these 6 images along the y-axis.");
-  gmic_help("$ -box3d 100 -split3d --append y -rotate3d[-1] 1,1,0,40 -mode3d 1 -snapshot3d[-1] 400 -resize2dy[0--2] 300");
+  gmic_help("$ image.jpg -resize2dy 128 -luminance -threshold 50% -expand_z 2,0 -blur 1 -isosurface3d 50% -mul3d 1,1,30");
+  gmic_help("$ -isosurface3d 'x^2+y^2+abs(z)^abs(4*cos(x*y*z*3))',3");
 
   gmic_option("-light3d","position_x,position_y,position_z |","");
   gmic_argument("[texture] |");
@@ -12130,32 +12261,9 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_"(noargs) resets the 3d light to default.");
   gmic_help("$ -torus3d 100,30 -double3d 0 -specs3d 1.2 -repeat 5 -light3d {$>*100},0,-300 --snapshot3d[0] 400 -done -remove[0]");
 
-  gmic_option("-focale3d","focale","");
-  gmic_help(_"Set 3d focale.");
-  gmic_help(_"(eq. to '-f3d').");
-  gmic_help(_"Set 'focale' to 0 to enable parallel projection (instead of perspective).");
-  gmic_help(_"Set negative 'focale' will disable 3d sprite zooming.");
-  gmic_help("$ (2000,800,400,200,100) -repeat {w} -torus3d 100,30 -rotate3d[-1] 1,1,0,60 -focale3d @{0,$>} -snapshot3d[-1] 400 -done -remove[0]");
-
-  gmic_option("-pose3d","value1,..,value16 |","");
-  gmic_argument("(noargs)");
-  gmic_help(_"Set the coefficients of the 3d pose matrix.");
-  gmic_help(_"(noargs) resets the 3d pose matrix to default.");
-
-  gmic_option("-specl3d","value>=0","");
-  gmic_help(_"Set amount of 3d specular light.");
-  gmic_help(_"(eq. to '-sl3d').");
-  gmic_help("$ (0,0.3,0.6,0.9,1.2) -repeat {w} -torus3d 100,30 -rotate3d[-1] 1,1,0,60 -color3d[-1] 255,0,0 -specl3d @{0,$>} -snapshot3d[-1] 400 -done -remove[0]");
-
-  gmic_option("-specs3d","value>=0","");
-  gmic_help(_"Set shininess of 3d specular light.");
-  gmic_help(_"(eq. to '-ss3d').");
-  gmic_help("$ (0,0.3,0.6,0.9,1.2) -repeat {w} -torus3d 100,30 -rotate3d[-1] 1,1,0,60 -color3d[-1] 255,0,0 -specs3d @{0,$>} -snapshot3d[-1] 400 -done -remove[0]");
-
-  gmic_option("-double3d","is_doubled={ 0 | 1 }","");
-  gmic_help(_"Enable/disable double-sided mode for 3d rendering.");
-  gmic_help(_"(eq. to '-db3d').");
-  gmic_help("$ (0,1) -mode3d 1 -repeat {w} -torus3d 100,30 -rotate3d[-1] 1,1,0,60 -double3d @{0,$>} -snapshot3d[-1] 400 -done -remove[0]");
+  gmic_option("-line3d","x0,y0,z0,x1,y1,z1","");
+  gmic_help(_"Create a new 3d line at specified coordinates.");
+  gmic_help("$ -repeat 100 a={$>*pi/50} -line3d 0,0,0,{cos(3*$a)},{sin(2*$a)},0 -color3d[-1] @{-RGB} -done -add3d");
 
   gmic_option("-mode3d","mode","");
   gmic_help(_"Set static 3d rendering mode.");
@@ -12171,64 +12279,135 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_"'mode' can be { -1=bounding-box | 0=pointwise | 1=linear | 2=flat | 3=flat-shaded |");
   gmic_help(_"                 4=gouraud-shaded | 5=phong-shaded }.");
 
-  gmic_option("-background3d","R,_G,_B |","");
-  gmic_argument("[image] |");
-  gmic_argument("(no args)");
-  gmic_help(_"Define background from specified color or existing image for interactive 3d viewer.");
-  gmic_help(_"(eq. to '-b3d').");
-  gmic_help(_"(no args) resets the background to default.");
+  gmic_option("-mul3d","factor |","");
+  gmic_argument("factor_x,factor_y,_factor_z");
+  gmic_help(_"Scale selected 3d objects isotropically or anisotropically, with specified factors.");
+  gmic_help(_"(eq. to '-*3d').");
+  gmic_help(_"Default value : 'factor_z=0'.");
+  gmic_help("$ -torus3d 5,2 -repeat 5 --add3d[-1] 10,0,0 -mul3d[-1] 1.2 -color3d[-1] @{-RGB} -done -add3d");
+
+  gmic_option("-normalize3d","","");
+  gmic_help(_"Normalize selected 3d objects to unit size.");
+  gmic_help(_"(eq. to '-n3d').");
+  gmic_help("$ -repeat 100 -circle3d {?(3)},{?(3)},{?(3)},0.1 -done -add3d -color3d[-1] 255,0,0 --normalize3d[-1] -color3d[-1] 0,255,0 -add3d");
+
+  gmic_option("-opacity3d","opacity","");
+  gmic_help(_"Set opacity of selected 3d objects.");
+  gmic_help(_"(eq. to '-o3d').");
+  gmic_help("$ -torus3d 100,10 -double3d 0 -repeat 7 --rotate3d[-1] 1,0,0,20 -opacity3d[-1] {?} -done -add3d");
+
+  gmic_option("-plane3d","size_x,_size_y,_nb_subdivisions_x>0,_nb_subdisivions_y>0","");
+  gmic_help(_"Create a new 3d plane at (0,0,0), with specified geometry.");
+  gmic_help(_"Default values : 'size_y=size_x' and 'nb_subdivisions_x=nb_subdivisions_y=24'.");
+  gmic_help("$ -plane3d 20,10 --primitives3d 1 -color3d[-2] @{-RGB}");
+
+  gmic_option("-point3d","x0,y0,z0","");
+  gmic_help(_"Create a new 3d point at specified coordinates.");
+  gmic_help("$ -repeat 1000 a={$>*pi/500} -point3d {cos(3*$a)},{sin(2*$a)},0 -color3d[-1] @{-RGB} -done -add3d");
+
+  gmic_option("-pose3d","value1,..,value16 |","");
+  gmic_argument("(noargs)");
+  gmic_help(_"Set the coefficients of the 3d pose matrix.");
+  gmic_help(_"(noargs) resets the 3d pose matrix to default.");
+
+  gmic_option("-primitives3d","mode","");
+  gmic_help(_"Convert primitives of selected 3d objects.");
+  gmic_help(_"(eq. to '-p3d').");
+  gmic_help(_"'mode' can be { 0=points | 1=segments | 2=non-textured }.");
+  gmic_help("$ -sphere3d 30 -primitives3d 1 -torus3d 50,10 -color3d[-1] @{-RGB} -add3d");
+
+  gmic_option("-quadrangle3d","x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3","");
+  gmic_help(_"Create a new 3d quadrangle at specified coordinates.");
+  gmic_help("$ -quadrangle3d -10,-10,10,10,-10,10,10,10,10,-10,10,10 -repeat 10 --rotate3d[-1] 0,1,0,30 -color3d[-1] @{-RGB},0.6 "
+            "-done -add3d -mode3d 1");
+
+  gmic_option("-reverse3d","","");
+  gmic_help(_"Reverse primitive orientations of selected 3d objects.");
+  gmic_help(_"(eq. to '-rv3d').");
+  gmic_help("$ -torus3d 100,40 -double3d 0 --reverse3d");
+
+  gmic_option("-rotate3d","u,v,w,angle","");
+  gmic_help(_"Rotate selected 3d objects around specified axis with specified angle (in deg.).");
+  gmic_help(_"(eq. to '-r3d').");
+  gmic_help("$ -torus3d 100,10 -double3d 0 -repeat 7 --rotate3d[-1] 1,0,0,20 -done -add3d");
+
+  gmic_option("-rotation3d","u,v,w,angle","");
+  gmic_help(_"Create a new 3x3 rotation matrix with specified axis and angle (in deg).");
+  gmic_help("$ -rotation3d 1,0,0,0 -rotation3d 1,0,0,90 -rotation3d 1,0,0,180");
+
+  gmic_option("-specl3d","value>=0","");
+  gmic_help(_"Set amount of 3d specular light.");
+  gmic_help(_"(eq. to '-sl3d').");
+  gmic_help("$ (0,0.3,0.6,0.9,1.2) -repeat {w} -torus3d 100,30 -rotate3d[-1] 1,1,0,60 -color3d[-1] 255,0,0 -specl3d @{0,$>} -snapshot3d[-1] 400 -done -remove[0]");
+
+  gmic_option("-specs3d","value>=0","");
+  gmic_help(_"Set shininess of 3d specular light.");
+  gmic_help(_"(eq. to '-ss3d').");
+  gmic_help("$ (0,0.3,0.6,0.9,1.2) -repeat {w} -torus3d 100,30 -rotate3d[-1] 1,1,0,60 -color3d[-1] 255,0,0 -specs3d @{0,$>} -snapshot3d[-1] 400 -done -remove[0]");
+
+  gmic_option("-sphere3d","radius,_nb_recursions>=0","");
+  gmic_help(_"Create a new 3d sphere at (0,0,0), with specified geometry.");
+  gmic_help(_"Default value : 'nb_recursions=3'.");
+  gmic_help("$ -sphere3d 100 --primitives3d 1  -color3d[-2] @{-RGB}");
+
+  gmic_option("-split3d","","");
+  gmic_help(_"Split selected 3d objects into 6 feature vectors :");
+  gmic_help(_" { header, sizes, vertices, primitives, colors, opacities }.");
+  gmic_help(_"(eq. to '-s3d').");
+  gmic_help(_"To recreate the 3d object, append these 6 images along the y-axis.");
+  gmic_help("$ -box3d 100 --split3d");
+
+  gmic_option("-streamline3d","x[%],y[%],z[%],_L>=0,_dl>0,_interpolation,_is_backward={ 0 | 1 },_is_oriented={ 0 | 1 } |","");
+  gmic_argument("'formula',x,y,z,_L>=0,_dl>0,_interpolation,_is_backward={ 0 | 1 },_is_oriented={ 0 | 1 }");
+  gmic_help(_"Extract 3d streamlines from selected vector fields or from specified formula.");
+  gmic_help(_"'interpolation' can be { 0=nearest integer | 1=1st-order | 2=2nd-order | 3=4th-order }.");
+  gmic_help(_"Default values : 'dl=0.1', 'interpolation=2', 'is_backward=0' and 'is_oriented=0'.");
+  gmic_help("$ 100,100,100,3 -rand -10,10 -blur 3 -repeat 300 --streamline3d[0] {?(100)},{?(100)},{?(100)},1000,1,1 "
+            "-color3d[-1] @{-RGB} -done -rm[0] -box3d 100 -primitives3d[-1] 1 -add3d");
+
+  gmic_option("-sub3d","tx,_ty,_tz","");
+  gmic_help(_"Shift selected 3d objects with the opposite of specified displacement vector.");
+  gmic_help(_"(eq. to '--3d').");
+  gmic_help(_"Default values : 'ty=tz=0'.");
+  gmic_help("$ -sphere3d 10 -repeat 5 --sub3d[-1] 10,{?(-10,10)},0 -color3d[-1] @{-RGB} -done -add3d");
+
+  gmic_option("-texturize3d","[ind_texture],_[ind_coords]","");
+  gmic_help(_"Texturize selected 3d objects with specified texture and coordinates.");
+  gmic_help(_"(eq. to '-t3d').");
+  gmic_help(_"When '[ind_coords]' is omitted, default XY texture projection is performed.");
+  gmic_help(_"Default value : 'ind_coords=(undefined)'.");
+  gmic_help("$ image.jpg -torus3d 100,30 -texturize3d[-1] [-2] -keep[-1]");
+
+  gmic_option("-torus3d","radius1,radius2,_nb_subdivisions1>0,_nb_subdivisions2>0","");
+  gmic_help(_"Create a new 3d torus at (0,0,0), with specified geometry.");
+  gmic_help(_"Default values : 'nb_subdivisions1=24' and 'nb_subdivisions2=12'.");
+  gmic_help("$ -torus3d 10,3 --primitives3d 1 -color3d[-2] @{-RGB}");
+
+  gmic_option("-triangle3d","x0,y0,z0,x1,y1,z1,x2,y2,z2","");
+  gmic_help(_"Create a new 3d triangle at specified coordinates.");
+  gmic_help("$ -repeat 100 a={$>*pi/50} -triangle3d 0,0,0,0,0,3,{cos(3*$a)},{sin(2*$a)},0 -color3d[-1] @{-RGB} -done -add3d");
 
   gmic_subsection("Program controls");
 
-  gmic_option("-skip","item","(*)");
-  gmic_help(_"Do nothing but skip specified item.");
+  gmic_option("-check","expression","(*)");
+  gmic_help(_"Evaluate specified expression and display an error message if evaluated to false.");
+  gmic_help(_"If 'expression' is not evaluable, it is regarded as a filename and checked if it exists.");
 
-  gmic_option("-return","","(*)");
-  gmic_help(_"Return from current custom command.");
-
-  gmic_option("-status","item |","(*)");
-  gmic_argument("$variable");
-  gmic_help(_"Set current status value to the specified item or from the value of the");
-  gmic_help(_" specified environment variable.");
-  gmic_help(_"(eq. to '-u').");
-
-  gmic_option("-exec","command","(*)");
-  gmic_help(_"Execute external command using a system call.");
-  gmic_help(_"The status value is then set to the error code returned by the system call.");
-  gmic_help(_"(eq. to '-x').");
-
-  gmic_option("-do","","(*)");
-  gmic_help(_"Start a 'do..while' block.");
-  gmic_help("$ image.jpg -luminance -do -set 255,{?(100)}%,{?(100)}% -while {ia<128}");
-
-  gmic_option("-while","boolean |","(*)");
-  gmic_argument("filename");
-  gmic_help(_"End a 'do..while' block and go back to associated '-do'");
-  gmic_help(_" if specified boolean is true or if specified filename exists.");
-  gmic_help(_"'boolean' can be a float number standing for { 0=false | other=true }.");
-
-  gmic_option("-repeat","nb_iterations","(*)");
-  gmic_help(_"Start iterations of a 'repeat..done' block.");
-  gmic_help("$ image.jpg -mode3d 2 -repeat 4 -imagecube3d -rotate3d 1,1,0,40 -snapshot3d 400,1.4 -done");
-
-  gmic_option("-done","","(*)");
-  gmic_help(_"End a 'repeat..done' block, and go to associated '-repeat' position, if iterations remain.");
+  gmic_option("-continue","","(*)");
+  gmic_help(_"Continue to next iteration of current 'repeat..done', 'do..while' or 'local..endlocal' block.");
+  gmic_help("$ image.jpg -repeat 10 -blur 1 -if {1==1} -continue -endif -deform 10 -done");
 
   gmic_option("-break","","(*)");
   gmic_help(_"Break current 'repeat..done', 'do..while' or 'local..endlocal' block.");
   gmic_help(_"(eq. to '-b').");
   gmic_help("$ image.jpg -repeat 10 -blur 1 -if {1==1} -break -endif -deform 10 -done");
 
-  gmic_option("-continue","","(*)");
-  gmic_help(_"Continue to next iteration of current 'repeat..done', 'do..while' or 'local..endlocal' block.");
-  gmic_help("$ image.jpg -repeat 10 -blur 1 -if {1==1} -continue -endif -deform 10 -done");
+  gmic_option("-do","","(*)");
+  gmic_help(_"Start a 'do..while' block.");
+  gmic_help("$ image.jpg -luminance -do -set 255,{?(100)}%,{?(100)}% -while {ia<128}");
 
-  gmic_option("-if","boolean |","(*)");
-  gmic_argument("filename");
-  gmic_help(_"Start a 'if..[elif]..[else]..endif' block and test if specified boolean is true,");
-  gmic_help(_" or if specified filename exists.");
-  gmic_help(_"'boolean' can be a float number standing for { 0=false | other=true }.");
-  gmic_help("$ image.jpg -if {ia<64} -add 50% -elif {ia<128} -add 25% -elif {ia<192} -sub 25% -else -sub 50% -endif -cut 0,255");
+  gmic_option("-done","","(*)");
+  gmic_help(_"End a 'repeat..done' block, and go to associated '-repeat' position, if iterations remain.");
 
   gmic_option("-elif","boolean |","(*)");
   gmic_argument("filename");
@@ -12242,6 +12421,27 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_option("-endif","","(*)");
   gmic_help(_"End a 'if..[elif]..[else]..endif' block.");
 
+  gmic_option("-endlocal","","(*)");
+  gmic_help(_"End a 'local..endlocal' block.");
+  gmic_help(_"(eq. to '-endl').");
+
+  gmic_option("-error","message","(*)");
+  gmic_help(_"Print specified error message on the standard output and exit interpreter, except");
+  gmic_help(_" if error is caught by a '-onfail' command.");
+  gmic_help(_"Command subset (if any) stands for displayed scope indices instead of image indices.");
+
+  gmic_option("-exec","command","(*)");
+  gmic_help(_"Execute external command using a system call.");
+  gmic_help(_"The status value is then set to the error code returned by the system call.");
+  gmic_help(_"(eq. to '-x').");
+
+  gmic_option("-if","boolean |","(*)");
+  gmic_argument("filename");
+  gmic_help(_"Start a 'if..[elif]..[else]..endif' block and test if specified boolean is true,");
+  gmic_help(_" or if specified filename exists.");
+  gmic_help(_"'boolean' can be a float number standing for { 0=false | other=true }.");
+  gmic_help("$ image.jpg -if {ia<64} -add 50% -elif {ia<128} -add 25% -elif {ia<192} -sub 25% -else -sub 50% -endif -cut 0,255");
+
   gmic_option("-local","","(*)");
   gmic_help(_"Start a 'local..[onfail]..endlocal' block, with selected images.");
   gmic_help(_"(eq. to '-l').");
@@ -12253,224 +12453,126 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_help(_"The status value is set with the corresponding error message.");
   gmic_help("$ image.jpg --local -blur -3 -onfail -mirror x -endlocal");
 
-  gmic_option("-endlocal","","(*)");
-  gmic_help(_"End a 'local..endlocal' block.");
-  gmic_help(_"(eq. to '-endl').");
-
-  gmic_option("-check","expression","(*)");
-  gmic_help(_"Evaluate specified expression and display an error message and quit, if it is evaluated.");
-  gmic_help(_" to false.");
-  gmic_help(_"If 'expression' is not evaluable, it is regarded as a filename and checked if it exists.");
-
-  gmic_option("-quit","","(*)");
-  gmic_help(_"Quit interpreter.");
-  gmic_help(_"(eq. to '-q').");
-
-  gmic_option("-error","message","(*)");
-  gmic_help(_"Print specified error message, on the standard output, and quit interpreter.");
-  gmic_help(_"Command subset (if any) stands for displayed scope indices instead of image indices.");
-
   gmic_option("-progress","0<=value<=100 |","(*)");
   gmic_argument("-1");
   gmic_help(_"Set the progress indice of the current processing pipeline.");
   gmic_help(_"This command is useful only when G'MIC is used by an embedding application.");
 
-  gmic_subsection("Inputs/outputs");
+  gmic_option("-quit","","(*)");
+  gmic_help(_"Quit interpreter.");
+  gmic_help(_"(eq. to '-q').");
 
-  gmic_option("-input","[type:]filename |","(*)");
-  gmic_argument("[type:]http://URL |");
-  gmic_argument("[image]x_nb_copies>0 |");
-  gmic_argument("{ width>0[%] | [image_w] },{ _height>0[%] | [image_h] },{ _depth>0[%] | [image_d] },");
-  gmic_argument("{ _spectrum>0[%] | [image_s] },_{ value1,_value2,.. | 'formula' } |");
-  gmic_argument("(value1{,|;|/|^}value2{,|;|/|^}..) |");
-  gmic_argument("0");
-  gmic_help(_"Insert a new image taken from a filename or from a copy of an existing image ['indice'],");
-  gmic_help(_" or insert new image with specified dimensions and values. Single quotes may be omitted in");
-  gmic_help(_" 'formula'. Specifyin argument '0' inserts an 'empty' image.");
-  gmic_help(_"(eq. to '-i' | (no args)).");
-  gmic_help(_"Default values : 'nb_copies=1', 'height=depth=spectrum=1' and 'value1=0'.");
-  gmic_help("$ image.jpg (1,2,3;4,5,6;7,8,9) (255^128^64) 400,400,1,3,'if(x>w/2,x,y)*c' -resize2dy 300");
+  gmic_option("-repeat","nb_iterations","(*)");
+  gmic_help(_"Start iterations of a 'repeat..done' block.");
+  gmic_help("$ image.jpg -split y -repeat @# -shift[$>] $<,0,0,0,2 -done -append y");
+  gmic_help("$ image.jpg -mode3d 2 -repeat 4 -imagecube3d -rotate3d 1,1,0,40 -snapshot3d 400,1.4 -done");
 
-  gmic_option("-output","[type:]filename,_format_options","(*)");
-  gmic_help(_"Output selected images as one or several numbered file(s).");
-  gmic_help(_"(eq. to '-o').");
-  gmic_help(_"Default value : 'format_options=(undefined).");
+  gmic_option("-return","","(*)");
+  gmic_help(_"Return from current custom command.");
 
-  gmic_option("-verbose","level |","(*)");
-  gmic_argument("{ + | - }");
-  gmic_help(_"Set or increment/decrement the verbosity level.");
-  gmic_help(_"(eq. to '-v').");
-  gmic_help(_"When 'level'>=0, G'MIC log messages are displayed on the standard output.");
-  gmic_help(_"Default value for the verbosity level is 0.");
+  gmic_option("-skip","item","(*)");
+  gmic_help(_"Do nothing but skip specified item.");
 
-  gmic_option("-print","","(*)");
-  gmic_help(_"(eq. to '-p').");
-  gmic_help(_"Output informations on selected images, on the standard output.");
+  gmic_option("-status","item |","(*)");
+  gmic_argument("$variable");
+  gmic_help(_"Set current status value to the specified item or from the value of the");
+  gmic_help(_" specified environment variable.");
+  gmic_help(_"(eq. to '-u').");
 
-  gmic_option("-echo","message","(*)");
-  gmic_help(_"Output specified message, on the standard output.");
-  gmic_help(_"(eq. to '-e').");
-  gmic_help(_"Command subset (if any) stands for displayed scope indices instead of image indices.");
-
-  gmic_option("-warning","message","(*)");
-  gmic_help(_"Print specified warning message, on the standard output.");
-  gmic_help(_"Command subset (if any) stands for displayed scope indices instead of image indices.");
-
-  gmic_option("-command","filename |","(*)");
-  gmic_argument("http://URL |");
-  gmic_argument("\"string\"");
-  gmic_help(_"Import G'MIC custom commands from specified file, URL or string.");
-  gmic_help(_"(eq. to '-m').");
-  gmic_help(_"Imported commands are available directly after the '-command' invokation.");
-  gmic_help("$ image.jpg -command \"foo : -mirror y -deform $\"\"1\" --foo[0] 5 --foo[0] 15");
-
-  gmic_option("-uncommand","command_name","(*)");
-  gmic_help(_"Discard last definition of specified custom command.");
-
-  gmic_option("-type","datatype","(*)");
-  gmic_help(_"Set pixel datatype for all images of the list.");
-  gmic_help(_"'datatype' can be { bool | uchar | char | ushort | short | uint |");
-  gmic_help(_"                     int | float | double }.");
-  gmic_help("$ image.jpg -type char -type float");
-
-  gmic_option("-shell","","(*)");
-  gmic_help(_"Start shell environment, with selected images.");
-
-  gmic_option("-shared","x0[%],x1[%],y[%],z[%],v[%] |","(*)");
-  gmic_argument("y0[%],y1[%],z[%],v[%] |");
-  gmic_argument("z0[%],z1[%],v[%] |");
-  gmic_argument("v0[%],v1[%] |");
-  gmic_argument("(no args)");
-  gmic_help(_"Insert shared buffers from (opt. points/lines/planes/channels of) selected images.");
-  gmic_help(_"(eq. to '-sh').");
-  gmic_help("$ image.jpg -repeat {s} --shared 25%,75%,0,$> -mirror[-1] x -remove[-1] -done");
-  gmic_help("$ image.jpg --shared 1,1 -blur[-1] 3 -remove[-1] --shared 0,0 -mirror[-1] x -remove[-1]");
-
-  gmic_option("-camera","_camera_index>=-1,_nb_frames>0,_skip_frames>=0,release_camera={ 0 | 1 }","(*)");
-  gmic_help(_"Insert one or several frames from specified camera, with custom delay between frames (in ms).");
-  gmic_help(_"Set 'camera_index' to -1 to use the default camera device.");
-  gmic_help(_"When 'release_camera==1', the camera stream is released instead of capturing new images.");
-  gmic_help(_"Default values : 'camera_index=-1', 'nb_frames=1', 'skip_frames=0', 'release_camera=0'.");
-
-  gmic_option("-srand","value |","(*)");
-  gmic_argument("(no args)");
-  gmic_help(_"Set random generator seed.");
-  gmic_help(_"If no argument is specified, a random value is used as the random generator seed.");
-
-  gmic_option("-display","","");
-  gmic_help(_"Display selected images in an interactive viewer (use the instant window [0] if opened).");
-  gmic_help(_"(eq. to '-d').");
-
-  gmic_option("-display3d","","");
-  gmic_help(_"Display selected 3d objects in an interactive viewer (use the instant window [0] if opened).");
-  gmic_help(_"(eq. to '-d3d').");
-
-  gmic_option("-plot","_plot_type,_vertex_type,_xmin,_xmax,_ymin,_ymax |","");
-  gmic_argument("'formula',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax");
-  gmic_help(_"Display selected image or formula in an interactive viewer (use the instant window [0] if");
-  gmic_help(_" opened).");
-  gmic_help(_"'plot_type' can be { 0=none | 1=lines | 2=splines | 3=bar }.");
-  gmic_help(_"'vertex_type' can be { 0=none | 1=points | 2,3=crosses | 4,5=circles | 6,7=squares }.");
-  gmic_help(_"'xmin','xmax','ymin','ymax' set the coordinates of the displayed xy-axes.");
-  gmic_help(_"Default values : 'plot_type=1', 'vertex_type=1' and 'xmin=xmax=ymin=ymax=0 (auto)'.");
-
-  gmic_option("-window","_width[%]>=-1,_height[%]>=-1,_normalization,_fullscreen,_title","");
-  gmic_help(_"Display selected images into an instant window with specified size, normalization type,");
-  gmic_help(_" fullscreen mode and title.");
-  gmic_help(_"(eq. to '-w').");
-  gmic_help(_"If 'width' or 'height' is set to -1, the corresponding dimension is adjusted to the window");
-  gmic_help(_" or image size.");
-  gmic_help(_"'width'=0 or 'height'=0 closes the instant window.");
-  gmic_help(_"'normalization' can be { -1=keep same | 0=none | 1=always | 2=1st-time | 3=auto }.");
-  gmic_help(_"'fullscreen' can be { -1=keep same | 0=no | 1=yes }.");
-  gmic_help(_"You can manage up to 10 different instant windows by using the numbered variants");
-  gmic_help(_" '-w0' (default, eq. to '-w'),'-w1',..,'-w9' of the command '-w'.");
-  gmic_help(_"Default values : 'width=height=normalization=fullscreen=-1' and 'title=(undefined)'.");
-
-  gmic_option("-wait","delay |","");
-  gmic_argument("(no args)");
-  gmic_help(_"Wait for a given delay (in ms) or for an user event occuring on the selected instant window.");
-  gmic_help(_"'delay' can be { <0=delay+flush |  0=event | >0=delay }.");
-  gmic_help(_"Command subset (if any) stands for instant window indices instead of image indices.");
-
-  gmic_option("-select","feature_type","");
-  gmic_help(_"Interactively select a feature from selected images (use the instant window [0] if opened).");
-  gmic_help(_"'feature_type' can be { 0=point | 1=segment | 2=rectangle | 3=ellipse }.");
-  gmic_help(_"The retrieved feature is returned as a 3d or 6d vector containing the feature coordinates.");
+  gmic_option("-while","boolean |","(*)");
+  gmic_argument("filename");
+  gmic_help(_"End a 'do..while' block and go back to associated '-do'");
+  gmic_help(_" if specified boolean is true or if specified filename exists.");
+  gmic_help(_"'boolean' can be a float number standing for { 0=false | other=true }.");
 
   gmic_subsection("Command shortcuts");
 
+  // Global options.
   gmic_option("-h ","eq. to '-help'.","(*)");
-  gmic_option("-+","eq. to '-add'.","");
-  gmic_option("--","eq. to '-sub'.","");
-  gmic_option("-*","eq. to '-mul'.","");
-  gmic_option("-**","eq. to '-mmul'.","");
-  gmic_option("-/","eq. to '-div'.","");
-  gmic_option("-//","eq. to '-mdiv'.","");
-  gmic_option("-^","eq. to '-pow'.","");
-  gmic_option("-<<","eq. to '-bsl'.","");
-  gmic_option("->>","eq. to '-bsr'.","");
-  gmic_option("-==","eq. to '-eq'.","");
-  gmic_option("-!=","eq. to '-neq'.","");
-  gmic_option("->","eq. to '-gt'.","");
-  gmic_option("->=","eq. to '-ge'.","");
-  gmic_option("-<","eq. to '-lt'.","");
-  gmic_option("-<=","eq. to '-le'.","");
-  gmic_option("-=","eq. to '-set'.","");
-  gmic_option("-f","eq. to '-fill'.","");
-  gmic_option("-t","eq. to '-threshold'.","");
-  gmic_option("-c","eq. to '-cut'.","");
-  gmic_option("-n","eq. to '-normalize'.","");
-  gmic_option("-r","eq. to '-resize'.","(*)");
-  gmic_option("-s","eq. to '-split'.","(*)");
-  gmic_option("-a","eq. to '-append'.","(*)");
-  gmic_option("-rm","eq. to '-remove'.","(*)");
-  gmic_option("-k","eq. to '-keep'.","(*)");
-  gmic_option("-mv","eq. to '-move'.","(*)");
-  gmic_option("-rv","eq. to '-reverse'.","(*)");
-  gmic_option("-nm","eq. to '-name'.","(*)");
-  gmic_option("-+3d","eq. to '-add3d'.","");
-  gmic_option("--3d","eq. to '-sub3d'.","");
-  gmic_option("-*3d","eq. to '-mul3d'.","");
-  gmic_option("-/3d","eq. to '-div3d'.","");
-  gmic_option("-c3d","eq. to '-center3d'.","");
-  gmic_option("-n3d","eq. to '-normalize3d'.","");
-  gmic_option("-r3d","eq. to '-rotate3d'.","");
-  gmic_option("-col3d","eq. to '-color3d'.","");
-  gmic_option("-o3d","eq. to '-opacity3d'.","");
-  gmic_option("-rv3d","eq. to '-reverse3d'.","");
-  gmic_option("-p3d","eq. to '-primitives3d'.","");
-  gmic_option("-t3d","eq. to '-texturize3d'.","");
-  gmic_option("-s3d","eq. to '-split3d'.","");
-  gmic_option("-l3d","eq. to '-light3d'.","");
-  gmic_option("-f3d","eq. to '-focale3d'.","");
-  gmic_option("-sl3d","eq. to '-specl3d'.","");
-  gmic_option("-ss3d","eq. to '-specs3d'.","");
-  gmic_option("-db3d","eq. to '-double3d'.","");
-  gmic_option("-m3d","eq. to '-mode3d'.","");
-  gmic_option("-md3d","eq. to '-moded3d'.","");
-  gmic_option("-b3d","eq. to '-background3d'.","");
-  gmic_option("-x","eq. to '-exec'.","(*)");
-  gmic_option("-u","eq. to '-status'.","(*)");
-  gmic_option("-b","eq. to '-break'.","(*)");
-  gmic_option("-l","eq. to '-local'.","(*)");
-  gmic_option("-endl","eq. to '-endlocal'.","(*)");
-  gmic_option("-q","eq. to '-quit'.","(*)");
-  gmic_option("-e","eq. to '-echo'.","(*)");
-  gmic_option("-i","eq. to '-input'.","(*)");
-  gmic_option("-p","eq. to '-print'.","(*)");
-  gmic_option("-o","eq. to '-output'.","(*)");
-  gmic_option("-sh","eq. to '-shared'.","(*)");
-  gmic_option("-v","eq. to '-verbose'.","(*)");
+
+  // Input/outputs.
   gmic_option("-m","eq. to '-command'.","(*)");
   gmic_option("-d","eq. to '-display'.","");
   gmic_option("-d3d","eq. to '-display3d'.","");
+  gmic_option("-e","eq. to '-echo'.","(*)");
+  gmic_option("-i","eq. to '-input'.","(*)");
+  gmic_option("-o","eq. to '-output'.","(*)");
+  gmic_option("-p","eq. to '-print'.","(*)");
+  gmic_option("-sh","eq. to '-shared'.","(*)");
+  gmic_option("-v","eq. to '-verbose'.","(*)");
   gmic_option("-w","eq. to '-window'.","");
+
+  // List manipulation.
+  gmic_option("-k","eq. to '-keep'.","(*)");
+  gmic_option("-mv","eq. to '-move'.","(*)");
+  gmic_option("-nm","eq. to '-name'.","(*)");
+  gmic_option("-rm","eq. to '-remove'.","(*)");
+  gmic_option("-rv","eq. to '-reverse'.","(*)");
+
+  // Mathematical operators.
+  gmic_option("-+","eq. to '-add'.","");
+  gmic_option("-<<","eq. to '-bsl'.","");
+  gmic_option("->>","eq. to '-bsr'.","");
+  gmic_option("-/","eq. to '-div'.","");
+  gmic_option("-==","eq. to '-eq'.","");
+  gmic_option("->=","eq. to '-ge'.","");
+  gmic_option("->","eq. to '-gt'.","");
+  gmic_option("-<=","eq. to '-le'.","");
+  gmic_option("-<","eq. to '-lt'.","");
+  gmic_option("-//","eq. to '-mdiv'.","");
+  gmic_option("-**","eq. to '-mmul'.","");
+  gmic_option("-*","eq. to '-mul'.","");
+  gmic_option("-!=","eq. to '-neq'.","");
+  gmic_option("-^","eq. to '-pow'.","");
+  gmic_option("--","eq. to '-sub'.","");
+
+  // Value manipulation.
+  gmic_option("-c","eq. to '-cut'.","");
+  gmic_option("-f","eq. to '-fill'.","");
+  gmic_option("-n","eq. to '-normalize'.","");
+  gmic_option("-=","eq. to '-set'.","");
+  gmic_option("-t","eq. to '-threshold'.","");
+
+  // Geometry manipulation.
+  gmic_option("-a","eq. to '-append'.","(*)");
+  gmic_option("-r","eq. to '-resize'.","(*)");
+  gmic_option("-s","eq. to '-split'.","(*)");
+
+  // 3d rendering.
+  gmic_option("-+3d","eq. to '-add3d'.","");
+  gmic_option("-b3d","eq. to '-background3d'.","");
+  gmic_option("-c3d","eq. to '-center3d'.","");
+  gmic_option("-col3d","eq. to '-color3d'.","");
+  gmic_option("-/3d","eq. to '-div3d'.","");
+  gmic_option("-db3d","eq. to '-double3d'.","");
+  gmic_option("-f3d","eq. to '-focale3d'.","");
+  gmic_option("-l3d","eq. to '-light3d'.","");
+  gmic_option("-m3d","eq. to '-mode3d'.","");
+  gmic_option("-md3d","eq. to '-moded3d'.","");
+  gmic_option("-*3d","eq. to '-mul3d'.","");
+  gmic_option("-n3d","eq. to '-normalize3d'.","");
+  gmic_option("-o3d","eq. to '-opacity3d'.","");
+  gmic_option("-p3d","eq. to '-primitives3d'.","");
+  gmic_option("-rv3d","eq. to '-reverse3d'.","");
+  gmic_option("-r3d","eq. to '-rotate3d'.","");
+  gmic_option("-sl3d","eq. to '-specl3d'.","");
+  gmic_option("-ss3d","eq. to '-specs3d'.","");
+  gmic_option("-s3d","eq. to '-split3d'.","");
+  gmic_option("--3d","eq. to '-sub3d'.","");
+  gmic_option("-t3d","eq. to '-texturize3d'.","");
+
+  // Program controls.
+  gmic_option("-b","eq. to '-break'.","(*)");
+  gmic_option("-endl","eq. to '-endlocal'.","(*)");
+  gmic_option("-q","eq. to '-quit'.","(*)");
+  gmic_option("-l","eq. to '-local'.","(*)");
+  gmic_option("-u","eq. to '-status'.","(*)");
+  gmic_option("-x","eq. to '-exec'.","(*)");
 
   // Print descriptions of user-defined custom commands.
 #define gmic_user_description  \
   gmic_help(" The user-defined custom G'MIC commands are listed below, classified by themes."); \
-  gmic_help(" Those commands are defined when providing custom command files. They are not"); \
+  gmic_help(" Those commands are defined when providing custom commands files. They are not"); \
   gmic_help(" parts of the G'MIC standard.")
 
   char line[256*1024] = { 0 }, command[256] = { 0 }, arguments[4096] = { 0 },
@@ -12533,7 +12635,7 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   // Print descriptions of default commands.
 #define gmic_custom_description  \
   gmic_help(" The default custom G'MIC commands are listed below, classified by themes."); \
-  gmic_help(" Those commands are defined in the default custom command file, located at"); \
+  gmic_help(" Those commands are defined in the default custom commands file, located at"); \
   gmic_help(" 'http://gmic.sourceforge.net/gmic_def.xxxx', where 'xxxx' are the 4 digits"); \
   gmic_help(" of the current G'MIC version number. These custom commands are recognized"); \
   gmic_help(" by default by the G'MIC interpreter.")
@@ -12552,7 +12654,7 @@ bool help(const int argc, const char *const *const argv, const char *const comma
     *command = *arguments = *description = 0;
     if (std::sscanf(line+6," %255[^:\n]:%4095[^:\n]:%4095[^\n]",command,arguments,description)>0) {
       if (!is_custom_command) {
-	gmic_section("Default custom commands");
+	gmic_section("List of default custom commands");
         gmic_custom_description;
 	is_custom_command = true;
       }
@@ -12568,7 +12670,7 @@ bool help(const int argc, const char *const *const argv, const char *const comma
       }
     } else if (std::sscanf(line,"#@gmic :%4095[^\n]",description)>0) {
       if (!is_custom_command) {
-	gmic_section("Default custom commands");
+	gmic_section("List of default custom commands");
         gmic_custom_description;
 	is_custom_command = true;
       }
@@ -12592,7 +12694,7 @@ bool help(const int argc, const char *const *const argv, const char *const comma
   gmic_section("Examples of use");
 
   gmic_help(" 'gmic' is a generic image processing tool which can be used in a wide variety of situations.");
-  gmic_help(" The few examples below illustrate possible uses :\n");
+  gmic_help(" The few examples below illustrate possible uses of this tool :\n");
 
   gmic_help("  - View a list of images :");
   gmic_help("     gmic file1.bmp file2.jpeg\n");
@@ -12645,7 +12747,7 @@ bool help(const int argc, const char *const *const argv, const char *const comma
 
   gmic_help("  - Launch a set of G'MIC interactive demos :");
   gmic_help("     gmic -x_fisheye -x_fire G\\'MIC -x_tictactoe -rm -x_spline -x_mandelbrot 0 -x_light \\");
-  gmic_help("          -x_life -x_jawbreaker , -x_blobs\n");
+  gmic_help("          -x_whirl , -x_life -x_jawbreaker , -x_blobs\n");
 
   gmic_help(" ** G'MIC comes with ABSOLUTELY NO WARRANTY; for details visit http://gmic.sourceforge.net **\n");
 
@@ -12653,7 +12755,23 @@ bool help(const int argc, const char *const *const argv, const char *const comma
 
 #ifdef gmic_html
   if (file) {
-    std::fprintf(file,"\ngmic_reference : \n");
+    std::fprintf(file,
+                 "_gmic_reference :\n"
+                 "  -repeat @# -l[$>] -+3d 0 -r3d 1.5,1,0,50 -snapshot3d 400 -onfail -n 0,255 -endl -done\n"
+                 "  -repeat @# -l[$>]\n"
+                 "    -if {s==1} -r {w},{h},1,3 -else -r {w},{h},1,3,0 -endif\n"
+                 "    -if {w<=h&&h<256} -r2dy 256 -elif {h<=w&&w<256} -r2dx 256 -endif\n"
+                 "    -if {w<=h&&h>512} -r2dy 512 -elif {h<=w&&w>512} -r2dx 512 -endif\n"
+                 "    -if {h<48} -r 100%%,48 -endif\n"
+                 "    -if {w<48} -r 48,100%% -endif\n"
+                 "    -frame 1,1,0\n"
+                 "  -endl -done\n"
+                 "  -if {@#>1} -repeat @# -l[$>]\n"
+                 "    -frame 4,4,255\n"
+                 "    {w},24,1,3,255 -if {w>75} -text[-1] \"Image [\"$>\"] :\",3,3,18 -else -text[-1] [$>]\\ :,3,3,18 -endif\n"
+                 "  -rv[-2,-1] -a[-2,-1] y -endl -done -- 255 -a x -+ 255 -endif\n"
+                 "  -o ../html/img/reference_$1.jpg,95 -v +\n\n"
+                 "gmic_reference :\n");
     for (unsigned int i = 0; i<index; ++i) std::fprintf(file,"  -gmic_reference%u\n",i);
     std::fclose(file);
   }
@@ -12683,21 +12801,23 @@ int main(int argc, char **argv) {
     *const is_help1 = cimg_option("-h",(char*)0,0),
     *const is_help2 = cimg_option("-help",(char*)0,0),
     *const is_help3 = cimg_option("--help",(char*)0,0);
+  const bool is_version = (cimg_option("-version",(char*)0,0)!=0 || cimg_option("--version",(char*)0,0)!=0);
 
-  if (is_help1 || is_help2 || is_help3) {
+  if (is_help1 || is_help2 || is_help3 || is_version) {
     const char
       *const is_help = is_help1?"-h":is_help2?"-help":"--help",
       *const command = is_help1?is_help1:is_help2?is_help2:is_help3;
 
     // Display help.
-    if (!std::strcmp(is_help,command)) help(argc,argv,0,true); // General help.
+    if (is_version || !std::strcmp(is_help,command)) help(argc,argv,0,is_version?2:1); // General help.
     else { // Help only for a specified command.
       if (command[0]!='-') cimg_snprintf(name,sizeof(name),"-%s",command);
       else if (command[1]!='-') std::strncpy(name,command,sizeof(name)-1);
       else std::strncpy(name,command+1-(command[2]?0:1),sizeof(name)-1);
+      name[sizeof(name)-1] = 0;
       char *const s = std::strchr(name,'[');
       if (s) *s = 0;
-      if (!help(argc,argv,name,true)) {
+      if (!help(argc,argv,name,1)) {
         std::fprintf(cimg::output(),"\n[gmic] Command '%s' has no description. "
 		     "Try '%s -h' for global help.\n\n",
                      name+1,cimg::basename(argv[0]));
@@ -12719,7 +12839,7 @@ int main(int argc, char **argv) {
       std::fprintf(cimg::output(),"\n[gmic] Command '%s' has the following description : \n",
 		   e.command());
       cimg_snprintf(name,sizeof(name),"-%s",e.command());
-      if (!help(argc,argv,name,false))
+      if (!help(argc,argv,name,0))
         std::fprintf(cimg::output(),"\n    (no description available for command '%s').\n\n",
 		     e.command());
     } else { std::fprintf(cimg::output(),"\n\n"); std::fflush(cimg::output()); }

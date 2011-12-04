@@ -61,6 +61,9 @@ endif
 ifeq ($(OS),MINGW32_NT-5.1)
 EXE = .exe
 endif
+ifeq ($(OS),MINGW32_NT-6.1)
+EXE = .exe
+endif
 
 ifeq ($(CC),g++)
 IS_GCC = yes
@@ -169,6 +172,9 @@ FFTW_LDFLAGS = -lfftw3
 ifeq ($(OS),MINGW32_NT-5.1)
 FFTW_LDFLAGS = -lfftw3-3
 endif
+ifeq ($(OS),MINGW32_NT-6.1)
+FFTW_LDFLAGS = -lfftw3-3
+endif
 
 # Flags to enable the use of the BOARD library.
 BOARD_CFLAGS = -Dcimg_use_board
@@ -183,18 +189,18 @@ STD_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(PNG_LDFLAGS) \
 	           $(EXR_LDFLAGS) $(FFTW_LDFLAGS) $(OPENCV_LDFLAGS) # $(FFMPEG_LDFLAGS) $(XSHM_LDFLAGS) # $(MAGICK_LDFLAGS)
 
 CUST_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
-                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(MINC2_CFLAGS) $(ZLIB_CFLAGS) $(OPENCV_CFLAGS) \
-	           $(FFTW_CFLAGS) $(FFMPEG_CFLAGS) $(BOARD_CFLAGS) $(EXR_CFLAGS) $(MAGICK_CFLAGS) 
+                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(MINC2_CFLAGS) $(ZLIB_CFLAGS) \
+	           $(FFTW_CFLAGS) $(BOARD_CFLAGS) $(EXR_CFLAGS) $(MAGICK_CFLAGS) # $(FFMPEG_CFLAGS) $(OPENCV_CFLAGS)
 CUST_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
-                    $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(MINC2_LDFLAGS) $(ZLIB_LDFLAGS) $(OPENCV_LDFLAGS) \
-	    	    $(FFTW_LDFLAGS) $(FFMPEG_LDFLAGS) $(BOARD_LDFLAGS) $(EXR_LDFLAGS) $(MAGICK_LDFLAGS) 
+                    $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(MINC2_LDFLAGS) $(ZLIB_LDFLAGS) \
+	    	    $(FFTW_LDFLAGS) $(BOARD_LDFLAGS) $(EXR_LDFLAGS) $(MAGICK_LDFLAGS) # $(FFMPEG_LDFLAGS) $(OPENCV_LDFLAGS)
 
 DEBUG_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
                     $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) \
-	            $(MAGICK_CFLAGS) $(FFMPEG_CFLAGS) # $(OPENCV_CFLAGS)
+	            $(MAGICK_CFLAGS) $(OPENCV_CFLAGS) # $(FFMPEG_CFLAGS)
 DEBUG_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
 	  	     $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) $(FFTW_LDFLAGS) \
-		     $(MAGICK_LDFLAGS) $(FFMPEG_LDFLAGS) # $(OPENCV_LDFLAGS)
+		     $(MAGICK_LDFLAGS) $(OPENCV_LDFLAGS) # $(FFMPEG_LDFLAGS)
 
 MINIMAL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS)
 MINIMAL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS)
@@ -204,17 +210,20 @@ DEBUG_WINDOWS_LDFLAGS = $(MANDATORY_LDFLAGS) $(DEBUG_LDFLAGS) $(GDI32_LDFLAGS)
 
 STD_MACOSX_CFLAGS= $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) \
                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) \
-		   $(EXR_CFLAGS) $(FFTW_CFLAGS) # $(MAGICK_CFLAGS) 
+		   $(EXR_CFLAGS) $(FFTW_CFLAGS) # $(MAGICK_CFLAGS)
 STD_MACOSX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(ZLIB_LDFLAGS) \
 		     $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) \
-		     $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(MAGICK_LDFLAGS) 
+		     $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(MAGICK_LDFLAGS)
 
 STD_WINDOWS_CFLAGS= $(MANDATORY_CFLAGS) $(GDI32_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(FFTW_CFLAGS)
 STD_WINDOWS_LDFLAGS = $(MANDATORY_LDFLAGS) $(GDI32_LDFLAGS) $(ZLIB_LDFLAGS) $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(FFTW_LDFLAGS)
 
-STD_GIMP_CFLAGS = -Dgmic_build -Dcimg_display=0 -I$(USR)/include $(FFTW_CFLAGS) $(PNG_CFLAGS) $(ZLIB_CFLAGS) ${IS_BETA_CFLAGS}
+STD_GIMP_CFLAGS = -Dgmic_build -Dcimg_display=0 -Dcimg_use_rng -I$(USR)/include $(FFTW_CFLAGS) $(PNG_CFLAGS) $(ZLIB_CFLAGS) ${IS_BETA_CFLAGS}
 STD_GIMP_LDFLAGS = -L$(USR)/lib -lpthread $(FFTW_LDFLAGS) $(PNG_LDFLAGS) $(ZLIB_LDFLAGS)
 ifeq ($(OS),MINGW32_NT-5.1)
+STD_GIMP_LDFLAGS += -mwindows
+endif
+ifeq ($(OS),MINGW32_NT-6.1)
 STD_GIMP_LDFLAGS += -mwindows
 endif
 
@@ -346,7 +355,10 @@ install:
 	cp -f gmic.h $(DESTDIR)$(USR)/include/
 ifneq ($(OS),Darwin)
 	mkdir -p $(DESTDIR)$(USR)/lib
-	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1
+	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.7
+	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.7 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0
+	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
+	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
 endif
 	mkdir -p $(DESTDIR)$(USR)/share/man/man1/
 	mkdir -p $(DESTDIR)$(USR)/share/man/fr/man1/
@@ -359,6 +371,9 @@ uninstall:
 	rm -f $(DESTDIR)$(USR)/bin/gmic
 	rm -f $(DESTDIR)$(USR)/include/gmic.h
 	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1
+	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5
+	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.0
+	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.0.6
 	rm -rf $(DESTDIR)$(USR)/share/doc/gmic/
 	rm -f $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
 	rm -f $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz
