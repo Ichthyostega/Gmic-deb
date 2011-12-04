@@ -49,8 +49,10 @@
 #undef _gmic_path
 #if cimg_OS==2
 #define _gmic_path "_gmic\\"
+#define _gmic_file_prefix ""
 #else
 #define _gmic_path ""
+#define _gmic_file_prefix "."
 #endif
 #if !defined(__MACOSX__)  && !defined(__APPLE__)
 #include <pthread.h>
@@ -101,7 +103,7 @@ GtkWidget *delete_stock = 0;                  // A temporary stock button for th
 GtkWidget *fave_add_button = 0;               // Fave button.
 GtkWidget *fave_delete_button = 0;            // Fave delete button.
 GtkWidget *right_frame = 0;                   // The right frame containing the filter parameters.
-GtkWidget *right_pane = 0;          // The right scrolled window, containing the right frame.
+GtkWidget *right_pane = 0;                    // The right scrolled window, containing the right frame.
 GimpPDBStatusType status = GIMP_PDB_SUCCESS;  // The plug-in return status.
 
 #define gmic_xstr(x) gmic_str(x)
@@ -677,7 +679,8 @@ CImgList<char> update_filters(const bool try_net_update) {
   const char *const path_home = getenv(cimg_OS!=2?"HOME":"APPDATA"), *const path_tmp = cimg::temporary_path();
   char filename[1024] = { 0 };
   CImgList<char> sources;
-  cimg_snprintf(filename,sizeof(filename),"%s/.gmic_sources.cimgz",path_home);
+  cimg_snprintf(filename,sizeof(filename),"%s%c%sgmic_sources.cimgz",
+                path_home,cimg_file_separator,_gmic_file_prefix);
   const unsigned int old_exception_mode = cimg::exception_mode();
   try {
     cimg::exception_mode(0);
@@ -702,18 +705,20 @@ CImgList<char> update_filters(const bool try_net_update) {
   cimglist_for(sources,l) if (try_net_update && !cimg::strncasecmp(sources[l],"http://",7)) {
     const char *const s_basename = gmic_basename(sources[l]);
     gimp_progress_set_text_printf(" G'MIC : Update filters '%s'...",s_basename);
-    cimg_snprintf(filename_tmp,sizeof(filename_tmp),"%s/.%s",path_tmp,s_basename);
-    cimg_snprintf(filename,sizeof(filename),"%s/.%s",path_home,s_basename);
+    cimg_snprintf(filename_tmp,sizeof(filename_tmp),"%s%c%s%s",
+                  path_tmp,cimg_file_separator,_gmic_file_prefix,s_basename);
+    cimg_snprintf(filename,sizeof(filename),"%s%c%s%s",
+                  path_home,cimg_file_separator,_gmic_file_prefix,s_basename);
     std::remove(filename_tmp);
 
     // Try curl first.
     if (get_verbosity_mode()) { // Verbose mode.
-      cimg_snprintf(command,sizeof(command),_gmic_path "curl -f --compressed -o %s %s",
+      cimg_snprintf(command,sizeof(command),_gmic_path "curl -f --compressed -o \"%s\" %s",
                     filename_tmp,sources[l].data());
       std::fprintf(cimg::output(),"\n[gmic_gimp]./update/ %s\n",command);
       std::fflush(cimg::output());
     } else // Quiet mode.
-      cimg_snprintf(command,sizeof(command),_gmic_path "curl -f --silent --compressed -o %s %s",
+      cimg_snprintf(command,sizeof(command),_gmic_path "curl -f --silent --compressed -o \"%s\" %s",
                     filename_tmp,sources[l].data());
     int _status = cimg::system(command);
     std::FILE *file = std::fopen(filename_tmp,"rb");
@@ -721,12 +726,12 @@ CImgList<char> update_filters(const bool try_net_update) {
     // Try with 'wget' if 'curl' failed.
     if (!file) {
       if (get_verbosity_mode()) { // Verbose mode.
-        cimg_snprintf(command,sizeof(command),_gmic_path "wget -r -l 0 --no-cache -O %s %s",
+        cimg_snprintf(command,sizeof(command),_gmic_path "wget -r -l 0 --no-cache -O \"%s\" %s",
                       filename_tmp,sources[l].data());
         std::fprintf(cimg::output(),"\n[gmic_gimp]./update/ %s\n",command);
         std::fflush(cimg::output());
       } else // Quiet mode.
-        cimg_snprintf(command,sizeof(command),_gmic_path "wget -q -r -l 0 --no-cache -O %s %s",
+        cimg_snprintf(command,sizeof(command),_gmic_path "wget -q -r -l 0 --no-cache -O \"%s\" %s",
                       filename_tmp,sources[l].data());
       _status = cimg::system(command);
       file = std::fopen(filename_tmp,"rb");
@@ -767,7 +772,8 @@ CImgList<char> update_filters(const bool try_net_update) {
   bool is_default_update = false;
   cimglist_for(sources,l) {
     const char *s_basename = gmic_basename(sources[l]);
-    cimg_snprintf(filename,sizeof(filename),"%s/.%s",path_home,s_basename);
+    cimg_snprintf(filename,sizeof(filename),"%s%c%s%s",
+                  path_home,cimg_file_separator,_gmic_file_prefix,s_basename);
     const unsigned int old_exception_mode = cimg::exception_mode();
     try {
       cimg::exception_mode(0);
@@ -794,16 +800,18 @@ CImgList<char> update_filters(const bool try_net_update) {
 
   // Add fave folder if necessary (make it before actually adding faves to make tree paths valids).
   CImgList<unsigned int> _sorting_criterion;
+  CImgList<char> gmic_1stlevel_names;
   GtkTreeIter iter, fave_iter, parent[8];
   char filename_gmic_faves[1024] = { 0 };
   tree_view_store = gtk_tree_store_new(2,G_TYPE_UINT,G_TYPE_STRING);
-  cimg_snprintf(filename_gmic_faves,sizeof(filename_gmic_faves),"%s/.gmic_faves",
-                path_home);
+  cimg_snprintf(filename_gmic_faves,sizeof(filename_gmic_faves),"%s%c%sgmic_faves",
+                path_home,cimg_file_separator,_gmic_file_prefix);
   std::FILE *file_gmic_faves = std::fopen(filename_gmic_faves,"rb");
   if (file_gmic_faves) {
     gtk_tree_store_append(tree_view_store,&fave_iter,0);
     gtk_tree_store_set(tree_view_store,&fave_iter,0,0,1,"<b>Faves</b>",-1);
     const char *treepath = gtk_tree_model_get_string_from_iter(GTK_TREE_MODEL(tree_view_store),&fave_iter);
+    CImg<char>::vector(0).move_to(gmic_1stlevel_names);
     CImg<char>::string(treepath).move_to(gmic_1stlevel_entries);
     CImg<unsigned int>::vector(0).move_to(_sorting_criterion);
   }
@@ -815,7 +823,6 @@ CImgList<char> update_filters(const bool try_net_update) {
   cimg_snprintf(line,sizeof(line),"#@gimp_%s ",locale);
 
   // Use English for default language if no translated filters found.
-  CImgList<char> gmic_1stlevel_names;
   if (!std::strstr(gmic_additional_commands,line)) { locale[0] = 'e'; locale[1] = 'n'; locale[2] = 0; }
   for (const char *data = gmic_additional_commands; *data; ) {
     char *_line = line;
@@ -987,7 +994,7 @@ CImgList<char> update_filters(const bool try_net_update) {
           gmic_preview_factors.insert(gmic_preview_factors[filter]);
           unsigned int nbp = 0;
           for (nbp = 0; std::sscanf(_line,"{%16383[^}]%c",arguments,&sep)==2 && sep=='}'; ++nbp) {
-            for (char *p = std::strchr(arguments,_rbrace); p; p = std::strchr(p,_rbrace)) *p = '}';  // Get back '}' if necessary.
+            for (char *p = std::strchr(arguments,_rbrace); p; p = std::strchr(p,_rbrace)) *p = '}';     // Get back '}' if necessary.
             for (char *p = std::strchr(arguments,_newline); p; p = std::strchr(p,_newline)) *p = '\n';  // Get back '\n' if necessary.
             set_fave_parameter(gmic_entries.size()-1,nbp,arguments);
             _line+=2 + std::strlen(arguments);
@@ -1106,7 +1113,7 @@ void calibrate_image(CImg<float>& img, const unsigned int channels, const bool p
       img.channels(0,1);
       break;
     default: // from multi-channel (>4)
-      img.channels(0,1).get_shared_channel(1).fill(255);
+      img.channels(0,1);
     } break;
 
   case 3: // to RGB
@@ -1162,7 +1169,7 @@ void calibrate_image(CImg<float>& img, const unsigned int channels, const bool p
     case 4: // from RGBA
       break;
     default: // from multi-channel (>4)
-      img.resize(-100,-100,1,4,0);
+      img.channels(0,3);
     } break;
   }
 }
@@ -1543,8 +1550,8 @@ void on_dialog_add_fave_clicked(GtkWidget *const tree_view) {
   gtk_widget_hide(fave_delete_button);
   if (filter) {
     char filename[1024] = { 0 };
-    cimg_snprintf(filename,sizeof(filename),"%s/.gmic_faves",
-                  getenv(cimg_OS!=2?"HOME":"APPDATA"));
+    cimg_snprintf(filename,sizeof(filename),"%s%c%sgmic_faves",
+                  getenv(cimg_OS!=2?"HOME":"APPDATA"),cimg_file_separator,_gmic_file_prefix);
     std::FILE *file = std::fopen(filename,"wb");
     if (file) {
       char basename[256] = { 0 }, label[256] = { 0 };
@@ -1605,8 +1612,8 @@ void on_dialog_remove_fave_clicked(GtkWidget *const tree_view) {
   gtk_widget_hide(fave_delete_button);
   if (filter) {
     char filename[1024] = { 0 };
-    cimg_snprintf(filename,sizeof(filename),"%s/.gmic_faves",
-                  getenv(cimg_OS!=2?"HOME":"APPDATA"));
+    cimg_snprintf(filename,sizeof(filename),"%s%c%sgmic_faves",
+                  getenv(cimg_OS!=2?"HOME":"APPDATA"),cimg_file_separator,_gmic_file_prefix);
     std::FILE *file = std::fopen(filename,"wb");
     if (file) {
       const unsigned int _filter = filter - indice_faves;
@@ -1693,8 +1700,8 @@ void _on_filter_doubleclicked(GtkWidget *const entry) {
     char *const label = g_markup_escape_text(__label,std::strlen(__label));
     if (*label) {
       char filename[1024] = { 0 };
-      cimg_snprintf(filename,sizeof(filename),"%s/.gmic_faves",
-                    getenv(cimg_OS!=2?"HOME":"APPDATA"));
+      cimg_snprintf(filename,sizeof(filename),"%s%c%sgmic_faves",
+                    getenv(cimg_OS!=2?"HOME":"APPDATA"),cimg_file_separator,_gmic_file_prefix);
       std::FILE *file = std::fopen(filename,"wb");
       if (file) {
         const unsigned int _filter = filter - indice_faves;
@@ -1898,9 +1905,13 @@ void process_image(const char *const commands_line) {
     bool is_compatible_dimensions = (spt.images.size()==layers._height);
     for (unsigned int p = 0; p<spt.images.size() && is_compatible_dimensions; ++p) {
       const CImg<float>& img = spt.images[p];
+      const bool
+        source_is_alpha = (dimensions(p,3)==2 || dimensions(p,3)>=4),
+        dest_is_alpha = (img.spectrum()==2 || img.spectrum()>=4);
       if (img.width()!=dimensions(p,0) ||
           img.height()!=dimensions(p,1) ||
-          img.spectrum()>dimensions(p,3)) is_compatible_dimensions = false;
+          img.spectrum()>dimensions(p,3) ||
+          (dest_is_alpha && !source_is_alpha)) is_compatible_dimensions = false;
     }
 
     // Transfer the output layers back into GIMP.
@@ -2448,7 +2459,7 @@ void create_parameters_gui(const bool reset_params) {
               char *value = std::strchr(argument_arg,',') + 1;
               if (is_fave) value = argument_fave;
               if (!reset_params && *argument_value) value = argument_value;
-              else cimg::strescape(value);
+              else if (!is_fave) cimg::strescape(value);
               cimg::strpare(value,' ',false,true);
               cimg::strpare(value,'\"',true);
               for (char *p = value; *p; ++p) if (*p==_dquote) *p='\"';
