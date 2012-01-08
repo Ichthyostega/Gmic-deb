@@ -144,10 +144,28 @@ int main(int argc, char **argv) {
                "\tcur=\"${COMP_WORDS[COMP_CWORD]}\"\n"
                "\tprev=\"${COMP_WORDS[COMP_CWORD-1]}\"\n");
 
-  // Write valid options and list of commands.
+  // Define commands that forbid double-dash invokation.
+  const unsigned int nb_singledash = 60;
+  const char *singledash[] = {
+    "-b3d", "-background3d", "-break", "-check", "-command", "-camera", "-circle3d", "-cone3d",
+    "-continue", "-cylinder3d", "-db3d", "-done", "-do", "-debug", "-double3d", "-else",
+    "-elif", "-end", "-endlocal", "-endl", "-exec", "-f3d", "-focale3d", "-if",
+    "-l3d", "-light3d", "-line3d", "-m", "-m3d", "-md3d", "-mode3d", "-moded3d",
+    "-onfail", "-progress", "-pose3d", "-point3d", "-plane3d", "-quadrangle3d", "-q", "-quit",
+    "-repeat", "-return", "-rotation3d", "-status", "-skip", "-srand", "-sphere3d", "-sl3d",
+    "-specl3d", "-specs3d", "-ss3d", "-type", "-torus3d", "-triangle3d", "-u", "-uncommand",
+    "-v", "-verbose", "-while", "-x" };
+
+  // Write valid options and list of available commands.
   std::fprintf(stdout,"\topts=\"");
-  cimglist_for(commands,l)
-    std::fprintf(stdout,"%s -%s%s",commands[l].data(),commands[l].data(),l==commands.width()-1?"\"\n\n":" ");
+  cimglist_for(commands,l) {
+    bool is_singledash = false;
+    for (unsigned int i = 0; i<nb_singledash; ++i) if (!std::strcmp(singledash[i],commands[l])) { is_singledash = true; break; }
+    if (is_singledash)
+      std::fprintf(stdout,"%s%s",commands[l].data(),l==commands.width()-1?"\"\n\n":" ");
+    else
+      std::fprintf(stdout,"%s -%s%s",commands[l].data(),commands[l].data(),l==commands.width()-1?"\"\n\n":" ");
+  }
   std::fprintf(stdout,"\tcoms=\"");
   cimglist_for(commands,l)
     std::fprintf(stdout,"%s%s",commands[l].data()+1,l==commands.width()-1?"\"\n\n":" ");
@@ -155,7 +173,13 @@ int main(int argc, char **argv) {
   // Write valid arguments.
   std::fprintf(stdout,"\tcase \"${prev}\" in\n");
   cimglist_for(commands,l) if (arguments[l]) {
-    std::fprintf(stdout,"\t\t\"%s\" | \"-%s\")\n",commands[l].data(),commands[l].data());
+
+    bool is_singledash = false;
+    for (unsigned int i = 0; i<nb_singledash; ++i) if (!std::strcmp(singledash[i],commands[l])) { is_singledash = true; break; }
+    if (is_singledash)
+      std::fprintf(stdout,"\t\t\"%s\")\n",commands[l].data());
+    else
+      std::fprintf(stdout,"\t\t\"%s\" | \"-%s\")\n",commands[l].data(),commands[l].data());
     if (!std::strcmp("-output",commands[l].data()) ||
         !std::strcmp("-o",commands[l].data()) ||
         !std::strcmp("-input",commands[l].data()) ||
