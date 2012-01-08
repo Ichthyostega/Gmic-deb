@@ -1,0 +1,31 @@
+--- a/src/CImg.h
++++ b/src/CImg.h
+@@ -235,8 +235,8 @@
+ // (see method 'CImg<T>::load_camera()').
+ #ifdef cimg_use_opencv
+ #include <cstddef>
+-#include "cv.h"
+-#include "highgui.h"
++#include "highgui/highgui_c.h"
++#include "highgui/highgui.hpp"
+ #endif
+ 
+ // Configure LibPNG support.
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -146,12 +146,12 @@ ZLIB_CFLAGS = -Dcimg_use_zlib
+ ZLIB_LDFLAGS = -lz
+ 
+ # Flags to enable native support of webcams, using the OpenCV library.
+-OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv
++OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv -I$(USR)/include/opencv2
+ ifeq ($(OS),Darwin)
+ OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
+ else
+-OPENCV_LDFLAGS = -lcv -lhighgui
+-# OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
++#OPENCV_LDFLAGS = -lcv -lhighgui
++OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
+ endif
+ 
+ # Flags to enable native support of most classical image file formats, using the GraphicsMagick++ library.
