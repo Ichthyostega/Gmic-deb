@@ -1,3 +1,11 @@
+gmic (1.5.0.8+dfsg-1) unstable; urgency=low
+
+  * [b7ddf3a2] Merge commit 'upstream/1.5.0.8+dfsg'
+  * [a0dd17c6] Make GMIC build with recent OpenCV versions. (Closes: #652763)
+  * [7cb4a04f] Don't use configure, call src/Makefile directly.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 08 Jan 2012 23:32:01 +0100
+
 gmic (1.5.0.7+dfsg-1) unstable; urgency=low
 
   * [97e3ecbd] Merge commit 'upstream/1.5.0.7+dfsg'
