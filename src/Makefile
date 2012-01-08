@@ -355,8 +355,8 @@ install:
 	cp -f gmic.h $(DESTDIR)$(USR)/include/
 ifneq ($(OS),Darwin)
 	mkdir -p $(DESTDIR)$(USR)/lib
-	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.7
-	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.7 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0
+	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.8
+	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.8 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0
 	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
 	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
 endif

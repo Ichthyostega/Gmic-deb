@@ -47,7 +47,7 @@
 
 #include <locale>
 #ifndef gmic_version
-#define gmic_version 1507
+#define gmic_version 1508
 
 // Define environment variables.
 #ifndef gmic_is_beta
@@ -74,7 +74,8 @@
 #endif
 
 // Define some special character codes used for replacement in double quoted strings.
-const char _dollar = 23, _lbrace = 24, _rbrace = 25, _comma = 26, _dquote = 28, _arobace = 29, _newline = 30;
+const char _dollar = 23, _lbrace = 24, _rbrace = 25, _comma = 26, _dquote = 28, _arobace = 29,
+  _newline = 30;
 
 // Replace special characters in a string.
 inline char *gmic_strreplace(char *const str) {
@@ -133,6 +134,7 @@ namespace cimg_library {
 #endif  // #ifdef cimg_location
 #define gmic_image cimg_library::CImg
 #define gmic_list cimg_library::CImgList
+#define gmic_display cimg_library::CImgDisplay
 
 // Define the G'MIC exception class.
 //----------------------------------
@@ -162,7 +164,7 @@ struct gmic {
 
   // Internal environment variables.
 #if cimg_display!=0
-  cimg_library::CImgDisplay instant_window[10];
+  gmic_display instant_window[10];
 #endif
   static gmic_list<char> default_commands, default_commands_names;
   gmic_list<char> commands, command_names, variables[27], variables_names[27], scope;
@@ -172,7 +174,8 @@ struct gmic {
   gmic_image<char> status;
   float focale3d, light3d_x, light3d_y, light3d_z, specular_light3d,
     specular_shine3d, _progress, *progress;
-  bool is_released, is_debug, is_start, is_quit, is_return, is_double3d, is_default_type, is_shell, check_elif;
+  bool is_released, is_debug, is_start, is_quit, is_return, is_double3d, is_default_type,
+    is_shell, check_elif;
   int verbosity, render3d, renderd3d;
   volatile int _cancel, *cancel;
   unsigned int nb_carriages, position;

@@ -174,8 +174,8 @@
 // Configure display framework.
 //
 // Define 'cimg_display' to : '0' to disable display capabilities.
-//                            '1' to use X-Window framework (X11).
-//                            '2' to use Microsoft GDI32 framework.
+//                            '1' to use the X-Window framework (X11).
+//                            '2' to use the Microsoft GDI32 framework.
 #ifndef cimg_display
 #if cimg_OS==0
 #define cimg_display 0
@@ -212,12 +212,12 @@
 #define cimg_appname "CImg"
 #endif
 
-// OpenMP configuration.
+// Configure OpenMP support.
 // (http://www.openmp.org)
 //
 // Define 'cimg_use_openmp' to enable OpenMP support.
 //
-// OpenMP directives may be used by a few CImg functions to get
+// OpenMP directives may be used in a few CImg functions to get
 // advantages of multi-core CPUs.
 #ifdef cimg_use_openmp
 #include "omp.h"
@@ -226,39 +226,39 @@
 #define _cimg_static static
 #endif
 
-// OpenCV configuration
+// Configure OpenCV support.
 // (http://opencv.willowgarage.com/wiki/)
 //
 // Define 'cimg_use_opencv' to enable OpenCV support.
 //
-// OpenCV may be used to access images from cameras
-// (with function 'CImg<T>::load_camera()').
+// OpenCV library may be used to access images from cameras
+// (see method 'CImg<T>::load_camera()').
 #ifdef cimg_use_opencv
 #include <cstddef>
 #include "cv.h"
 #include "highgui.h"
 #endif
 
-// LibPNG configuration.
+// Configure LibPNG support.
 // (http://www.libpng.org)
 //
 // Define 'cimg_use_png' to enable LibPNG support.
 //
-// LibPNG may be used by functions 'CImg<T>::{load,save}_png()'
-// to get a native support of PNG files.
+// PNG library may be used to get a native support of '.png' files.
+// (see methods 'CImg<T>::{load,save}_png()'.
 #ifdef cimg_use_png
 extern "C" {
 #include "png.h"
 }
 #endif
 
-// LibJPEG configuration.
+// Configure LibJPEG support.
 // (http://en.wikipedia.org/wiki/Libjpeg)
 //
 // Define 'cimg_use_jpeg' to enable LibJPEG support.
 //
-// LibJPEG may be used by functions 'CImg<T>::{load,save}_jpeg()'
-// to get a native support of JPEG files.
+// JPEG library may be used to get a native support of '.jpg' files.
+// (see methods 'CImg<T>::{load,save}_jpeg()').
 #ifdef cimg_use_jpeg
 extern "C" {
 #include "jpeglib.h"
@@ -266,40 +266,40 @@ extern "C" {
 }
 #endif
 
-// LibTIFF configuration.
+// Configure LibTIFF support.
 // (http://www.libtiff.org)
 //
 // Define 'cimg_use_tiff' to enable LibTIFF support.
 //
-// LibTIFF may be used by functions 'CImg[List]<T>::{load,save}_tiff()'
-// to get a native support of TIFF files.
+// TIFF library may be used to get a native support of '.tif' files.
+// (see methods 'CImg[List]<T>::{load,save}_tiff()').
 #ifdef cimg_use_tiff
 extern "C" {
 #include "tiffio.h"
 }
 #endif
 
-// LibMINC2 configuration.
+// Configure LibMINC2 support.
 // (http://en.wikibooks.org/wiki/MINC/Reference/MINC2.0_File_Format_Reference)
 //
 // Define 'cimg_use_minc2' to enable LibMINC2 support.
 //
-// LibMINC2 may be used by functions 'CImg<T>::{load,save}_minc2()'
-// to get a native support of MINC2 files.
+// MINC2 library may be used to get a native support of '.mnc' files.
+// (see methods 'CImg<T>::{load,save}_minc2()').
 #ifdef cimg_use_minc2
 extern "C" {
 #include "minc2.h"
 }
 #endif
 
-// FFMPEG configuration.
+// Configure FFMPEG support.
 // (http://www.ffmpeg.org)
 //
 // Define 'cimg_use_ffmpeg' to enable FFMPEG lib support.
 //
-// Avcodec and Avformat libraries may be used by functions
-// 'CImg[List]<T>::load_ffmpeg()' to get a native
-// support of various image sequences file formats.
+// Avcodec and Avformat libraries from FFMPEG may be used
+// to get a native support of various video file formats.
+// (see methods 'CImg[List]<T>::load_ffmpeg()').
 #ifdef cimg_use_ffmpeg
 #if (defined(_STDINT_H) || defined(_STDINT_H_)) && !defined(UINT64_C)
 #warning "__STDC_CONSTANT_MACROS has to be defined before including <stdint.h>, this file will probably not compile."
@@ -314,52 +314,52 @@ extern "C" {
 }
 #endif
 
-// Zlib configuration
+// Configure Zlib support.
 // (http://www.zlib.net)
 //
 // Define 'cimg_use_zlib' to enable Zlib support.
 //
-// Zlib may be used by functions 'CImg[List]<T>::{load,save}_cimg()'
-// to allow compressed data in '.cimg' files (i.e. '.cimgz' files).
+// Zlib library may be used to allow compressed data in '.cimgz' files
+// (see methods 'CImg[List]<T>::{load,save}_cimg()').
 #ifdef cimg_use_zlib
 extern "C" {
 #include "zlib.h"
 }
 #endif
 
-// Magick++ configuration.
+// Configure Magick++ support.
 // (http://www.imagemagick.org/Magick++)
 //
 // Define 'cimg_use_magick' to enable Magick++ support.
 //
-// Magick++ library may be used by functions 'CImg<T>::{load,save}()'
-// to get a native support of various image formats (PNG,JPEG,TIFF,...).
+// Magick++ library may be used to get a native support of various image file formats.
+// (see methods 'CImg<T>::{load,save}()').
 #ifdef cimg_use_magick
 #include "Magick++.h"
 #endif
 
-// FFTW3 configuration.
+// Configure FFTW3 support.
 // (http://www.fftw.org)
 //
 // Define 'cimg_use_fftw3' to enable libFFTW3 support.
 //
-// FFTW3 library may be used by functions 'CImg[List]<T>::FFT()' to
-// efficiently compute the Fast Fourier Transform of image data, without
-// restrictions on the image size.
+// FFTW3 library may be used to efficiently compute the Fast Fourier Transform
+// of image data, without restriction on the image size.
+// (see method 'CImg[List]<T>::FFT()').
 #ifdef cimg_use_fftw3
 extern "C" {
 #include "fftw3.h"
 }
 #endif
 
-// Board configuration
+// Configure LibBoard support.
 // (http://libboard.sourceforge.net/)
 //
 // Define 'cimg_use_board' to enable Board support.
 //
-// Board library may be used by functions 'CImg<T>::draw_object3d()'
-// to draw objects 3d in vector-graphics canvas that can be saved
-// as .PS or .SVG files afterwards.
+// Board library may be used to draw 3d objects in vector-graphics canvas
+// that can be saved as '.ps' or '.svg' files afterwards.
+// (see method 'CImg<T>::draw_object3d()').
 #ifdef cimg_use_board
 #ifdef None
 #undef None
@@ -368,12 +368,13 @@ extern "C" {
 #include "Board.h"
 #endif
 
-// OpenEXR configuration
+// Configure OpenEXR support.
 // (http://www.openexr.com/)
 //
 // Define 'cimg_use_openexr' to enable OpenEXR support.
 //
-// OpenEXR may be used to read/write .exr file formats.
+// OpenEXR library may be used to get a native support of '.exr' files.
+// (see methods 'CImg<T>::{load,save}_exr()').
 #ifdef cimg_use_openexr
 #include "ImfRgbaFile.h"
 #include "ImfInputFile.h"
@@ -387,8 +388,8 @@ extern "C" {
 //
 // Define 'cimg_use_lapack' to enable LAPACK support.
 //
-// Lapack may be used in various CImg functions dealing with
-// matrix computation and algorithms (eigenvalues, inverse, ...).
+// Lapack library may be used in several CImg methods to speed up
+// matrix computations (eigenvalues, inverse, ...).
 #ifdef cimg_use_lapack
 extern "C" {
   extern void sgetrf_(int*, int*, float*, int*, int*, int*);
@@ -407,9 +408,9 @@ extern "C" {
 // Check if min/max/PI macros are defined.
 //
 // CImg does not compile if macros 'min', 'max' or 'PI' are defined,
-// because functions min(), max() and const variable PI are re-defined in the cimg:: namespace.
+// because it redefines functions min(), max() and const variable PI in the cimg:: namespace.
 // so it '#undef' these macros if necessary, and restore them to reasonable
-// values at the end of the file.
+// values at the end of this file.
 #ifdef min
 #undef min
 #define _cimg_redefine_min
@@ -423,7 +424,7 @@ extern "C" {
 #define _cimg_redefine_PI
 #endif
 
-// Define suffixed 'cimg_library' namespace.
+// Define 'cimg_library' namespace suffix.
 //
 // You may want to add a suffix to the 'cimg_library' namespace, for instance if you need to work
 // with several versions of the library at the same time.
@@ -439,12 +440,12 @@ extern "C" {
   #
   # Define user-friendly macros.
   #
-  # User-friendly CImg macros are prefixed by 'cimg_' and can be used in your own
-  # code. Those macros are useful for option parsing, or writing image loops.
+  # These CImg macros are prefixed by 'cimg_' and can be used safely in your own
+  # code. They are useful for option parsing, or writing specific image loops.
   #
   ------------------------------------------------------------------------------*/
 
-// Define the program usage, and retrieve command line arguments.
+// Macros to define program usage, and retrieve command line arguments.
 #define cimg_usage(usage) cimg_library_suffixed::cimg::option((char*)0,argc,argv,(char*)0,usage,false)
 #define cimg_help(str) cimg_library_suffixed::cimg::option((char*)0,argc,argv,str,(char*)0)
 #define cimg_option(name,defaut,usage) cimg_library_suffixed::cimg::option(name,argc,argv,defaut,usage)
@@ -459,7 +460,7 @@ extern "C" {
 #define cimg_argument8(pos,s0,s1,s2,s3,s4,s5,s6,s7) cimg_library_suffixed::cimg::argument(pos,argc,argv,8,s0,s1,s2,s3,s4,s5,s6,s7)
 #define cimg_argument9(pos,s0,s1,s2,s3,s4,s5,s6,s7,s8) cimg_library_suffixed::cimg::argument(pos,argc,argv,9,s0,s1,s2,s3,s4,s5,s6,s7,s8)
 
-// Define and manipulate local neighborhoods.
+// Macros to define and manipulate local neighborhoods.
 #define CImg_2x2(I,T) T I[4]; \
                       T& I##cc = I[0]; T& I##nc = I[1]; \
                       T& I##cn = I[2]; T& I##nn = I[3]; \
@@ -631,9 +632,9 @@ extern "C" {
   I[21] = (T)(img)(_p1##x,y,_n1##z,c), I[22] = (T)(img)(x,y,_n1##z,c), I[23] = (T)(img)(_n1##x,y,_n1##z,c), \
   I[24] = (T)(img)(_p1##x,_n1##y,_n1##z,c), I[25] = (T)(img)(x,_n1##y,_n1##z,c), I[26] = (T)(img)(_n1##x,_n1##y,_n1##z,c)
 
-// Define macros for performing various image loops.
+// Macros to perform various image loops.
 //
-// These macros are an elegant way to avoid the use of iterators. Don't feel forced to used them if you dislike it !
+// These macros may prevent the use of iterators, if necessary.
 #define cimg_for(img,ptrs,T_ptrs) for (T_ptrs *ptrs = (img)._data + (img).size(); (ptrs--)>(img)._data; )
 #define cimg_forptr(img,ptrs,T_ptrs) for (T_ptrs *ptrs = (img)._data, *_max##ptrs = (img)._data + (img).size(); ptrs<_max##ptrs; ++ptrs)
 #define cimg_foroff(img,off) for (unsigned int off = 0, _max##off = (img).size(); off<_max##off; ++off)
@@ -1929,7 +1930,7 @@ extern "C" {
 
 #define cimglist_apply(list,fn) cimglist_for(list,__##fn) (list)[__##fn].fn
 
-// Define macros used to display error messages when exceptions are thrown.
+// Macros used to display error messages when exceptions are thrown. You should not use them.
 #define _cimgdisplay_instance "[instance(%u,%u,%u,%c%s%c)] CImgDisplay::"
 #define cimgdisplay_instance _width,_height,_normalization,_title?'\"':'[',_title?_title:"untitled",_title?'\"':']'
 #define _cimg_instance "[instance(%u,%u,%u,%u,%p,%sshared)] CImg<%s>::"
@@ -1940,33 +1941,33 @@ extern "C" {
 /*------------------------------------------------
  #
  #
- #  Definition of the cimg_library:: namespace
+ #  Define cimg_library:: namespace
  #
  #
  -------------------------------------------------*/
-//! This namespace encompasses all classes and functions of the %CImg library.
+//! Contains <i>all classes and functions</i> of the \CImg library.
 /**
    This namespace is defined to avoid functions and class names collisions
    that could happen with the include of other C++ header files.
    Anyway, it should not happen often and you should reasonnably start most of your
-   %CImg-based programs with
+   \CImg-based programs with
    \code
    #include "CImg.h"
    using namespace cimg_library;
    \endcode
-   to simplify the declaration of %CImg Library variables afterwards.
+   to simplify the declaration of \CImg Library variables afterwards.
 **/
 namespace cimg_library_suffixed {
 
-  // Declare the only four classes of the CImg Library.
+  // Declare the four classes of the CImg Library.
   template<typename T=float> struct CImg;
   template<typename T=float> struct CImgList;
   struct CImgDisplay;
   struct CImgException;
 
-  // (Pre)declare the cimg namespace.
-  // This is not the complete namespace declaration. It only contains some
-  // necessary stuffs to ensure a correct declaration order of classes and functions
+  // Declare cimg:: namespace.
+  // This is not the complete namespace definition. It only contains some
+  // necessary stuffs to ensure a correct declaration order of the classes and functions
   // defined afterwards.
   namespace cimg {
 
@@ -1985,30 +1986,38 @@ namespace cimg_library_suffixed {
     inline std::FILE* output(std::FILE *file=0);
     inline void info();
 
-    // Function used to avoid warning messages due to unused parameters.
+    //! Avoid warning messages due to unused parameters. Actually do nothing.
     template<typename T>
     inline void unused(const T&, ...) {}
 
-    //! Get/set the current CImg exception mode.
-    /**
-       The way error messages are handled by CImg can be changed dynamically, using this function.
-       Possible values are :
-       - '0' to hide library messages (quiet mode).
-       - '1' to print library messages on the console.
-       - '2' to display library messages on a dialog window (default behavior).
-       - '3' to do as '1' + add extra warnings (may slow down the code !).
-       - '4' to do as '2' + add extra warnings (may slow down the code !).
-     **/
     inline unsigned int& _exception_mode(const unsigned int value, const bool is_set) {
       static unsigned int mode = cimg_verbosity;
       if (is_set) mode = value;
       return mode;
     }
-    inline unsigned int& exception_mode() {
-      return _exception_mode(0,false);
-    }
+
+    //! Set current \CImg exception mode.
+    /**
+       The way error messages are handled by \CImg can be changed dynamically, using this function.
+       \param mode Desired exception mode. Possible values are :
+       - \c 0 : Hide library messages (quiet mode).
+       - \c 1 : Print library messages on the console.
+       - \c 2 : Display library messages on a dialog window (default behavior).
+       - \c 3 : Do as \c 1 + add extra debug warnings (slow down the code !).
+       - \c 4 : Do as \c 2 + add extra debug warnings (slow down the code !).
+       \see exception_mode(), \c cimg_verbosity.
+     **/
     inline unsigned int& exception_mode(const unsigned int mode) {
       return _exception_mode(mode,true);
+    }
+
+    //! Return current \CImg exception mode.
+    /**
+       \note By default, return the value of configuration macro \c cimg_verbosity
+       \see exception_mode(unsigned int), \c cimg_verbosity.
+    **/
+    inline unsigned int& exception_mode() {
+      return _exception_mode(0,false);
     }
 
     inline int dialog(const char *const title, const char *const msg, const char *const button1_label="OK",
@@ -2016,74 +2025,71 @@ namespace cimg_library_suffixed {
                       const char *const button4_label=0, const char *const button5_label=0,
                       const char *const button6_label=0, const bool centering=false);
 
-    //! Evaluate math expression.
-    inline double eval(const char *const expression, const double x=0, const double y=0, const double z=0, const double v=0);
+    inline double eval(const char *const expression, const double x=0, const double y=0, const double z=0, const double c=0);
   }
 
-  /*----------------------------------------------
-   #
-   # Definition of the CImgException structures
-   #
-   ----------------------------------------------*/
-  //! Instances of this class are thrown when errors occur during a %CImg library function call.
+  /*---------------------------------------
+    #
+    # Define the CImgException structures
+    #
+    --------------------------------------*/
+  //! Instances of \c CImgException are thrown when errors are encountered in a \CImg function call.
   /**
-     \section ex1 Overview
+     \par Overview
 
-      CImgException is the base class of %CImg exceptions.
-      Exceptions are thrown by the %CImg Library when an error occured in a %CImg library function call.
-      CImgException is seldom thrown itself. Children classes that specify the kind of error encountered
-      are generally used instead. These sub-classes are :
+      CImgException is the base class of all exceptions thrown by \CImg.
+      CImgException is never thrown itself. Derived classes that specify the type of errord are thrown instead.
+      These derived classes can be :
 
-      - \b CImgInstanceException : Thrown when the instance associated to the called %CImg function is not
-      correctly defined. Generally, this exception is thrown when one tries to process \a empty images. The example
-      below will throw a \a CImgInstanceException.
+      - \b CImgArgumentException : Thrown when one argument of a called \CImg function is invalid.
+      This is probably one of the most thrown exception by \CImg.
+      For instance, the following example throws a \c CImgArgumentException :
       \code
-      CImg<float> img;        // Construct an empty image.
-      img.blur(10);           // Try to blur the image.
+      CImg<float> img(100,100,1,3); // Define a 100x100 color image with float-valued pixels.
+      img.mirror('e');              // Try to mirror image along the (non-existing) 'e'-axis.
       \endcode
 
-      - \b CImgArgumentException : Thrown when one of the arguments given to the called %CImg function is not correct.
-      Generally, this exception is thrown when arguments passed to the function are outside an admissible range of values.
-      The example below will throw a \a CImgArgumentException.
+      - \b CImgDisplayException : Thrown when something went wrong during the display of images in CImgDisplay instances.
+
+      - \b CImgInstanceException : Thrown when an instance associated to a called \CImg method does not fit
+      the function requirements. For instance, the following example throws a \c CImgInstanceException :
       \code
-      CImg<float> img(100,100,1,3);   // Define a 100x100 color image with float pixels.
-      img = 0;                     // Try to fill pixels from the 0 pointer (invalid argument to operator=() ).
+      const CImg<float> img;           // Define an empty image.
+      const float value = img.at(0);   // Try to read first pixel value (does not exist).
       \endcode
 
       - \b CImgIOException : Thrown when an error occured when trying to load or save image files.
-      The example below will throw a \a CImgIOException.
+      This happens when trying to read files that do not exist or with invalid formats.
+      For instance, the following example throws a \c CImgIOException :
       \code
-      CImg<float> img("file_doesnt_exist.jpg");    // Try to load a file that doesn't exist.
+      const CImg<float> img("missing_file.jpg");  // Try to load a file that does not exist.
       \endcode
 
-      The parent class CImgException may be thrown itself when errors that cannot be classified in one of
-      the above type occur. It is recommended not to throw CImgExceptions yourself, since there are normally
-      reserved to %CImg Library functions.
-      \b CImgInstanceException, \b CImgArgumentException and \b CImgIOException are simple
-      subclasses of CImgException and are thus not detailled more in this reference documentation.
+      - \b CImgWarningException : Thrown only if configuration macro \c cimg_strict_warnings is set, and
+      when a \CImg function has to display a warning message (see cimg::warn()).
 
-      \section ex2 Exception handling
+      It is not recommended to throw CImgException instances by yourself, since they are expected to be thrown only by \CImg.
+      When an error occurs in a library function call, \CImg may display error messages on the screen or on the
+      standard output, depending on the current \CImg exception mode.
+      The \CImg exception mode can be get and set by functions cimg::exception_mode() and cimg::exception_mode(unsigned int).
 
-      When an error occurs, the %CImg Library first displays the error in a modal window.
-      Then, it throws an instance of the corresponding exception class, generally leading the program to stop
-      (this is the default behavior).
-      You can bypass this default behavior by handling the exceptions yourself,
-      using a code block <tt>try { ... } catch () { ... }</tt>.
-      In this case, you can avoid the apparition of the modal window, by
-      defining the environment variable <tt>cimg_verbosity</tt> to 0 before including the %CImg header file.
-      The example below shows how to cleanly handle %CImg Library exceptions :
+      \par Exceptions handling
+
+      In all cases, when an error occurs in \CImg, an instance of the corresponding exception class is thrown.
+      This may lead the program to break (this is the default behavior), but you can bypass this behavior by handling the exceptions by yourself,
+      using a usual <tt>try { ... } catch () { ... }</tt> bloc, as in the following example :
       \code
-      #define cimg_verbosity 0     // Disable modal window in CImg exceptions.
       #define "CImg.h"
+      using namespace cimg_library;
       int main() {
+        cimg::exception_mode(0);                                    // Enable quiet exception mode.
         try {
-          ...; // Here, do what you want.
+          ...                                                       // Here, do what you want to stress the CImg library.
+        } catch (CImgException &e) {                                // You succeeded : something went wrong !
+          std::fprintf(stderr,"CImg Library Error : %s",e.what());  // Display your custom error message.
+          ...                                                       // Do what you want now to save the ship !
+          }
         }
-        catch (CImgInstanceException &e) {
-          std::fprintf(stderr,"CImg Library Error : %s",e.what());  // Display your own error message
-          ...                                                       // Do what you want now.
-        }
-      }
       \endcode
   **/
   struct CImgException : public std::exception {
@@ -2098,11 +2104,12 @@ namespace cimg_library_suffixed {
     char _message[16384];
     CImgException() { *_message = 0; }
     CImgException(const char *const format, ...) { _cimg_exception_err("CImgException",true); }
+    //! Return a C-string containing the error message associated to the thrown exception.
     const char *what() const throw() { return _message; }
   };
 
   // The CImgInstanceException class is used to throw an exception related
-  // to a non suitable instance encountered in a library function call.
+  // to an invalid instance encountered in a library function call.
   struct CImgInstanceException : public CImgException {
     CImgInstanceException(const char *const format, ...) { _cimg_exception_err("CImgInstanceException",true); }
   };
@@ -2114,7 +2121,7 @@ namespace cimg_library_suffixed {
   };
 
   // The CImgIOException class is used to throw an exception related
-  // to Input/Output file problems encountered in a library function call.
+  // to input/output file problems encountered in a library function call.
   struct CImgIOException : public CImgException {
     CImgIOException(const char *const format, ...) { _cimg_exception_err("CImgIOException",true); }
   };
@@ -2132,21 +2139,20 @@ namespace cimg_library_suffixed {
   };
 
   /*-------------------------------------
-   #
-   # Definition of the namespace 'cimg'
-   #
-   --------------------------------------*/
-  //! Namespace that encompasses \a low-level functions and variables of the %CImg Library.
+    #
+    # Define cimg:: namespace
+    #
+    -----------------------------------*/
+  //! Contains \a low-level functions and variables of the \CImg Library.
   /**
-     Most of the functions and variables within this namespace are used by the library for low-level processing.
-     Nevertheless, documented variables and functions of this namespace may be used safely in your own source code.
-
-     \warning Never write <tt>using namespace cimg_library::cimg;</tt> in your source code, since a lot of functions of the
-     <tt>cimg::</tt> namespace have prototypes similar to standard C functions that could defined in the global namespace <tt>::</tt>.
+     Most of the functions and variables within this namespace are used by the \CImg library for low-level operations.
+     You may use them to access specific const values or environment variables internally used by \CImg.
+     \warning Never write <tt>using namespace cimg_library::cimg;</tt> in your source code. Lot of functions in the
+     <tt>cimg:: namespace</tt> have the same names as standard C functions that may be defined in the global namespace <tt>::</tt>.
   **/
   namespace cimg {
 
-    // Define the traits that will be used to determine the best data type to work with.
+    // Define traits that will be used to determine the best data type to work in CImg functions.
     //
     template<typename T> struct type {
       static const char* string() {
@@ -2157,7 +2163,6 @@ namespace cimg_library_suffixed {
                                    "unknown128" };
         return s[(sizeof(T)<17)?sizeof(T):0];
       }
-      static unsigned int id() { return 0U; }
       static bool is_float() { return false; }
       static bool is_inf(const T) { return false; }
       static bool is_nan(const T) { return false; }
@@ -2171,7 +2176,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<bool> {
       static const char* string() { static const char *const s = "bool"; return s; }
-      static unsigned int id() { return 1U; }
       static bool is_float() { return false; }
       static bool is_inf(const bool) { return false; }
       static bool is_nan(const bool) { return false; }
@@ -2186,7 +2190,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<unsigned char> {
       static const char* string() { static const char *const s = "unsigned char"; return s; }
-      static unsigned int id() { return 2U; }
       static bool is_float() { return false; }
       static bool is_inf(const unsigned char) { return false; }
       static bool is_nan(const unsigned char) { return false; }
@@ -2200,7 +2203,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<char> {
       static const char* string() { static const char *const s = "char"; return s; }
-      static unsigned int id() { return 3U; }
       static bool is_float() { return false; }
       static bool is_inf(const char) { return false; }
       static bool is_nan(const char) { return false; }
@@ -2214,7 +2216,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<signed char> {
       static const char* string() { static const char *const s = "signed char"; return s; }
-      static unsigned int id() { return 4U; }
       static bool is_float() { return false; }
       static bool is_inf(const signed char) { return false; }
       static bool is_nan(const signed char) { return false; }
@@ -2228,7 +2229,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<unsigned short> {
       static const char* string() { static const char *const s = "unsigned short"; return s; }
-      static unsigned int id() { return 5U; }
       static bool is_float() { return false; }
       static bool is_inf(const unsigned short) { return false; }
       static bool is_nan(const unsigned short) { return false; }
@@ -2242,7 +2242,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<short> {
       static const char* string() { static const char *const s = "short"; return s; }
-      static unsigned int id() { return 6U; }
       static bool is_float() { return false; }
       static bool is_inf(const short) { return false; }
       static bool is_nan(const short) { return false; }
@@ -2256,7 +2255,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<unsigned int> {
       static const char* string() { static const char *const s = "unsigned int"; return s; }
-      static unsigned int id() { return 7U; }
       static bool is_float() { return false; }
       static bool is_inf(const unsigned int) { return false; }
       static bool is_nan(const unsigned int) { return false; }
@@ -2270,7 +2268,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<int> {
       static const char* string() { static const char *const s = "int"; return s; }
-      static unsigned int id() { return 8U; }
       static bool is_float() { return false; }
       static bool is_inf(const int) { return false; }
       static bool is_nan(const int) { return false; }
@@ -2284,7 +2281,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<unsigned long> {
       static const char* string() { static const char *const s = "unsigned long"; return s; }
-      static unsigned int id() { return 9U; }
       static bool is_float() { return false; }
       static bool is_inf(const unsigned long) { return false; }
       static bool is_nan(const unsigned long) { return false; }
@@ -2298,7 +2294,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<long> {
       static const char* string() { static const char *const s = "long"; return s; }
-      static unsigned int id() { return 10U; }
       static bool is_float() { return false; }
       static bool is_inf(const long) { return false; }
       static bool is_nan(const long) { return false; }
@@ -2312,7 +2307,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<double> {
       static const char* string() { static const char *const s = "double"; return s; }
-      static unsigned int id() { return 11U; }
       static bool is_float() { return true; }
       static bool is_inf(const double val) { return !is_nan(val) && val+1==val; }
       static bool is_nan(const double val) { return !(val<=0 || val>=0); }
@@ -2327,7 +2321,6 @@ namespace cimg_library_suffixed {
 
     template<> struct type<float> {
       static const char* string() { static const char *const s = "float"; return s; }
-      static unsigned int id() { return 12U; }
       static bool is_float() { return true; }
       static bool is_inf(const float val) { return cimg::type<double>::is_inf((double)val); }
       static bool is_nan(const float val) { return cimg::type<double>::is_nan((double)val); }
@@ -2436,7 +2429,7 @@ namespace cimg_library_suffixed {
 #define _cimg_Tfloat  typename cimg::superset<T,float>::type
 #define _cimg_Ttfloat typename cimg::superset2<T,t,float>::type
 
-    // Define internal library variables.
+    // Define variables used internally by CImg.
 #if cimg_display==1
     struct X11_info {
       volatile unsigned int nb_wins;
@@ -2493,7 +2486,7 @@ namespace cimg_library_suffixed {
 #endif
 
 #if cimg_display==1
-    // Keycodes for X11-based graphical systems.
+    // Define keycodes for X11-based graphical systems.
     const unsigned int keyESC        = XK_Escape;
     const unsigned int keyF1         = XK_F1;
     const unsigned int keyF2         = XK_F2;
@@ -2584,7 +2577,7 @@ namespace cimg_library_suffixed {
     const unsigned int keyPADDIV     = XK_KP_Divide;
 
 #elif cimg_display==2
-    // Keycodes for Windows.
+    // Define keycodes for Windows.
     const unsigned int keyESC        = VK_ESCAPE;
     const unsigned int keyF1         = VK_F1;
     const unsigned int keyF2         = VK_F2;
@@ -2675,101 +2668,101 @@ namespace cimg_library_suffixed {
     const unsigned int keyPADDIV     = VK_DIVIDE;
 
 #else
-    // Define unknow keycodes when no display are available.
+    // Define random keycodes when no display is available.
     // (should rarely be used then !).
-    const unsigned int keyESC        = 1U;
-    const unsigned int keyF1         = 2U;
-    const unsigned int keyF2         = 3U;
-    const unsigned int keyF3         = 4U;
-    const unsigned int keyF4         = 5U;
-    const unsigned int keyF5         = 6U;
-    const unsigned int keyF6         = 7U;
-    const unsigned int keyF7         = 8U;
-    const unsigned int keyF8         = 9U;
-    const unsigned int keyF9         = 10U;
-    const unsigned int keyF10        = 11U;
-    const unsigned int keyF11        = 12U;
-    const unsigned int keyF12        = 13U;
-    const unsigned int keyPAUSE      = 14U;
-    const unsigned int key1          = 15U;
-    const unsigned int key2          = 16U;
-    const unsigned int key3          = 17U;
-    const unsigned int key4          = 18U;
-    const unsigned int key5          = 19U;
-    const unsigned int key6          = 20U;
-    const unsigned int key7          = 21U;
-    const unsigned int key8          = 22U;
-    const unsigned int key9          = 23U;
-    const unsigned int key0          = 24U;
-    const unsigned int keyBACKSPACE  = 25U;
-    const unsigned int keyINSERT     = 26U;
-    const unsigned int keyHOME       = 27U;
-    const unsigned int keyPAGEUP     = 28U;
-    const unsigned int keyTAB        = 29U;
-    const unsigned int keyQ          = 30U;
-    const unsigned int keyW          = 31U;
-    const unsigned int keyE          = 32U;
-    const unsigned int keyR          = 33U;
-    const unsigned int keyT          = 34U;
-    const unsigned int keyY          = 35U;
-    const unsigned int keyU          = 36U;
-    const unsigned int keyI          = 37U;
-    const unsigned int keyO          = 38U;
-    const unsigned int keyP          = 39U;
-    const unsigned int keyDELETE     = 40U;
-    const unsigned int keyEND        = 41U;
-    const unsigned int keyPAGEDOWN   = 42U;
-    const unsigned int keyCAPSLOCK   = 43U;
-    const unsigned int keyA          = 44U;
-    const unsigned int keyS          = 45U;
-    const unsigned int keyD          = 46U;
-    const unsigned int keyF          = 47U;
-    const unsigned int keyG          = 48U;
-    const unsigned int keyH          = 49U;
-    const unsigned int keyJ          = 50U;
-    const unsigned int keyK          = 51U;
-    const unsigned int keyL          = 52U;
-    const unsigned int keyENTER      = 53U;
-    const unsigned int keySHIFTLEFT  = 54U;
-    const unsigned int keyZ          = 55U;
-    const unsigned int keyX          = 56U;
-    const unsigned int keyC          = 57U;
-    const unsigned int keyV          = 58U;
-    const unsigned int keyB          = 59U;
-    const unsigned int keyN          = 60U;
-    const unsigned int keyM          = 61U;
-    const unsigned int keySHIFTRIGHT = 62U;
-    const unsigned int keyARROWUP    = 63U;
-    const unsigned int keyCTRLLEFT   = 64U;
-    const unsigned int keyAPPLEFT    = 65U;
-    const unsigned int keyALT        = 66U;
-    const unsigned int keySPACE      = 67U;
-    const unsigned int keyALTGR      = 68U;
-    const unsigned int keyAPPRIGHT   = 69U;
-    const unsigned int keyMENU       = 70U;
-    const unsigned int keyCTRLRIGHT  = 71U;
-    const unsigned int keyARROWLEFT  = 72U;
-    const unsigned int keyARROWDOWN  = 73U;
-    const unsigned int keyARROWRIGHT = 74U;
-    const unsigned int keyPAD0       = 75U;
-    const unsigned int keyPAD1       = 76U;
-    const unsigned int keyPAD2       = 77U;
-    const unsigned int keyPAD3       = 78U;
-    const unsigned int keyPAD4       = 79U;
-    const unsigned int keyPAD5       = 80U;
-    const unsigned int keyPAD6       = 81U;
-    const unsigned int keyPAD7       = 82U;
-    const unsigned int keyPAD8       = 83U;
-    const unsigned int keyPAD9       = 84U;
-    const unsigned int keyPADADD     = 85U;
-    const unsigned int keyPADSUB     = 86U;
-    const unsigned int keyPADMUL     = 87U;
-    const unsigned int keyPADDIV     = 88U;
+    const unsigned int keyESC        = 1U;   //!< Keycode for the \c ESC key (architecture-dependent).
+    const unsigned int keyF1         = 2U;   //!< Keycode for the \c F1 key (architecture-dependent).
+    const unsigned int keyF2         = 3U;   //!< Keycode for the \c F2 key (architecture-dependent).
+    const unsigned int keyF3         = 4U;   //!< Keycode for the \c F3 key (architecture-dependent).
+    const unsigned int keyF4         = 5U;   //!< Keycode for the \c F4 key (architecture-dependent).
+    const unsigned int keyF5         = 6U;   //!< Keycode for the \c F5 key (architecture-dependent).
+    const unsigned int keyF6         = 7U;   //!< Keycode for the \c F6 key (architecture-dependent).
+    const unsigned int keyF7         = 8U;   //!< Keycode for the \c F7 key (architecture-dependent).
+    const unsigned int keyF8         = 9U;   //!< Keycode for the \c F8 key (architecture-dependent).
+    const unsigned int keyF9         = 10U;  //!< Keycode for the \c F9 key (architecture-dependent).
+    const unsigned int keyF10        = 11U;  //!< Keycode for the \c F10 key (architecture-dependent).
+    const unsigned int keyF11        = 12U;  //!< Keycode for the \c F11 key (architecture-dependent).
+    const unsigned int keyF12        = 13U;  //!< Keycode for the \c F12 key (architecture-dependent).
+    const unsigned int keyPAUSE      = 14U;  //!< Keycode for the \c PAUSE key (architecture-dependent).
+    const unsigned int key1          = 15U;  //!< Keycode for the \c 1 key (architecture-dependent).
+    const unsigned int key2          = 16U;  //!< Keycode for the \c 2 key (architecture-dependent).
+    const unsigned int key3          = 17U;  //!< Keycode for the \c 3 key (architecture-dependent).
+    const unsigned int key4          = 18U;  //!< Keycode for the \c 4 key (architecture-dependent).
+    const unsigned int key5          = 19U;  //!< Keycode for the \c 5 key (architecture-dependent).
+    const unsigned int key6          = 20U;  //!< Keycode for the \c 6 key (architecture-dependent).
+    const unsigned int key7          = 21U;  //!< Keycode for the \c 7 key (architecture-dependent).
+    const unsigned int key8          = 22U;  //!< Keycode for the \c 8 key (architecture-dependent).
+    const unsigned int key9          = 23U;  //!< Keycode for the \c 9 key (architecture-dependent).
+    const unsigned int key0          = 24U;  //!< Keycode for the \c 0 key (architecture-dependent).
+    const unsigned int keyBACKSPACE  = 25U;  //!< Keycode for the \c BACKSPACE key (architecture-dependent).
+    const unsigned int keyINSERT     = 26U;  //!< Keycode for the \c INSERT key (architecture-dependent).
+    const unsigned int keyHOME       = 27U;  //!< Keycode for the \c HOME key (architecture-dependent).
+    const unsigned int keyPAGEUP     = 28U;  //!< Keycode for the \c PAGEUP key (architecture-dependent).
+    const unsigned int keyTAB        = 29U;  //!< Keycode for the \c TAB key (architecture-dependent).
+    const unsigned int keyQ          = 30U;  //!< Keycode for the \c Q key (architecture-dependent).
+    const unsigned int keyW          = 31U;  //!< Keycode for the \c W key (architecture-dependent).
+    const unsigned int keyE          = 32U;  //!< Keycode for the \c E key (architecture-dependent).
+    const unsigned int keyR          = 33U;  //!< Keycode for the \c R key (architecture-dependent).
+    const unsigned int keyT          = 34U;  //!< Keycode for the \c T key (architecture-dependent).
+    const unsigned int keyY          = 35U;  //!< Keycode for the \c Y key (architecture-dependent).
+    const unsigned int keyU          = 36U;  //!< Keycode for the \c U key (architecture-dependent).
+    const unsigned int keyI          = 37U;  //!< Keycode for the \c I key (architecture-dependent).
+    const unsigned int keyO          = 38U;  //!< Keycode for the \c O key (architecture-dependent).
+    const unsigned int keyP          = 39U;  //!< Keycode for the \c P key (architecture-dependent).
+    const unsigned int keyDELETE     = 40U;  //!< Keycode for the \c DELETE key (architecture-dependent).
+    const unsigned int keyEND        = 41U;  //!< Keycode for the \c END key (architecture-dependent).
+    const unsigned int keyPAGEDOWN   = 42U;  //!< Keycode for the \c PAGEDOWN key (architecture-dependent).
+    const unsigned int keyCAPSLOCK   = 43U;  //!< Keycode for the \c CAPSLOCK key (architecture-dependent).
+    const unsigned int keyA          = 44U;  //!< Keycode for the \c A key (architecture-dependent).
+    const unsigned int keyS          = 45U;  //!< Keycode for the \c S key (architecture-dependent).
+    const unsigned int keyD          = 46U;  //!< Keycode for the \c D key (architecture-dependent).
+    const unsigned int keyF          = 47U;  //!< Keycode for the \c F key (architecture-dependent).
+    const unsigned int keyG          = 48U;  //!< Keycode for the \c G key (architecture-dependent).
+    const unsigned int keyH          = 49U;  //!< Keycode for the \c H key (architecture-dependent).
+    const unsigned int keyJ          = 50U;  //!< Keycode for the \c J key (architecture-dependent).
+    const unsigned int keyK          = 51U;  //!< Keycode for the \c K key (architecture-dependent).
+    const unsigned int keyL          = 52U;  //!< Keycode for the \c L key (architecture-dependent).
+    const unsigned int keyENTER      = 53U;  //!< Keycode for the \c ENTER key (architecture-dependent).
+    const unsigned int keySHIFTLEFT  = 54U;  //!< Keycode for the \c SHIFTLEFT key (architecture-dependent).
+    const unsigned int keyZ          = 55U;  //!< Keycode for the \c Z key (architecture-dependent).
+    const unsigned int keyX          = 56U;  //!< Keycode for the \c X key (architecture-dependent).
+    const unsigned int keyC          = 57U;  //!< Keycode for the \c C key (architecture-dependent).
+    const unsigned int keyV          = 58U;  //!< Keycode for the \c V key (architecture-dependent).
+    const unsigned int keyB          = 59U;  //!< Keycode for the \c B key (architecture-dependent).
+    const unsigned int keyN          = 60U;  //!< Keycode for the \c N key (architecture-dependent).
+    const unsigned int keyM          = 61U;  //!< Keycode for the \c M key (architecture-dependent).
+    const unsigned int keySHIFTRIGHT = 62U;  //!< Keycode for the \c SHIFTRIGHT key (architecture-dependent).
+    const unsigned int keyARROWUP    = 63U;  //!< Keycode for the \c ARROWUP key (architecture-dependent).
+    const unsigned int keyCTRLLEFT   = 64U;  //!< Keycode for the \c CTRLLEFT key (architecture-dependent).
+    const unsigned int keyAPPLEFT    = 65U;  //!< Keycode for the \c APPLEFT key (architecture-dependent).
+    const unsigned int keyALT        = 66U;  //!< Keycode for the \c ALT key (architecture-dependent).
+    const unsigned int keySPACE      = 67U;  //!< Keycode for the \c SPACE key (architecture-dependent).
+    const unsigned int keyALTGR      = 68U;  //!< Keycode for the \c ALTGR key (architecture-dependent).
+    const unsigned int keyAPPRIGHT   = 69U;  //!< Keycode for the \c APPRIGHT key (architecture-dependent).
+    const unsigned int keyMENU       = 70U;  //!< Keycode for the \c MENU key (architecture-dependent).
+    const unsigned int keyCTRLRIGHT  = 71U;  //!< Keycode for the \c CTRLRIGHT key (architecture-dependent).
+    const unsigned int keyARROWLEFT  = 72U;  //!< Keycode for the \c ARROWLEFT key (architecture-dependent).
+    const unsigned int keyARROWDOWN  = 73U;  //!< Keycode for the \c ARROWDOWN key (architecture-dependent).
+    const unsigned int keyARROWRIGHT = 74U;  //!< Keycode for the \c ARROWRIGHT key (architecture-dependent).
+    const unsigned int keyPAD0       = 75U;  //!< Keycode for the \c PAD0 key (architecture-dependent).
+    const unsigned int keyPAD1       = 76U;  //!< Keycode for the \c PAD1 key (architecture-dependent).
+    const unsigned int keyPAD2       = 77U;  //!< Keycode for the \c PAD2 key (architecture-dependent).
+    const unsigned int keyPAD3       = 78U;  //!< Keycode for the \c PAD3 key (architecture-dependent).
+    const unsigned int keyPAD4       = 79U;  //!< Keycode for the \c PAD4 key (architecture-dependent).
+    const unsigned int keyPAD5       = 80U;  //!< Keycode for the \c PAD5 key (architecture-dependent).
+    const unsigned int keyPAD6       = 81U;  //!< Keycode for the \c PAD6 key (architecture-dependent).
+    const unsigned int keyPAD7       = 82U;  //!< Keycode for the \c PAD7 key (architecture-dependent).
+    const unsigned int keyPAD8       = 83U;  //!< Keycode for the \c PAD8 key (architecture-dependent).
+    const unsigned int keyPAD9       = 84U;  //!< Keycode for the \c PAD9 key (architecture-dependent).
+    const unsigned int keyPADADD     = 85U;  //!< Keycode for the \c PADADD key (architecture-dependent).
+    const unsigned int keyPADSUB     = 86U;  //!< Keycode for the \c PADSUB key (architecture-dependent).
+    const unsigned int keyPADMUL     = 87U;  //!< Keycode for the \c PADMUL key (architecture-dependent).
+    const unsigned int keyPADDIV     = 88U;  //!< Keycode for the \c PADDDIV key (architecture-dependent).
 #endif
 
-    const double PI = 3.14159265358979323846;   //!< Definition of the mathematical constant PI
+    const double PI = 3.14159265358979323846;   //!< Value of the mathematical constant PI
 
-    // Definition of a 10x13 font (small size).
+    // Define a 10x13 font (small size).
     const unsigned int font10x13[256*10*13/32] = {
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x80100c0,
@@ -2832,7 +2825,7 @@ namespace cimg_library_suffixed {
       0x300000,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x600000,0x0,0x0,0x0,0x0,0x0,0x0,0x4020040
     };
 
-    // Definition of a 12x24 font (normal size).
+    // Define a 12x24 font (normal size).
     const unsigned int font12x24[12*24*256/32] = {
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x19,0x80000000,0x198000,0x0,0x0,0x0,0x0,
@@ -2971,7 +2964,7 @@ namespace cimg_library_suffixed {
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0 };
 
-    // Definition of a 16x32 font (large size).
+    // Define a 16x32 font (large size).
     const unsigned int font16x32[16*32*256/32] = {
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
@@ -3205,7 +3198,7 @@ namespace cimg_library_suffixed {
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
       0x0,0x0,0x0,0x0,0x0,0x0,0x0 };
 
-    // Definition of a 29x57 font (extra large size).
+    // Define a 29x57 font (extra large size).
     const unsigned int font29x57[29*57*256/32] = {
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
@@ -3916,7 +3909,7 @@ namespace cimg_library_suffixed {
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
       0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0 };
 
-    // Definition of a 40x38 'danger' color logo.
+    // Define a 40x38 'danger' color logo (used by cimg::dialog()).
     const unsigned char logo40x38[4576] = {
       177,200,200,200,3,123,123,0,36,200,200,200,1,123,123,0,2,255,255,0,1,189,189,189,1,0,0,0,34,200,200,200,
       1,123,123,0,4,255,255,0,1,189,189,189,1,0,0,0,1,123,123,123,32,200,200,200,1,123,123,0,5,255,255,0,1,0,0,
@@ -3943,16 +3936,32 @@ namespace cimg_library_suffixed {
       123,10,200,200,200,1,123,123,0,24,0,0,0,5,123,123,123,12,200,200,200,27,123,123,123,14,200,200,200,25,123,123,123,86,
       200,200,200,91,49,124,118,124,71,32,124,95,49,56,114,52,82,121,0};
 
-    //! Set/get output stream for CImg library messages.
+    //! Get/set default output stream for the \CImg library messages.
+    /**
+       \param file Desired output stream. Set to \c 0 to get the currently used output stream only.
+       \return Currently used output stream.
+       \see info(), warn(), CImgException.
+    **/
     inline std::FILE* output(std::FILE *file) {
       static std::FILE *res = stderr;
       if (file) res = file;
       return res;
     }
 
-    //! Display a warning message.
+    //! Display a warning message on the default output stream.
     /**
-       \param format : C-string describing the format of the message, as in <tt>std::printf()</tt>.
+       \param format C-string containing the format of the message, as with <tt>std::printf()</tt>.
+       \note If configuration macro \c cimg_strict_warnings is set, this function throws a \c CImgWarningException instead.
+       \warning As the first argument is a format string, it is highly recommended to write
+       \code
+       cimg::warn("%s",warning_message);
+       \endcode
+       instead of
+       \code
+       cimg::warn(warning_message);
+       \endcode
+       if \c warning_message can be arbitrary, to prevent nasty memory access.
+       \see output(), info(), CImgException.
     **/
     inline void warn(const char *const format, ...) {
       if (cimg::exception_mode()>=1) {
@@ -3971,9 +3980,11 @@ namespace cimg_library_suffixed {
 
     // Execute an external system command.
     /**
+       \param command C-string containing the command line to execute.
+       \return Status value of the executed command, whose meaning is OS-dependent.
        \note This function is similar to <tt>std::system()</tt>
-       and is here because using the <tt>std::</tt> version on
-       Windows may open undesired consoles.
+       but it does not open an extra console windows
+       on Windows-based systems.
     **/
     inline int system(const char *const command, const char *const module_name=0) {
 #if cimg_OS==2
@@ -4004,64 +4015,70 @@ namespace cimg_library_suffixed {
       return temp;
     }
 
-    //! Exchange values of variables \p a and \p b.
+    //! Exchange values of variables \c a and \c b.
     template<typename T>
     inline void swap(T& a, T& b) { T t = a; a = b; b = t; }
 
-    //! Exchange values of variables (\p a1,\p a2) and (\p b1,\p b2).
+    //! Exchange values of variables (\c a1,\c a2) and (\c b1,\c b2).
     template<typename T1, typename T2>
     inline void swap(T1& a1, T1& b1, T2& a2, T2& b2) {
       cimg::swap(a1,b1); cimg::swap(a2,b2);
     }
 
-    //! Exchange values of variables (\p a1,\p a2,\p a3) and (\p b1,\p b2,\p b3).
+    //! Exchange values of variables (\c a1,\c a2,\c a3) and (\c b1,\c b2,\c b3).
     template<typename T1, typename T2, typename T3>
     inline void swap(T1& a1, T1& b1, T2& a2, T2& b2, T3& a3, T3& b3) {
       cimg::swap(a1,b1,a2,b2); cimg::swap(a3,b3);
     }
 
-    //! Exchange values of variables (\p a1,\p a2,...,\p a4) and (\p b1,\p b2,...,\p b4).
+    //! Exchange values of variables (\c a1,\c a2,...,\c a4) and (\c b1,\c b2,...,\c b4).
     template<typename T1, typename T2, typename T3, typename T4>
     inline void swap(T1& a1, T1& b1, T2& a2, T2& b2, T3& a3, T3& b3, T4& a4, T4& b4) {
       cimg::swap(a1,b1,a2,b2,a3,b3); cimg::swap(a4,b4);
     }
 
-    //! Exchange values of variables (\p a1,\p a2,...,\p a5) and (\p b1,\p b2,...,\p b5).
+    //! Exchange values of variables (\c a1,\c a2,...,\c a5) and (\c b1,\c b2,...,\c b5).
     template<typename T1, typename T2, typename T3, typename T4, typename T5>
     inline void swap(T1& a1, T1& b1, T2& a2, T2& b2, T3& a3, T3& b3, T4& a4, T4& b4, T5& a5, T5& b5) {
       cimg::swap(a1,b1,a2,b2,a3,b3,a4,b4); cimg::swap(a5,b5);
     }
 
-    //! Exchange values of variables (\p a1,\p a2,...,\p a6) and (\p b1,\p b2,...,\p b6).
+    //! Exchange values of variables (\c a1,\c a2,...,\c a6) and (\c b1,\c b2,...,\c b6).
     template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
     inline void swap(T1& a1, T1& b1, T2& a2, T2& b2, T3& a3, T3& b3, T4& a4, T4& b4, T5& a5, T5& b5, T6& a6, T6& b6) {
       cimg::swap(a1,b1,a2,b2,a3,b3,a4,b4,a5,b5); cimg::swap(a6,b6);
     }
 
-    //! Exchange values of variables (\p a1,\p a2,...,\p a7) and (\p b1,\p b2,...,\p b7).
+    //! Exchange values of variables (\c a1,\c a2,...,\c a7) and (\c b1,\c b2,...,\c b7).
     template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
     inline void swap(T1& a1, T1& b1, T2& a2, T2& b2, T3& a3, T3& b3, T4& a4, T4& b4, T5& a5, T5& b5, T6& a6, T6& b6,
                      T7& a7, T7& b7) {
       cimg::swap(a1,b1,a2,b2,a3,b3,a4,b4,a5,b5,a6,b6); cimg::swap(a7,b7);
     }
 
-    //! Exchange values of variables (\p a1,\p a2,...,\p a8) and (\p b1,\p b2,...,\p b8).
+    //! Exchange values of variables (\c a1,\c a2,...,\c a8) and (\c b1,\c b2,...,\c b8).
     template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
     inline void swap(T1& a1, T1& b1, T2& a2, T2& b2, T3& a3, T3& b3, T4& a4, T4& b4, T5& a5, T5& b5, T6& a6, T6& b6,
                      T7& a7, T7& b7, T8& a8, T8& b8) {
       cimg::swap(a1,b1,a2,b2,a3,b3,a4,b4,a5,b5,a6,b6,a7,b7); cimg::swap(a8,b8);
     }
 
-    //! Get the current endianness of the CPU.
+    //! Return the endianness of the current architecture.
     /**
-       \return \c false for "Little Endian", \c true for "Big Endian".
+       \return \c false for <i>Little Endian</i> or \c true for <i>Big Endian</i>.
+       \see invert_endianness(T*,unsigned int), invert_endianness(T&),
     **/
     inline bool endianness() {
       const int x = 1;
       return ((unsigned char*)&x)[0]?false:true;
     }
 
-    //! Invert endianness of a memory buffer.
+    //! Reverse endianness of all elements in a memory buffer.
+    /**
+       \param[in,out] buffer Memory buffer whose endianness must be reversed.
+       \param size Number of buffer elements to reverse.
+       \see endianness(), invert_endianness(T&).
+    **/
     template<typename T>
     inline void invert_endianness(T* const buffer, const unsigned int size) {
       if (size) switch (sizeof(T)) {
@@ -4084,32 +4101,41 @@ namespace cimg_library_suffixed {
       }
     }
 
-    //! Invert endianness of a single variable.
+    //! Reverse endianness of a single variable.
+    /**
+       \param[in,out] a Variable to reverse.
+       \return Reference to reversed variable.
+       \see endianness(), invert_endianness(T*,unsigned int).
+    **/
     template<typename T>
     inline T& invert_endianness(T& a) {
       invert_endianness(&a,1);
       return a;
     }
 
-    // Conversion function to gain more precision in storage of unsigned ints as floats.
+    // Conversion functions to get more precision when trying to store unsigned ints values as floats.
     inline unsigned int float2uint(const float f) {
       int tmp = 0;
       std::memcpy(&tmp,&f,sizeof(float));
       if (tmp>=0) return (unsigned int)f;
       unsigned int u;
-      std::memcpy(&u,&f,sizeof(float));  // use memcpy instead of assignment to avoid wrong optimizations with g++.
+      std::memcpy(&u,&f,sizeof(float));  // use memcpy instead of assignment to avoid undesired optimizations by C++-compiler.
       return ((u)<<1)>>1; // set sign bit to 0.
     }
 
     inline float uint2float(const unsigned int u) {
-      if (u<(1U<<19)) return (float)u;  // Consider safe storage until 19bits (i.e 524287).
+      if (u<(1U<<19)) return (float)u;  // Consider safe storage of unsigned int as floats until 19bits (i.e 524287).
       float f;
       const unsigned int v = u|(1U<<(8*sizeof(unsigned int)-1)); // set sign bit to 1.
-      std::memcpy(&f,&v,sizeof(float)); // use memcpy instead of simple assignment to avoir wrong optimizations with g++.
+      std::memcpy(&f,&v,sizeof(float)); // use memcpy instead of simple assignment to avoid undesried optimizations by C++-compiler.
       return f;
     }
 
-    //! Get the value of a system timer with a millisecond precision.
+    //! Return the value of a system timer, with a millisecond precision.
+    /**
+       \note The timer does not necessarily starts from \c 0.
+       \see tic(), toc(), sleep(), wait().
+    **/
     inline unsigned long time() {
 #if cimg_OS==1
       struct timeval st_time;
@@ -4156,18 +4182,30 @@ namespace cimg_library_suffixed {
       return t;
     }
 
+    //! Start tic/toc timer for time measurement between code instructions.
+    /**
+       \return Current value of the timer (same value as time()).
+       \see time(), toc(), sleep(), wait().
+    **/
     inline unsigned long tic() {
       return cimg::tictoc(true);
     }
 
+    //! End tic/toc timer and displays elapsed time from last call to tic().
+    /**
+       \return Time elapsed (in ms) since last call to tic().
+       \see time(), tic(), sleep(), wait().
+    **/
     inline unsigned long toc() {
       return cimg::tictoc(false);
     }
 
-    //! Sleep for a certain numbers of milliseconds.
+    //! Sleep for a given numbers of milliseconds.
     /**
-       This function frees the CPU ressources during the sleeping time.
-       It may be used to temporize your program properly, without wasting CPU time.
+       \param milliseconds Number of milliseconds to wait for.
+       \note This function frees the CPU ressources during the sleeping time.
+       It can be used to temporize your program properly, without wasting CPU time.
+       \see time(), tic(), toc(), wait().
     **/
     inline void sleep(const unsigned int milliseconds) {
 #if cimg_OS==1
@@ -4180,7 +4218,7 @@ namespace cimg_library_suffixed {
 #endif
     }
 
-    inline unsigned int _sleep(const unsigned int milliseconds, unsigned long& timer) {
+    inline unsigned int _wait(const unsigned int milliseconds, unsigned long& timer) {
       if (!timer) timer = cimg::time();
       const unsigned long current_time = cimg::time();
       if (current_time>=timer+milliseconds) { timer = current_time; return 0; }
@@ -4190,24 +4228,27 @@ namespace cimg_library_suffixed {
       return (unsigned int)time_diff;
     }
 
-    //! Wait for a certain number of milliseconds since the last call.
+    //! Wait for a given number of milliseconds since the last call to wait().
     /**
-       This function is equivalent to sleep() but the waiting time is computed with regard to the last call
-       of wait(). It may be used to temporize your program properly.
+       \param milliseconds Number of milliseconds to wait for.
+       \return Number of milliseconds elapsed since the last call to wait().
+       \note Similar to sleep(), but the waiting time is computed with regard to the last call
+       of wait(). It may be used to temporize your program properly, without wasting CPU time.
+       \see time(), tic(), toc(), sleep().
     **/
     inline unsigned int wait(const unsigned int milliseconds) {
       static unsigned long timer = 0;
       if (!timer) timer = cimg::time();
-      return _sleep(milliseconds,timer);
+      return _wait(milliseconds,timer);
     }
 
     // Random number generators.
-    // CImg may use its own Random Number Generator (RNG) if macro 'cimg_use_rng' is set.
-    // Use it for instance when you have to deal with concurrent threads calling std::srand()
+    // CImg may use its own Random Number Generator (RNG) if configuration macro 'cimg_use_rng' is set.
+    // Use it for instance when you have to deal with concurrent threads trying to call std::srand()
     // at the same time !
 #ifdef cimg_use_rng
 
-    // Use custom RNG.
+    // Use a custom RNG.
     inline unsigned int _rand(const unsigned long seed=0, const bool set_seed=false) {
       static unsigned long next = 1;
       if (set_seed) next = seed;
@@ -4237,7 +4278,7 @@ namespace cimg_library_suffixed {
 
 #else
 
-    // Use usual system RNG.
+    // Use the system RNG.
     inline void srand() {
       static bool is_first_time = true;
       if (is_first_time) {
@@ -4253,19 +4294,28 @@ namespace cimg_library_suffixed {
       }
     }
 
-    //! Get a random variable between [0,1] with respect to an uniform distribution.
+    //! Return a random variable between [0,1] with respect to an uniform distribution.
+    /**
+       \see crand(), grand(), prand().
+    **/
     inline double rand() {
       cimg::srand();
       return (double)std::rand()/RAND_MAX;
     }
 #endif
 
-    //! Get a random variable between [-1,1] with respect to an uniform distribution.
+    //! Return a random variable between [-1,1] with respect to an uniform distribution.
+    /**
+       \see rand(), grand(), prand().
+    **/
     inline double crand() {
       return 1-2*cimg::rand();
     }
 
-    //! Get a random variable following a gaussian distribution and a standard deviation of 1.
+    //! Return a random variable following a gaussian distribution and a standard deviation of 1.
+    /**
+       \see rand(), crand(), prand().
+    **/
     inline double grand() {
       double x1, w;
       do {
@@ -4276,7 +4326,10 @@ namespace cimg_library_suffixed {
       return x1*std::sqrt((-2*std::log(w))/w);
     }
 
-    //! Get a random variable following a Poisson distribution of parameter z.
+    //! Return a random variable following a Poisson distribution of parameter z.
+    /**
+       \see rand(), crand(), grand().
+    **/
     inline unsigned int prand(const double z) {
       if (z<=1.0e-10) return 0;
       if (z>100) return (unsigned int)((std::sqrt(z) * cimg::grand()) + z);
@@ -4286,7 +4339,7 @@ namespace cimg_library_suffixed {
       return k-1;
     }
 
-    //! Get a left bitwise-rotated number.
+    //! Bitwise-rotate value on the left.
     template<typename T>
     inline T rol(const T a, const unsigned int n=1) {
       return n?(T)((a<<n)|(a>>((sizeof(T)<<3)-n))):a;
@@ -4300,7 +4353,7 @@ namespace cimg_library_suffixed {
       return (double)rol((long)a,n);
     }
 
-    //! Get a right bitwise-rotated number.
+    //! Bitwise-rotate value on the right.
     template<typename T>
     inline T ror(const T a, const unsigned int n=1) {
       return n?(T)((a>>n)|(a<<((sizeof(T)<<3)-n))):a;
@@ -4314,11 +4367,7 @@ namespace cimg_library_suffixed {
       return (double)ror((long)a,n);
     }
 
-    //! Get the absolute value of a number.
-    /**
-       \note This function is different from <tt>std::abs()</tt> or <tt>std::fabs()</tt>
-       because it is able to consider a variable of any type, without cast needed.
-    **/
+    //! Return absolute value of a value.
     template<typename T>
     inline T abs(const T a) {
       return a>=0?a:-a;
@@ -4348,66 +4397,66 @@ namespace cimg_library_suffixed {
       return std::abs(a);
     }
 
-    //! Get the square of a number.
+    //! Return square of a value.
     template<typename T>
     inline T sqr(const T val) {
       return val*val;
     }
 
-    //! Get <tt>1 + log_10(x)</tt>.
+    //! Return <tt>1 + log_10(x)</tt> of a value \c x.
     inline int xln(const int x) {
       return x>0?(int)(1+std::log10((double)x)):1;
     }
 
-    //! Get the minimum value between two numbers.
+    //! Return the minimum between two values.
     template<typename t1, typename t2>
     inline typename cimg::superset<t1,t2>::type min(const t1& a, const t2& b) {
       typedef typename cimg::superset<t1,t2>::type t1t2;
       return (t1t2)(a<=b?a:b);
     }
 
-    //! Get the minimum value between three numbers.
+    //! Return the minimum between three values.
     template<typename t1, typename t2, typename t3>
     inline typename cimg::superset2<t1,t2,t3>::type min(const t1& a, const t2& b, const t3& c) {
       typedef typename cimg::superset2<t1,t2,t3>::type t1t2t3;
       return (t1t2t3)cimg::min(cimg::min(a,b),c);
     }
 
-    //! Get the minimum value between four numbers.
+    //! Return the minimum between four values.
     template<typename t1, typename t2, typename t3, typename t4>
     inline typename cimg::superset3<t1,t2,t3,t4>::type min(const t1& a, const t2& b, const t3& c, const t4& d) {
       typedef typename cimg::superset3<t1,t2,t3,t4>::type t1t2t3t4;
       return (t1t2t3t4)cimg::min(cimg::min(a,b,c),d);
     }
 
-    //! Get the maximum value between two numbers.
+    //! Return the maximum between two values.
     template<typename t1, typename t2>
     inline typename cimg::superset<t1,t2>::type max(const t1& a, const t2& b) {
       typedef typename cimg::superset<t1,t2>::type t1t2;
       return (t1t2)(a>=b?a:b);
     }
 
-    //! Get the maximum value between three numbers.
+    //! Return the maximum between three values.
     template<typename t1, typename t2, typename t3>
     inline typename cimg::superset2<t1,t2,t3>::type max(const t1& a, const t2& b, const t3& c) {
       typedef typename cimg::superset2<t1,t2,t3>::type t1t2t3;
       return (t1t2t3)cimg::max(cimg::max(a,b),c);
     }
 
-    //! Get the maximum value between four numbers.
+    //! Return the maximum between four values.
     template<typename t1, typename t2, typename t3, typename t4>
     inline typename cimg::superset3<t1,t2,t3,t4>::type max(const t1& a, const t2& b, const t3& c, const t4& d) {
       typedef typename cimg::superset3<t1,t2,t3,t4>::type t1t2t3t4;
       return (t1t2t3t4)cimg::max(cimg::max(a,b,c),d);
     }
 
-    //! Get the sign of a number.
+    //! Return the sign of a value.
     template<typename T>
     inline T sign(const T x) {
       return (x<0)?(T)(-1):(x==0?(T)0:(T)1);
     }
 
-    //! Get the nearest power of 2 higher than a given number.
+    //! Return the nearest power of 2 higher than given value.
     template<typename T>
     inline unsigned int nearest_pow2(const T x) {
       unsigned int i = 1;
@@ -4415,20 +4464,21 @@ namespace cimg_library_suffixed {
       return i;
     }
 
-    //! Get the sinc() of a given number.
+    //! Return the sinc of a given value.
     inline double sinc(const double x) {
       return x?std::sin(x)/x:1;
     }
 
-    //! Get the modulo of a number.
+    //! Return the modulo of a value.
     /**
-       \note This modulo function accepts negative and floating-points modulo numbers, as well as
-       variable of any type.
+       \param x Input value.
+       \param m Modulo value.
+       \note This modulo function accepts negative and floating-points modulo numbers, as well as variables of any type.
     **/
     template<typename T>
     inline T mod(const T& x, const T& m) {
       const double dx = (double)x, dm = (double)m;
-      return dx - dm * std::floor(dx / dm);
+      return (T)(dx - dm * std::floor(dx / dm));
     }
     inline int mod(const bool x, const bool m) {
       return m?(x?1:0):0;
@@ -4458,9 +4508,9 @@ namespace cimg_library_suffixed {
       return x%m;
     }
 
-    //! Get the minmod of two numbers.
+    //! Return the min-mod of two values.
     /**
-       <i>minmod(\p a,\p b)</i> is defined to be :
+       \note <i>minmod(\p a,\p b)</i> is defined to be :
        - <i>minmod(\p a,\p b) = min(\p a,\p b)</i>, if \p a and \p b have the same sign.
        - <i>minmod(\p a,\p b) = 0</i>, if \p a and \p b have different signs.
     **/
@@ -4469,18 +4519,18 @@ namespace cimg_library_suffixed {
       return a*b<=0?0:(a>0?(a<b?a:b):(a<b?b:a));
     }
 
-    //! Get base-2 logarithm.
+    //! Return base-2 logarithm of a value.
     inline double log2(const double x) {
       static const double base = std::log(2.0);
       return std::log(x)/base;
     }
 
-    //! Get a rounded number.
+    //! Return rounded value.
     /**
-       \param x : the number to be rounded.
-       \param y : the rounding precision.
-       \param rounding_type : the type of rounding (0=nearest, -1=backward, 1=forward).
-       \return the rounded value, with the same type as parameter x.
+       \param x Value to be rounded.
+       \param y Rounding precision.
+       \param rounding_type Type of rounding operation (\c 0 = nearest, \c -1 = backward, \c 1 = forward).
+       \return Rounded value, having the same type as input value \c x.
     **/
     template<typename T>
     inline T round(const T x, const double y=1, const int rounding_type=0) {
@@ -4497,73 +4547,90 @@ namespace cimg_library_suffixed {
       else { const double tmp = absa/absb; return (absb==0?0:absb*std::sqrt(1.0+tmp*tmp)); }
     }
 
-    //! Remove the 'case' of an ASCII character.
+    //! Convert ascii character to lower case.
     inline char uncase(const char x) {
       return (char)((x<'A'||x>'Z')?x:x-'A'+'a');
     }
 
-    //! Remove the 'case' of a C string.
-    /**
-       Acts in-place.
-    **/
-    inline void uncase(char *const string) {
-      if (string) for (char *ptr = string; *ptr; ++ptr) *ptr = uncase(*ptr);
+    //! Convert C-string to lower case.
+    inline void uncase(char *const str) {
+      if (str) for (char *ptr = str; *ptr; ++ptr) *ptr = uncase(*ptr);
     }
 
-    //! Read a double number from a C-string.
+    //! Read value in a C-string.
     /**
-       \note This function is quite similar to <tt>std::atof()</tt>,
-       but that it allows the retrieval of fractions as in "1/2".
+       \param str C-string containing the float value to read.
+       \return Read value.
+       \note Similar to <tt>std::atof()</tt>, but allows the retrieval of fractions from C-strings, as in <em>"1/2"</em>.
     **/
     inline double atof(const char *const str) {
       double x = 0, y = 1;
       if (!str) return 0; else { std::sscanf(str,"%lf/%lf",&x,&y); return x/y; }
     }
 
-    //! Compare the first \p n characters of two C-strings, ignoring the case.
+    //! Compare the first \p l characters of two C-strings, ignoring the case.
     /**
-       \note This function is defined since it is not provided by all compilers
-       (not an ANSI function).
+       \param str1 C-string.
+       \param str2 C-string.
+       \param l Number of characters to compare.
+       \return \c 0 if the two strings are equal, something else otherwise.
+       \note This function has to be defined since it is not provided by all C++-compilers (not ANSI).
+       \see strcasecmp().
     **/
-    inline int strncasecmp(const char *const s1, const char *const s2, const int l) {
+    inline int strncasecmp(const char *const str1, const char *const str2, const int l) {
       if (!l) return 0;
-      if (!s1) return s2?-1:0;
-      const char *ns1 = s1, *ns2 = s2;
-      int k, diff = 0; for (k = 0; k<l && !(diff = uncase(*ns1)-uncase(*ns2)); ++k) { ++ns1; ++ns2; }
+      if (!str1) return str2?-1:0;
+      const char *nstr1 = str1, *nstr2 = str2;
+      int k, diff = 0; for (k = 0; k<l && !(diff = uncase(*nstr1)-uncase(*nstr2)); ++k) { ++nstr1; ++nstr2; }
       return k!=l?diff:0;
     }
 
     //! Compare two C-strings, ignoring the case.
     /**
-       \note This function is defined since it is not provided by all compilers
-       (not an ANSI function).
+       \param str1 C-string.
+       \param str2 C-string.
+       \return \c 0 if the two strings are equal, something else otherwise.
+       \note This function has to be defined since it is not provided by all C++-compilers (not ANSI).
+       \see strncasecmp().
     **/
-    inline int strcasecmp(const char *const s1, const char *const s2) {
-      if (!s1) return s2?-1:0;
-      const unsigned int l1 = std::strlen(s1), l2 = std::strlen(s2);
-      return cimg::strncasecmp(s1,s2,1+(l1<l2?l1:l2));
+    inline int strcasecmp(const char *const str1, const char *const str2) {
+      if (!str1) return str2?-1:0;
+      const unsigned int l1 = std::strlen(str1), l2 = std::strlen(str2);
+      return cimg::strncasecmp(str1,str2,1+(l1<l2?l1:l2));
     }
 
-    //! Remove useless delimiters on the borders of a C-string
-    inline bool strpare(char *const s, const char delimiter=' ', const bool symmetric=false, const bool is_iterative=false) {
-      if (!s) return false;
-      const int l = (int)std::strlen(s);
+    //! Remove delimiters on the start and/or end of a C-string.
+    /**
+       \param[in,out] str C-string to work with (modified at output).
+       \param delimiter Delimiter character code to remove.
+       \param is_symmetric Flag telling if the removal is done only if delimiters are symmetric (both at the beginning and the end of \c s).
+       \param is_iterative Flag telling if the removal is done if several iterations are possible.
+       \return \c true if delimiters have been removed, \c false otherwise.
+       \see strescape().
+   **/
+    inline bool strpare(char *const str, const char delimiter=' ', const bool is_symmetric=false, const bool is_iterative=false) {
+      if (!str) return false;
+      const int l = (int)std::strlen(str);
       int p, q;
-      if (symmetric) for (p = 0, q = l-1; p<q && s[p]==delimiter && s[q]==delimiter; ) { --q; ++p; if (!is_iterative) break; }
+      if (is_symmetric) for (p = 0, q = l-1; p<q && str[p]==delimiter && str[q]==delimiter; ) { --q; ++p; if (!is_iterative) break; }
       else {
-        for (p = 0; p<l && s[p]==delimiter; ) { ++p; if (!is_iterative) break; }
-        for (q = l-1; q>p && s[q]==delimiter; ) { --q; if (!is_iterative) break; }
+        for (p = 0; p<l && str[p]==delimiter; ) { ++p; if (!is_iterative) break; }
+        for (q = l-1; q>p && str[q]==delimiter; ) { --q; if (!is_iterative) break; }
       }
       const int n = q - p + 1;
-      if (n!=l) { std::memmove(s,s+p,n); s[n] = 0; return true; }
+      if (n!=l) { std::memmove(str,str+p,n); str[n] = 0; return true; }
       return false;
     }
 
-    //! Replace explicit escape sequences '\x' in C-strings.
-    inline void strescape(char *const s) {
+    //! Replace escape sequences in C-strings by their binary ascii values.
+    /**
+       \param[in,out] str C-string to work with (modified at output).
+       \see strpare().
+     **/
+    inline void strescape(char *const str) {
 #define cimg_strescape(ci,co) case ci: *nd = co; ++ns; break;
       static unsigned int val = 0;
-      for (char *ns = s, *nd = s; *ns || (bool)(*nd=0); ++nd) if (*ns=='\\') switch (*(++ns)) {
+      for (char *ns = str, *nd = str; *ns || (bool)(*nd=0); ++nd) if (*ns=='\\') switch (*(++ns)) {
             cimg_strescape('n','\n');
             cimg_strescape('t','\t');
             cimg_strescape('v','\v');
@@ -4586,7 +4653,7 @@ namespace cimg_library_suffixed {
           } else *nd = *(ns++);
     }
 
-    // Get a temporary string describing the size of a buffer.
+    // Return a temporary string describing the size of a memory buffer.
     inline const char *strbuffersize(const unsigned long size) {
       static char res[256] = { 0 };
       if (size<1024LU) cimg_snprintf(res,sizeof(res),"%lu byte%s",size,size>1?"s":"");
@@ -4596,14 +4663,14 @@ namespace cimg_library_suffixed {
       return res;
     }
 
-    //! Compute the basename of a filename.
-    inline const char* basename(const char *const s)  {
+    //! Return the basename of a filename.
+    inline const char* basename(const char *const str)  {
       const char *p = 0;
-      for (const char *np = s; np>=s && (p=np); np = std::strchr(np,cimg_file_separator)+1) {}
+      for (const char *np = str; np>=str && (p=np); np = std::strchr(np,cimg_file_separator)+1) {}
       return p;
     }
 
-    // Generate a random filename.
+    // Return a random filename.
     inline const char* filenamerand() {
       static char randomid[9] = { 0,0,0,0,0,0,0,0,0 };
       cimg::srand();
@@ -4614,17 +4681,24 @@ namespace cimg_library_suffixed {
       return randomid;
     }
 
-    // Convert filename into a Windows-style filename.
-    inline void winformat_string(char *const s) {
-      if (s && *s) {
+    // Convert filename as a Windows-style filename (short path name).
+    inline void winformat_string(char *const str) {
+      if (str && *str) {
 #if cimg_OS==2
-        char *const ns = new char[MAX_PATH];
-        if (GetShortPathNameA(s,ns,MAX_PATH)) std::strcpy(s,ns);
+        char *const nstr = new char[MAX_PATH];
+        if (GetShortPathNameA(str,nstr,MAX_PATH)) std::strcpy(str,nstr);
 #endif
       }
     }
 
-    //! Open a file, and check for possible errors.
+    //! Open a file.
+    /**
+       \param path Path of the filename to open.
+       \param mode C-string describing the opening mode.
+       \return Opened file.
+       \note Similar to <tt>std::fopen()</tt> but throw a \c CImgIOException when
+       the specified file cannot be opened, instead of returning \c 0.
+    **/
     inline std::FILE *fopen(const char *const path, const char *const mode) {
       if (!path)
         throw CImgArgumentException("cimg::fopen() : Specified file path is (null).");
@@ -4645,7 +4719,13 @@ namespace cimg_library_suffixed {
       return res;
     }
 
-    //! Close a file, and check for possible errors.
+    //! Close a file.
+    /**
+       \param file File to close.
+       \return \c 0 if file has been closed properly, something else otherwise.
+       \note Similar to <tt>std::fclose()</tt> but display a warning message if
+       the file has not been closed properly.
+    **/
     inline int fclose(std::FILE *file) {
       if (!file) warn("cimg::fclose() : Specified file is (null).");
       if (!file || file==stdin || file==stdout) return 0;
@@ -4655,7 +4735,12 @@ namespace cimg_library_suffixed {
       return errn;
     }
 
-    //! Get or set path to store temporary files.
+    //! Get/set path to store temporary files.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path where temporary files can be saved.
+    **/
     inline const char* temporary_path(const char *const user_path=0, const bool reinit_path=false) {
 #define _cimg_test_temporary_path(p) \
       if (!path_found) { \
@@ -4703,7 +4788,12 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    // Get or set path to the "Program files/" directory (windows only).
+    //! Get/set path to the <i>Program Files/</i> directory (Windows only).
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the program files.
+    **/
 #if cimg_OS==2
     inline const char* programfiles_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
@@ -4730,7 +4820,12 @@ namespace cimg_library_suffixed {
     }
 #endif
 
-    //! Get or set path to the ImageMagick's \c convert tool.
+    //! Get/set path to the ImageMagick's \c convert binary.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the \c convert binary.
+    **/
     inline const char* imagemagick_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
       if (reinit_path) { delete[] st_path; st_path = 0; }
@@ -4834,7 +4929,12 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    //! Get path of the GraphicsMagick's \c gm tool.
+    //! Get/set path to the GraphicsMagick's \c gm binary.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the \c gm binary.
+    **/
     inline const char* graphicsmagick_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
       if (reinit_path) { delete[] st_path; st_path = 0; }
@@ -4938,7 +5038,12 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    //! Get or set path of the \c XMedcon tool.
+    //! Get/set path to the XMedcon's \c medcon binary.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the \c medcon binary.
+    **/
     inline const char* medcon_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
       if (reinit_path) { delete[] st_path; st_path = 0; }
@@ -4978,7 +5083,12 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    //! Get or set path to the 'ffmpeg' command.
+    //! Get/set path to the FFMPEG's \c ffmpeg binary.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the \c ffmpeg binary.
+    **/
     inline const char *ffmpeg_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
       if (reinit_path) { delete[] st_path; st_path = 0; }
@@ -5009,7 +5119,12 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    //! Get or set path to the 'gzip' command.
+    //! Get/set path to the \c gzip binary.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the \c gzip binary.
+    **/
     inline const char *gzip_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
       if (reinit_path) { delete[] st_path; st_path = 0; }
@@ -5040,7 +5155,12 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    //! Get or set path to the 'gunzip' command.
+    //! Get/set path to the \c gzip binary.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the \c gunzip binary.
+    **/
     inline const char *gunzip_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
       if (reinit_path) { delete[] st_path; st_path = 0; }
@@ -5071,7 +5191,12 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    //! Get or set path to the 'dcraw' command.
+    //! Get/set path to the \c dcraw binary.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the \c dcraw binary.
+    **/
     inline const char *dcraw_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
       if (reinit_path) { delete[] st_path; st_path = 0; }
@@ -5102,7 +5227,12 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    //! Get or set path to the 'wget' command.
+    //! Get/set path to the \c wget binary.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the \c wget binary.
+    **/
     inline const char *wget_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
       if (reinit_path) { delete[] st_path; st_path = 0; }
@@ -5133,7 +5263,12 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    //! Get or set path to the 'curl' command.
+    //! Get/set path to the \c curl binary.
+    /**
+       \param user_path Specified path, or \c 0 to get the path currently used.
+       \param reinit_path Force path to be recalculated (may take some time).
+       \return Path containing the \c curl binary.
+    **/
     inline const char *curl_path(const char *const user_path=0, const bool reinit_path=false) {
       static char *st_path = 0;
       if (reinit_path) { delete[] st_path; st_path = 0; }
@@ -5164,7 +5299,7 @@ namespace cimg_library_suffixed {
       return st_path;
     }
 
-    //! Split a filename into two strings 'body' and 'extension'.
+    //! Split filename into two C-strings \c body and \c extension.
     inline const char *split_filename(const char *const filename, char *const body=0) {
       if (!filename) { if (body) *body = 0; return 0; }
       const char *p = 0; for (const char *np = filename; np>=filename && (p=np); np = std::strchr(np,'.')+1) {}
@@ -5177,18 +5312,23 @@ namespace cimg_library_suffixed {
       return p;
     }
 
-    //! Create a numbered version of a filename.
-    inline char* number_filename(const char *const filename, const int number, const unsigned int n, char *const string) {
-      if (!filename) { if (string) *string = 0; return 0; }
+    //! Create numbered version of a filename.
+    inline char* number_filename(const char *const filename, const int number, const unsigned int n, char *const str) {
+      if (!filename) { if (str) *str = 0; return 0; }
       char format[1024] = { 0 }, body[1024] = { 0 };
       const char *const ext = cimg::split_filename(filename,body);
       if (n>0) cimg_snprintf(format,sizeof(format),"%s_%%.%ud.%s",body,n,ext);
       else cimg_snprintf(format,sizeof(format),"%s_%%d.%s",body,ext);
-      std::sprintf(string,format,number);
-      return string;
+      std::sprintf(str,format,number);
+      return str;
     }
 
-    //! Try to guess the image format of a filename, using the magic numbers in its header.
+    //! Try to guess format from an image file.
+    /**
+       \param file Input file (can be \c 0 if \c filename is set).
+       \param filename Input filename (can be \c 0 if \c file is set).
+       \return C-string containing the guessed file format, or \c 0 if nothing has been guessed.
+     **/
     inline const char *file_type(std::FILE *const file, const char *const filename) {
       if (!file && !filename)
         throw CImgArgumentException("cimg::file_type() : Specified filename is (null).");
@@ -5233,7 +5373,14 @@ namespace cimg_library_suffixed {
       return f_type;
     }
 
-    //! Read file data, and check for possible errors.
+    //! Read data from file.
+    /**
+       \param[out] ptr Pointer to memory buffer that will contain the binary data read from file.
+       \param nmemb Number of elements to read.
+       \param stream File to read data from.
+       \return Number of read elements.
+       \note Similar to <tt>std::fread()</tt> but may display warning message if all elements could not be read.
+    **/
     template<typename T>
     inline int fread(T *const ptr, const unsigned int nmemb, std::FILE *stream) {
       if (!ptr || nmemb<=0 || !stream)
@@ -5254,7 +5401,14 @@ namespace cimg_library_suffixed {
       return al_read;
     }
 
-    //! Write data to a file, and check for possible errors.
+    //! Write data to file.
+    /**
+       \param ptr Pointer to memory buffer containing the binary data to write on file.
+       \param nmemb Number of elements to write.
+       \param[out] stream File to write data on.
+       \return Number of written elements.
+       \note Similar to <tt>std::fwrite</tt> but may display warning messages if all elements could not be written.
+    **/
     template<typename T>
     inline int fwrite(const T *ptr, const unsigned int nmemb, std::FILE *stream) {
       if (!ptr || !stream)
@@ -5275,7 +5429,14 @@ namespace cimg_library_suffixed {
       return al_write;
     }
 
-    //! Load file from network as a local temporary file, using 'wget' or 'curl' if found.
+    //! Load file from network as a local temporary file.
+    /**
+       \param filename Path to the filename to read from network.
+       \param[out] filename_local C-string containing the path to a local copy of \c filename.
+       \return Value of \c filename_local.
+       \note Use external binaries \c wget or \c curl to perform. You must have one of these tools installed
+       to be able to use this function.
+    **/
     inline char *load_network_external(const char *const filename, char *const filename_local) {
       if (!filename)
         throw CImgArgumentException("cimg::load_network_external() : Specified filename is (null).");
@@ -5321,6 +5482,7 @@ namespace cimg_library_suffixed {
       return filename_local;
     }
 
+    // Return options specified on the command line (internal).
     inline const char* option(const char *const name, const int argc, const char *const *const argv,
                               const char *const defaut, const char *const usage, const bool reset_static) {
       static bool first = true, visu = false;
@@ -5421,9 +5583,10 @@ namespace cimg_library_suffixed {
       return 0;
     }
 
-    //! Print informations about %CImg environement variables.
+    //! Print informations about \CImg environement variables.
     /**
-       Printing is done on the standard error output.
+       \note Output is done on the default output stream.
+       \see output().
     **/
     inline void info() {
       char tmp[1024] = { 0 };
@@ -5582,7 +5745,7 @@ namespace cimg_library_suffixed {
       std::fprintf(cimg::output(),"\n");
     }
 
-    // Declare LAPACK function signatures if necessary.
+    // Declare LAPACK function signatures if LAPACK support is enabled.
 #ifdef cimg_use_lapack
     template<typename T>
     inline void getrf(int &N, T *lapA, int *IPIV, int &INFO) {
@@ -5848,175 +6011,47 @@ namespace cimg_library_suffixed {
     return instance.get_pseudoinvert();
   }
 
-  /*-------------------------------------------
+  /*-----------------------------------
    #
+   # Define the CImgDisplay structure
    #
-   #
-   # Definition of the CImgDisplay structure
-   #
-   #
-   #
-   --------------------------------------------*/
-
-  //! This class represents a window which can display \c CImg<T> images and handles mouse and keyboard events.
+   ----------------------------------*/
+  //! Allow to create windows, display images on them and manage user events (keyboard, mouse and windows events).
   /**
-     Creating a \c CImgDisplay instance opens a window that can be used to display a \c CImg<T> image
-     of a \c CImgList<T> image list inside. When a display is created, associated window events
-     (such as mouse motion, keyboard and window size changes) are handled and can be easily
-     detected by testing specific \c CImgDisplay data fields.
-     See \ref cimg_displays for a complete tutorial on using the \c CImgDisplay class.
+     CImgDisplay methods rely on a low-level graphic library to perform : it can be either \b X-Window (X11, for Unix-based systems)
+     or \b GDI32 (for Windows-based systems).
+     If both libraries are missing, CImgDisplay will not be able to display images on screen, and will enter a minimal mode
+     where warning messages will be outputed each time the program is trying to call one of the CImgDisplay method.
+
+     The configuration variable \c cimg_display tells about the graphic library used.
+     It is set automatically by \CImg when one of these graphic libraries has been detected.
+     But, you can override its value if necessary. Valid choices are :
+     - 0 : Disable display capabilities.
+     - 1 : Use \b X-Window (X11) library.
+     - 2 : Use \b GDI32 library.
+
+     Remember to link your program against \b X11 or \b GDI32 libraries if you use CImgDisplay.
   **/
-
   struct CImgDisplay {
-
-    //! Width of the display.
-    unsigned int _width;
-
-    //! Height of the display.
-    unsigned int _height;
-
-    //! Width of the underlying window.
-    volatile unsigned int _window_width;
-
-    //! Height of the underlying window.
-    volatile unsigned int _window_height;
-
-    //! X-pos of the display on the screen.
-    volatile int _window_x;
-
-    //! Y-pos of the display on the screen.
-    volatile int _window_y;
-
-    //! X-coordinate of the mouse pointer on the display.
-    volatile int _mouse_x;
-
-    //! Y-coordinate of the mouse pointer on the display.
-    volatile int _mouse_y;
-
-    //! Normalization type used for the display.
-    unsigned int _normalization;
-
-    //! Display title.
-    char *_title;
-
-    //! Button state of the mouse.
-    volatile unsigned int _button;
-
-    //! Wheel state of the mouse.
-    volatile int _wheel;
-
-    //! Key value if pressed.
-    volatile unsigned int _keys[128];
-    volatile unsigned int _released_keys[128];
-
-    //! Closed state of the window.
-    volatile bool _is_closed;
-
-    //! Resized state of the window.
-    volatile bool _is_resized;
-
-    //! Moved state of the window.
-    volatile bool _is_moved;
-
-    //! Event state of the window.
-    volatile bool _is_event;
-
-    //! Current state of the corresponding key (exists for all referenced keys).
-    volatile bool _is_keyESC;
-    volatile bool _is_keyF1;
-    volatile bool _is_keyF2;
-    volatile bool _is_keyF3;
-    volatile bool _is_keyF4;
-    volatile bool _is_keyF5;
-    volatile bool _is_keyF6;
-    volatile bool _is_keyF7;
-    volatile bool _is_keyF8;
-    volatile bool _is_keyF9;
-    volatile bool _is_keyF10;
-    volatile bool _is_keyF11;
-    volatile bool _is_keyF12;
-    volatile bool _is_keyPAUSE;
-    volatile bool _is_key1;
-    volatile bool _is_key2;
-    volatile bool _is_key3;
-    volatile bool _is_key4;
-    volatile bool _is_key5;
-    volatile bool _is_key6;
-    volatile bool _is_key7;
-    volatile bool _is_key8;
-    volatile bool _is_key9;
-    volatile bool _is_key0;
-    volatile bool _is_keyBACKSPACE;
-    volatile bool _is_keyINSERT;
-    volatile bool _is_keyHOME;
-    volatile bool _is_keyPAGEUP;
-    volatile bool _is_keyTAB;
-    volatile bool _is_keyQ;
-    volatile bool _is_keyW;
-    volatile bool _is_keyE;
-    volatile bool _is_keyR;
-    volatile bool _is_keyT;
-    volatile bool _is_keyY;
-    volatile bool _is_keyU;
-    volatile bool _is_keyI;
-    volatile bool _is_keyO;
-    volatile bool _is_keyP;
-    volatile bool _is_keyDELETE;
-    volatile bool _is_keyEND;
-    volatile bool _is_keyPAGEDOWN;
-    volatile bool _is_keyCAPSLOCK;
-    volatile bool _is_keyA;
-    volatile bool _is_keyS;
-    volatile bool _is_keyD;
-    volatile bool _is_keyF;
-    volatile bool _is_keyG;
-    volatile bool _is_keyH;
-    volatile bool _is_keyJ;
-    volatile bool _is_keyK;
-    volatile bool _is_keyL;
-    volatile bool _is_keyENTER;
-    volatile bool _is_keySHIFTLEFT;
-    volatile bool _is_keyZ;
-    volatile bool _is_keyX;
-    volatile bool _is_keyC;
-    volatile bool _is_keyV;
-    volatile bool _is_keyB;
-    volatile bool _is_keyN;
-    volatile bool _is_keyM;
-    volatile bool _is_keySHIFTRIGHT;
-    volatile bool _is_keyARROWUP;
-    volatile bool _is_keyCTRLLEFT;
-    volatile bool _is_keyAPPLEFT;
-    volatile bool _is_keyALT;
-    volatile bool _is_keySPACE;
-    volatile bool _is_keyALTGR;
-    volatile bool _is_keyAPPRIGHT;
-    volatile bool _is_keyMENU;
-    volatile bool _is_keyCTRLRIGHT;
-    volatile bool _is_keyARROWLEFT;
-    volatile bool _is_keyARROWDOWN;
-    volatile bool _is_keyARROWRIGHT;
-    volatile bool _is_keyPAD0;
-    volatile bool _is_keyPAD1;
-    volatile bool _is_keyPAD2;
-    volatile bool _is_keyPAD3;
-    volatile bool _is_keyPAD4;
-    volatile bool _is_keyPAD5;
-    volatile bool _is_keyPAD6;
-    volatile bool _is_keyPAD7;
-    volatile bool _is_keyPAD8;
-    volatile bool _is_keyPAD9;
-    volatile bool _is_keyPADADD;
-    volatile bool _is_keyPADSUB;
-    volatile bool _is_keyPADMUL;
-    volatile bool _is_keyPADDIV;
-
-    //! Fullscreen state of the display.
-    bool _is_fullscreen;
-
-    // Internal variables.
-    float _fps_fps, _min, _max;
     unsigned long _timer, _fps_frames, _fps_timer;
+    unsigned int _width, _height, _normalization;
+    float _fps_fps, _min, _max;
+    bool _is_fullscreen;
+    char *_title;
+    volatile unsigned int _window_width, _window_height, _button, _keys[128], _released_keys[128];
+    volatile int _window_x, _window_y, _mouse_x, _mouse_y, _wheel;
+    volatile bool _is_closed, _is_resized, _is_moved, _is_event,
+      _is_keyESC, _is_keyF1, _is_keyF2, _is_keyF3, _is_keyF4, _is_keyF5, _is_keyF6, _is_keyF7,
+      _is_keyF8, _is_keyF9, _is_keyF10, _is_keyF11, _is_keyF12, _is_keyPAUSE, _is_key1, _is_key2,
+      _is_key3, _is_key4, _is_key5, _is_key6, _is_key7, _is_key8, _is_key9, _is_key0,
+      _is_keyBACKSPACE, _is_keyINSERT, _is_keyHOME, _is_keyPAGEUP, _is_keyTAB, _is_keyQ, _is_keyW, _is_keyE,
+      _is_keyR, _is_keyT, _is_keyY, _is_keyU, _is_keyI, _is_keyO, _is_keyP, _is_keyDELETE,
+      _is_keyEND, _is_keyPAGEDOWN, _is_keyCAPSLOCK, _is_keyA, _is_keyS, _is_keyD, _is_keyF, _is_keyG,
+      _is_keyH, _is_keyJ, _is_keyK, _is_keyL, _is_keyENTER, _is_keySHIFTLEFT, _is_keyZ, _is_keyX,
+      _is_keyC, _is_keyV, _is_keyB, _is_keyN, _is_keyM, _is_keySHIFTRIGHT, _is_keyARROWUP, _is_keyCTRLLEFT,
+      _is_keyAPPLEFT, _is_keyALT, _is_keySPACE, _is_keyALTGR, _is_keyAPPRIGHT, _is_keyMENU, _is_keyCTRLRIGHT, _is_keyARROWLEFT,
+      _is_keyARROWDOWN, _is_keyARROWRIGHT, _is_keyPAD0, _is_keyPAD1, _is_keyPAD2, _is_keyPAD3, _is_keyPAD4, _is_keyPAD5,
+      _is_keyPAD6, _is_keyPAD7, _is_keyPAD8, _is_keyPAD9, _is_keyPADADD, _is_keyPADSUB, _is_keyPADMUL, _is_keyPADDIV;
 
     //@}
     //---------------------------
@@ -6061,78 +6096,120 @@ namespace cimg_library_suffixed {
     //--------------------------------------------------------
 
     //! Destructor.
+    /**
+       \note If the associated window is visible on the screen, it is closed by the call to the destructor.
+       \see CImgDisplay(), assign().
+    **/
     ~CImgDisplay() {
       assign();
     }
 
-    //! Create an empty display window.
+    //! Create an empty display.
+    /**
+       \note Constructing an empty CImgDisplay instance does not make a window appearing on the screen, until
+       display of valid data is performed.
+       \par Example
+       \code
+       CImgDisplay disp;  // Does actually nothing.
+       ...
+       disp.display(img); // Create new window and display image in it.
+       \endcode
+       \see ~CImgDisplay(), assign().
+    **/
     CImgDisplay():
-      _width(0),_height(0),_window_width(0),_window_height(0),_window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),
-      _normalization(0),_title(0),_button(0),_wheel(0),_is_closed(true),_is_resized(false),_is_moved(false),_is_event(false),
-      _is_fullscreen(false),_min(0),_max(0) {
+      _width(0),_height(0),_normalization(0),
+      _min(0),_max(0),
+      _is_fullscreen(false),
+      _title(0),
+      _window_width(0),_window_height(0),_button(0),
+      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign();
     }
 
-    //! Create a display window with a specified size \p pwidth x \p height.
-    /** \param width : Width of the display window.
-        \param height : Height of the display window.
-        \param title : Title of the display window.
-        \param normalization : Normalization type of the display window (0=none, 1=always, 2=once).
-        \param is_fullscreen : Fullscreen mode.
-        \param is_closed : Initially visible mode.
-        A black image will be initially displayed in the display window.
+    //! Create a display with specified dimensions.
+    /** \param width Window width.
+        \param height Window height.
+        \param title Window title.
+        \param normalization Normalization type (<tt>0</tt>=none, <tt>1</tt>=always, <tt>2</tt>=once, <tt>3</tt>=pixel type-dependent, see normalization()).
+        \param is_fullscreen Flag telling if fullscreen mode is enabled.
+        \param is_closed Flag telling if associated window is initially visible or not.
+        \note A black background is initially displayed on the associated window.
+        \see assign(unsigned int,unsigned int,const char*,unsigned int,bool,bool).
     **/
     CImgDisplay(const unsigned int width, const unsigned int height,
                 const char *const title=0, const unsigned int normalization=3,
                 const bool is_fullscreen=false, const bool is_closed=false):
-      _width(0),_height(0),_window_width(0),_window_height(0),_window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),
-      _normalization(0),_title(0),_button(0),_wheel(0),_is_closed(true),_is_resized(false),_is_moved(false),_is_event(false),
-      _is_fullscreen(false),_min(0),_max(0) {
+      _width(0),_height(0),_normalization(0),
+      _min(0),_max(0),
+      _is_fullscreen(false),
+      _title(0),
+      _window_width(0),_window_height(0),_button(0),
+      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign(width,height,title,normalization,is_fullscreen,is_closed);
     }
 
-    //! Create a display window from an image.
-    /** \param img : Image that will be used to create the display window.
-        \param title : Title of the display window
-        \param normalization : Normalization type of the display window.
-        \param is_fullscreen : Fullscreen mode.
-        \param is_closed : Initially visible mode.
+    //! Create a display from an image.
+    /** \param img Image used as a model to create the window.
+        \param title Window title.
+        \param normalization Normalization type (<tt>0</tt>=none, <tt>1</tt>=always, <tt>2</tt>=once, <tt>3</tt>=pixel type-dependent, see normalization()).
+        \param is_fullscreen Flag telling if fullscreen mode is enabled.
+        \param is_closed Flag telling if associated window is initially visible or not.
+        \note The pixels of the input image are initially displayed on the associated window.
+        \see assign(const CImg<T>&,const char*,unsigned int,bool,bool).
     **/
     template<typename T>
     explicit CImgDisplay(const CImg<T>& img,
                          const char *const title=0, const unsigned int normalization=3,
                          const bool is_fullscreen=false, const bool is_closed=false):
-      _width(0),_height(0),_window_width(0),_window_height(0),_window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),
-      _normalization(0),_title(0),_button(0),_wheel(0),_is_closed(true),_is_resized(false),_is_moved(false),_is_event(false),
-      _is_fullscreen(false),_min(0),_max(0) {
+      _width(0),_height(0),_normalization(0),
+      _min(0),_max(0),
+      _is_fullscreen(false),
+      _title(0),
+      _window_width(0),_window_height(0),_button(0),
+      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign(img,title,normalization,is_fullscreen,is_closed);
     }
 
-    //! Create a display window from an image list.
-    /** \param list : The list of images to display.
-        \param title : Title of the display window
-        \param normalization : Normalization type of the display window.
-        \param is_fullscreen : Fullscreen mode.
-        \param is_closed : Initially visible mode.
+    //! Create a display from an image list.
+    /** \param list The images list to display.
+        \param title Window title.
+        \param normalization Normalization type (<tt>0</tt>=none, <tt>1</tt>=always, <tt>2</tt>=once, <tt>3</tt>=pixel type-dependent, see normalization()).
+        \param is_fullscreen Flag telling if fullscreen mode is enabled.
+        \param is_closed Flag telling if associated window is initially visible or not.
+        \note All images of the list, concatenated along the X-axis, are initially displayed on the associated window.
+        \see assign(const CImgList<T>&,const char*,unsigned int,bool,bool).
     **/
     template<typename T>
     explicit CImgDisplay(const CImgList<T>& list,
                          const char *const title=0, const unsigned int normalization=3,
                          const bool is_fullscreen=false, const bool is_closed=false):
-      _width(0),_height(0),_window_width(0),_window_height(0),_window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),
-      _normalization(0),_title(0),_button(0),_wheel(0),_is_closed(true),_is_resized(false),_is_moved(false),_is_event(false),
-      _is_fullscreen(false),_min(0),_max(0) {
+      _width(0),_height(0),_normalization(0),
+      _min(0),_max(0),
+      _is_fullscreen(false),
+      _title(0),
+      _window_width(0),_window_height(0),_button(0),
+      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign(list,title,normalization,is_fullscreen,is_closed);
     }
 
-    //! Create a display window by copying another one.
+    //! Create a display as a copy of another one.
     /**
-        \param disp  : Display window to copy.
+        \param disp  : Display instance to copy.
+        \note The pixel buffer of the input window is initially displayed on the associated window.
+        \see assign(const CImgDisplay&).
     **/
     CImgDisplay(const CImgDisplay& disp):
-      _width(0),_height(0),_window_width(0),_window_height(0),_window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),
-      _normalization(0),_title(0),_button(0),_wheel(0),_is_closed(true),_is_resized(false),_is_moved(false),_is_event(false),
-      _is_fullscreen(false),_min(0),_max(0) {
+      _width(0),_height(0),_normalization(0),
+      _min(0),_max(0),
+      _is_fullscreen(false),
+      _title(0),
+      _window_width(0),_window_height(0),_button(0),
+      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign(disp);
     }
 
@@ -6142,12 +6219,20 @@ namespace cimg_library_suffixed {
       throw CImgDisplayException("CImgDisplay() : No display available.");
     }
 
-    //! In-place version of the destructor.
+    //! Destructor - Empty constructor \inplace.
+    /**
+       \note Replace the current instance by an empty display.
+       \see ~CImgDisplay(), CImgDisplay().
+    **/
     CImgDisplay& assign() {
       return flush();
     }
 
-    //! In-place version of the constructor.
+    //! Create a display with specified dimensions \inplace.
+    /**
+       \note In-place version of CImgDisplay(unsigned int,unsigned int,const char*,unsigned int,bool,bool).
+       \see CImgDisplay(unsigned int,unsigned int,const char*,unsigned int,bool,bool).
+    **/
     CImgDisplay& assign(const unsigned int width, const unsigned int height,
                         const char *const title=0, const unsigned int normalization=3,
                         const bool is_fullscreen=false, const bool is_closed=false) {
@@ -6156,7 +6241,11 @@ namespace cimg_library_suffixed {
       return assign();
     }
 
-    //! In-place version of the constructor.
+    //! Create a display from an image \inplace.
+    /**
+       \note In-place version of CImgDisplay(const CImg<T>&,const char*,unsigned int,bool,bool).
+       \see CImgDisplay(const CImg<T>&,const char*,unsigned int,bool,bool).
+    **/
     template<typename T>
     CImgDisplay& assign(const CImg<T>& img,
                         const char *const title=0, const unsigned int normalization=3,
@@ -6165,7 +6254,11 @@ namespace cimg_library_suffixed {
       return assign(img._width,img._height,title,normalization,is_fullscreen,is_closed);
     }
 
-    //! In-place version of the constructor.
+    //! Create a display from an image list \inplace.
+    /**
+       \note In-place version of CImgDisplay(const CImgList<T>&,const char*,unsigned int,bool,bool).
+       \see CImgDisplay(const CImgList<T>&,const char*,unsigned int,bool,bool).
+    **/
     template<typename T>
     CImgDisplay& assign(const CImgList<T>& list,
                         const char *const title=0, const unsigned int normalization=3,
@@ -6174,7 +6267,11 @@ namespace cimg_library_suffixed {
       return assign(list._width,list._width,title,normalization,is_fullscreen,is_closed);
     }
 
-    //! In-place version of the constructor.
+    //! Create a display as a copy of another one \inplace.
+    /**
+       \note In-place version of CImgDisplay(const CImgDisplay&).
+       \see CImgDisplay(const CImgDisplay&).
+    **/
     CImgDisplay& assign(const CImgDisplay &disp) {
       _no_display_exception();
       return assign(disp._width,disp._height);
@@ -6182,7 +6279,15 @@ namespace cimg_library_suffixed {
 
 #endif
 
-    //! Get a reference to an empty display.
+    //! Return a reference to an empty display.
+    /**
+       \note Can be useful for writing function prototypes where one of the argument (of type CImgDisplay&)
+       must have a default value.
+       \par Example
+       \code
+       void foo(CImgDisplay& disp=CImgDisplay::empty());
+       \endcode
+    **/
     static CImgDisplay& empty() {
       static CImgDisplay _empty;
       return _empty.assign();
@@ -6214,24 +6319,40 @@ namespace cimg_library_suffixed {
     //@{
     //------------------------------------------
 
-    // Operator=().
+    //! Display image on associated window.
+    /**
+       \note <tt>disp = img</tt> is equivalent to <tt>disp.display(img)</tt>.
+       \see display(const CImg<T>&).
+    **/
     template<typename t>
     CImgDisplay& operator=(const CImg<t>& img) {
       return display(img);
     }
 
-    // Operator=().
+    //! Display list of images on associated window.
+    /**
+       \note <tt>disp = list</tt> is equivalent to <tt>disp.display(list)</tt>.
+       \see display(const CImgList<T>&,char,float).
+    **/
     template<typename t>
     CImgDisplay& operator=(const CImgList<t>& list) {
       return display(list);
     }
 
-    //! Operator=().
+    //! Create a display as a copy of another one \inplace.
+    /**
+       \note Equivalent to assign(const CImgDisplay&).
+       \see assign(const CImgDisplay&).
+     **/
     CImgDisplay& operator=(const CImgDisplay& disp) {
       return assign(disp);
     }
 
-    //! Return true if display is not empty.
+    //! Return \c false if display is empty, \c true otherwise.
+    /**
+       \note <tt>if (disp) { ... }</tt> is equivalent to <tt>if (!disp.is_empty()) { ... }</tt>.
+       \see is_empty().
+    **/
     operator bool() const {
       return !is_empty();
     }
@@ -6243,31 +6364,62 @@ namespace cimg_library_suffixed {
     //@{
     //------------------------------------------
 
-    //! Return true is display is empty.
+    //! Return \c true if display is empty, \c false otherwise.
+    /**
+       \see operator bool().
+    **/
     bool is_empty() const {
       return !(_width && _height);
     }
 
+    //! Return \c true if display is closed (i.e. not visible on the screen), \c false otherwise.
+    /**
+       \note
+       - When a user physically closes the associated window, the display is set to closed.
+       - A closed display is not destroyed. Its associated window can be show again on the screen using show().
+       \see is_event(), show(), close().
+    **/
     bool is_closed() const {
       return _is_closed;
     }
 
+    //! Return \c true if associated window has been resized on the screen, \c false otherwise.
+    /**
+       \see is_event(), resize().
+    **/
     bool is_resized() const {
       return _is_resized;
     }
 
+    //! Return \c true if associated window has been moved on the screen, \c false otherwise.
+    /**
+       \see is_event(), move().
+    **/
     bool is_moved() const {
       return _is_moved;
     }
 
+    //! Return \c true if any event has occured on the associated window, \c false otherwise.
+    /**
+       \see is_closed(), is_resize(), is_moved(), is_key().
+    **/
     bool is_event() const {
       return _is_event;
     }
 
+    //! Return \c true if current display is in fullscreen mode, \c false otherwise.
+    /**
+       \see set_fullscreen(), toggle_fullscreen().
+    **/
     bool is_fullscreen() const {
       return _is_fullscreen;
     }
 
+    //! Return \c true if any key is being pressed on the associated window, \c false otherwise.
+    /**
+       \note The methods below do the same only for specific keys.
+       \see is_event(), is_key(unsigned int) const, is_key(const char *) const, is_key_sequence(), key(), release_key(), set_key(),
+    **/
     bool is_key() const {
       return _is_keyESC || _is_keyF1 || _is_keyF2 || _is_keyF3 ||
         _is_keyF4 || _is_keyF5 || _is_keyF6 || _is_keyF7 ||
@@ -6296,38 +6448,23 @@ namespace cimg_library_suffixed {
         _is_keyPADMUL || _is_keyPADDIV;
     }
 
-#define _cimg_iskey_def(k) \
-    bool is_key##k() const { \
-      return _is_key##k; \
-    }
-    _cimg_iskey_def(ESC); _cimg_iskey_def(F1); _cimg_iskey_def(F2); _cimg_iskey_def(F3);
-    _cimg_iskey_def(F4); _cimg_iskey_def(F5); _cimg_iskey_def(F6); _cimg_iskey_def(F7);
-    _cimg_iskey_def(F8); _cimg_iskey_def(F9); _cimg_iskey_def(F10); _cimg_iskey_def(F11);
-    _cimg_iskey_def(F12); _cimg_iskey_def(PAUSE); _cimg_iskey_def(1); _cimg_iskey_def(2);
-    _cimg_iskey_def(3); _cimg_iskey_def(4); _cimg_iskey_def(5); _cimg_iskey_def(6);
-    _cimg_iskey_def(7); _cimg_iskey_def(8); _cimg_iskey_def(9); _cimg_iskey_def(0);
-    _cimg_iskey_def(BACKSPACE); _cimg_iskey_def(INSERT); _cimg_iskey_def(HOME);
-    _cimg_iskey_def(PAGEUP); _cimg_iskey_def(TAB); _cimg_iskey_def(Q); _cimg_iskey_def(W);
-    _cimg_iskey_def(E); _cimg_iskey_def(R); _cimg_iskey_def(T); _cimg_iskey_def(Y);
-    _cimg_iskey_def(U); _cimg_iskey_def(I); _cimg_iskey_def(O); _cimg_iskey_def(P);
-    _cimg_iskey_def(DELETE); _cimg_iskey_def(END); _cimg_iskey_def(PAGEDOWN);
-    _cimg_iskey_def(CAPSLOCK); _cimg_iskey_def(A); _cimg_iskey_def(S); _cimg_iskey_def(D);
-    _cimg_iskey_def(F); _cimg_iskey_def(G); _cimg_iskey_def(H); _cimg_iskey_def(J);
-    _cimg_iskey_def(K); _cimg_iskey_def(L); _cimg_iskey_def(ENTER);
-    _cimg_iskey_def(SHIFTLEFT); _cimg_iskey_def(Z); _cimg_iskey_def(X); _cimg_iskey_def(C);
-    _cimg_iskey_def(V); _cimg_iskey_def(B); _cimg_iskey_def(N); _cimg_iskey_def(M);
-    _cimg_iskey_def(SHIFTRIGHT); _cimg_iskey_def(ARROWUP); _cimg_iskey_def(CTRLLEFT);
-    _cimg_iskey_def(APPLEFT); _cimg_iskey_def(ALT); _cimg_iskey_def(SPACE); _cimg_iskey_def(ALTGR);
-    _cimg_iskey_def(APPRIGHT); _cimg_iskey_def(MENU); _cimg_iskey_def(CTRLRIGHT);
-    _cimg_iskey_def(ARROWLEFT); _cimg_iskey_def(ARROWDOWN); _cimg_iskey_def(ARROWRIGHT);
-    _cimg_iskey_def(PAD0); _cimg_iskey_def(PAD1); _cimg_iskey_def(PAD2);
-    _cimg_iskey_def(PAD3); _cimg_iskey_def(PAD4); _cimg_iskey_def(PAD5);
-    _cimg_iskey_def(PAD6); _cimg_iskey_def(PAD7); _cimg_iskey_def(PAD8);
-    _cimg_iskey_def(PAD9); _cimg_iskey_def(PADADD); _cimg_iskey_def(PADSUB);
-    _cimg_iskey_def(PADMUL); _cimg_iskey_def(PADDIV);
-
-    bool is_key(const unsigned int key) const {
-#define _cimg_iskey_test(k) if (key==cimg::key##k) return _is_key##k;
+    //! Return \c true if key specified by given keycode is being pressed on the associated window, \c false otherwise.
+    /**
+       \param keycode Keycode to test.
+       \note Keycode constants are defined in the cimg namespace and are architecture-dependent. Use them to ensure
+       your code stay portable (see cimg::keyESC).
+       \par Example
+       \code
+       CImgDisplay disp(400,400);
+       while (!disp.is_closed()) {
+         if (disp.key(cimg::keyTAB)) { ... }  // Equivalent to 'if (disp.is_keyTAB())'.
+         disp.wait();
+       }
+       \endcode
+       \see is_event(), is_key() const, is_key(const char *) const, is_key_sequence(), key(), released_key(), set_key(),
+    **/
+    bool is_key(const unsigned int keycode) const {
+#define _cimg_iskey_test(k) if (keycode==cimg::key##k) return _is_key##k;
       _cimg_iskey_test(ESC); _cimg_iskey_test(F1); _cimg_iskey_test(F2); _cimg_iskey_test(F3);
       _cimg_iskey_test(F4); _cimg_iskey_test(F5); _cimg_iskey_test(F6); _cimg_iskey_test(F7);
       _cimg_iskey_test(F8); _cimg_iskey_test(F9); _cimg_iskey_test(F10); _cimg_iskey_test(F11);
@@ -6356,9 +6493,23 @@ namespace cimg_library_suffixed {
       return false;
     }
 
-    //! Get keycode corresponding to given input string.
-    bool is_key(const char *const textcode) const {
-#define _cimg_iskey_test2(k) if (!cimg::strcasecmp(textcode,#k)) return _is_key##k;
+    //! Return \c true if key specified by given keycode is being pressed on the associated window, \c false otherwise.
+    /**
+       \param keycode C-string containing the keycode label of the key to test.
+       \note Use it when the key you want to test can be dynamically set by the user.
+       \par Example
+       \code
+       CImgDisplay disp(400,400);
+       const char *const keycode = "TAB";
+       while (!disp.is_closed()) {
+         if (disp.is_key(keycode)) { ... }  // Equivalent to 'if (disp.is_keyTAB())'.
+         disp.wait();
+       }
+       \endcode
+       \see is_event(), is_key() const, is_key(unsigned int) const, is_key_sequence(), key(), released_key(), set_key(),
+    **/
+    bool is_key(const char *const keycode) const {
+#define _cimg_iskey_test2(k) if (!cimg::strcasecmp(keycode,#k)) return _is_key##k;
       _cimg_iskey_test2(ESC); _cimg_iskey_test2(F1); _cimg_iskey_test2(F2); _cimg_iskey_test2(F3);
       _cimg_iskey_test2(F4); _cimg_iskey_test2(F5); _cimg_iskey_test2(F6); _cimg_iskey_test2(F7);
       _cimg_iskey_test2(F8); _cimg_iskey_test2(F9); _cimg_iskey_test2(F10); _cimg_iskey_test2(F11);
@@ -6387,11 +6538,28 @@ namespace cimg_library_suffixed {
       return false;
     }
 
-    //! Test if a key sequence has been typed.
-    bool is_key_sequence(const unsigned int *const key_sequence, const unsigned int length, const bool remove_sequence=false) {
-      if (key_sequence && length) {
+    //! Return \c true if specified key sequence has been typed on the associated window, \c false otherwise.
+    /**
+       \param keycodes_sequence Buffer of keycodes to test.
+       \param length Number of keys in the \c keycodes_sequence buffer.
+       \param remove_sequence Flag telling if the key sequence must be removed from the key history, if found.
+       \note Keycode constants are defined in the cimg namespace and are architecture-dependent. Use them to ensure
+       your code stay portable (see cimg::keyESC).
+       \par Example
+       \code
+       CImgDisplay disp(400,400);
+       const unsigned int key_seq[] = { cimg::keyCTRLLEFT, cimg::keyD };
+       while (!disp.is_closed()) {
+         if (disp.is_key_sequence(key_seq,2)) { ... }  // Test for the 'CTRL+D' keyboard event.
+         disp.wait();
+       }
+       \endcode
+       \see is_event(), is_key() const, is_key(unsigned int) const, is_key(const char *) const, key(), released_key(), set_key(),
+    **/
+    bool is_key_sequence(const unsigned int *const keycodes_sequence, const unsigned int length, const bool remove_sequence=false) {
+      if (keycodes_sequence && length) {
         const unsigned int
-          *const ps_end = key_sequence + length - 1,
+          *const ps_end = keycodes_sequence + length - 1,
           *const pk_end = (unsigned int*)_keys + 1 + sizeof(_keys)/sizeof(unsigned int) - length,
           k = *ps_end;
         for (unsigned int *pk = (unsigned int*)_keys; pk<pk_end; ) {
@@ -6409,6 +6577,42 @@ namespace cimg_library_suffixed {
       return false;
     }
 
+#define _cimg_iskey_def(k) \
+    bool is_key##k() const { \
+      return _is_key##k; \
+    }
+
+    //! Return \c true if the \c ESC key is being pressed on the associated window, \c false otherwise.
+    /**
+       \note Similar methods exist for all keys managed by \CImg (see cimg::keyESC).
+       \see is_event(), is_key(unsigned int) const, is_key(const char *) const, is_key_sequence(), key(), release_key(), set_key(),
+    **/
+    _cimg_iskey_def(ESC); _cimg_iskey_def(F1); _cimg_iskey_def(F2); _cimg_iskey_def(F3);
+    _cimg_iskey_def(F4); _cimg_iskey_def(F5); _cimg_iskey_def(F6); _cimg_iskey_def(F7);
+    _cimg_iskey_def(F8); _cimg_iskey_def(F9); _cimg_iskey_def(F10); _cimg_iskey_def(F11);
+    _cimg_iskey_def(F12); _cimg_iskey_def(PAUSE); _cimg_iskey_def(1); _cimg_iskey_def(2);
+    _cimg_iskey_def(3); _cimg_iskey_def(4); _cimg_iskey_def(5); _cimg_iskey_def(6);
+    _cimg_iskey_def(7); _cimg_iskey_def(8); _cimg_iskey_def(9); _cimg_iskey_def(0);
+    _cimg_iskey_def(BACKSPACE); _cimg_iskey_def(INSERT); _cimg_iskey_def(HOME);
+    _cimg_iskey_def(PAGEUP); _cimg_iskey_def(TAB); _cimg_iskey_def(Q); _cimg_iskey_def(W);
+    _cimg_iskey_def(E); _cimg_iskey_def(R); _cimg_iskey_def(T); _cimg_iskey_def(Y);
+    _cimg_iskey_def(U); _cimg_iskey_def(I); _cimg_iskey_def(O); _cimg_iskey_def(P);
+    _cimg_iskey_def(DELETE); _cimg_iskey_def(END); _cimg_iskey_def(PAGEDOWN);
+    _cimg_iskey_def(CAPSLOCK); _cimg_iskey_def(A); _cimg_iskey_def(S); _cimg_iskey_def(D);
+    _cimg_iskey_def(F); _cimg_iskey_def(G); _cimg_iskey_def(H); _cimg_iskey_def(J);
+    _cimg_iskey_def(K); _cimg_iskey_def(L); _cimg_iskey_def(ENTER);
+    _cimg_iskey_def(SHIFTLEFT); _cimg_iskey_def(Z); _cimg_iskey_def(X); _cimg_iskey_def(C);
+    _cimg_iskey_def(V); _cimg_iskey_def(B); _cimg_iskey_def(N); _cimg_iskey_def(M);
+    _cimg_iskey_def(SHIFTRIGHT); _cimg_iskey_def(ARROWUP); _cimg_iskey_def(CTRLLEFT);
+    _cimg_iskey_def(APPLEFT); _cimg_iskey_def(ALT); _cimg_iskey_def(SPACE); _cimg_iskey_def(ALTGR);
+    _cimg_iskey_def(APPRIGHT); _cimg_iskey_def(MENU); _cimg_iskey_def(CTRLRIGHT);
+    _cimg_iskey_def(ARROWLEFT); _cimg_iskey_def(ARROWDOWN); _cimg_iskey_def(ARROWRIGHT);
+    _cimg_iskey_def(PAD0); _cimg_iskey_def(PAD1); _cimg_iskey_def(PAD2);
+    _cimg_iskey_def(PAD3); _cimg_iskey_def(PAD4); _cimg_iskey_def(PAD5);
+    _cimg_iskey_def(PAD6); _cimg_iskey_def(PAD7); _cimg_iskey_def(PAD8);
+    _cimg_iskey_def(PAD9); _cimg_iskey_def(PADADD); _cimg_iskey_def(PADSUB);
+    _cimg_iskey_def(PADMUL); _cimg_iskey_def(PADDIV);
+
     //@}
     //------------------------------------------
     //
@@ -6416,48 +6620,249 @@ namespace cimg_library_suffixed {
     //@{
     //------------------------------------------
 
-    //! Get display width.
+#if cimg_display==0
+
+    //! Return width of the screen (current resolution along the X-axis).
+    /**
+       \see screen_height().
+    **/
+    static int screen_width() {
+      _no_display_exception();
+      return 0;
+    }
+
+    //! Return height of the screen (current resolution along the Y-axis).
+    /**
+       \see screen_width().
+    **/
+    static int screen_height() {
+      _no_display_exception();
+      return 0;
+    }
+
+#endif
+
+    //! Return display width.
+    /**
+       \note The width of the display (i.e. the width of the pixel data buffer associated to the CImgDisplay instance)
+       may be different from the actual width of the associated window.
+       \see height(), window_width().
+    **/
     int width() const {
       return (int)_width;
     }
 
-    //! Get display height.
+    //! Return display height.
+    /**
+       \note The height of the display (i.e. the height of the pixel data buffer associated to the CImgDisplay instance)
+       may be different from the actual height of the associated window.
+       \see width(), window_height().
+    **/
     int height() const {
       return (int)_height;
     }
 
-    //! Get X-coordinate of the mouse pointer.
+    //! Return normalization type of the display.
+    /**
+       The normalization type tells about how the values of an input image are normalized by the CImgDisplay to be correctly displayed.
+       The range of values for pixels displayed on screen is <tt>[0,255]</tt>. If the range of values of the data to display
+       is different, a normalization may be required for displaying the data in a correct way.
+       The normalization type can be one of :
+       - \c 0 : Value normalization is disabled. It is then assumed that all input data to be displayed by the CImgDisplay instance
+       have values in range <tt>[0,255]</tt>.
+       - \c 1 : Value normalization is always performed (this is the default behavior).
+       Before displaying an input image, its values will be (virtually) stretched
+       in range <tt>[0,255]</tt>, so that the contrast of the displayed pixels will be maximum.
+       Use this mode for images whose minimum and maximum values are not prescribed to known values (e.g. float-valued images).
+       Note that when normalized versions of images are computed for display purposes, the actual values of these images are not modified.
+       - \c 2 : Value normalization is performed once (on the first image display), then the same normalization coefficients are kept for
+       next displayed frames.
+       - \c 3 : Value normalization depends on the pixel type of the data to display. For integer pixel types, the normalization
+       is done regarding the minimum/maximum values of the type (no normalization occurs then for <tt>unsigned char</tt>).
+       For float-valued pixel types, the normalization is done regarding the minimum/maximum value of the image data instead.
+
+       \see set_normalization().
+    **/
+    unsigned int normalization() const {
+      return _normalization;
+    }
+
+    //! Return title of the associated window as a C-string.
+    /**
+       \note Window title may be not visible, depending on the used window manager or if the current display is in fullscreen mode.
+       \see set_title().
+    **/
+    const char *title() const {
+      return _title;
+    }
+
+    //! Return width of the associated window.
+    /**
+       \note The width of the display (i.e. the width of the pixel data buffer associated to the CImgDisplay instance)
+       may be different from the actual width of the associated window.
+       \see window_height(), width().
+    **/
+    int window_width() const {
+      return (int)_window_width;
+    }
+
+    //! Return height of the associated window.
+    /**
+       \note The height of the display (i.e. the height of the pixel data buffer associated to the CImgDisplay instance)
+       may be different from the actual height of the associated window.
+       \see window_width(), height().
+    **/
+    int window_height() const {
+      return (int)_window_height;
+    }
+
+    //! Return X-coordinate of the associated window.
+    /**
+       \note The returned coordinate corresponds to the location of the upper-left corner of the associated window.
+       \see window_y().
+    **/
+    int window_x() const {
+      return _window_x;
+    }
+
+    //! Return Y-coordinate of the associated window.
+    /**
+       \note The returned coordinate corresponds to the location of the upper-left corner of the associated window.
+       \see window_x().
+    **/
+    int window_y() const {
+      return _window_y;
+    }
+
+    //! Return X-coordinate of the mouse pointer.
+    /**
+       \note
+       - If the mouse pointer is outside window area, \c -1 is returned.
+       - Otherwise, the returned value is in the range [0,width()-1].
+       \see mouse_y(), button(), wheel().
+    **/
     int mouse_x() const {
       return _mouse_x;
     }
 
-    //! Get Y-coordinate of the mouse pointer.
+    //! Return Y-coordinate of the mouse pointer.
+    /**
+       \note
+       - If the mouse pointer is outside window area, \c -1 is returned.
+       - Otherwise, the returned value is in the range [0,height()-1].
+       \see mouse_x(), button(), wheel().
+    **/
     int mouse_y() const {
       return _mouse_y;
     }
 
-    //! Get current or previous state of the mouse buttons.
+    //! Return current state of the mouse buttons.
+    /**
+       \note Three mouse buttons can be managed. If one button is pressed, its corresponding bit in the returned value is set :
+       - bit \c 0 (value \c 0x1) : State of the left mouse button.
+       - bit \c 1 (value \c 0x2) : State of the right mouse button.
+       - bit \c 2 (value \c 0x4) : State of the middle mouse button.
+
+       Several bits can be activated if more than one button are pressed at the same time.
+       \par Example
+       \code
+       CImgDisplay disp(400,400);
+       while (!disp.is_closed()) {
+         if (disp.button()&1) { // Left button clicked.
+           ...
+         }
+         if (disp.button()&2) { // Right button clicked.
+           ...
+         }
+         if (disp.button()&4) { // Middle button clicked.
+           ...
+         }
+         disp.wait();
+       }
+       \endcode
+       \see mouse_x(), mouse_y(), wheel().
+    **/
     unsigned int button() const {
       return _button;
     }
 
-    //! Get current state of the mouse wheel.
+    //! Return current state of the mouse wheel.
+    /**
+       \note
+       - The returned value can be positive or negative depending on whether the mouse wheel has been scrolled forward or backward.
+       - Scrolling the wheel forward add \c 1 to the wheel value.
+       - Scrolling the wheel backward substract \c 1 to the wheel value.
+       - The returned value cumulates the number of forward of backward scrolls since the creation of the display, or since the
+       last reset of the wheel value (using set_wheel()). It is strongly recommended to quickly reset the wheel counter
+       when an action has been performed regarding the current wheel value. Otherwise, the returned wheel value may be for instance \c 0
+       despite the fact that many scrolls have been done (as many in forward as in backward directions).
+       \par Example
+       \code
+       CImgDisplay disp(400,400);
+       while (!disp.is_closed()) {
+         if (disp.wheel()) {
+           int counter = disp.wheel();  // Read the state of the mouse wheel.
+           ...                          // Do what you want with 'counter'.
+           disp.set_wheel();            // Reset the wheel value to 0.
+         }
+         disp.wait();
+       }
+       \endcode
+       \see mouse_x(), mouse_y(), button(), set_wheel().
+    **/
     int wheel() const {
       return _wheel;
     }
 
-    //! Get current or previous state of the keyboard.
+    //! Return one entry from the pressed keys history.
+    /**
+       \param pos Indice to read from the pressed keys history (indice \c 0 corresponds to latest entry).
+       \return Keycode of a pressed key or \c 0 for a released key.
+       \note
+       - Each CImgDisplay stores a history of the pressed keys in a buffer of size \c 128. When a new key is pressed,
+       its keycode is stored in the pressed keys history. When a key is released, \c 0 is put instead.
+       This means that up to the 64 last pressed keys may be read from the pressed keys history.
+       When a new value is stored, the pressed keys history is shifted so that the latest entry is always
+       stored at position \c 0.
+       - Keycode constants are defined in the cimg namespace and are architecture-dependent. Use them to ensure
+       your code stay portable (see cimg::keyESC).
+
+       \see is_event(), is_key() const, is_key(unsigned int) const, is_key(const char *) const, is_key_sequence(), released_key(), set_key(),
+    **/
     unsigned int key(const unsigned int pos=0) const {
       return pos<(sizeof(_keys)/sizeof(unsigned int))?_keys[pos]:0;
     }
 
+    //! Return one entry from the released keys history.
+    /**
+       \param pos Indice to read from the released keys history (indice \c 0 corresponds to latest entry).
+       \return Keycode of a released key or \c 0 for a pressed key.
+       \note
+       - Each CImgDisplay stores a history of the released keys in a buffer of size \c 128. When a new key is released,
+       its keycode is stored in the pressed keys history. When a key is pressed, \c 0 is put instead.
+       This means that up to the 64 last released keys may be read from the released keys history.
+       When a new value is stored, the released keys history is shifted so that the latest entry is always
+       stored at position \c 0.
+       - Keycode constants are defined in the cimg namespace and are architecture-dependent. Use them to ensure
+       your code stay portable (see cimg::keyESC).
+
+       \see is_event(), is_key() const, is_key(unsigned int) const, is_key(const char *) const, is_key_sequence(), released_key(), set_key(),
+    **/
     unsigned int released_key(const unsigned int pos=0) const {
       return pos<(sizeof(_released_keys)/sizeof(unsigned int))?_released_keys[pos]:0;
     }
 
-    //! Get keycode corresponding to given input string.
-    static unsigned int keycode(const char *const textcode) {
-#define _cimg_keycode(k) if (!cimg::strcasecmp(textcode,#k)) return cimg::key##k;
+    //! Return keycode corresponding to the specified string.
+    /**
+       \note Keycode constants are defined in the cimg namespace and are architecture-dependent. Use them to ensure
+       your code stay portable (see cimg::keyESC).
+       \par Example
+       \code
+       const unsigned int keyTAB = CImgDisplay::keycode("TAB");  // Return cimg::keyTAB.
+       \endcode
+    **/
+    static unsigned int keycode(const char *const keycode) {
+#define _cimg_keycode(k) if (!cimg::strcasecmp(keycode,#k)) return cimg::key##k;
       _cimg_keycode(ESC); _cimg_keycode(F1); _cimg_keycode(F2); _cimg_keycode(F3);
       _cimg_keycode(F4); _cimg_keycode(F5); _cimg_keycode(F6); _cimg_keycode(F7);
       _cimg_keycode(F8); _cimg_keycode(F9); _cimg_keycode(F10); _cimg_keycode(F11);
@@ -6486,53 +6891,12 @@ namespace cimg_library_suffixed {
       return 0;
     }
 
-    //! Get normalization type of the display.
-    unsigned int normalization() const {
-      return _normalization;
-    }
-
-    //! Get title of the display.
-    const char *title() const {
-      return _title;
-    }
-
-    //! Get display window width.
-    int window_width() const {
-      return (int)_window_width;
-    }
-
-    //! Get display window height.
-    int window_height() const {
-      return (int)_window_height;
-    }
-
-    //! Get X-coordinate of the window.
-    int window_x() const {
-      return _window_x;
-    }
-
-    //! Get Y-coordinate of the window.
-    int window_y() const {
-      return _window_y;
-    }
-
-#if cimg_display==0
-
-    //! Get the width of the screen resolution.
-    static int screen_width() {
-      _no_display_exception();
-      return 0;
-    }
-
-    //! Get the height of the screen resolution.
-    static int screen_height() {
-      _no_display_exception();
-      return 0;
-    }
-
-#endif
-
-    //! Get the frame per second rate.
+    //! Return the current refresh rate, in frames per second.
+    /**
+       \note Returns a significant value when the current instance is used to display successive frames.
+       It measures the delay between successive calls to frames_per_second().
+       \see wait(), wait(unsigned int), cimg::wait().
+    **/
     float frames_per_second() {
       if (!_fps_timer) _fps_timer = cimg::time();
       const float delta = (cimg::time()-_fps_timer)/1000.0f;
@@ -6546,15 +6910,20 @@ namespace cimg_library_suffixed {
     }
 
     //@}
-    //------------------------------------------
+    //---------------------------------------
     //
-    //! \name Display Manipulation
+    //! \name Window Manipulation
     //@{
-    //------------------------------------------
+    //---------------------------------------
 
 #if cimg_display==0
 
-    //! Display an image in a window.
+    //! Display image on associated window.
+    /**
+       \param img Input image to display.
+       \note This method returns immediately.
+       \see display(const CImgList<T>&,char,float), CImg<T>::display(const char *,bool) const.
+    **/
     template<typename T>
     CImgDisplay& display(const CImg<T>& img) {
       return assign(img);
@@ -6562,62 +6931,114 @@ namespace cimg_library_suffixed {
 
 #endif
 
-    //! Display an image list CImgList<T> into a display window.
-    /** First, all images of the list are appended into a single image used for visualization,
-        then this image is displayed in the current display window.
-        \param list : The list of images to display.
-        \param axis : The axis used to append the image for visualization. Can be 'x' (default),'y','z' or 'c'.
-        \param align : Defines the relative alignment of images when displaying images of different sizes.
-        Can be '\p c' (centered, which is the default), '\p p' (top alignment) and '\p n' (bottom aligment).
+    //! Display list of images on associated window.
+    /**
+       \param list List of images to display.
+       \param axis Axis used to append the images along, for the visualization (can be \c x, \c y, \c z or \c c).
+       \param align Relative position of aligned images when displaying lists with images of different sizes
+       (\c 0 for upper-left, \c 0.5 for centering and \c 1 for lower-right).
+       \note This method returns immediately.
+       \see display(const CImg<T>&).
     **/
     template<typename T>
     CImgDisplay& display(const CImgList<T>& list, const char axis='x', const float align=0) {
       return display(list.get_append(axis,align));
     }
 
-    //! Resize a display window in its current size.
+#if cimg_display==0
+
+    //! Show (closed) associated window on the screen.
+    /**
+       \note
+       - Force the associated window of a display to be visible on the screen, even if it has been closed before.
+       - Using show() on a visible display does nothing.
+       \see close().
+    **/
+    CImgDisplay& show() {
+      return assign();
+    }
+
+    //! Close (visible) associated window and make it disappear from the screen.
+    /**
+       \note
+       - A closed display only means the associated window is not visible anymore. This does not mean the display has been destroyed.
+       Use show() to make the associated window reappear.
+       - Using close() on a closed display does nothing.
+       \see show().
+    **/
+    CImgDisplay& close() {
+      return assign();
+    }
+
+    //! Move associated window to a new location.
+    /**
+       \param pos_x X-coordinate of the new window location.
+       \param pos_y Y-coordinate of the new window location.
+       \note Depending on the window manager behavior, this method may not succeed (no exceptions are thrown nevertheless).
+    **/
+    CImgDisplay& move(const int pos_x, const int pos_y) {
+      return assign(pos_x,pos_y);
+    }
+
+#endif
+
+    //! Resize display to the size of the associated window.
+    /**
+       \param force_redraw Flag telling if the previous window content must be updated and refreshed as well.
+       \note
+       - Calling this method ensures that width() and window_width() become equal, as well as height() and window_height().
+       - The associated window is also resized to specified dimensions.
+       \see width(), height(), window_width(), window_height(), resize(int,int,bool), resize(const CImg<T>&,bool), resize(const CImgDisplay&,bool).
+    **/
     CImgDisplay& resize(const bool force_redraw=true) {
       resize(_window_width,_window_height,force_redraw);
       return *this;
     }
 
-    //! Resize a display window with the size of an image.
-    /** \param img    : Input image. \p image.width and \p image.height give the new dimensions of the display window.
-        \param force_redraw : If \p true (default), the current displayed image in the display window will
-        be bloc-interpolated to fit the new dimensions. If \p false, a black image will be drawn in the resized window.
-    **/
-    template<typename T>
-    CImgDisplay& resize(const CImg<T>& img, const bool force_redraw=true) {
-      return resize(img._width,img._height,force_redraw);
-    }
-
-    //! Resize a display window with the size of a list.
-    /** \param list    : Input image list.
-        \param force_redraw : If \p true (default), the current displayed image in the display window will
-        be bloc-interpolated to fit the new dimensions. If \p false, a black image will be drawn in the resized window.
-    **/
-    template<typename T>
-    CImgDisplay& resize(const CImgList<T>& list, const bool force_redraw=true) {
-      int h = 0, w = 0;
-      cimglist_for(list,l) { w += list[l].width(); h = cimg::max(h,list[l].height()); }
-      return resize(w,h,force_redraw);
-    }
-
-    //! Resize a display window using the size of the given display \p disp.
-    CImgDisplay& resize(const CImgDisplay& disp, const bool force_redraw=true) {
-      return resize(disp._width,disp._height,force_redraw);
-    }
-
 #if cimg_display==0
 
-    //! Resize window.
+    //! Resize display to the specified size.
+    /**
+       \param width Requested display width.
+       \param height Requested display height.
+       \param force_redraw Flag telling if the previous window content must be updated and refreshed as well.
+       \note The associated window is also resized to specified dimensions.
+       \see width(), height(), resize(bool), resize(const CImg<T>&,bool), resize(const CImgDisplay&,bool).
+    **/
     CImgDisplay& resize(const int width, const int height, const bool force_redraw=true) {
       return assign(width,height,0,3,force_redraw);
     }
 
 #endif
 
-    // Render pixel buffer with size (wd,hd) from source buffer of size (ws,hs).
+    //! Resize display to the size of an input image.
+    /**
+       \param img Input image to take size from.
+       \param force_redraw Flag telling if the previous window content must be resized and updated as well.
+       \note
+       - Calling this method ensures that width() and <tt>img.width()</tt> become equal, as well as height() and <tt>img.height()</tt>.
+       - The associated window is also resized to specified dimensions.
+       \see width(), height(), resize(bool), resize(int,int,bool), resize(const CImgDisplay&,bool).
+    **/
+    template<typename T>
+    CImgDisplay& resize(const CImg<T>& img, const bool force_redraw=true) {
+      return resize(img._width,img._height,force_redraw);
+    }
+
+    //! Resize display to the size of another CImgDisplay instance.
+    /**
+       \param disp Input display to take size from.
+       \param force_redraw Flag telling if the previous window content must be resized and updated as well.
+       \note
+       - Calling this method ensures that width() and <tt>disp.width()</tt> become equal, as well as height() and <tt>disp.height()</tt>.
+       - The associated window is also resized to specified dimensions.
+       \see width(), height(), resize(bool), resize(int,int,bool), resize(const CImg&,bool).
+    **/
+    CImgDisplay& resize(const CImgDisplay& disp, const bool force_redraw=true) {
+      return resize(disp._width,disp._height,force_redraw);
+    }
+
+    // Render pixel buffer with size (wd,hd) from source buffer of size (ws,hs) (internal).
     template<typename t, typename T>
     static void _render_resize(const T *ptrs, const unsigned int ws, const unsigned int hs,
                                t *ptrd, const unsigned int wd, const unsigned int hd) {
@@ -6641,7 +7062,51 @@ namespace cimg_library_suffixed {
       delete[] offx; delete[] offy;
     }
 
-    //! Set fullscreen mode.
+    //! Set normalization type.
+    /**
+       \param normalization New normalization mode.
+       \see normalization().
+    **/
+    CImgDisplay& set_normalization(const unsigned int normalization) {
+      _normalization = normalization;
+      _min = _max = 0;
+      return *this;
+    }
+
+#if cimg_display==0
+
+    //! Set title of the associated window.
+    /**
+       \param format C-string containing the format of the title, as with <tt>std::printf()</tt>.
+       \warning As the first argument is a format string, it is highly recommended to write
+       \code
+       disp.set_title("%s",window_title);
+       \endcode
+       instead of
+       \code
+       disp.set_title(window_title);
+       \endcode
+       if \c window_title can be arbitrary, to prevent nasty memory access.
+       \see title().
+    **/
+    CImgDisplay& set_title(const char *const format, ...) {
+      return assign(0,0,format);
+    }
+
+#endif
+
+    //! Enable or disable fullscreen mode.
+    /**
+       \param is_fullscreen Flag telling is the fullscreen mode must be activated or not.
+       \param force_redraw Flag telling if the previous window content must be displayed as well.
+       \note
+       - When the fullscreen mode is enabled, the associated window fills the entire screen but the size of the current display
+       is not modified.
+       - The screen resolution may be switched to fit the associated window size and ensure it appears the largest as possible.
+       For X-Window (X11) users, the configuration flag \c cimg_use_xrandr has to be set to allow the screen resolution change
+       (requires the X11 extensions to be enabled).
+       \see toggle_fullscreen().
+    **/
     CImgDisplay& set_fullscreen(const bool is_fullscreen, const bool force_redraw=true) {
       if (is_empty() || _is_fullscreen==is_fullscreen) return *this;
       return toggle_fullscreen(force_redraw);
@@ -6650,71 +7115,61 @@ namespace cimg_library_suffixed {
 #if cimg_display==0
 
     //! Toggle fullscreen mode.
+    /**
+       \param force_redraw Flag telling if the previous window content must be displayed as well.
+       \note Enable fullscreen mode if it was not enabled, and disable it otherwise.
+       \see set_fullscreen().
+    **/
     CImgDisplay& toggle_fullscreen(const bool force_redraw=true) {
       return assign(_width,_height,0,3,force_redraw);
     }
 
-    //! Show a closed display.
-    CImgDisplay& show() {
-      return assign();
-    }
-
-    //! Close a visible display.
-    CImgDisplay& close() {
-      return assign();
-    }
-
-    //! Move window.
-    CImgDisplay& move(const int pos_x, const int pos_y) {
-      return assign(pos_x,pos_y);
-    }
-
     //! Show mouse pointer.
+    /**
+       \note Depending on the window manager behavior, this method may not succeed (no exceptions are thrown nevertheless).
+       \see hide_mouse(), set_mouse().
+    **/
     CImgDisplay& show_mouse() {
       return assign();
     }
 
     //! Hide mouse pointer.
+    /**
+       \note Depending on the window manager behavior, this method may not succeed (no exceptions are thrown nevertheless).
+       \see show_mouse(), set_mouse().
+    **/
     CImgDisplay& hide_mouse() {
       return assign();
     }
 
-    //! Move mouse pointer to a specific location.
+    //! Move mouse pointer to a specified location.
+    /**
+       \note Depending on the window manager behavior, this method may not succeed (no exceptions are thrown nevertheless).
+       \see show_mouse(), hide_mouse(), mouse_x(), mouse_y().
+    **/
     CImgDisplay& set_mouse(const int pos_x, const int pos_y) {
       return assign(pos_x,pos_y);
     }
 
-    CImgDisplay& set_title(const char *const format, ...) {
-      return assign(0,0,format);
-    }
-
-    //! Render image buffer into GDI native image format.
-    template<typename T>
-    CImgDisplay& render(const CImg<T>& img) {
-      return assign(img);
-    }
-
-    //! Re-paint image content in window.
-    CImgDisplay& paint() {
-      return assign();
-    }
-
-    //! Take a snapshot of the display in the specified image.
-    template<typename T>
-    const CImgDisplay& snapshot(CImg<T>& img) const {
-      cimg::unused(img);
-      _no_display_exception();
-      return *this;
-    }
 #endif
 
-    //! Simulate a mouse button event.
+    //! Simulate a mouse button release event.
+    /**
+       \note All mouse buttons are considered released at the same time.
+       \see button(), set_mouse(int,int), set_button(unsigned int,bool).
+    **/
     CImgDisplay& set_button() {
       _button = 0;
       _is_event = true;
       return *this;
     }
 
+    //! Simulate a mouse button press or release event.
+    /**
+       \param button Buttons event code, where each button is associated to a single bit.
+       \param is_pressed Flag telling if the mouse button is considered as pressed or released.
+       \see button(), set_mouse(), set_button(unsigned int,bool).
+    **/
     CImgDisplay& set_button(const unsigned int button, const bool is_pressed=true) {
       const unsigned int buttoncode = button==1?1:button==2?2:button==3?4:0;
       if (is_pressed) _button |= buttoncode; else _button &= ~buttoncode;
@@ -6722,20 +7177,34 @@ namespace cimg_library_suffixed {
       return *this;
     }
 
-    //! Simulate a mouse wheel event, or flush wheel events.
+    //! Flush all mouse wheel events.
+    /**
+       \note Make wheel() to return \c 0, if called afterwards.
+       \see wheel(), set_wheel(int).
+    **/
     CImgDisplay& set_wheel() {
       _wheel = 0;
       _is_event = true;
       return *this;
     }
 
+    //! Simulate a wheel event.
+    /**
+       \param amplitude Amplitude of the wheel scrolling to simulate.
+       \note Make wheel() to return \c amplitude, if called afterwards.
+       \see wheel(), set_wheel().
+    **/
     CImgDisplay& set_wheel(const int amplitude) {
       _wheel+=amplitude;
       _is_event = amplitude?true:false;
       return *this;
     }
 
-    //! Simulate a keyboard press/release event, or flush all key events.
+    //! Flush all key events.
+    /**
+       \note Make key() to return \c 0, if called afterwards.
+       \see key(), set_key(unsigned int,bool).
+    **/
     CImgDisplay& set_key() {
       std::memset((void*)_keys,0,sizeof(_keys));
       std::memset((void*)_released_keys,0,sizeof(_released_keys));
@@ -6753,8 +7222,16 @@ namespace cimg_library_suffixed {
       return *this;
     }
 
-    CImgDisplay& set_key(const unsigned int keycode, const bool pressed=true) {
-#define _cimg_set_key(k) if (keycode==cimg::key##k) _is_key##k = pressed;
+    //! Simulate a keyboard press/release event.
+    /**
+       \param keycode Keycode of the associated key.
+       \param is_pressed Flag telling if the key is considered as pressed or released.
+       \note Keycode constants are defined in the cimg namespace and are architecture-dependent. Use them to ensure
+       your code stay portable (see cimg::keyESC).
+       \see key(), set_key().
+    **/
+    CImgDisplay& set_key(const unsigned int keycode, const bool is_pressed=true) {
+#define _cimg_set_key(k) if (keycode==cimg::key##k) _is_key##k = is_pressed;
       _cimg_set_key(ESC); _cimg_set_key(F1); _cimg_set_key(F2); _cimg_set_key(F3);
       _cimg_set_key(F4); _cimg_set_key(F5); _cimg_set_key(F6); _cimg_set_key(F7);
       _cimg_set_key(F8); _cimg_set_key(F9); _cimg_set_key(F10); _cimg_set_key(F11);
@@ -6780,7 +7257,7 @@ namespace cimg_library_suffixed {
       _cimg_set_key(PAD6); _cimg_set_key(PAD7); _cimg_set_key(PAD8);
       _cimg_set_key(PAD9); _cimg_set_key(PADADD); _cimg_set_key(PADSUB);
       _cimg_set_key(PADMUL); _cimg_set_key(PADDIV);
-      if (pressed) {
+      if (is_pressed) {
         if (*_keys)
           std::memmove((void*)(_keys+1),(void*)_keys,sizeof(_keys) - sizeof(unsigned int));
         *_keys = keycode;
@@ -6802,6 +7279,10 @@ namespace cimg_library_suffixed {
     }
 
     //! Flush all display events.
+    /**
+       \note Remove all passed events from the current display.
+       \see set_button(), set_key(), set_wheel().
+    **/
     CImgDisplay& flush() {
       set_key().set_button().set_wheel();
       _is_resized = _is_moved = _is_event = false;
@@ -6810,15 +7291,20 @@ namespace cimg_library_suffixed {
       return *this;
     }
 
-    //! Synchronized waiting function. Same as cimg::wait().
-    CImgDisplay& wait(const unsigned int milliseconds) {
-      cimg::_sleep(milliseconds,_timer);
+    //! Wait for any user event occuring on the current display.
+    CImgDisplay& wait() {
+      wait(*this);
       return *this;
     }
 
-    //! Wait for an event occuring on the current display.
-    CImgDisplay& wait() {
-      wait(*this);
+    //! Wait for a given number of milliseconds since the last call to wait().
+    /**
+       \param milliseconds Number of milliseconds to wait for.
+       \note Similar to cimg::wait().
+       \see cimg::wait().
+    **/
+    CImgDisplay& wait(const unsigned int milliseconds) {
+      cimg::_wait(milliseconds,_timer);
       return *this;
     }
 
@@ -6913,11 +7399,47 @@ namespace cimg_library_suffixed {
 
 #if cimg_display==0
 
-    //! Wait for a window event in any CImg window.
+    //! Wait for any window event occuring in any opened CImgDisplay.
     static void wait_all() {
       return _no_display_exception();
     }
 
+    //! Render image into internal display buffer.
+    /**
+       \param img Input image data to render.
+       \note
+       - Convert image data representation into the internal display buffer (architecture-dependent structure).
+       - The content of the associated window is not modified, until paint() is called.
+       - Should not be used for common CImgDisplay uses, since display() is more useful.
+       \see paint(), snapshot().
+    **/
+    template<typename T>
+    CImgDisplay& render(const CImg<T>& img) {
+      return assign(img);
+    }
+
+    //! Paint internal display buffer on associated window.
+    /**
+       \note
+       - Update the content of the associated window with the internal display buffer, e.g. after a render() call.
+       - Should not be used for common CImgDisplay uses, since display() is more useful.
+       \see render(), snapshot().
+    **/
+    CImgDisplay& paint() {
+      return assign();
+    }
+
+    //! Take a snapshot of the associated window content.
+    /**
+       \param[out] img Output snapshot. Can be empty on input.
+       \see render(), paint().
+    **/
+    template<typename T>
+    const CImgDisplay& snapshot(CImg<T>& img) const {
+      cimg::unused(img);
+      _no_display_exception();
+      return *this;
+    }
 #endif
 
     // X11-based implementation
@@ -7728,7 +8250,7 @@ namespace cimg_library_suffixed {
       if (cimg::X11_attr().nb_bits==8 && (img._width!=_width || img._height!=_height)) return render(img.get_resize(_width,_height,1,-100,1));
       if (cimg::X11_attr().nb_bits==8 && !flag8 && img._spectrum==3) {
         static const CImg<typename CImg<T>::ucharT> default_palette = CImg<typename CImg<T>::ucharT>::default_LUT256();
-        return render(img.get_index(default_palette,true,false));
+        return render(img.get_index(default_palette,1,false));
       }
 
       Display *const dpy = cimg::X11_attr().display;
@@ -8055,36 +8577,36 @@ namespace cimg_library_suffixed {
       case 8 : {
         for (unsigned int xy = img._width*img._height; xy>0; --xy) {
           const unsigned char val = *(ptrs++);
-          *(data1++) = val&0xe0;
-          *(data2++) = (val&0x1c)<<3;
-          *(data3++) = val<<6;
+          *(data1++) = (T)(val&0xe0);
+          *(data2++) = (T)((val&0x1c)<<3);
+          *(data3++) = (T)(val<<6);
         }
       } break;
       case 16 : {
         if (cimg::X11_attr().byte_order) for (unsigned int xy = img._width*img._height; xy>0; --xy) {
           const unsigned char val0 = *(ptrs++), val1 = *(ptrs++);
-          *(data1++) = val0&0xf8;
-          *(data2++) = (val0<<5) | ((val1&0xe0)>>5);
-          *(data3++) = val1<<3;
+          *(data1++) = (T)(val0&0xf8);
+          *(data2++) = (T)((val0<<5) | ((val1&0xe0)>>5));
+          *(data3++) = (T)(val1<<3);
         } else for (unsigned int xy = img._width*img._height; xy>0; --xy) {
           const unsigned short val0 = *(ptrs++), val1 = *(ptrs++);
-          *(data1++) = val1&0xf8;
-          *(data2++) = (val1<<5) | ((val0&0xe0)>>5);
-          *(data3++) = val0<<3;
+          *(data1++) = (T)(val1&0xf8);
+          *(data2++) = (T)((val1<<5) | ((val0&0xe0)>>5));
+          *(data3++) = (T)(val0<<3);
         }
       } break;
       default : {
         if (cimg::X11_attr().byte_order) for (unsigned int xy = img._width*img._height; xy>0; --xy) {
           ++ptrs;
-          *(data1++) = *(ptrs++);
-          *(data2++) = *(ptrs++);
-          *(data3++) = *(ptrs++);
+          *(data1++) = (T)*(ptrs++);
+          *(data2++) = (T)*(ptrs++);
+          *(data3++) = (T)*(ptrs++);
         } else for (unsigned int xy = img._width*img._height; xy>0; --xy) {
-          *(data3++) = *(ptrs++);
-          *(data2++) = *(ptrs++);
-          *(data1++) = *(ptrs++);
-          ++ptrs;
-        }
+            *(data3++) = (T)*(ptrs++);
+            *(data2++) = (T)*(ptrs++);
+            *(data1++) = (T)*(ptrs++);
+            ++ptrs;
+          }
       }
       }
       return *this;
@@ -8094,18 +8616,14 @@ namespace cimg_library_suffixed {
     //-------------------------------
 #elif cimg_display==2
 
+    bool _is_mouse_tracked, _is_cursor_visible;
+    HANDLE _thread, _is_created, _mutex;
+    HWND _window, _background_window;
     CLIENTCREATESTRUCT _ccs;
-    BITMAPINFO _bmi;
     unsigned int *_data;
     DEVMODE _curr_mode;
-    HWND _window;
-    HWND _background_window;
+    BITMAPINFO _bmi;
     HDC _hdc;
-    HANDLE _thread;
-    HANDLE _is_created;
-    HANDLE _mutex;
-    bool _is_mouse_tracked;
-    bool _is_cursor_visible;
 
     static int screen_width() {
       DEVMODE mode;
@@ -8668,9 +9186,9 @@ namespace cimg_library_suffixed {
         *data3 = img.data(0,0,0,2);
       for (unsigned int xy = img._width*img._height; xy>0; --xy) {
         const unsigned int val = *(ptrs++);
-        *(data1++) = (unsigned char)(val>>16);
-        *(data2++) = (unsigned char)((val>>8)&0xFF);
-        *(data3++) = (unsigned char)(val&0xFF);
+        *(data1++) = (T)(unsigned char)(val>>16);
+        *(data2++) = (T)(unsigned char)((val>>8)&0xFF);
+        *(data3++) = (T)(unsigned char)(val&0xFF);
       }
       return *this;
     }
@@ -8795,7 +9313,7 @@ namespace cimg_library_suffixed {
        - The \c CImg<T>::iterator type is defined to be a <tt>T*</tt>.
        - You will seldom have to use iterators in %CImg, most classical operations
          being achieved (often in a faster way) using methods of \c CImg<T>.
-       \par Sample code :
+       \par Example
        \code
        CImg<float> img("reference.jpg");                                         // Load image from file.
        for (CImg<float>::iterator it = img.begin(), it<img.end(); ++it) *it = 0; // Set all pixels to '0', through a CImg iterator.
@@ -8811,7 +9329,7 @@ namespace cimg_library_suffixed {
        - The \c CImg<T>::const_iterator type is defined to be a \c const \c T*.
        - You will seldom have to use iterators in %CImg, most classical operations
          being achieved (often in a faster way) using methods of \c CImg<T>.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg");                                    // Load image from file.
        float sum = 0;
@@ -8922,7 +9440,7 @@ namespace cimg_library_suffixed {
        - An empty image may be re-assigned afterwards, e.g. with the family of assign(unsigned int,unsigned int,unsigned int,unsigned int) methods,
          or by operator=(const CImg<t>&). In all cases, the type of pixels stays \c T.
        - An empty image is never shared.
-       \par Sample code :
+       \par Example
        \code
        CImg<float> img1, img2;      // Construct two empty images.
        img1.assign(256,256,1,3);    // Re-assign 'img1' to be a 256x256x1x3 (color) image.
@@ -8950,7 +9468,7 @@ namespace cimg_library_suffixed {
        - The allocated pixel buffer is \e not filled with a default value, and is likely to contain garbage values.
          In order to initialize pixel values during construction (e.g. with \c 0), use constructor
          CImg(unsigned int,unsigned int,unsigned int,unsigned int,T) instead.
-       \par Sample code :
+       \par Example
        \code
        CImg<float> img1(256,256,1,3);   // Construct a 256x256x1x3 (color) image, filled with garbage values.
        CImg<float> img2(256,256,1,3,0); // Construct a 256x256x1x3 (color) image, filled with value '0'.
@@ -9024,7 +9542,7 @@ namespace cimg_library_suffixed {
        \warning
        - You must specify \e exactly \c size_x*\c size_y*\c size_z*\c size_c integers in the initialization sequence.
          Otherwise, the constructor may crash or fill your image pixels with garbage.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img(2,2,1,3,      // Construct a 2x2 color (RGB) image.
                              0,255,0,255,  // Set the 4 values for the red component.
@@ -9108,7 +9626,7 @@ namespace cimg_library_suffixed {
        - For both cases, specifying \c repeat_values is mandatory. It disambiguates the possible overloading of constructor
          CImg(unsigned int,unsigned int,unsigned int,unsigned int,T) with \c T being a <tt>const char*</tt>.
        - A \c CImgArgumentException is thrown when an invalid value string \c values is specified.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img1(129,129,1,3,"0,64,128,192,255",true),                   // Construct image filled from a value sequence.
                          img2(129,129,1,3,"if(c==0,255*abs(cos(x/10)),1.8*y)",false); // Construct image filled from a formula.
@@ -9153,7 +9671,7 @@ namespace cimg_library_suffixed {
        - A \c CImgInstanceException is thrown when the pixel buffer cannot be allocated (e.g. when requested size is too big for available memory).
        \warning
        - You must take care when operating on a shared image, since it may have an invalid pixel buffer pointer data() (e.g. already deallocated).
-       \par Sample code :
+       \par Example
        \code
        unsigned char tab[256*256] = { 0 };
        CImg<unsigned char> img1(tab,256,256,1,1,false), // Construct new non-shared image from buffer 'tab'.
@@ -9221,7 +9739,7 @@ namespace cimg_library_suffixed {
        - Considered pixel type \c T should better fit the file format specification, or data loss may occur during file load
          (e.g. constructing a \c CImg<unsigned char> from a float-valued image file).
        - A \c CImgIOException is thrown when the specified \c filename cannot be read, or if the file format is not recognized.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg");
        img.display();
@@ -9361,7 +9879,7 @@ namespace cimg_library_suffixed {
          (\e not its pixel values) from an existing \c CImg<t> instance.
        - The allocated pixel buffer is \e not filled with a default value, and is likely to contain garbage values.
          In order to initialize pixel values (e.g. with \c 0), use constructor CImg(const CImg<t>&,const char*,T) instead.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img1(256,128,1,3),      // 'img1' is a 256x128x1x3 image.
                          img2(img1,"xyzc"),      // 'img2' is a 256x128x1x3 image.
@@ -9773,7 +10291,7 @@ namespace cimg_library_suffixed {
        \note
        - Pixel types \c T and \c t of source and destination images can be different, though the process is designed to be
          instantaneous when \c T and \c t are the same.
-       \par Sample code :
+       \par Example
        \code
        CImg<float> src(256,256,1,3,0), // Construct a 256x256x1x3 (color) image filled with value '0'.
                    dest(16,16);        // Construct a 16x16x1x1 (scalar) image.
@@ -9808,7 +10326,7 @@ namespace cimg_library_suffixed {
          image at the end of the specified \c list.
        - It is convenient to sequentially insert new images into image lists, with no
          additional copies of memory buffer.
-       \par Sample code :
+       \par Example
        \code
        CImgList<float> list;             // Construct an empty image list.
        CImg<float> img("reference.jpg"); // Read image from filename.
@@ -9830,7 +10348,7 @@ namespace cimg_library_suffixed {
       \note
       - It can be used to interchange the content of two images in a very fast way. Can be convenient when dealing
         with algorithms requiring two swapping buffers.
-      \par Sample code :
+      \par Example
       \code
       CImg<float> img1("lena.jpg"),
                   img2("milla.jpg");
@@ -9886,7 +10404,7 @@ namespace cimg_library_suffixed {
          You \e must take care of out-of-bounds access by yourself, if necessary.
          For debuging purposes, you may want to define macro \c 'cimg_verbosity'>=3 to enable additional boundary checking operations
          in this operator. In that case, warning messages will be printed on the error output when accessing out-of-bounds pixels.
-       \par Sample code :
+       \par Example
        \code
        CImg<float> img(100,100,1,3,0);                   // Construct a 100x100x1x3 (color) image with pixels set to '0'.
        const float
@@ -10039,7 +10557,7 @@ namespace cimg_library_suffixed {
        \note
        - The image size is never modified.
        - The \c value may be casted to pixel type \c T if necessary.
-       \par Sample code
+       \par Example
        \code
        CImg<char> img(100,100); // Declare image (with garbage values).
        img = 0;                 // Set all pixel values to '0'.
@@ -10061,7 +10579,7 @@ namespace cimg_library_suffixed {
            the pixel values are set from specified \c expression and the image size is not modified.
          - If \c expression is a filename (as in \c "reference.jpg"), the corresponding image file is loaded and replace the image instance.
            The image size is modified if necessary.
-       \par Sample code :
+       \par Example
        \code
        CImg<float> img1(100,100), img2(img1), img3(img1); // Declare three 100x100 scalar images with unitialized pixel values.
        img1 = "0,50,100,150,200,250,200,150,100,50";      // Set pixel values of 'img1' from a value sequence.
@@ -10122,7 +10640,7 @@ namespace cimg_library_suffixed {
        // here all pixels of image 'img' are equal to '0'.
        \endcode
        - To prevent value overflow, you may want to consider pixel type \c T as \c float or \c double, and use cut() after addition.
-       \par Sample code :
+       \par Example
        \code
        CImg<unsigned char> img1("reference.jpg");          // Load a 8-bits RGB image (values in [0,255]).
        CImg<float> img2(img1);                             // Construct a float-valued copy of 'img1'.
@@ -10196,7 +10714,7 @@ namespace cimg_library_suffixed {
          in \c img, then the values are added cyclically. For instance, adding one WxH scalar image (spectrum() equal to \c 1) to
          one WxH color image (spectrum() equal to \c 3) means each color channel will be incremented with the same values at the same
          locations.
-       \par Sample code :
+       \par Example
        \code
        CImg<float> img1("reference.jpg");                                   // Load a RGB color image (img1.spectrum()==3)
        const CImg<float> img2(img1.width(),img.height(),1,1,"255*(x/w)^2"); // Construct a scalar shading (img2.spectrum()==1).
@@ -10375,7 +10893,7 @@ namespace cimg_library_suffixed {
        \note
        - If the computed opposite values are out-of-range, they are treated as with standard C++ numeric types. For instance,
          the \c unsigned \c char opposite of \c 1 is \c 255.
-       \par Sample code :
+       \par Example
        \code
        const CImg<unsigned char>
          img1("reference.jpg"),   // Load a RGB color image.
@@ -10456,7 +10974,7 @@ namespace cimg_library_suffixed {
        \note
        - It does \e not compute a pointwise multiplication between two images. For this purpose, use mul(const CImg<t>&) instead.
        - The size of the image instance can be modified by this operator.
-       \par Sample code :
+       \par Example
        \code
        CImg<float> A(2,2,1,1, 1,2,3,4);   // Construct 2x2 matrix A = [1,2;3,4].
        const CImg<float> X(1,2,1,1, 1,2); // Construct 1x2 vector X = [1;2].
@@ -11111,7 +11629,7 @@ namespace cimg_library_suffixed {
        \note
        - The pixel buffer pointers data() of the two compared images do not have to be the same for operator==() to return \c true.
          Only the dimensions and the pixel values matter. Thus, the comparison can be \c true even for different pixel types \c T and \c t.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img1(1,3,1,1, 0,1,2); // Construct a 1x3 vector [0;1;2] (with 'float' pixel values).
        const CImg<char> img2(1,3,1,1, 0,1,2);  // Construct a 1x3 vector [0;1;2] (with 'char' pixel values).
@@ -11187,7 +11705,7 @@ namespace cimg_library_suffixed {
          build a new CImgList instance from several images, if you are seeking for performance.
          Fast insertions of images in an image list are possible with CImgList<T>::insert(const CImg<t>&,unsigned int,bool) or
          move_to(CImgList<t>&,unsigned int).
-       \par Sample code :
+       \par Example
        \code
        const CImg<float>
           img1("reference.jpg"),
@@ -11230,7 +11748,7 @@ namespace cimg_library_suffixed {
        \param axis : Splitting axis (can be '\c x','\c y','\c z' or '\c c')
        \note
        - Similar to get_split(char,int) const, with default second argument.
-       \par Sample code :
+       \par Example
        \code
        const CImg<unsigned char> img("reference.jpg"); // Load a RGB color image.
        const CImgList<unsigned char> list = (img<'c'); // Get a list of its three R,G,B channels.
@@ -11349,7 +11867,7 @@ namespace cimg_library_suffixed {
        \note
        - The size() of an empty image is equal to \c 0.
        - The allocated memory size for a pixel buffer of a non-shared \c CImg<T> instance is equal to <tt>size()*sizeof(T)</tt>.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img(100,100,1,3);               // Construct new 100x100 color image.
        if (img.size()==30000)                            // Test succeeds.
@@ -11436,7 +11954,7 @@ namespace cimg_library_suffixed {
        \note
        - Writing \c img.data(x,y,z,c) is equivalent to <tt>&(img(x,y,z,c)) - img.data()</tt>.
          Thus, this method has the same properties as operator()(unsigned int,unsigned int,unsigned int,unsigned int).
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img(100,100,1,3);      // Define a 100x100 RGB-color image.
        const long off = img.offset(10,10,0,2);  // Get the offset of the blue value of the pixel located at (10,10).
@@ -11474,7 +11992,7 @@ namespace cimg_library_suffixed {
        - The returned iterator actually points to a value located \e outside the acceptable bounds of the pixel buffer. Trying
          to read or write the content of the returned iterator will probably result in a crash. Use it mainly as an
          strict upper bound for a CImg<T>::iterator.
-       \par Sample code :
+       \par Example
        \code
        CImg<float> img(100,100,1,3);                                     // Define a 100x100 RGB color image.
        for (CImg<float>::iterator it = img.begin(); it<img.end(); ++it)  // 'img.end()' used here as an upper bound for the iterator.
@@ -13130,7 +13648,7 @@ namespace cimg_library_suffixed {
        - Buffer overlapping may happen when manipulating \e shared images.
        - If two image buffers overlap, operating on one of the image will probably modify the other one.
        - Most of the time, \c CImg<T> instances are \e non-shared and do not overlap between each others.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float>
          img1("reference.jpg"),             // Load RGB-color image.
@@ -14269,7 +14787,7 @@ namespace cimg_library_suffixed {
        \note
        - The \inplace of this method statically casts the computed values to the pixel type \c T.
        - The \newinstance returns a \c CImg<float> image, if the pixel type \c T is \e not float-valued.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg");
        (img,img.get_sqr().normalize(0,255)).display();
@@ -14299,7 +14817,7 @@ namespace cimg_library_suffixed {
        \note
        - The \inplace of this method statically casts the computed values to the pixel type \c T.
        - The \newinstance returns a \c CImg<float> image, if the pixel type \c T is \e not float-valued.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg");
        (img,img.get_sqrt().normalize(0,255)).display();
@@ -14676,7 +15194,7 @@ namespace cimg_library_suffixed {
        \note
        - The \inplace of this method statically casts the computed values to the pixel type \c T.
        - The \newinstance returns a \c CImg<float> image, if the pixel type \c T is \e not float-valued.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float>
           img_x(100,100,1,1,"x-w/2",false),   // Define an horizontal centered gradient, from '-width/2' to 'width/2'.
@@ -14714,7 +15232,7 @@ namespace cimg_library_suffixed {
        \note
        - Similar to operator+=(const CImg<t>&), except that it performs a pointwise multiplication instead of an addition.
        - It does \e not perform a \e matrix multiplication. For this purpose, use operator*=(const CImg<t>&) instead.
-       \par Sample code :
+       \par Example
        \code
        CImg<float>
          img("reference.jpg"),
@@ -14778,7 +15296,7 @@ namespace cimg_library_suffixed {
        \note
        - The \inplace of this method statically casts the computed values to the pixel type \c T.
        - The \newinstance returns a \c CImg<float> image, if the pixel type \c T is \e not float-valued.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float>
          img0("reference.jpg"),           // Load reference color image.
@@ -15505,11 +16023,7 @@ namespace cimg_library_suffixed {
     double eval(const char *const expression, const double x=0, const double y=0, const double z=0, const double c=0) const {
       static _cimg_math_parser *mp = 0;
       if (expression) { delete mp; mp = 0; mp = new _cimg_math_parser(*this,expression,"eval"); }
-      if (!mp)
-        throw CImgArgumentException(_cimg_instance
-                                    "eval() : No expression has been previously specified.",
-                                    cimg_instance);
-      return mp->eval(x,y,z,c);
+      return mp?mp->eval(x,y,z,c):0;
     }
 
     //! Compute a statistics vector (min,max,mean,variance,xmin,ymin,zmin,cmin,xmax,ymax,zmax,cmax).
@@ -17728,7 +18242,7 @@ namespace cimg_library_suffixed {
        \note
        - For Poisson noise (\p noise_type=3), parameter \p sigma is ignored, as Poisson noise only depends on the image value itself.
        - Function \p CImg<T>::get_noise() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"), res = img.get_noise(40);
        (img,res.normalize(0,255)).display();
@@ -17804,7 +18318,7 @@ namespace cimg_library_suffixed {
        \return A reference to the modified image instance.
        \note
        - Function \p CImg<T>::get_normalize() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"), res = img.get_normalize(160,220);
        (img,res).display();
@@ -17830,7 +18344,7 @@ namespace cimg_library_suffixed {
        \return A reference to the modified image instance.
        \note
        - Function \p CImg<T>::get_normalize() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"), res = img.get_normalize();
        (img,res.normalize(0,255)).display();
@@ -17862,7 +18376,7 @@ namespace cimg_library_suffixed {
        \return A reference to the modified image instance.
        \note
        - Function \p CImg<T>::get_norm() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"), res = img.get_norm();
        (img,res.normalize(0,255)).display();
@@ -17917,7 +18431,7 @@ namespace cimg_library_suffixed {
        \return A reference to the modified image instance.
        \note
        - Function \p CImg<T>::get_cut() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"), res = img.get_cut(160,220);
        (img,res).display();
@@ -17942,7 +18456,7 @@ namespace cimg_library_suffixed {
        \return A reference to the modified image instance.
        \note
        - Function \p CImg<T>::get_quantize() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"), res = img.get_quantize(4);
        (img,res).display();
@@ -17981,7 +18495,7 @@ namespace cimg_library_suffixed {
        \return A reference to the modified image instance. Resulting pixel values are either equal to 0 or 1.
        \note
        - Function \p CImg<T>::get_threshold() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"), res = img.get_threshold(128);
        (img,res.normalize(0,255)).display();
@@ -18016,7 +18530,7 @@ namespace cimg_library_suffixed {
        then uses it to compute the histogram.
        - The resulting histogram is always defined in 1d. Histograms of multi-valued images are not multi-dimensional.
        - Function \p CImg<T>::get_histogram() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img = CImg<float>("reference.jpg").histogram(256);
        img.display_graph(0,3);
@@ -18054,7 +18568,7 @@ namespace cimg_library_suffixed {
        - If \p value_min==value_max==0 (default behavior), the function first estimates the whole range of pixel values
        then uses it to equalize the histogram.
        - Function \p CImg<T>::get_equalize() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"), res = img.get_equalize(256);
        (img,res).display();
@@ -18084,28 +18598,28 @@ namespace cimg_library_suffixed {
     //! Index multi-valued pixels of the image instance, regarding to a predefined palette.
     /**
        \param palette Multi-valued palette used as the basis for multi-valued pixel indexing.
-       \param dithering Tells if Floyd-Steinberg dithering is activated or not.
+       \param dithering Level of dithering (0=disable, 1=standard level).
        \param map_indexes Tell if the values of the resulting image are the palette indices or the palette vectors.
        \return A reference to the modified image instance.
        \note
        - \p img.index(palette,dithering,1) is equivalent to <tt>img.index(palette,dithering,0).map(palette)</tt>.
        - Function \p CImg<T>::get_index() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"), palette(3,1,1,3, 0,128,255, 0,128,255, 0,128,255);
-       const CImg<float> res = img.get_index(palette,true,true);
+       const CImg<float> res = img.get_index(palette,1,true);
        (img,res).display();
        \endcode
        \image html ref_index.jpg
     **/
     template<typename t>
-    CImg<T>& index(const CImg<t>& palette, const bool dithering=false, const bool map_indexes=false) {
+    CImg<T>& index(const CImg<t>& palette, const float dithering=1, const bool map_indexes=false) {
       return get_index(palette,dithering,map_indexes).move_to(*this);
     }
 
     template<typename t>
     CImg<typename CImg<t>::Tuint>
-    get_index(const CImg<t>& palette, const bool dithering=false, const bool map_indexes=true) const {
+    get_index(const CImg<t>& palette, const float dithering=1, const bool map_indexes=true) const {
       if (palette._spectrum!=_spectrum)
         throw CImgArgumentException(_cimg_instance
                                     "index() : Instance and specified palette (%u,%u,%u,%u,%p) "
@@ -18118,7 +18632,8 @@ namespace cimg_library_suffixed {
       const unsigned int whd = _width*_height*_depth, pwhd = palette._width*palette._height*palette._depth;
       CImg<tuint> res(_width,_height,_depth,map_indexes?_spectrum:1);
       tuint *ptrd = res._data;
-      if (dithering) { // Dithered versions.
+      if (dithering>0) { // Dithered versions.
+        const float ndithering = (dithering<0?0:dithering>1?1:dithering)/16;
         Tfloat valm = 0, valM = (Tfloat)max_min(valm);
         if (valm==valM && valm>=0 && valM<=255) { valm = 0; valM = 255; }
         CImg<Tfloat> cache = get_crop(-1,0,0,0,_width,1,0,_spectrum-1);
@@ -18139,7 +18654,7 @@ namespace cimg_library_suffixed {
                 const Tfloat pval0 = (Tfloat)*(ptrp0++) - val0, dist = pval0*pval0;
                 if (dist<distmin) { ptrmin0 = ptrp0 - 1; distmin = dist; }
               }
-              const Tfloat err0 = ((*(ptrs0++)=val0) - (Tfloat)*ptrmin0)/16;
+              const Tfloat err0 = ((*(ptrs0++)=val0) - (Tfloat)*ptrmin0)*ndithering;
               *ptrs0+=7*err0; *(ptrsn0-1)+=3*err0; *(ptrsn0++)+=5*err0; *ptrsn0+=err0;
               if (map_indexes) *(ptrd++) = (tuint)*ptrmin0; else *(ptrd++) = (tuint)(ptrmin0 - palette._data);
             }
@@ -18170,8 +18685,8 @@ namespace cimg_library_suffixed {
               }
               const t *const ptrmin1 = ptrmin0 + pwhd;
               const Tfloat
-                err0 = ((*(ptrs0++)=val0) - (Tfloat)*ptrmin0)/16,
-                err1 = ((*(ptrs1++)=val1) - (Tfloat)*ptrmin1)/16;
+                err0 = ((*(ptrs0++)=val0) - (Tfloat)*ptrmin0)*ndithering,
+                err1 = ((*(ptrs1++)=val1) - (Tfloat)*ptrmin1)*ndithering;
               *ptrs0+=7*err0; *ptrs1+=7*err1;
               *(ptrsn0-1)+=3*err0; *(ptrsn1-1)+=3*err1;
               *(ptrsn0++)+=5*err0; *(ptrsn1++)+=5*err1;
@@ -18207,13 +18722,15 @@ namespace cimg_library_suffixed {
               }
               const t *const ptrmin1 = ptrmin0 + pwhd, *const ptrmin2 = ptrmin1 + pwhd;
               const Tfloat
-                err0 = ((*(ptrs0++)=val0) - (Tfloat)*ptrmin0)/16,
-                err1 = ((*(ptrs1++)=val1) - (Tfloat)*ptrmin1)/16,
-                err2 = ((*(ptrs2++)=val2) - (Tfloat)*ptrmin2)/16;
+                err0 = ((*(ptrs0++)=val0) - (Tfloat)*ptrmin0)*ndithering,
+                err1 = ((*(ptrs1++)=val1) - (Tfloat)*ptrmin1)*ndithering,
+                err2 = ((*(ptrs2++)=val2) - (Tfloat)*ptrmin2)*ndithering;
+
               *ptrs0+=7*err0; *ptrs1+=7*err1; *ptrs2+=7*err2;
               *(ptrsn0-1)+=3*err0; *(ptrsn1-1)+=3*err1; *(ptrsn2-1)+=3*err2;
               *(ptrsn0++)+=5*err0; *(ptrsn1++)+=5*err1; *(ptrsn2++)+=5*err2;
               *ptrsn0+=err0; *ptrsn1+=err1; *ptrsn2+=err2;
+
               if (map_indexes) { *(ptrd++) = (tuint)*ptrmin0; *(ptrd1++) = (tuint)*ptrmin1; *(ptrd2++) = (tuint)*ptrmin2; }
               else *(ptrd++) = (tuint)(ptrmin0 - palette._data);
             }
@@ -18243,7 +18760,7 @@ namespace cimg_library_suffixed {
               }
               const t *_ptrmin = ptrmin; Tfloat *_ptrs = ptrs++, *_ptrsn = (ptrsn++)-1;
               cimg_forC(*this,c) {
-                const Tfloat err = (*(_ptrs++) - (Tfloat)*_ptrmin)/16;
+                const Tfloat err = (*(_ptrs++) - (Tfloat)*_ptrmin)*ndithering;
                 *_ptrs+=7*err; *(_ptrsn++)+=3*err; *(_ptrsn++)+=5*err; *_ptrsn+=err;
                 _ptrmin+=pwhd; _ptrs+=cwhd-1; _ptrsn+=cwhd-2;
               }
@@ -18324,12 +18841,12 @@ namespace cimg_library_suffixed {
        \return A reference to the modified image instance.
        \note
        - Function \p CImg<T>::get_map() is also defined. It returns a non-shared modified copy of the image instance.
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg"),
                          palette1(3,1,1,3, 0,128,255, 0,128,255, 0,128,255),
                          palette2(3,1,1,3, 255,0,0, 0,255,0, 0,0,255),
-                         res = img.get_index(palette1,false).map(palette2);
+                         res = img.get_index(palette1,0).map(palette2);
        (img,res).display();
        \endcode
        \image html ref_map.jpg
@@ -24915,7 +25432,7 @@ namespace cimg_library_suffixed {
       switch (cimg::uncase(axis)) {
       case 'x' : { // Fourier along X, using FFTW library.
         data_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*real._width);
-        if (!data_in) throw CImgInstanceException("CImgList<%s>::FFT() : Failed to allocate memory (%s) for computing FFT of image (%u,%u,%u,%u) along the x-axis.",
+        if (!data_in) throw CImgInstanceException("CImgList<%s>::FFT() : Failed to allocate memory (%s) for computing FFT of image (%u,%u,%u,%u) along the X-axis.",
                                                   pixel_type(),
                                                   cimg::strbuffersize(real._width*sizeof(fftw_complex)),
                                                   real._width,real._height,real._depth,real._spectrum);
@@ -24933,7 +25450,7 @@ namespace cimg_library_suffixed {
       } break;
       case 'y' : { // Fourier along Y, using FFTW library.
         data_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * real._height);
-        if (!data_in) throw CImgInstanceException("CImgList<%s>::FFT() : Failed to allocate memory (%s) for computing FFT of image (%u,%u,%u,%u) along the y-axis.",
+        if (!data_in) throw CImgInstanceException("CImgList<%s>::FFT() : Failed to allocate memory (%s) for computing FFT of image (%u,%u,%u,%u) along the Y-axis.",
                                                   pixel_type(),
                                                   cimg::strbuffersize(real._height*sizeof(fftw_complex)),
                                                   real._width,real._height,real._depth,real._spectrum);
@@ -24952,7 +25469,7 @@ namespace cimg_library_suffixed {
       } break;
       case 'z' : { // Fourier along Z, using FFTW library.
         data_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * real._depth);
-        if (!data_in) throw CImgInstanceException("CImgList<%s>::FFT() : Failed to allocate memory (%s) for computing FFT of image (%u,%u,%u,%u) along the z-axis.",
+        if (!data_in) throw CImgInstanceException("CImgList<%s>::FFT() : Failed to allocate memory (%s) for computing FFT of image (%u,%u,%u,%u) along the Z-axis.",
                                                   pixel_type(),
                                                   cimg::strbuffersize(real._depth*sizeof(fftw_complex)),
                                                   real._width,real._height,real._depth,real._spectrum);
@@ -24971,7 +25488,7 @@ namespace cimg_library_suffixed {
       } break;
       default : { // Fourier along C, using FFTW library.
         data_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * real._spectrum);
-        if (!data_in) throw CImgInstanceException("CImgList<%s>::FFT() : Failed to allocate memory (%s) for computing FFT of image (%u,%u,%u,%u) along the c-axis.",
+        if (!data_in) throw CImgInstanceException("CImgList<%s>::FFT() : Failed to allocate memory (%s) for computing FFT of image (%u,%u,%u,%u) along the C-axis.",
                                                   pixel_type(),
                                                   cimg::strbuffersize(real._spectrum*sizeof(fftw_complex)),
                                                   real._width,real._height,real._depth,real._spectrum);
@@ -25368,7 +25885,7 @@ namespace cimg_library_suffixed {
        \param[out] colors The returned list of the 3d object colors.
        \param elevation The input elevation map.
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg");
        CImgList<unsigned int> faces3d;
@@ -25447,7 +25964,7 @@ namespace cimg_library_suffixed {
        \param size_x The number of subdivisions along the X-axis.
        \param size_y The number of subdisivions along the Y-axis.
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img("reference.jpg");
        CImgList<unsigned int> faces3d;
@@ -25488,7 +26005,7 @@ namespace cimg_library_suffixed {
        \param size_x The number of subdivisions along the X-axis.
        \param size_y The number of subdisivions along the Y-axis.
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        const CImg<float> img = CImg<unsigned char>("reference.jpg").resize(-100,-100,20);
        CImgList<unsigned int> faces3d;
@@ -26049,7 +26566,7 @@ namespace cimg_library_suffixed {
        \param size_y The height of the box (dimension along the Y-axis).
        \param size_z The depth of the box (dimension along the Z-axis).
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        CImgList<unsigned int> faces3d;
        const CImg<float> points3d = CImg<float>::box3d(faces3d,10,20,30);
@@ -26075,7 +26592,7 @@ namespace cimg_library_suffixed {
        \param size_z The cone's height.
        \param subdivisions The number of basis angular subdivisions.
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        CImgList<unsigned int> faces3d;
        const CImg<float> points3d = CImg<float>::cone3d(faces3d,50);
@@ -26112,7 +26629,7 @@ namespace cimg_library_suffixed {
        \param size_z The cylinder's height.
        \param subdivisions The number of basis angular subdivisions.
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        CImgList<unsigned int> faces3d;
        const CImg<float> points3d = CImg<float>::cylinder3d(faces3d,50);
@@ -26152,7 +26669,7 @@ namespace cimg_library_suffixed {
        \param subdivisions1 The number of angular subdivisions for the large radius.
        \param subdivisions2 The number of angular subdivisions for the small radius.
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        CImgList<unsigned int> faces3d;
        const CImg<float> points3d = CImg<float>::torus3d(faces3d,20,4);
@@ -26201,7 +26718,7 @@ namespace cimg_library_suffixed {
        \param subdivisions_x The number of planar subdivisions along the X-axis.
        \param subdivisions_y The number of planar subdivisions along the Y-axis.
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        CImgList<unsigned int> faces3d;
        const CImg<float> points3d = CImg<float>::plane3d(faces3d,100,50);
@@ -26234,7 +26751,7 @@ namespace cimg_library_suffixed {
        \param radius The radius of the sphere (dimension along the X-axis).
        \param subdivisions The number of recursive subdivisions from an initial icosahedron.
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        CImgList<unsigned int> faces3d;
        const CImg<float> points3d = CImg<float>::sphere3d(faces3d,100,4);
@@ -26302,7 +26819,7 @@ namespace cimg_library_suffixed {
        \param tensor The tensor which gives the shape and size of the ellipsoid.
        \param subdivisions The number of recursive subdivisions from an initial stretched icosahedron.
        \return The N vertices (xi,yi,zi) of the 3d object as a Nx3 CImg<float> image (0<=i<=N-1).
-       \par Sample code :
+       \par Example
        \code
        CImgList<unsigned int> faces3d;
        const CImg<float> tensor = CImg<float>::diagonal(10,7,3),
@@ -33419,7 +33936,7 @@ namespace cimg_library_suffixed {
                                     "load() : Specified filename is (null).",
                                     cimg_instance);
 
-      if (!cimg::strncasecmp(filename,"http://",7)) {
+      if (!cimg::strncasecmp(filename,"http://",7) || !cimg::strncasecmp(filename,"https://",8)) {
         char filename_local[1024] = { 0 };
         load(cimg::load_network_external(filename,filename_local));
         std::remove(filename_local);
@@ -33531,7 +34048,7 @@ namespace cimg_library_suffixed {
                  !cimg::strcasecmp(ext,"mpeg")) load_ffmpeg(filename);
         else throw CImgIOException("CImg<%s>::load()",
                                    pixel_type());
-      } catch (CImgIOException& e) {
+      } catch (CImgIOException&) {
         std::FILE *file = 0;
         try {
           file = cimg::fopen(filename,"rb");
@@ -34659,10 +35176,10 @@ namespace cimg_library_suffixed {
           draw_image(0,0,(l-nfirst_frame)/nstep_frame,frame);
         }
         TIFFClose(tif);
-      } else throw CImgException(_cimg_instance
-                                 "load_tiff() : Failed to open file '%s'.",
-                                 cimg_instance,
-                                 filename);
+      } else throw CImgIOException(_cimg_instance
+                                   "load_tiff() : Failed to open file '%s'.",
+                                   cimg_instance,
+                                   filename);
       return *this;
 #endif
     }
@@ -34683,10 +35200,10 @@ namespace cimg_library_suffixed {
           for (unsigned int col = 0; col<nx; col+=tw) {
             if (TIFFReadTile(tif,buf,col,row,0,0)<0) {
               _TIFFfree(buf); TIFFClose(tif);
-              throw CImgException(_cimg_instance
-                                  "load_tiff() : Invalid tile in file '%s'.",
-                                  cimg_instance,
-                                  TIFFFileName(tif));
+              throw CImgIOException(_cimg_instance
+                                    "load_tiff() : Invalid tile in file '%s'.",
+                                    cimg_instance,
+                                    TIFFFileName(tif));
             }
             const t *ptr = buf;
             for (unsigned int rr = row; rr<cimg::min((unsigned int)(row+th),(unsigned int)ny); ++rr)
@@ -34707,10 +35224,10 @@ namespace cimg_library_suffixed {
             for (unsigned int col = 0; col<nx; col+=tw) {
               if (TIFFReadTile(tif,buf,col,row,0,vv)<0) {
                 _TIFFfree(buf); TIFFClose(tif);
-                throw CImgException(_cimg_instance
-                                    "load_tiff() : Invalid tile in file '%s'.",
-                                    cimg_instance,
-                                    TIFFFileName(tif));
+                throw CImgIOException(_cimg_instance
+                                      "load_tiff() : Invalid tile in file '%s'.",
+                                      cimg_instance,
+                                      TIFFFileName(tif));
               }
               const t *ptr = buf;
               for (unsigned int rr = row; rr<cimg::min((unsigned int)(row+th),(unsigned int)ny); ++rr)
@@ -34732,10 +35249,10 @@ namespace cimg_library_suffixed {
           tstrip_t strip = TIFFComputeStrip(tif, row, 0);
           if ((TIFFReadEncodedStrip(tif,strip,buf,-1))<0) {
             _TIFFfree(buf); TIFFClose(tif);
-            throw CImgException(_cimg_instance
-                                "load_tiff() : Invalid strip in file '%s'.",
-                                cimg_instance,
-                                TIFFFileName(tif));
+            throw CImgIOException(_cimg_instance
+                                  "load_tiff() : Invalid strip in file '%s'.",
+                                  cimg_instance,
+                                  TIFFFileName(tif));
           }
           const t *ptr = buf;
           for (unsigned int rr = 0; rr<nrow; ++rr)
@@ -34758,10 +35275,10 @@ namespace cimg_library_suffixed {
             tstrip_t strip = TIFFComputeStrip(tif, row, vv);
             if ((TIFFReadEncodedStrip(tif,strip,buf,-1))<0) {
               _TIFFfree(buf); TIFFClose(tif);
-              throw CImgException(_cimg_instance
-                                  "load_tiff() : Invalid strip in file '%s'.",
-                                  cimg_instance,
-                                  TIFFFileName(tif));
+              throw CImgIOException(_cimg_instance
+                                    "load_tiff() : Invalid strip in file '%s'.",
+                                    cimg_instance,
+                                    TIFFFileName(tif));
             }
             const t *ptr = buf;
             for (unsigned int rr = 0;rr<nrow; ++rr)
@@ -34856,10 +35373,10 @@ namespace cimg_library_suffixed {
 	uint32 *const raster = (uint32*)_TIFFmalloc(nx*ny*sizeof(uint32));
 	if (!raster) {
 	  _TIFFfree(raster); TIFFClose(tif);
-	  throw CImgException(_cimg_instance
-                              "load_tiff() : Failed to allocate memory (%s) for file '%s'.",
-			      cimg_instance,
-                              cimg::strbuffersize(nx*ny*sizeof(uint32)),filename);
+	  throw CImgIOException(_cimg_instance
+                                "load_tiff() : Failed to allocate memory (%s) for file '%s'.",
+                                cimg_instance,
+                                cimg::strbuffersize(nx*ny*sizeof(uint32)),filename);
 	}
 	TIFFReadRGBAImage(tif,nx,ny,raster,0);
 	switch (samplesperpixel) {
@@ -38368,10 +38885,10 @@ namespace cimg_library_suffixed {
               for (unsigned int vv = 0; vv<spp; ++vv)
                 buf[i++] = (t)(*this)(cc,row + rr,0,vv);
           if (TIFFWriteEncodedStrip(tif,strip,buf,i*sizeof(t))<0)
-            throw CImgException(_cimg_instance
-                                "save_tiff() : Invalid strip writing when saving file '%s'.",
-                                cimg_instance,
-                                filename?filename:"(FILE*)");
+            throw CImgIOException(_cimg_instance
+                                  "save_tiff() : Invalid strip writing when saving file '%s'.",
+                                  cimg_instance,
+                                  filename?filename:"(FILE*)");
         }
         _TIFFfree(buf);
       }
@@ -38392,10 +38909,10 @@ namespace cimg_library_suffixed {
       _cimg_save_tiff("float",float,compression);
       _cimg_save_tiff("double",float,compression);
       const char *const filename = TIFFFileName(tif);
-      throw CImgException(_cimg_instance
-                          "save_tiff() : Unsupported pixel type '%s' for file '%s'.",
-                          cimg_instance,
-                          pixel_type(),filename?filename:"(FILE*)");
+      throw CImgInstanceException(_cimg_instance
+                                  "save_tiff() : Unsupported pixel type '%s' for file '%s'.",
+                                  cimg_instance,
+                                  pixel_type(),filename?filename:"(FILE*)");
       return *this;
     }
 #endif
@@ -38433,10 +38950,10 @@ namespace cimg_library_suffixed {
       if (tif) {
         cimg_forZ(*this,z) get_slice(z)._save_tiff(tif,z,compression);
         TIFFClose(tif);
-      } else throw CImgException(_cimg_instance
-                                 "save_tiff() : Failed to open file '%s' for writing.",
-                                 cimg_instance,
-                                 filename);
+      } else throw CImgIOException(_cimg_instance
+                                   "save_tiff() : Failed to open file '%s' for writing.",
+                                   cimg_instance,
+                                   filename);
 #else
       cimg::unused(compression);
       return save_other(filename);
@@ -41973,10 +42490,10 @@ namespace cimg_library_suffixed {
 #endif
         cimglist_for(*this,l) _data[l]._load_tiff(tif,nfirst_frame + l*nstep_frame);
         TIFFClose(tif);
-      } else throw CImgException(_cimglist_instance
-                                 "load_tiff() : Failed to open file '%s'.",
-                                 cimglist_instance,
-                                 filename);
+      } else throw CImgIOException(_cimglist_instance
+                                   "load_tiff() : Failed to open file '%s'.",
+                                   cimglist_instance,
+                                   filename);
       return *this;
 #endif
     }
@@ -42854,10 +43371,10 @@ namespace cimg_library_suffixed {
         }
         TIFFClose(tif);
       } else
-        throw CImgException(_cimglist_instance
-                            "save_tiff() : Failed to open stream for file '%s'.",
-                            cimglist_instance,
-                            filename);
+        throw CImgIOException(_cimglist_instance
+                              "save_tiff() : Failed to open stream for file '%s'.",
+                              cimglist_instance,
+                              filename);
 #endif
       return *this;
     }
@@ -43109,32 +43626,32 @@ namespace cimg_library_suffixed {
 
 namespace cimg {
 
-  //! Display a dialog box, where a user can click standard buttons.
+  //! Display a simple dialog box, and wait for the user's response.
   /**
-     Up to 6 buttons can be defined in the dialog window.
-     This function returns when a user clicked one of the button or closed the dialog window.
-     \param title = Title of the dialog window.
-     \param msg = Main message displayed inside the dialog window.
-     \param button1_label = Label of the 1st button.
-     \param button2_label = Label of the 2nd button.
-     \param button3_label = Label of the 3rd button.
-     \param button4_label = Label of the 4th button.
-     \param button5_label = Label of the 5th button.
-     \param button6_label = Label of the 6th button.
-     \param logo = Logo image displayed at the left of the main message. This parameter is optional.
-     \param centering = Tell to center the dialog window on the screen.
-     \return The button number (from 0 to 5), or -1 if the dialog window has been closed by the user.
-     \note If a button text is set to 0, then the corresponding button (and the followings) won't appear in
-     the dialog box. At least one button is necessary.
+     \param title Title of the dialog window.
+     \param msg Main message displayed inside the dialog window.
+     \param button1_label Label of the 1st button.
+     \param button2_label Label of the 2nd button (\c 0 to hide button).
+     \param button3_label Label of the 3rd button (\c 0 to hide button).
+     \param button4_label Label of the 4th button (\c 0 to hide button).
+     \param button5_label Label of the 5th button (\c 0 to hide button).
+     \param button6_label Label of the 6th button (\c 0 to hide button).
+     \param logo Image logo displayed at the left of the main message (optional).
+     \param centering Flag telling if the dialog window must be centered on the screen.
+     \return Indice of clicked button (from \c 0 to \c 5), or \c -1 if the dialog window has been closed by the user.
+     \note
+     - Up to 6 buttons can be defined in the dialog window.
+     - The function returns when a user clicked one of the button or closed the dialog window.
+     - If a button text is set to 0, the corresponding button (and the followings) will not appear in the dialog box. At least one button must be specified.
   **/
   template<typename t>
   inline int dialog(const char *const title, const char *const msg,
                     const char *const button1_label, const char *const button2_label,
                     const char *const button3_label, const char *const button4_label,
                     const char *const button5_label, const char *const button6_label,
-                    const CImg<t>& logo, const bool centering = false) {
+                    const CImg<t>& logo, const bool is_centered = false) {
 #if cimg_display==0
-    cimg::unused(title,msg,button1_label,button2_label,button3_label,button4_label,button5_label,button6_label,logo._data,centering);
+    cimg::unused(title,msg,button1_label,button2_label,button3_label,button4_label,button5_label,button6_label,logo._data,is_centered);
     throw CImgIOException("cimg::dialog() : No display available.");
 #else
     const unsigned char
@@ -43219,8 +43736,8 @@ namespace cimg {
     cimglist_for(buttons,lll) { xbuttons[lll] = bx+(bw+12)*lll; canvas.draw_image(xbuttons[lll],by,buttons[lll]); }
 
     // Open window and enter events loop
-    CImgDisplay disp(canvas,title?title:" ",0,false,centering?true:false);
-    if (centering) disp.move((CImgDisplay::screen_width() - disp.width())/2,
+    CImgDisplay disp(canvas,title?title:" ",0,false,is_centered?true:false);
+    if (is_centered) disp.move((CImgDisplay::screen_width() - disp.width())/2,
                              (CImgDisplay::screen_height() - disp.height())/2);
     bool stopflag = false, refresh = false;
     int oselected = -1, oclicked = -1, selected = -1, clicked = -1;
@@ -43271,12 +43788,27 @@ namespace cimg {
   inline int dialog(const char *const title, const char *const msg,
                     const char *const button1_label, const char *const button2_label, const char *const button3_label,
                     const char *const button4_label, const char *const button5_label, const char *const button6_label,
-                    const bool centering) {
+                    const bool is_centered) {
     return dialog(title,msg,button1_label,button2_label,button3_label,button4_label,button5_label,button6_label,
-                  CImg<unsigned char>::logo40x38(),centering);
+                  CImg<unsigned char>::logo40x38(),is_centered);
   }
 
   //! Evaluate math expression.
+  /**
+     \param expression C-string containing the formula to evaluate.
+     \param x Value of a pre-defined variable \c x.
+     \param y Value of a pre-defined variable \c y.
+     \param z Value of a pre-defined variable \c z.
+     \param c Value of a pre-defined variable \c c.
+     \return Result of the formula evaluation.
+     \note Set \c expression to \c 0 to evaluate the latest specified \c expression.
+     \par Example
+     \code
+     const double
+       res1 = cimg::eval("cos(x)^2+sin(y)^2",2,2),  // will return '1'.
+       res2 = cimg::eval(0,1,1);                    // will return '1' too.
+     \endcode
+  **/
   inline double eval(const char *const expression, const double x, const double y, const double z, const double c) {
     static const CImg<float> empty;
     return empty.eval(expression,x,y,z,c);
