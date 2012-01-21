@@ -23498,10 +23498,10 @@ namespace cimg_library_suffixed {
         a3 = -k*ema2;
       } break;
       case 1 : {
-        const float k = (1-ema)*(1-ema)/ema;
-        a0 = k*ema;
-        a1 = a3 = 0;
-        a2 = -a0;
+        const float k = -(1-ema)*(1-ema)*(1-ema)/(2*(ema+1)*ema);
+	a0 = a3 = 0;
+	a1 = k*ema;
+        a2 = -a1;
       } break;
       case 2 : {
         const float
@@ -31171,25 +31171,33 @@ namespace cimg_library_suffixed {
        \param opacity Drawing opacity.
        \param pattern Drawing pattern.
        \param opacity_out Drawing opacity of 'outside' axes.
+       \param allow_zero Enable/disable the drawing of label '0' if found.
        \note if \c precision==0, precision of the labels is automatically computed.
     **/
     template<typename t, typename tc>
     CImg<T>& draw_axis(const CImg<t>& xvalues, const int y,
                        const tc *const color, const float opacity=1,
-                       const unsigned int pattern=~0U) {
+                       const unsigned int pattern=~0U, const unsigned int font_height=13,
+                       const bool allow_zero=true) {
       if (is_empty()) return *this;
       const int siz = (int)xvalues.size()-1;
       if (siz<=0) draw_line(0,y,_width-1,y,color,opacity,pattern);
       else {
         if (xvalues[0]<xvalues[siz]) draw_arrow(0,y,_width-1,y,color,opacity,30,5,pattern);
         else draw_arrow(_width-1,y,0,y,color,opacity,30,5,pattern);
-        const int yt = (y+14)<height()?(y+3):(y-14);
+        const int yt = (y+3+font_height)<_height?(y+3):(y-2-font_height);
         char txt[32] = { 0 };
+        CImg<T> label;
         cimg_foroff(xvalues,x) {
           cimg_snprintf(txt,sizeof(txt),"%g",(double)xvalues(x));
-          const int xi = (int)(x*(_width-1)/siz), xt = xi - (int)std::strlen(txt)*3;
-          draw_point(xi,y-1,color,opacity).draw_point(xi,y+1,color,opacity).
-            draw_text(xt<0?0:xt,yt,txt,color,(tc*)0,opacity,13);
+          label.assign().draw_text(0,0,txt,color,(tc*)0,opacity,font_height);
+          const int
+            xi = (int)(x*(_width-1)/siz),
+            _xt = xi - label.width()/2,
+            xt = _xt<3?3:_xt+label.width()>=width()-2?width()-3-label.width():_xt;
+          draw_point(xi,y-1,color,opacity).draw_point(xi,y+1,color,opacity);
+          if (allow_zero || txt[0]!='0' || txt[1]!=0)
+            draw_text(xt,yt,txt,color,(tc*)0,opacity,font_height);
         }
       }
       return *this;
@@ -31199,7 +31207,8 @@ namespace cimg_library_suffixed {
     template<typename t, typename tc>
     CImg<T>& draw_axis(const int x, const CImg<t>& yvalues,
                        const tc *const color, const float opacity=1,
-                       const unsigned int pattern=~0U) {
+                       const unsigned int pattern=~0U, const unsigned int font_height=13,
+                       const bool allow_zero=true) {
       if (is_empty()) return *this;
       int siz = (int)yvalues.size()-1;
       if (siz<=0) draw_line(x,0,x,_height-1,color,opacity,pattern);
@@ -31207,16 +31216,19 @@ namespace cimg_library_suffixed {
         if (yvalues[0]<yvalues[siz]) draw_arrow(x,0,x,_height-1,color,opacity,30,5,pattern);
         else draw_arrow(x,_height-1,x,0,color,opacity,30,5,pattern);
         char txt[32] = { 0 };
+        CImg<T> label;
         cimg_foroff(yvalues,y) {
           cimg_snprintf(txt,sizeof(txt),"%g",(double)yvalues(y));
+          label.assign().draw_text(0,0,txt,color,(tc*)0,opacity,font_height);
           const int
             yi = (int)(y*(_height-1)/siz),
-            tmp = yi - 5,
-            nyi = tmp<0?0:(tmp>=height()-11?height()-11:tmp),
-            xt = x - (int)std::strlen(txt)*7;
+            _yt = yi - label.height()/2,
+            yt = _yt<0?0:_yt+label.height()>=height()?height()-1-label.height():_yt,
+            _xt = x - 2 - label.width(),
+            xt = _xt>=0?_xt:x+3;
           draw_point(x-1,yi,color,opacity).draw_point(x+1,yi,color,opacity);
-          if (xt>0) draw_text(xt,nyi,txt,color,(tc*)0,opacity,13);
-          else draw_text(x+3,nyi,txt,color,(tc*)0,opacity,13);
+          if (allow_zero || txt[0]!='0' || txt[1]!=0)
+            draw_text(xt,yt,txt,color,(tc*)0,opacity,font_height);
         }
       }
       return *this;
@@ -31224,29 +31236,29 @@ namespace cimg_library_suffixed {
 
     //! Draw a labeled horizontal+vertical axis on the image instance.
     template<typename tx, typename ty, typename tc>
-      CImg<T>& draw_axes(const CImg<tx>& xvalues, const CImg<ty>& yvalues,
-                         const tc *const color, const float opacity=1,
-                         const unsigned int patternx=~0U, const unsigned int patterny=~0U) {
-      if (!is_empty()) {
-        const CImg<tx> nxvalues(xvalues._data,xvalues.size(),1,1,1,true);
-        const int sizx = (int)xvalues.size()-1, wm1 = width()-1;
-        if (sizx>0) {
-          float ox = (float)nxvalues[0];
-          for (unsigned int x = 1; x<_width; ++x) {
-            const float nx = (float)nxvalues._linear_atX((float)x*sizx/wm1);
-            if (nx*ox<=0) { draw_axis(nx==0?x:x-1,yvalues,color,opacity,patterny); break; }
-            ox = nx;
-          }
+    CImg<T>& draw_axes(const CImg<tx>& xvalues, const CImg<ty>& yvalues,
+                       const tc *const color, const float opacity=1,
+                       const unsigned int patternx=~0U, const unsigned int patterny=~0U,
+                       const unsigned int font_height=13, const bool allow_zero=true) {
+      if (is_empty()) return *this;
+      const CImg<tx> nxvalues(xvalues._data,xvalues.size(),1,1,1,true);
+      const int sizx = (int)xvalues.size()-1, wm1 = width()-1;
+      if (sizx>0) {
+        float ox = (float)nxvalues[0];
+        for (unsigned int x = 1; x<_width; ++x) {
+          const float nx = (float)nxvalues._linear_atX((float)x*sizx/wm1);
+          if (nx*ox<=0) { draw_axis(nx==0?x:x-1,yvalues,color,opacity,patterny,font_height,allow_zero); break; }
+          ox = nx;
         }
-        const CImg<ty> nyvalues(yvalues._data,yvalues.size(),1,1,1,true);
-        const int sizy = (int)yvalues.size()-1, hm1 = height()-1;
-        if (sizy>0) {
-          float oy = (float)nyvalues[0];
-          for (unsigned int y = 1; y<_height; ++y) {
-            const float ny = (float)nyvalues._linear_atX((float)y*sizy/hm1);
-            if (ny*oy<=0) { draw_axis(xvalues,ny==0?y:y-1,color,opacity,patternx); break; }
-            oy = ny;
-          }
+      }
+      const CImg<ty> nyvalues(yvalues._data,yvalues.size(),1,1,1,true);
+      const int sizy = (int)yvalues.size()-1, hm1 = height()-1;
+      if (sizy>0) {
+        float oy = (float)nyvalues[0];
+        for (unsigned int y = 1; y<_height; ++y) {
+          const float ny = (float)nyvalues._linear_atX((float)y*sizy/hm1);
+          if (ny*oy<=0) { draw_axis(xvalues,ny==0?y:y-1,color,opacity,patternx,font_height,allow_zero); break; }
+          oy = ny;
         }
       }
       return *this;
@@ -31258,23 +31270,24 @@ namespace cimg_library_suffixed {
                        const tc *const color, const float opacity=1,
                        const int subdivisionx=-60, const int subdivisiony=-60,
                        const float precisionx=0, const float precisiony=0,
-                       const unsigned int patternx=~0U, const unsigned int patterny=~0U) {
-      if (!is_empty()) {
-        const float
-          dx = cimg::abs(x1-x0), dy = cimg::abs(y1-y0),
-          px = (precisionx==0)?(float)std::pow(10.0,(int)std::log10(dx)-2.0):precisionx,
-          py = (precisiony==0)?(float)std::pow(10.0,(int)std::log10(dy)-2.0):precisiony;
-        if (x0!=x1 && y0!=y1)
-          draw_axes(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),
-                    CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
-                    color,opacity,patternx,patterny);
-        else if (x0==x1 && y0!=y1)
-          draw_axis((int)x0,CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
-                    color,opacity,patterny);
-        else if (x0!=x1 && y0==y1)
-          draw_axis(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),(int)y0,
-                    color,opacity,patternx);
-      }
+                       const unsigned int patternx=~0U, const unsigned int patterny=~0U,
+                       const unsigned int font_height=13) {
+      if (is_empty()) return *this;
+      const bool allow_zero = (x0*x1>0) || (y0*y1>0);
+      const float
+        dx = cimg::abs(x1-x0), dy = cimg::abs(y1-y0),
+        px = (precisionx==0)?(float)std::pow(10.0,(int)std::log10(dx)-2.0):precisionx,
+        py = (precisiony==0)?(float)std::pow(10.0,(int)std::log10(dy)-2.0):precisiony;
+      if (x0!=x1 && y0!=y1)
+        draw_axes(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),
+                  CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
+                  color,opacity,patternx,patterny,font_height,allow_zero);
+      else if (x0==x1 && y0!=y1)
+        draw_axis((int)x0,CImg<floatT>::sequence(subdivisiony>0?subdivisiony:1-height()/subdivisiony,y0,y1).round(py),
+                  color,opacity,patterny,font_height);
+      else if (x0!=x1 && y0==y1)
+        draw_axis(CImg<floatT>::sequence(subdivisionx>0?subdivisionx:1-width()/subdivisionx,x0,x1).round(px),(int)y0,
+                  color,opacity,patternx,font_height);
       return *this;
     }
 
@@ -31283,16 +31296,15 @@ namespace cimg_library_suffixed {
     CImg<T>& draw_grid(const CImg<tx>& xvalues, const CImg<ty>& yvalues,
                        const tc *const color, const float opacity=1,
                        const unsigned int patternx=~0U, const unsigned int patterny=~0U) {
-      if (!is_empty()) {
-        if (xvalues) cimg_foroff(xvalues,x) {
+      if (is_empty()) return *this;
+      if (xvalues) cimg_foroff(xvalues,x) {
           const int xi = (int)xvalues[x];
           if (xi>=0 && xi<width()) draw_line(xi,0,xi,_height-1,color,opacity,patternx);
         }
-        if (yvalues) cimg_foroff(yvalues,y) {
+      if (yvalues) cimg_foroff(yvalues,y) {
           const int yi = (int)yvalues[y];
           if (yi>=0 && yi<height()) draw_line(0,yi,_width-1,yi,color,opacity,patterny);
         }
-      }
       return *this;
     }
 
@@ -31303,6 +31315,7 @@ namespace cimg_library_suffixed {
                        const bool invertx, const bool inverty,
                        const tc *const color, const float opacity=1,
                        const unsigned int patternx=~0U, const unsigned int patterny=~0U) {
+      if (is_empty()) return *this;
       CImg<uintT> seqx, seqy;
       if (deltax!=0) {
         const float dx = deltax>0?deltax:_width*-deltax/100;
@@ -31311,7 +31324,6 @@ namespace cimg_library_suffixed {
         if (offsetx) cimg_foroff(seqx,x) seqx(x) = (unsigned int)cimg::mod(seqx(x)+offsetx,(float)_width);
         if (invertx) cimg_foroff(seqx,x) seqx(x) = _width - 1 - seqx(x);
       }
-
       if (deltay!=0) {
         const float dy = deltay>0?deltay:_height*-deltay/100;
         const unsigned int ny = (unsigned int)(_height/dy);
@@ -33754,11 +33766,13 @@ namespace cimg_library_suffixed {
             const CImg<Tdouble>
               seqx = CImg<Tdouble>::sequence(1 + gdimx/60,nxmin,one?nxmax:nxmin+(nxmax-nxmin)*(siz+1)/siz).round(px),
               seqy = CImg<Tdouble>::sequence(1 + gdimy/60,nymax,nymin).round(py);
-            axes.draw_axes(seqx,seqy,white);
-            if (nymin>0) axes.draw_axis(seqx,gdimy-1,gray);
-            if (nymax<0) axes.draw_axis(seqx,0,gray);
-	    if (nxmin>0) axes.draw_axis(0,seqy,gray);
-	    if (nxmax<0) axes.draw_axis(gdimx-1,seqy,gray);
+
+            const bool allow_zero = (nxmin*nxmax>0) || (nymin*nymax>0);
+            axes.draw_axes(seqx,seqy,white,1,~0U,~0U,13,allow_zero);
+            if (nymin>0) axes.draw_axis(seqx,gdimy-1,gray,1,~0U,13,allow_zero);
+            if (nymax<0) axes.draw_axis(seqx,0,gray,1,~0U,13,allow_zero);
+	    if (nxmin>0) axes.draw_axis(0,seqy,gray,1,~0U,13,allow_zero);
+	    if (nxmax<0) axes.draw_axis(gdimx-1,seqy,gray,~0U,13,allow_zero);
 
             cimg_for3x3(axes,x,y,0,0,I,unsigned char)
               if (Icc) {
@@ -34657,7 +34671,6 @@ namespace cimg_library_suffixed {
       }
       if (color_type==PNG_COLOR_TYPE_GRAY && bit_depth<8) {
         png_set_expand_gray_1_2_4_to_8(png_ptr);
-        color_type = PNG_COLOR_TYPE_RGB;
         is_gray = true;
         bit_depth = 8;
       }
