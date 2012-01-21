@@ -47,7 +47,7 @@
 
 #include <locale>
 #ifndef gmic_version
-#define gmic_version 1508
+#define gmic_version 1509
 
 // Define environment variables.
 #ifndef gmic_is_beta
@@ -230,12 +230,12 @@ struct gmic {
   gmic& print(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection,
 	      const char *format, ...);
 
-  gmic& warning(const char *format, ...);
+  gmic& warn(const char *format, ...);
   template<typename T>
-  gmic& warning(const gmic_list<T>& list, const char *format, ...);
+  gmic& warn(const gmic_list<T>& list, const char *format, ...);
   template<typename T>
-  gmic& warning(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection,
-		const char *format, ...);
+  gmic& warn(const gmic_list<T>& list, const gmic_image<unsigned int>& scope_selection,
+             const char *format, ...);
 
   gmic& error(const char *format, ...);
   template<typename T>

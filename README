@@ -12,44 +12,44 @@
 
                        ( http://gmic.sourceforge.net/ )
 
-                                    1.5.0.8
+                                    1.5.0.9
 
 --------------------------------------------------------------------------------
 
 # Summary
 #---------
 
- G'MIC stands for GREYC's Magic Image Converter. This project aims to :
+ G'MIC stands for 'GREYC's Magic Image Converter'. This project aims to :
 
- * Define a minimal but powerful script language (G'MIC) dedicated to the
+ * Define a lightweight but powerful script language (G'MIC) dedicated to the
    design of image processing pipelines.
- * Provide an interpreter of this language (in C++), distributed as an
-   open-source module/library embeddable in third-party applications.
- * Propose two binary tools embedding this interpreter :
+ * Provide an interpreter of this language, distributed as a C++
+   open-source library embeddable in third-party applications.
+ * Propose two usable binary tools embedding this interpreter :
 
-   - The command-line executable gmic to use the G'MIC framework from a
-     shell.
-   - The interactive plug-in gmic_gimp to bring G'MIC capabilities to the
-     image retouching software GIMP.
+   - The command-line executable 'gmic' to use the G'MIC framework from a
+     shell. 
+   - The interactive and extensible plug-in 'gmic_gimp' to bring G'MIC capabilities
+     to the image retouching software GIMP.
 
- G'MIC is focused on the design of complex pipelines for converting,
+ G'MIC is focused on the design of possibly complex pipelines for converting,
  manipulating, filtering and visualizing generic 1d/2d/3d multi-spectral image
- datasets. Of course, it is able to manage color images, but also more complex
- data as image sequences or 3d volumetric datasets.
+ datasets. This includes of course color images, but also more complex data
+ as image sequences or 3d(+t) volumetric float-valued datasets.
 
- G'MIC is an open framework : it is possible to extend the proposed default
- language with custom G'MIC-written commands, defining thus new image filters or
+ G'MIC is an open framework : the default language can be extended with
+ custom G'MIC-written commands, defining thus new image available filters or
  effects. By the way, it already contains a substantial set of pre-defined image
- processing algorithms.
+ processing algorithms and pipelines (more than 1000).
 
  G'MIC has been designed with portability in mind and runs on different
  platforms (Windows, Unix, MacOSX). It is distributed under the CeCILL license
- (GPL-compatible). It has been developed in the Image Team of the GREYC
+ (GPL-compatible). Since 2008, it is developed in the Image Team of the GREYC
  laboratory, in Caen/France, by permanent researchers working in the field of
  image processing on a daily basis.
 
-# Project Manager
-#----------------
+# Project Manager and Main developer
+#-----------------------------------
 
   David Tschumperlé  ( http://www.greyc.ensicaen.fr/~dtschump/ )
 
@@ -100,5 +100,5 @@
   - on MacOSX : '$HOME/Library/Application\ Support/Gimp/plug-ins/'
                 (for installation from GimponOSX).
 
-------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------

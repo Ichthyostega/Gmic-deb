@@ -4,9 +4,9 @@
 #
 #  Description : Makefile for compiling :
 #
-#                 . the G'MIC command line tool ('make').
-#                 . the G'MIC plug-in for GIMP ('make gimp').
-#                 . the G'MIC interpreter, as a C++ library ('make lib').
+#                 . the G'MIC command line tool (type 'make').
+#                 . the G'MIC plug-in for GIMP (type 'make gimp').
+#                 . the G'MIC interpreter, as a C++ library (type 'make lib').
 #
 #                ( http://gmic.sourceforge.net )
 #
@@ -64,7 +64,6 @@ endif
 ifeq ($(OS),MINGW32_NT-6.1)
 EXE = .exe
 endif
-
 ifeq ($(CC),g++)
 IS_GCC = yes
 endif
@@ -81,9 +80,9 @@ ifeq ($(CC),g++-4.6.0)
 IS_GCC = yes
 endif
 
-#---------------------------------------------------
-# Set compilation flags allowing to customize G'MIC
-#---------------------------------------------------
+#-----------------------------------------------
+# Set compilation flags for customizing build
+#-----------------------------------------------
 
 # Flags to enable 'beta' version.
 IS_BETA_CFLAGS = 
@@ -110,42 +109,61 @@ endif
 
 # Flags to enable image display, using X11
 # (keep /usr/ dirname here since X11 is located in /usr/ on Mac too).
+# This requires the presence of the X11 include and library files.
+# (package 'libx11-dev' on Debian).
 X11_CFLAGS = -Dcimg_display=1 -Dcimg_appname=\\\"gmic\\\" -I/usr/X11R6/include #-Dcimg_use_xrandr
 X11_LDFLAGS = -L/usr/X11R6/lib -lX11 -lpthread #-lXrandr
 
 # Flags to enable fast display, using XShm.
+# This requires the presence of the X11 extension include and library files.
+# (package 'libx11-dev' on Debian).
 XSHM_CFLAGS = -Dcimg_use_xshm
 XSHM_LDFLAGS = -L$(USR)/X11R6/lib -lXext
 
 # Flags to enable image display, using GDI32.
+# This requires the presence of the GDI32 include and library files.
 GDI32_CFLAGS = -Dcimg_display=2 -Dcimg_appname=\\\"gmic\\\"
 GDI32_LDFLAGS = -lgdi32
 
 # Flags to enable native support for PNG image files, using the PNG library.
+# This requires the presence of the libpng include and library files.
+# (package 'libpng12-dev' on Debian).
 PNG_CFLAGS = -Dcimg_use_png
 PNG_LDFLAGS = -lpng -lz
 
 # Flags to enable native support for JPEG image files, using the JPEG library.
+# This requires the presence of the libjpeg include and library files.
+# (package 'libjpeg62-dev' on Debian).
 JPEG_CFLAGS = -Dcimg_use_jpeg
 JPEG_LDFLAGS = -ljpeg
 
 # Flags to enable native support for TIFF image files, using the TIFF library.
+# This requires the presence of the libtiff include and library files.
+# (package 'libtiff4-dev' on Debian).
 TIFF_CFLAGS = -Dcimg_use_tiff
 TIFF_LDFLAGS = -ltiff
 
 # Flags to enable native support for MINC image files, using the MINC2 library.
+# This requires the presence of the libminc include and library files.
+# (package 'libminc-dev' on Debian).
 MINC2_CFLAGS = -Dcimg_use_minc2
 MINC2_LDFLAGS = -lminc2
 
 # Flags to enable native support for various video files, using the FFMPEG library.
+# This requires the presence of the FFMPEG include and library files.
+# (packages 'libavcodec-dev', 'libavutil-dev', 'libavformat-dev' and 'libswscale-dev' on Debian).
 FFMPEG_CFLAGS = -Dcimg_use_ffmpeg -D__STDC_CONSTANT_MACROS -I$(USR)/include/libavcodec -I$(USR)/include/libavformat -I$(USR)/include/libswscale -I$(USR)/include/ffmpeg
 FFMPEG_LDFLAGS = -lavcodec -lavformat -lswscale
 
 # Flags to enable native support for compressed .cimgz files, using the Zlib library.
+# This requires the presence of the Zlib include and library files.
+# (package 'zlib1g-dev' on Debian).
 ZLIB_CFLAGS = -Dcimg_use_zlib
 ZLIB_LDFLAGS = -lz
 
 # Flags to enable native support of webcams, using the OpenCV library.
+# This requires the presence of the OpenCV include and library files.
+# (package 'libcv3-2-dev' on Debian).
 OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv
 ifeq ($(OS),Darwin)
 OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
@@ -155,6 +173,8 @@ OPENCV_LDFLAGS = -lcv -lhighgui
 endif
 
 # Flags to enable native support of most classical image file formats, using the GraphicsMagick++ library.
+# This requires the presence of the GraphicsMagick++ include and library files.
+# (package 'libgraphicsmagick++1-dev' on Debian).
 MAGICK_CFLAGS = -Dcimg_use_magick -I$(USR)/include/GraphicsMagick
 ifeq ($(OS),Darwin)
 MAGICK_LDFLAGS = -L$(USR)/lib -lGraphicsMagick++ -lGraphicsMagick -llcms -ltiff -lfreetype -ljpeg -lpng -lbz2 -lxml2 -lz -lm -lpthread -lltdl
@@ -163,10 +183,14 @@ MAGICK_LDFLAGS = -lGraphicsMagick++
 endif
 
 # Flags to enable native support of EXR file format, using the OpenEXR library/
+# This requires the presence of the OpenEXR include and library files.
+# (package 'libopenexr-dev' on Debian).
 EXR_CFLAGS = -Dcimg_use_openexr -I$(USR)/include/OpenEXR
 EXR_LDFLAGS = -lIlmImf -lHalf
 
 # Flags to enable the use of the FFTW3 library.
+# This requires the presence of the FFTW3 include and library files.
+# (package 'libfftw3-dev' on Debian).
 FFTW_CFLAGS = -Dcimg_use_fftw3
 FFTW_LDFLAGS = -lfftw3
 ifeq ($(OS),MINGW32_NT-5.1)
@@ -177,6 +201,8 @@ FFTW_LDFLAGS = -lfftw3-3
 endif
 
 # Flags to enable the use of the BOARD library.
+# This requires the presence of the BOARD include and library files.
+# (no packages exist for Debian at this time).
 BOARD_CFLAGS = -Dcimg_use_board
 BOARD_LDFLAGS = -lboard
 
@@ -355,8 +381,8 @@ install:
 	cp -f gmic.h $(DESTDIR)$(USR)/include/
 ifneq ($(OS),Darwin)
 	mkdir -p $(DESTDIR)$(USR)/lib
-	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.8
-	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.8 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0
+	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.9
+	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.9 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0
 	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
 	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
 endif

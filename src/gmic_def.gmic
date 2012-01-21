@@ -337,7 +337,7 @@ _display_graph : -check "${1=640}>32 && ${2=480}>32" -skip ${3=1},${4=0},${5=0},
     -line[-1] 0,0,100%,0,1,110 -line[-1] 100%,0,100%,100%,1,110
     -line[-1] 100%,100%,0,100%,1,255 -line[-1] 0,100%,0,0,1,255
 
-    100%,100% -axes[-1] $xmin,{$xmin+($xmax-$xmin)*($siz-$one)/($siz-1)},$ymax,$ymin,1,1
+    100%,100% -axes[-1] $xmin,{$xmin+($xmax-$xmin)*($siz-$one)/($siz-1)},$ymax,$ymin,13,1,1
     --dilate[-1] 3 --[-1] [-2] -*[-1] 200 -eq[-2] 0
     -*[-3,-2] -+[-2,-1] -c[-1] 0,255
 
@@ -366,7 +366,7 @@ _display_histogram : -check "${1=512}>0 && ${2=300}>0 && ${3=256}>0 && ${4=255}"
     --max M=@{-1,M} -rm[-1]
     -repeat @# $1,$2,1,1,-255 -graph[-1] [-2],3,0,$M,0,1,0,0 -rm[-2] -mv[-1] 0 -done
     -a c
-    -if $5 -axes[-1] 0,$4,$M,0,1,-128 -endif
+    -if $5 -axes[-1] 0,$4,$M,0,13,1,-128 -endif
     -endl
     -+[-1] 255
   -mv[-1] 0 -done -v +
@@ -1694,6 +1694,7 @@ rr2d :
 
 #@gmic resize_ratio2d : width>0,height>0,_mode={ 0=inside | 1=outside | 2=padded },0=<_interpolation<=6
 #@gmic : Resize selected images while preserving their aspect ratio.
+#@gmic : (eq. to '-rr2d').
 #@gmic : Default values : 'mode=0' and 'interpolation=6'.
 resize_ratio2d :
   -_resize_ratio2d $*
@@ -2990,6 +2991,39 @@ maze_mask : -check "isint(${1=24}) && $1>0"
     -rm[0] -+ -_render_maze[-1] $1
   -endl -done -v +
 
+#@gmic piechart : label_height>=0,label_R,label_G,label_B,"label1",value1,R1,G1,B1,...,"labelN",valueN,RN,GN,BN
+#@gmic : Draw pie chart on selected (RGB) images.
+#@gmic : $ image.jpg -piechart 25,0,0,0,"Red",55,255,0,0,"Green",40,0,255,0,"Blue",30,128,128,255,"Other",5,128,128,128
+piechart : -check $1>=0
+  -e[^-1] "Draw pie chart on image$?, with label height $1 and color ($2,$3,$4)."
+  -v - -repeat @#
+    -ellipse[-1] 50%,50%,{w/2-1},{h/2-1},0,1,1
+    -ellipse[-1] 50%,50%,{w/2-1},{h/2-1},0,1,0xFFFFFFFF
+    (${6--1:5}) -normalize_sum[-1]
+    theta=0
+    -repeat {w}
+      xe={0.5*@{-2,w}*(1+cos($theta))}
+      ye={0.5*@{-2,h}*(1+sin($theta))}
+      -line[-2] 50%,50%,$xe,$ye
+      theta={$theta-2*pi*i($>)}
+    -done
+    theta=0
+    -repeat {w} -if {i($>)}
+      ntheta={$theta-2*pi*i($>)}
+      xc={0.5*@{-2,w}*(1+0.5*cos(0.5*($ntheta+$theta)))}
+      yc={0.5*@{-2,h}*(1+0.5*sin(0.5*($ntheta+$theta)))}
+      -flood[-2] $xc,$yc,0,0,0,1,@{-arg\ {7+5*$>}-{9+5*$>},"$*"}
+      -if {abs($ntheta-$theta)>0.1}
+        0 -text[-1] @{-arg\ {5+5*$>},"$*"},0,0,$1,1,1
+        ($2^$3^$4) -r[-1] [-2],[-2],1,3 -*[-1] [-2]
+        -j[-4] [-1],{$xc-w/2},{$yc-h/2},0,0,1,[-2]
+        -rm[-2,-1]
+      -endif
+      theta=$ntheta
+    -endif -done
+    -rm[-1]
+  -mv[-1] 0 -done -v +
+
 #@gmic polka_dots : diameter>=0,_density,_offset1,_offset2,_angle,_aliasing,_shading,_opacity,_color,...
 #@gmic : Draw dots pattern on selected images.
 #@gmic : Default values : 'density=20', 'offset1=offset2=50', 'angle=0', 'aliasing=10', 'shading=1', 'opacity=1' and 'color=255'.
@@ -3798,6 +3832,43 @@ snapshot3d : -check "${1=512}>0 && ${2=1}>=0" -skip ${3=""}
     -object3d[-1] [-2],50%,50%,0,1,1 -name[-1] @{-2,n}
     -rm[-2]
   -mv[-1] 0 -done -v +
+
+#@gmic spherical3d : _nb_azimuth>=3,_nb_zenith>=3,_radius_function(phi,theta)
+#@gmic : Input 3d spherical object at (0,0,0), with specified geometry.
+#@gmic : Default values : 'nb_zenith=nb_azimut=64' and 'radius_function="abs(1+0.5*cos(3*phi)*sin(4*theta))"'.
+#@gmic : $ -spherical3d 64 --primitives3d 1
+spherical3d : -check "${1=64}>=3 && ${2=$1}>=3" -skip "${3=abs(1+0.5*cos(3*phi)*sin(4*theta))}"
+  -e[^-1] "Input 3d spherical object, with subdivisions ($1,$2) and height function '$3'."
+  -v -
+  ({'CImg3d'}) -y[-1] y # Magic number.
+  n1={round($1)} n2={round($2)}
+
+  # Define 3d vertices.
+  $n1,{$n2-1},1,3,"phi=2*pi*(x+0.5)/w;\
+                   theta=-pi/2+pi*(y+0.5)/h;\
+                   cp=cos(phi);\
+                   sp=sin(phi);\
+                   ct=cos(theta);\
+                   ($3)*if(c==0,ct*cp,if(c==1,ct*sp,sin(theta)))"
+  -r[-1] {w*h},3,1,1,-1 -permute[-1] yxzc
+  -i[-2] (0,0,{phi=0;theta=-pi/2;-$3};0,0,{phi=0;theta=pi/2;$3}) -a[-2,-1] y  # Add the two poles.
+  nbv={h} -y[-1] y
+
+  # Define 3d primitives.
+  $n1,{$n2-2},1,4,"nx=(x+1)%w;ny=(y+1);2+if(c==0,x+y*"$n1",if(c==1,nx+y*"$n1",if(c==2,nx+ny*"$n1",x+ny*"$n1")))"
+  -r[-1] {w*h},4,1,1,-1 -permute[-1] yxzc -i[-2] 1,{h},1,1,4 -a[-2,-1] x
+  2,$n1,1,1,3,0 1,$n1,1,1,'y' --+[-1] 1 -%[-1] {h} 2,$n1,1,1,3,1 [-3,-2]  # Connect the two poles.
+  -+[-5,-4] 2 -rv[-5,-4] -+[-2,-1] {$nbv-$n1} -a[-3--1] x -a[-4--2] x
+  nbp={h+@{-2,h}+@{-3,h}}
+  -y[-3--1] y -a[-3--1] y
+
+  # Define other object informations (properties, colors and opacities).
+  -i[-3] ($nbv;$nbp)
+  1,{3*$nbp},1,1,200 1,$nbp,1,1,1 -a[-2,-1] y
+
+  # Append as a 3d object.
+  -a[-5--1] y -nm[-1] "[3d spherical surface '$3']"
+  -v +
 
 #@gmic superformula3d : resolution>1,m>=1,n1,n2,n3
 #@gmic : Generate 2d superformula curve as a 3d object.
@@ -5506,7 +5577,7 @@ morph : -skip ${2=0.1},${3=5}
 #@gmic : Register selected images with non-rigid warp.
 #@gmic : Default values : 'smoothness=0.2', 'precision=6' and 'nb_scale=0(auto)'.
 #@gmic : $ image.jpg --rotate 20,1,1,50%,50% --register_nonrigid , -remove[-2]
-register_nonrigid : -skip ${1=0.2},${2=6},${3=0}
+register_nonrigid : -skip ${1=0.2},${2=5},${3=0}
   -e[^-1] "Register image$? with non-rigid warp, smoothness $1, precision $2 and $3 scale(s)."
   -v - --equalize[0] 256 -n[-1] 0,255 -mv[-1] 1
   -repeat @# -if {$>>1}
@@ -5557,7 +5628,7 @@ x_blobs :
     -if {@#>1}
       @{!,w},@{!,h},1,2
       -repeat @{1,h}
-        r={@{1,2}*(1+@{1,3}*cos(@{1,4}+@{1,5}*@|))}
+        r={@{1,2}*(1+@{1,3}*cos(@{1,4}+@{1,5}*@|*1000))}
         -ellipse[-1] @{1,0,1},$r,$r,0,1,@{1,6-7}
         d={sqrt(($x-@{1,0})^2+($y-@{1,1})^2)}
         -if {$d<$r} nearest=$> -endif
@@ -5712,7 +5783,7 @@ x_fisheye :
     -wait 40
     -if {@{!,b}==1} R={min(80,$R+8)} -endif
     -if {@{!,b}==2} R={max(3,$R-8)} -endif
-    --object3d[-2] [-1],{50+30*cos(@|/400)}%,{50+30*sin(@|/620)}%,{50+330*sin(@|/380)},0.7,0 -r3d[-2] 1,0.2,0.6,3
+    --object3d[-2] [-1],{50+30*cos(@|*2.5)}%,{50+30*sin(@|*1.6)}%,{50+330*sin(@|*2.6)},0.7,0 -r3d[-2] 1,0.2,0.6,3
     -if {@{!,x}>=0}
     -fisheye[-1] {@{!,x}*100/@{!,w}},{@{!,y}*100/@{!,h}},$R
     -endif
@@ -5804,6 +5875,102 @@ x_fourier :
     -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
     -rm[-3--1]  # Clean images.
   -endl -done -w 0 -rm -v +
+
+#@gmic x_histogram
+#@gmic : Launch histogram demo.
+x_histogram :
+  -e[] "\n
+------ Histogram demo -------------------------------\n
+----\n
+---- Mouse to set parameters.\n
+---- Right button or key 'SPACE' to reset.\n
+---- Keys 'ESC' or 'Q' to exit.\n
+----\n
+-----------------------------------------------------"
+  -v -
+  -if {!@#} -testimage2d 300,300 -else -k[0] -to_rgb -r2dy 300 -if {w>800} -r 800,100%,1,3,2 -endif -n 0,255 -endif
+
+  # Prepare image layout.
+  --frame[-1] 1,1,0
+  300,{h},1,3,220
+  -text[-1] "Gamma :",5,0,16,1,0
+  -text[-1] "Contrast :",5,50,16,1,0
+  -text[-1] "Brightness :",5,100,16,1,0
+  -text[-1] "Smoothness :",5,150,16,1,0
+  -text[-1] "Sharpness :",5,200,16,1,0
+  -text[-1] "Clusters :",5,250,16,1,0
+  -a[-2,-1] x
+  {w},200,1,3,255
+  -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,0
+  -polygon[-1] 4,0,0,100%,0,100%,100%,0,100%,1,0xFFFFFFFF,0
+  -axes[-1] 0,255,1,0,13,1,0
+  -frame[-2,-1] 5,5,220
+  -a[-2,-1] y
+
+  # Initialize variables.
+  clusters=64 sharpness=0 smoothness=0 contrast=1 brightness=0 gamma=1
+
+  # Start event loop.
+  -do
+
+    # Render corrected image and insert it in canvas.
+    [0]
+    ia={ia}
+    -if $gamma -/[-1] 255 -^[-1] {1/$gamma} -*[-1] 255 -endif
+    --[-1] $ia -*[-1] $contrast -+[-1] $brightness -+[-1] $ia
+    -b[-1] $smoothness
+    -sharpen[-1] $sharpness
+    -c[-1] 0,255
+    --j[-2] [-1],6,6
+
+    # Render parameter sliders.
+    sx={@{0,w}+12}
+    -_x_histogram[-1] {$gamma*100/4} -j[-2] [-1],$sx,25 -rm[-1]
+    -_x_histogram[-1] {$contrast*100/4} -j[-2] [-1],$sx,75 -rm[-1]
+    -_x_histogram[-1] {($brightness+128)*100/256} -j[-2] [-1],$sx,125 -rm[-1]
+    -_x_histogram[-1] {$smoothness*100/10} -j[-2] [-1],$sx,175 -rm[-1]
+    -_x_histogram[-1] {$sharpness*100/2000} -j[-2] [-1],$sx,225 -rm[-1]
+    -_x_histogram[-1] {$clusters*100/256} -j[-2] [-1],$sx,275 -rm[-1]
+
+    # Render corresponding histogram.
+    --s[-2] c -histogram[-3--1] $clusters,0,255 -/[-3--1] {3*@{0,wh}/$clusters} -rm[-5]
+    --z[-4] 5,317,{@{-4,w}-5},{@{-4,h}-6}
+    -graph[-1] [-4],3,0,1,0,0.2,255,0,0
+    -graph[-1] [-3],3,0,1,0,0.2,0,255,0
+    -graph[-1] [-2],3,0,1,0,0.2,0,0,255
+    -rm[-4--2]
+    -j[-2] [-1],5,317 -rm[-1]
+
+    # Display rendering.
+    -w[-1] {w},{h},0,0,"[G'MIC] Histogram demo" -rm[-1]
+    -wait
+
+    # Manage user interactions.
+    -if {@{!,b}&1\ &&\ @{!,x}>=@{0,w}-10}
+      -if {@{!,y}>=25\ &&\ @{!,y}<=42}
+        gamma={max(0,min(4,(@{!,x}-$sx)*4/280))}
+      -elif {@{!,y}>=75\ &&\ @{!,y}<=92}
+        contrast={max(0,min(4,(@{!,x}-$sx)*4/280))}
+      -elif {@{!,y}>=125\ &&\ @{!,y}<=142}
+        brightness={max(-128,min(128,(@{!,x}-$sx)*256/280-128))}
+      -elif {@{!,y}>=175\ &&\ @{!,y}<=192}
+        smoothness={max(0,min(10,(@{!,x}-$sx)*10/280))}
+      -elif {@{!,y}>=225\ &&\ @{!,y}<=242}
+        sharpness={max(0,min(2000,(@{!,x}-$sx)*2000/280))}
+      -elif {@{!,y}>=275\ &&\ @{!,y}<=292}
+        clusters={max(2,min(256,(@{!,x}-$sx)*256/280))}
+      -endif
+    -endif
+    -if {@{!,b}&2\ ||\ @{!,SPACE}} clusters=64 sharpness=0 smoothness=0 contrast=1 brightness=0 gamma=1 -endif
+  -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
+  -w 0 -rm -v +
+
+_x_histogram :
+  val={max(0,min(100,$1))}
+  280,2,1,3,255 -line[-1] 0,0,$val%,0,1,0,255,0 -line[-1] 0,1,$val%,1,1,240,255,62 -r[-1] 100%,16,1,3,3
+  1 -text[-1] {round($val)}%,0,0,20,1,1 --*[-1] -255 -+[-1] 255 -r[-1] 100%,100%,1,3
+  -j[-3] [-1],{(280-w)/2},{(16-h)/2},0,0,1,[-2] -rm[-2,-1]
+  -r[-1] {w+2},{h+2},1,3,0,0,0.5,0.5
 
 #@gmic x_hough
 #@gmic : Launch hough transform demo.
@@ -6197,6 +6364,93 @@ _x_mandelbrot_coords :
 _x_mandelbrot_palette :
   6,1,1,3 -rand[-1] 20,255 -r[-1] 32,1,1,3,3 -r[-1] 1024,1,1,3,0,2 -=[-1] 0,0,0,0,0 -=[-1] 0,0,0,0,1 -=[-1] 0,0,0,0,2
 
+#@gmic x_minesweeper : 8<=_width=<20,8<=_height<=20
+#@gmic : Launch the Minesweeper game.
+x_minesweeper : -check "${1=20}>=8 && $1<=30 && ${2=20}>=8 && $2<=30"
+  -e[] "\n
+------ Minesweeper -------------------------------------------\n
+----\n
+---- The goal is to clear the minefield without detonating a\n
+---- mine.\n
+----\n
+---- Left mouse button to try clearing one square.\n
+---- Right mouse button to flag or unflag a square.\n
+---- Middle mouse button to reset mine field.\n
+---- Keys 'ESC' or 'Q' to exit.\n
+----\n
+--------------------------------------------------------------"
+  -v -
+  # Generate random mine field and player board.
+  # Labels : 0=mine, 1=empty, 2='1-near', 3='2-near', ..., 9='8-near', 10=still unknown.
+  $1,$2 -noise[-1] 30,2 nb_mines=@{-1,+} (1,1,1;1,0,1;1,1,1) --convolve[-2] [-1],0 -rm[-2] -+[-1] 1 -==[-2] 0 -*[-2,-1] -nm[-1] field
+  --f[field] 11 -nm[-1] board
+
+  # Generate sprite graphics.
+  24,24,1,3,200 -fc[-1] 255,180,130
+  -ellipse[-1] 12,12,4,4 -line[-1] 6,12,18,12 -line[-1] 12,6,12,18 -line[-1] 13,10,14,10,1,255 -line[-1] 13,11,14,11,1,255
+  -z[-1] 1,1,{w-2},{h-2} -frame[-1] 1,1,0
+  --fc[-1] 230,250,255
+  --text[-1] "1",10,5,13,1,0,196,0 --text[-2] "2",9,5,13,1,0,128,0 --text[-3] "3",9,5,13,1,0,0,255
+  --text[-4] "4",9,5,13,1,255,0,0 --text[-5] "5",9,5,13,1,200,0,0 --text[-6] "6",9,5,13,1,150,0,0
+  --text[-7] "7",9,5,13,1,128,0,0 --text[-8] "8",9,5,13,1,64,0,0 -erode[-8--1] 2
+  --f[-1] 'if(x<=1||y<=1||x>=w-2||y>=h-2,if(x<y,128,255),160+2*(y+x))'
+  --polygon[-1] 4,13,15,11,15,6,18,17,18,1,0 -line[-1] 12,15,12,6,1,255,0,0 -polygon[-1] 3,12,6,6,9,12,12,1,220,0,0
+  -rv[-2,-1] -a[-12--1] x -nm[-1] sprites
+
+  # Pre-calculate offsets and canvas for faster board rendering.
+  (0,23;0,23^0,0;23,23) -r[-1] 24,24,1,2,3 -r[-1] {@{$board,w}*24},{@{$board,h}*24},1,2,0,2 -nm[-1] offsets
+  [-1],[-1],1,3,255 -frame[-1] 1,1,0 -frame[-1] 23,23,255
+  0 -text[-1] "Number of mines : "$nb_mines,0,0,18,1,100,200,255 -negative[-1] -j[-2] [-1],{(@{-2,w}-w)/2},{@{-2,h}-h-2} -rm[-1]
+  -nm[-1] canvas
+
+  # Start user interaction loop.
+  failed=0 succeeded=0 tic=@| nb_flags=0
+  -do
+
+    # Render board.
+    --*[board] 24 -r[-1] [offsets],[offsets] -channels[-1] 0,1 -+[-1] [offsets] --warp[sprites] [-1],0,0 -rm[-2]
+    -j[canvas] [-1],24,24 -rm[-1]
+
+    # Wait for user's selection.
+    -wait -1
+    -if $failed
+      0 -text[-1] "Game\nOver !",3,3,38,1,255 -r[-1] 100%,100%,1,4 -sh[-1] 3,3 -dilate[-1] 5 -/[-1] 2 -rm[-1]
+      -drop_shadow[-1] 5,5,1 -compose_alpha[canvas,-1]
+      0 -text[-1] "Boom ! You failed !",0,0,18,1,100,255,255 -r[-1] @{$canvas,w},100%,1,3,0,0,0.5,0.5 -negative[-1] -j[canvas] [-1],0,3 -rm[-1]
+      -do -w[canvas] {w},{h} -wait -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
+    -elif $succeeded
+      0 -text[-1] "Success !",3,3,38,1,255 -r[-1] 100%,100%,1,4 -sh[-1] 3,3 -dilate[-1] 5 -/[-1] 2 -rm[-1]
+      -drop_shadow[-1] 5,5,1 -compose_alpha[canvas,-1]
+      0 -text[-1] "Congratulations ! ("{round(@|-$tic)}" s)",0,0,18,1,255,100,255 -r[-1] @{$canvas,w},100%,1,3,0,0,0.5,0.5
+      -negative[-1] -j[canvas] [-1],0,3 -rm[-1]
+      -do -w[canvas] {w},{h} -wait -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
+    -else
+      -do
+        0 -text[-1] "Elapsed time : "{round(@|-$tic)}" s / Flags : "$nb_flags,0,0,18,1,255,200,0 -r[-1] @{$canvas,w},100%,1,3,0,0,0.5,0.5
+        -negative[-1] -j[canvas] [-1],0,3 -rm[-1]
+        -wait 50
+        x={int((@{!,x}-24)/24)} y={int((@{!,y}-24)/24)} b=@{!,b}
+        -w[canvas] {w},{h},0,0,"[G'MIC] Minesweeper"
+      -while {@!" && "!@{!,ESC}" && "!@{!,Q}" && "!$b}
+    -endif
+
+    # Manage selected square.
+    -if {$x>=0\ &&\ $y>=0\ &&\ $x<@{$board,w}\ &&\ $y<@{$board,h}}
+      -if {$b&1}  # Try to clean square.
+        val=@{$field,($x,$y)}
+        -if {$val==0} --==[field] 0 -j[board] [field],0,0,0,0,1,[-1] -rm[-1] failed=1  # Found a mine -> boom !
+        -elif {$val==1} --flood[field] $x,$y,0,0,1,1,-1 -==[-1] -1 -dilate[-1] 3 -j[board] [field],0,0,0,0,1,[-1] -rm[-1] # Found an empty area.
+        -else -=[board] $val,$x,$y # Close to one or several mines.
+        -endif
+      -elif {$b&2} -=[board] {if(@{$board,($x,$y)}==11,10,11)},$x,$y nb_flags={$nb_flags+if(@{$board,($x,$y)}==11,-1,1)} # Flag or unflag a square.
+      -elif {$b&4} -f[board] 10  # Reset minefield.
+      -endif
+    -endif
+
+    -if {$nb_mines==$nb_flags\ &&\ @{$board,M}!=11} succeeded=1 -endif  # Check if board is cleared.
+  -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
+  -w 0 -v +
+
 #@gmic x_minimal_path
 #@gmic : Launch the minimal path demo.
 x_minimal_path :
@@ -6391,6 +6645,123 @@ x_paint :
   # Exit properly.
   -w1[] 0 -w2[] 0 -w3[] 0 -rm[-2,-1] -v +
 
+#@gmic x_plasma
+#@gmic : Launch the plasma demo.
+x_plasma :
+  -e[] "\n
+------ Plasma demo ----------------------\n
+----\n
+---- Keys 'ESC' or 'Q' to exit.\n
+----\n
+-----------------------------------------"
+  -v -
+
+  # Init plasma backgrounds.
+  N=8
+  -repeat $N
+    256,150,1,3 -rand[-1] 0,255 -plasma[-1] 1,0,7 -n[-1] 0,255
+    amp={?(-40,40)} freq={round(?(2,6))} dir$>={if(?<0.5,-1,1)*round(?(1,2))}
+    100%,100%,1,1,'$amp*cos(y*2*pi*$freq/h)'
+  -done
+
+  {w+2},100%,1,1,'x' 100%,100%,1,1,'Y=(y-60+5*cos(x/30)+10*sin(x/15));if(Y<0||Y>=32,-1,Y)' -a[-2,-1] c
+  0 -text[-1] "** Welcome to G'MIC, a powerful image processing framework **",0,0,32,1,255
+  -blur[-1] 0.6 -n[-1] 0,255
+  M={w}
+
+  # Start animation loop.
+  -w[] {2*@{0,w}},{2*@{0,h}},0,0,"[G'MIC] Plasma demo"
+  t=0 tt={-1.5*@{0,w}}
+  -do
+    tic=@|
+
+    # Render interpolated background between two successive plasmas.
+    a={int($t)}   a2={2*$a} a21={$a2+1}
+    b={($a+1)%$N} b2={2*$b} b21={$b2+1}
+    --warp[$a2] [$a21],1,0,2
+    --warp[$b2] [$b21],1,0,2
+    -j[-2] [-1],0,0,0,0,{$t-$a} -rm[-1]
+
+    -shift[$a21] 0,${dir$a},0,0,2  # Animate plasma background.
+    -shift[$b21] 0,${dir$b},0,0,2
+    -if {int($t+0.005)>int($t)} dir$a={if(?<0.5,-1,1)*round(?(1,3))} -endif
+    t={($t+(@|-$tic))%$N}
+
+    # Render text scrolling.
+    --z[-2] $tt,{$tt+w-1+2}
+    -warp[-1] [-4],0,0,0
+    -r[-1] 100%,100%,1,3
+    --*[-1] -1 -+[-1] 255
+    -j[-3] [-1],0,0,0,0,1,[-2],255 -rm[-1]
+    -j[-2] [-1],-2,-2,0,0,1,[-1],255 -rm[-1]
+
+    tt={$tt+(@|-$tic)*100} # Animate scrolling.
+    -if {$tt>=$M} tt={-1.5*@{0,w}} -endif
+
+    # Display rendered frame.
+    -w[-1] -rm[-1]
+    -wait 20
+  -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
+  -rm[{-2*$N-2}--1] -w[] 0 -v +
+
+#@gmic x_reflection3d
+#@gmic : Launch the 3d reflection demo.
+x_reflection3d :
+  -e[] "\n
+------ 3d reflection demo ---------------\n
+----\n
+---- Keys 'ESC' or 'Q' to exit.\n
+----\n
+-----------------------------------------"
+  -v -
+
+  # Render background.
+  128,256,1,3 -rand[-1] 0,255 -plasma[-1] 1,100 -blur_xy[-1] 30,2
+  -sh[-1] 0,0 -n[-1] 0,90 -rm[-1] -sh[-1] 1,1 -n[-1] 0,60 -rm[-1] -sh[-1] 2,2 -n[-1] 0,180 -rm[-1]
+  --mirror[-1] x [-2,-1] -a[-4--1] x
+  --luminance[-1] -mirror[-1] x -b[-1] 2 -n[-1] 0,255
+
+  # Create 3d objects.
+  -torus3d 30,10 -col3d[-1] 255,200,0
+  -spherical3d 47,34,"80+20*abs(cos(2*theta))" -s3d[-1] -rm[-2] -i[-2] 3,{h},1,1,150,220,255,200,255,255 -y[-2] y -a[-6--1] y
+  -spherical3d 47,34,"100*abs(1+0.6*cos(3*phi)*sin(4*theta))"
+  -r3d[-2,-1] 0,1,0,90 -db3d 0
+
+  # Start animation loop.
+  xb=0 xl=0 anim=0
+  -w[] 400,400,0,0,"[G'MIC] 3d reflection demo"
+  -do
+
+    tic=@|
+    # Recreate 3d interpolated background object.
+    --lines[-1] 8,{8+3*i(0,6)-1} --j[-3] [-1],0,8,0,0,{if($anim<250,0,0.5-0.5*cos(($anim-250)/100))} -rm[-2]
+
+    # Render 3d background object (with flat colors).
+    --z[-6] $xb,0,{$xb+255},255 -m3d 3 -object3d[-1] [-2],75%,50%,0,1,0
+
+    # Render light reflection map.
+    --z[-6] $xl,0,{$xl+255},255
+    xf={min(30,$anim-70)+20*cos(1.8*@|)}
+    yf={50+20*sin(2.7*@|)}
+    -m3d 4 -object3d[-1] [-6],{20+$xf}%,$yf%,0,1,0
+
+    # Add light reflection to 3d background object.
+    -l3d [-1] -rm[-1] -m3d 5 --object3d[-1] [-2],75%,50%,0,1,0 -j[-2] [-1],0,0,0,0,0.6 -rm[-3,-1]
+
+    # Add 3d foreground object.
+    -m3d 4 -object3d[-1] [-4],$xf%,$yf%,0,1,0
+
+    # Display frame and update animation variables.
+    -w[-1] -rm[-1]
+    xb={($xb+6)&255}
+    xl={($xl-6)&255}
+    anim={$anim+1}
+    -r3d[-2,-1] {sin(0.5*@|)},{cos(@|)},1,{(@|-$tic)*33}
+    -r3d[-3] -1,0.3,0.8,{(@|-$tic)*100}
+    -wait 20
+  -while {@!" && "!@{!,ESC}" && "!@{!,Q}}
+  -rm[-5--1] -w[] 0 -v +
+
 #@gmic x_rubber3d
 #@gmic : Launch the 3d rubber demo.
 x_rubber3d :
@@ -6410,7 +6781,7 @@ x_rubber3d :
   frame=0
   -do
     {w},{h},1,3 -fc[-1] 16,32,32 -object3d[-1] [0],50%,50%,0,1,0 -j[1] [-1],0,0,$frame -rm[-1]
-    -r3d[0] 0.1,1,0.6,{2*cos(@|/800)} -r3d[0] 1,0.2,0.6,-1
+    -r3d[0] 0.1,1,0.6,{3*cos(@|*1.25)} -r3d[0] 1,0.2,0.6,-1
     --warp[1] [2],0,0 -*[3] 0.8 -*[-1] 0.2 -+[3,-1]
     -w[-1] {1.2*w},{1.2*h},0,0,"Rubber 3d" -wait 20
     -sh[2] 2,2 --[-1] 1 -and[-1] {@{1,d}-1} -rm[-1]
@@ -7335,7 +7706,7 @@ tic :
 #@gmic : Display elapsed time of the tic-toc timer since the last call to '-tic'.
 #@gmic : Use it in conjunction with '-tic'.
 toc :
-  -e "Elapsed time : "{@|-$__tic}.
+  -e "Elapsed time : "{@|-$__tic}" s".
 
 #@gmic uncase : string
 #@gmic : Return a lower-case version of the specified string.
@@ -7348,503 +7719,435 @@ uncase :
 #
 #-----------------------------
 
-#@gmic gpt : _scorefile,_title,_photo_width>0,absence_coef>0,_number_of_sessions>=0.
+#@gmic gpt : _scorefile,_number_of_sessions>=0.
 #@gmic : Generate score board for the GPT championship (GREYC Poker Tour).
 #@gmic : $ -gpt ,
-gpt : -skip "${1=http://www.greyc.ensicaen.fr/~dtschump/gpt.raw}",${2="GREYC Poker Tour"},${5=0} -check "${3=48}>0 && ${4=0.6}>0"
+gpt : -skip "${1=http://www.greyc.ensicaen.fr/~dtschump/gpt.raw}" -skip ${2=0}
   -e[^-1] "Generate score board for GPT-like championship (GREYC Poker Tour), from file '$1'."
-  -v - -rm
+  -v -
 
-  # Load score file.
-  -i raw:$1,uchar -s[-1] -,10 -transpose
-
-  # Parse score file.
-  nb_players=@#
-  -repeat $nb_players -l[0]
-    -s -,{'" "'}
+  # Load score file and generate score field.
+  #------------------------------------------
+  -rm -i raw:$1,uchar -s[-1] -,10 -transpose                           # Split score file into lines.
+  -repeat @# -if {i=={'#'}} -rm[-1] -else -mv[-1] 0 -endif -done       # Remove comment lines.
+  -repeat @# -l[$>]
+    -s -,{'\ '}
     -if {@#!=4} -error[0--4] "Invalid score file (line "{$>+1}" defines "@#" items instead of 4)." -endif
     player$>_name=@{0,t}
     player$>_url=@{1,t}
     player$>_file=@{2,t}
-    player$>_history=@{3,t}
-  -rm -endl -done
-
-  # Build complete game history.
-  -l[] -repeat $nb_players (${player$>_history}) -done -a y,1 -endl
-  -if {$5>0}                      # Keep only last Nth sessions.
-    -z[-1] {max(0,w-$5)},100%
-    -repeat $nb_players -sh[-1] $>,$>,0,0 player$>_history=@-1 -rm[-1] -done
-  -elif {$5<0}                    # Keep only sessions of the last Nth-session tournament.
-    -z[-1] {w-1-((w-1)%-$5)},100%
-    -repeat $nb_players -sh[-1] $>,$>,0,0 player$>_history=@-1 -rm[-1] -done
+    (@{3,t}) -rm[0-3]
+  -endl -done
+  -+ 1 -a y,1 -- 1
+  -if {$2>0} -z[-1] {max(0,w-$2)},100%          # Keep only last Nth sessions.
+  -elif {$2<0} -z[-1] {w-1-((w-1)%-$2)},100%    # Keep only sessions of the last Nth-session tournament.
   -endif
-  nb_sessions={w}
-  max_score={round(iM,1,1)}
-  nb_significant_games={max(1,round($nb_sessions/if($5,3,10),1,1))}
+  -if $2 -s y -repeat @# -if {@{$<,M}<0} -rm[$<] -endif -done -a y -endif  # Remove non-players in 'alternate' score boards.
+  -nm[-1] scores
 
-  # Get session statistics.
-  nb_avg_players=0
-  session_nb_players_history=
-  -repeat $nb_sessions --columns[-1] $> -l[-1]
-    -s -,0 -a y
-    session$>_max_score={iM}
-    session$>_min_score={im}
-    session$>_avg_score={ia}
-    session$>_nb_players={h}
-    nb_avg_players={$nb_avg_players+h}
-    session_nb_players_history=$session_nb_players_history@{"-if "$>" -u , -else -u \"\" -endif"}${session$>_nb_players}
-  -endl -rm[-1] -done
-  nb_avg_players={round($nb_avg_players/$nb_sessions,0.1)}
+  # Set global variables.
+  #-----------------------
+  row_height={if($2,24,48)}
+  absence_penalty=2
 
-  # Get winners and losers of the last session.
-  last_session_losers=
-  last_session_winners=
-  sm=${session{$nb_sessions-1}_min_score}
-  sM=${session{$nb_sessions-1}_max_score}
-  --columns[-1] 100% -repeat $nb_players
-    -if {@{-1,$>}==$sm} last_session_winners=$last_session_winners@{"-if "$>" -u \" \" -else -u \"\" -endif"}${player$>_name}
-    -elif {@{-1,$>}==$sM} last_session_losers=$last_session_losers@{"-if "$>" -u \" \" -else -u \"\" -endif"}${player$>_name}
-    -endif
-  -done -rm[-1]
+  # Compute session winners and losers
+  # (must be done before rounding scores to integers!).
+  #----------------------------------------------------
+  --l[scores] -s y -max -endl --==[scores,-1] -rm[-2]
+  -nm[-1] winners
+  --l[scores] -replace[-1] -1,1e8 -s y -min -endl --==[scores,-1] -rm[-2]
+  -nm[-1] losers
 
-  # Get player statistics.
-  -repeat $nb_players -sh[-1] $>,$>,0,0
-    --histogram[-1] $nb_players,0,$nb_players player$>_games={$nb_sessions-@{-1,0}} -rm[-1] # Number of played games.
-    w=0 l=0 s=0 ps=0 la=0 ga=0 lo=0 -repeat {w}
-      ps=$s la=@{-1,$>}
-      -if {$la==${session$>_min_score}} w={$w+1} ga={$ga+1}                           # Manage number of games won.
-      -elif {$la==${session$>_max_score}} l={$l+1} lo={$lo+${session$>_nb_players}-1} # Manage number of games lost.
-      -elif $la ga={$ga+1}
-      -endif
-      -if {$la==0}                                                                    # Manage score computation.
-        -if {${player@{>,-2}_games}>=$nb_significant_games" || "${player@{>,-2}_games}==0}
-           s={$s+$4*${session$>_nb_players}}
-        -else
-           s={$s+1.2*$4*${session$>_nb_players}}                                      # 20% penalty for occasional players.
-         -endif
-      -else s={$s+$la}
-      -endif
-    -done
-    player$>_wons=$w
-    player$>_losts=$l
-    player$>_gains={$ga*0.4}
-    player$>_losses={$lo*0.4}
-    player$>_score={round($s,0.25)}
-    player$>_previous_score={round($ps,0.25)}
-    player$>_last_result=$la
-    player$>_is_regular={${player$>_games}>=$nb_significant_games}
+  # Compute players ranks for each session.
+  # (must be done before rounding scores to integers!).
+  #----------------------------------------
+  --l[scores] -s x -r 2,100%,1,1,0 -f 'if(x,y,i)' -sort -,y
+  -r 3,100%,1,1,0,0,1,0 -f 'if(x,i,y+1)'
+  -repeat {h} -f 'if(!x,if(i(1,y)==i(1,y-1),i(0,y-1),i),i)' -done            # Manage ax-aequo ranks.
+  -mirror x -sort +,y -z 1,2 -f 'if(i(0,y)==-1,-1,i)'
+  -z 1,1 -a x -endl
+  -nm[-1] ranks
 
-    # Retrieve score history for played games only.
-    --l[-1] -s[-1] -,0 -a y
-      -if @#
-        player$>_score_history=@-1
-        player$>_avg_score={round(ia,0.01)}
-        player$>_std_score={round(sqrt(iv),0.01)}
-        player$>_is_playing=1
-      -else
-        player$>_score_history=0
-        player$>_avg_score=0
-        player$>_std_score=0
-        player$>_is_playing=0
-      -endif
-    -rm -endl
+  # Round scores to nearest integer.
+  #---------------------------------
+  -round[scores]
 
-    # Retrieve nb player history for played games only.
-    --l[-1] ($session_nb_players_history) -a y -f if(i(x,0),i,0) -transpose -s -,0
-      -if @# -a y -r 2,{h/2},1,1,-1 -columns 1 player$>_nb_players_history=@-1 -rm
-      -else player$>_nb_players_history=0
-      -endif
-    -endl
+  # Compute number of players per session.
+  #---------------------------------------
+  --l[scores] -s x -discard -1 -f h -lines 0 -a x -endl
+  -nm[-1] nb_players
 
-    # Retrieve percentage history for played games only.
-    -if ${player$>_is_playing}
-      (${player$>_score_history}) (${player$>_nb_players_history}) --[-2,-1] 1 -/[-2,-1]
-      player$>_percentage_history=@-1 -rm[-1]
-    -else
-      player$>_percentage_history=0
-    -endif
+  # Compute min and max scores per session.
+  #----------------------------------------
+  --l[scores] -s y -max -endl
+  -nm[-1] max_scores
+  --l[scores] -replace[-1] -1,1e8 -s y -min -endl
+  -nm[-1] min_scores
 
-    # Compute performance indice and cash balance for played games only (for regular players only).
-    -if ${player$>_is_regular}
-      (${player$>_score_history}) (${player$>_nb_players_history}) --[-2,-1] 1 -/[-2,-1]
-      player$>_performance={100*(1-ia)} -rm[-1]
-      player$>_balance={${player$>_gains}-${player$>_losses}}
-    -else
-      player$>_performance=0 # Not significant enough.
-      player$>_balance=0
-    -endif
+  # Compute number of games per player.
+  #-------------------------------------
+  --l[scores] -ge 0 -s x -+ -endl
+  -nm[-1] nb_games
 
-  -rm[-1] -done
-  -rm[-1]
+  # Compute player scores and corresponding ranks.
+  #------------------------------------------------
+  --l[scores] -f 'if(i==-1,-$absence_penalty,i-100)' -s x -+ -endl
+  --f[-1] y -a[-2,-1] x -sort[-1] -,y
+  1,100%,1,1,'y+1' -a[-2,-1] x -mirror[-1] x
+  -repeat {h} -f[-1] 'if(!x,if(i(2,y)==i(2,y-1),i(0,y-1),i),i)' -done        # Manage ax-aequo ranks.
+  -nm[-1] rank
+  --shift[-1] -1,0,0,0,2 -sort[-1] +,y -columns[-1] 1,100%
+  -nm[-1] score
 
-  # Get player ranking according to different measures.
-  -l[] -repeat $nb_players (${player$>_score};$>) -done -a x -sort +,x min_score={i}                             # Sort by regular score.
-  -lines 1 -repeat {w} player$>_position=@{-1,$>} player@{-1,$>}_current_position=$> -done -rm -endl             # Get corresponding ranks.
+  # Compute player best scores and corresponding ranks.
+  #-----------------------------------------------------
+  --l[scores] -s x -max -- 100 -endl
+  --f[-1] y -a[-2,-1] x -sort[-1] -,y
+  1,100%,1,1,'y+1' -a[-2,-1] x -mirror[-1] x
+  -repeat {h} -f[-1] 'if(!x,if(i(2,y)==i(2,y-1),i(0,y-1),i),i)' -done        # Manage ax-aequo ranks.
+  -shift[-1] -1,0,0,0,2 -sort[-1] +,y -columns[-1] 1,100%
+  -nm[-1] best_score
 
-  -l[] -repeat $nb_players (${player$>_previous_score};$>) -done -a x -sort +,x min_previous_score={i}           # Sort by previous regular score.
-  -lines 1 -repeat {w} player@{-1,$>}_previous_position=$> -done -rm -endl                                       # Get corresponding ranks.
+  # Compute previous player scores and corresponding ranks.
+  #--------------------------------------------------------
+  --l[scores] -columns 0,{w-2} -f 'if(i==-1,-$absence_penalty,i-100)' -s x -+ -endl
+  --f[-1] y -a[-2,-1] x -sort[-1] -,y
+  1,100%,1,1,'y+1' -a[-2,-1] x -mirror[-1] x
+  -repeat {h} -f[-1] 'if(!x,if(i(2,y)==i(2,y-1),i(0,y-1),i),i)' -done        # Manage ax-aequo ranks.
+  -shift[-1] -1,0,0,0,2 -sort[-1] +,y -columns[-1] 1,100%
+  -nm[-1] previous_score
 
-  -l[] -repeat $nb_players -if ${player$>_is_regular} (${player$>_performance};$>) -endif -done -a x -sort -,x   # Sort by average score.
-  -lines 1 nb_performances={w} -repeat {w} player@{-1,$>}_performance_position=$> -done -rm -endl                # Get corresponding ranks.
+  # Compute player ranking trends.
+  #-------------------------------
+  ---[previous_score,score] -columns[-1] 1
+  -nm[-1] trend
 
-  -l[] -repeat $nb_players -if ${player$>_is_regular} (${player$>_avg_score};$>) -endif -done -a x -sort +,x     # Sort by performance.
-  -lines 1 nb_avg_scores={w} -repeat {w} player@{-1,$>}_avg_position=$> -done -rm -endl                          # Get corresponding ranks.
+  # Compute player performances and corresponding ranks.
+  #-----------------------------------------------------
+  ---[scores] [min_scores] [max_scores] --[-1] [min_scores] -/[-2,-1] -*[-1] 100
+  -l[-1] -f 'if(i<0,-1,i)' -s y -discard -1 -f 'if(ia<0,0,ia)' -lines 0 -a y -round 1 -endl
+  --f[-1] y -a[-2,-1] x -sort[-1] -,y
+  1,100%,1,1,y+1 -a[-2,-1] x -mirror[-1] x
+  -repeat {h} -f[-1] 'if(!x,if(i(2,y)==i(2,y-1),i(0,y-1),i),i)' -done        # Manage ax-aequo ranks.
+  -shift[-1] -1,0,0,0,2 -sort[-1] +,y -columns[-1] 1,100%
+  -nm[-1] performance
 
-  -l[] -repeat $nb_players (${player$>_balance};$>) -done -a x -sort -,x                                         # Sort by cash balance.
-  -lines 1 nb_balances={w} -repeat {w} player@{-1,$>}_balance_position=$> -done -rm -endl                        # Get corresponding ranks.
+  # Compute player average scores and corresponding ranks.
+  #--------------------------------------------------------
+  --l[scores] -s y -discard -1 -- 100 -r 1,1,1,1,2 -a y -endl
+  --f[-1] y -a[-2,-1] x -sort[-1] -,y
+  1,100%,1,1,y+1 -a[-2,-1] x -mirror[-1] x
+  -repeat {h} -f[-1] 'if(!x,if(i(2,y)==i(2,y-1),i(0,y-1),i),i)' -done        # Manage ax-aequo ranks.
+  -shift[-1] -1,0,0,0,2 -sort[-1] +,y -columns[-1] 1,100%
+  -nm[-1] average
 
-  # Load player avatars.
-  max_height=0
-  -repeat $nb_players i=${player$>_position}
-    -if @{-path_tmp}/${player${i}_file} @{-path_tmp}/${player${i}_file}
-    -else ${player${i}_url}${player${i}_file} -o[-1] @{-path_tmp}/${player${i}_file}
-    -endif
-    -n[-1] 0,255 -to_rgb[-1] -r2dx[-1] $3 max_height={max(h,$max_height)}
-  -done
-  -- 255 -r 100%,$max_height,1,3,0,0,0,0.5 -+ 255
+  # Compute player coffee balances and corresponding ranks.
+  #--------------------------------------------------------
+  --!=[scores] -1            # Coffee won.
+  --*[losers,nb_players]     # Coffee paid.
+  --[-2,-1] -l[-1] -s x -+ -endl -round[-1] -*[-1] 0.4
+  --f[-1] y -a[-2,-1] x -sort[-1] -,y
+  1,100%,1,1,y+1 -a[-2,-1] x -mirror[-1] x
+  -repeat {h} -f[-1] 'if(!x,if(i(2,y)==i(2,y-1),i(0,y-1),i),i)' -done        # Manage ax-aequo ranks.
+  -shift[-1] -1,0,0,0,2 -sort[-1] +,y -columns[-1] 1,100%
+  -nm[-1] coffee_balance
 
-  # Generate each player board row.
-  rank=0
-  rank_increment=1
+  # Compute arrow sprites for trends.
+  #----------------------------------
+  -cone3d 1.5,2 -r3d[-1] 0,1,0,90 -box3d 4,1,0 -+3d[-1] 0,-0.5 -+3d[-2,-1] -r3d[-1] 0,1,0,180
+  -c3d[-1] -*3d[-1] 17 -col3d[-1] 1,1,1 -m3d 2
+  128,128 -object3d[-1] [-2],50%,50%,0,1,0 -nm[-1] arrow_eq_mask
+  --*[-1] 200 --*[-2] 200 --*[-3] 200 -a[-3--1] c -nm[-1] arrow_eq
+  -r3d[-3] 0,0,1,35
+  128,128 -object3d[-1] [-4],50%,50%,0,1,0 -nm[-1] arrow_up_mask
+  --*[-1] 64 --*[-2] 255 --*[-3] 64 -a[-3--1] c -nm[-1] arrow_up
+  -r3d[-5] 0,0,1,-70
+  128,128 -object3d[-1] [-6],50%,50%,0,1,0 -nm[-1] arrow_down_mask
+  --*[-1] 255 --*[-2] 64 --*[-3] 32 -a[-3--1] c -nm[-1] arrow_down
+  -dilate[arrow_eq_mask,arrow_up_mask,arrow_down_mask] 3
+  -rm[-7]
 
-  -repeat $nb_players -l[$>]
-    i=${player$>_position}
-    -if {!$5" || "${player${i}_is_regular}}
+  # Render score board.
+  #--------------------
+  board=@#
+
+  # Row of labels.
+  i=@#
+  -_gpt_field "Rank",48,$row_height,16,1,6
+  -_gpt_field " ",$row_height,$row_height,16,1,6
+  -_gpt_field "Name",150,$row_height,16,1,6
+  -_gpt_field "Chips",90,$row_height,16,1,6
+  -_gpt_field "Played",48,$row_height,12,1,6
+  -_gpt_field "Won/\nLost",48,$row_height,24,1,6
+  -_gpt_field "Last",48,$row_height,12,1,6
+  -if $2 -_gpt_field "Trd",$row_height,$row_height,12,1,6
+  -else -_gpt_field "Trend",$row_height,$row_height,12,1,6
+  -endif
+  -if $2 -_gpt_field "Stats",{2*$row_height},$row_height,12,1,6
+  -else -_gpt_field "Statistics",{4*$row_height+2},$row_height,12,1,6
+  -endif
+  -_gpt_field "Best\n(rank)",64,$row_height,24,1,6
+  -_gpt_field "Performance\n   (rank)",64,$row_height,24,1,6
+  -_gpt_field "Average\n[std] (rank)",100,$row_height,24,1,6
+  -_gpt_field "Coffee balance\n     (rank)",80,$row_height,24,1,6
+  -a[$i--1] x
+
+  # Retrieve maximum ranks for every field.
+  max_players=@{$nb_players,M}
+  --z[rank] 0,0 max_rank={iM} -rm[-1]
+  --z[performance] 1,1 max_performance_rank={iM} -rm[-1]
+  --z[best_score] 1,1 max_best_score_rank={iM-1} -rm[-1]
+  --z[average] 1,1 max_average_rank={iM-1} -rm[-1]
+  --z[coffee_balance] 1,1 max_coffee_balance_rank={iM} -rm[-1]
+
+  # Loop on each player row.
+  -repeat @{$rank,h}
+    p=@{$rank,(1,$>)}
+    n=@{$nb_games,(0,$p)}
+    c={if(@{$nb_games,(0,$p)}==0,0,v=@{$score,(1,$p)};if(v>=1&&v<=3,v,if(v==$max_rank-1,4,if(v==$max_rank,5,0))))}
+    i=@#
 
     # Rank.
-    -if ${player{$i}_is_playing}  # Manage rank computation.
-      -if $>
-        pi=${player{$>-1}_position}
-        -if {${player${i}_score}!=${player${pi}_score}" || "($5" && "${player${pi}_games}<=$nb_significant_games)} rank={$rank+$rank_increment} rank_increment=1
-        -else rank_increment={$rank_increment+1}
-        -endif
-      -else
-        rank=1 rank_increment=1
-      -endif
-    -endif
+    t_rank=@{$score,(1,$p)}
+    -_gpt_field $t_rank,48,$row_height,16,1,$c
 
-    -if ${player${i}_is_playing}
-      1 -text[-1] $rank,0,0,57,1,255,255,255
-      -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 45,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
-    -else
-      45,$max_height,1,3,255
+    # Avatar.
+    -if @{-path_tmp}/${player${p}_file} @{-path_tmp}/${player${p}_file}
+    -else ${player${p}_url}${player${p}_file} -o[-1] @{-path_tmp}/${player${p}_file}
     -endif
-    width_rank={w} -mv[-1] 0
-
-    # Picture.
-    width_picture={w}
+    -to_rgb[-1] --[-1] 255 -rr2d[-1] {$row_height-2},{$row_height-2},2,2 -+[-1] 255 -frame[-1] 1,1,0
 
     # Name.
-    ({'${player${i}_name}'}) -replace[-1] {'_'},{"' '"}
-    1 -text[-1] @{-2,t},0,0,57,1,255,255,255 -rm[-2]
+    t_name=@{-_gpt_rm_underscore\ ${player${p}_name}}
+
+    0 -text[-1] $t_name,0,0,32,1,255,255,255
     -r[-1] 100%,100%,1,4
     -sh[-1] 0,2 -*[-1] '(2-c)*0.9*y/h' -rm[-1]
-    -drop_shadow[-1] 2,2,1.5
-    -i[-2] {w},{h},1,3,255 -compose_alpha[-2,-1]
-    -autocrop[-1] 255 -r2dy[-1] 20 -frame[-1] 1,1,255
-    -r[-1] 150,$max_height,1,3,0,1,0.5,0.5
-    width_name={w}
+    -drop_shadow[-1] 1,1,1
+    -_gpt_field " ",225,{1.5*$row_height},20,1,$c -mv[-1] -2
+    -compose_alpha[-2,-1]
+    -r2dy[-1] $row_height
+    -z[-1] 1,1,{w-2},{h-2} -frame[-1] 1,1,0
 
     # Score.
-    1 -text[-1] {${player${i}_score}-$min_score},0,0,57,1,255,255,255
-    -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 80,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
-    width_score={w}
+    t_score=@{$score,(0,$p)}
+    -if {$t_score>0} t_score=+$t_score -endif
+    -_gpt_field $t_score,90,$row_height,20,$n,$c
 
-    # Played games.
-    1 -text[-1] ${player${i}_games},0,0,57,1,255,255,255
-    -autocrop[-1] 0 -r2dy[-1] 10 -r[-1] 60,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
-    width_player_games={w}
+    # Played
+    t_nb_games=@{$nb_games,(0,$p)}
+    -_gpt_field $t_nb_games,48,$row_height,16,$n,$c
 
     # Won/lost.
-    -if ${player${i}_is_playing}
-      1 -text[-1] ${player${i}_wons}/${player${i}_losts},0,0,57,1,255,255,255
-      -autocrop[-1] 0 -r2dy[-1] 12 -r[-1] 60,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
-    -else
-      60,$max_height,1,3,255
+    --lines[winners] $p
+    t_won=@{-1,+}
+    --lines[losers] $p
+    t_lost=@{-1,+}
+    -rm[-2,-1]
+    -_gpt_field $t_won/$t_lost,48,$row_height,16,$n,$c
+
+    # Last score.
+    t_last_score={v=@{$scores,(100%,$p)};if(v==-1,-1,v-100)}
+    -if {$t_last_score>0} t_last_score=+$t_last_score
+    -elif {$t_last_score==-1} t_last_score=abs.
     -endif
-    width_won_lost={w}
-
-    # Last session.
-    -if ${player${i}_is_playing}
-      1 -text[-1] @{"-if "{${player${i}_last_result}==0}" -u abs. -else -u "${player${i}_last_result}/${session{$nb_sessions-1}_nb_players}" -endif"},0,0,57,1,255,255,255
-      -autocrop[-1] 0 -r2dy[-1] 10 -r[-1] 60,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
-    -else
-      60,$max_height,1,3,255
-    -endif
-    width_last_result={w}
-
-    # Statistics.
-    -if ${player${i}_is_playing}
-      256,{2*$max_height},1,3,255
-      -grid[-1] {100/$max_score}%,10%,0,0,1,0xCCCCCCCC,64
-
-      (${player${i}_score_history}) # Histogram of positions.
-      -histogram[-1] $max_score,1,$max_score
-      -graph[-2] [-1],3,0,0,0,1,200,200,255 -rm[-1]
-
-      (${player${i}_avg_score}) # Average player score.
-      -graph[-2] [-1],2,0,0.5,{$max_score+0.5},1,164,0,0 -rm[-1]
-
-      (${player${i}_score_history}) # History of player scores.
-      -columns[-1] {max(0,w-15)},{w-1}
-      -graph[-2] [-1],2,4,0.5,{$max_score+0.5},1,134,134,134 -rm[-1]
-
-      (${player${i}_percentage_history}) # History of player percentages.
-      -columns[-1] {max(0,w-15)},{w-1}
-      -graph[-2] [-1],2,4,-0.1,1.1,1,0,0,0 -rm[-1]
-
-      (${player${i}_score_history}) # Histogram pie-charts with and without absences.
-      -histogram[-1] $max_score,1,$max_score ({$nb_sessions-${player${i}_games}}) -a[-2,-1] x
-      --_gpt_piechart[-1] -=[-2] 0,100% -_gpt_piechart[-2] -rv[-2,-1] -r2dy[-2,-1] {2*$max_height}
-      -a[-3--1] x -frame[-1] 1,1,0 -frame[-1] 6,6,255 -r2dy[-1] $max_height -c[-1] 0,255
-
-    -else
-      {if(narg($width_stats),0$width_stats,179)},$max_height,1,3,255
-    -endif
-    width_stats={w}
+    -_gpt_field $t_last_score,48,$row_height,16,$n,$c
 
     # Trend.
-    -if ${player${i}_is_playing}
-      delta_position={${player${i}_current_position}-${player${i}_previous_position}}
-      -if {$delta_position==0}
-        -if $>
-          pi=${player{$>-1}_position}
-          delta_score={round((${player${i}_score}-${player${pi}_score})-(${player${i}_previous_score}-${player${pi}_previous_score}),1,-1)}
-        -else
-          delta_score=0
-        -endif
-        -if {$delta_score>0}
-          -_gpt_arrow {2*$max_height},-22 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 0.9,0.7,0.7
-        -elif {$delta_score<0}
-          -_gpt_arrow {2*$max_height},22 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 0.7,0.9,0.8
-        -else
-          -_gpt_arrow {2*$max_height},0 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 0.9,0.9,0.9
-        -endif
-
-      -elif {$delta_position<0}
-        -_gpt_arrow {2*$max_height},45 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 0.1,0.8,0.2
-      -else
-        -_gpt_arrow {2*$max_height},-45 -r[-1] 100%,100%,1,4 -_gpt_shade[-1] 1,0.1,0.1
-      -endif
-      -frame[-1] 15,15,255 -drop_shadow[-1] 6,6,3 -i[-2] {w},{h},1,3,255 -compose_alpha[-2,-1]
-
-      -if {!$5}
-        -if {$delta_position>0}
-          -text[-1] "+"$delta_position,10,{h-60},57,0.8,0
-        -elif {$delta_position<0}
-          -text[-1] $delta_position,10,3,57,0.8,0
-        -endif
-      -endif
-
-      -r2dy[-1] $max_height
-      -- 255 -r[-1] 70,$max_height,1,3,0,0,0.5,0.5 -+ 255
+    -if {!$n} {$row_height-2},{$row_height-2},1,3,255 -frame[-1] 1,1,0
     -else
-      70,$max_height,1,3,255
+      t_trend={-@{$trend,(0,$p)}}
+      -_gpt_field " ",128,128,16,$n,$c
+      -if {$t_trend>0} t_trend=+$t_trend -j[-1] [arrow_up],0,0,0,0,1,[arrow_up_mask]
+      -elif {$t_trend<0} -j[-1] [arrow_down],0,0,0,0,1,[arrow_down_mask]
+      -else -j[-1] [arrow_eq],0,0,0,0,1,[arrow_eq_mask]
+      -endif
+      -r2dy[-1] $row_height
+
+      -if $2
+        -z[-1] 1,1,{w-2},{h-2} -frame[-1] 1,1,0
+      -else
+        -if {$t_trend>0} -_gpt_field "\n\n    "$t_trend,$row_height,$row_height,48,$n,0
+        -elif {$t_trend<0} -_gpt_field "\n\n"$t_trend"     ",$row_height,$row_height,48,$n,0
+        -else -_gpt_field " ",$row_height,$row_height,48,$n,0
+        -endif
+        -/[-1] 255 -*[-2,-1]
+      -endif
+
     -endif
-    width_tendency={w}
+
+    # Statistics.
+    -if {!$n} {if($2,2*$row_height,4*$row_height+2)},{$row_height},1,3,255
+    -else
+      {3*$row_height},{1.5*$row_height},1,3,255
+
+      # Histogram of session ranks.
+      --lines[ranks] $p,$p -histogram[-1] $max_players,1,$max_players
+      -graph[-2] [-1],3,0,0,0,0.2,0,64,255
+      -rm[-1]
+
+      # Plot of 30 latest results.
+      --z[scores] {max(0,@{$scores,w}-31)},$p,{@{$scores,w}-1},$p -discard[-1] -1 --[-1] 100 -cumul[-1] sa={ia} sm={im} sM={iM}
+      -grid[-2] {100/max(1,h-1)}%,10,0,0,0.6,0xCCCCCCCC,0
+
+      (0,0) -graph[-3] [-1],1,0,{$sM+10},{$sm-10},1,0 -rm[-1]
+      ($sa,$sa) -graph[-3] [-1],1,0,{$sM+10},{$sm-10},1,0x55555555,0,150,0 -rm[-1]
+      -graph[-2] [-1],2,0,{$sM+10},{$sm-10},1,255,32,48 -rm[-1]
+      -r2dy[-1] {$row_height}
+
+      # Pie-chart of sessions ranks.
+      -if {!$2}
+        1,$row_height,1,3,0        # Separator
+        --lines[ranks] $p -histogram[-1] $max_players,1,$max_players -y[-1] y
+        ip=@#
+        (1,10,255,242,153)
+        (2,10,222,222,222)
+        (3,10,232,209,196)
+        ({$max_players-1},10,255,204,204)
+        ($max_players,10,255,153,153)
+        -if {$max_players==1} -rm[-4--1]
+        -elif {$max_players==2} -rm[-3--1]
+        -elif {$max_players==3} -rm[-2--1]
+        -elif {$max_players==4} -rm[-2]
+        -elif {$max_players>5} -a[-3,-2] y -r[-2] 100%,{$max_players-3},1,1,3 -round[-2]
+        -endif
+        -a[$ip--1] y
+        -j[-1] [-2],1,0 -rm[-2]
+
+        256,256,1,3,255 -piechart[-1] 57,0,0,0,@-2,"abs.",{@{$scores,w}-@{$nb_games,(0,$p)}},255,255,255 -frame[-1] 10,10,255
+        1,$row_height,1,3,0
+        256,256,1,3,255 -piechart[-1] 57,0,0,0,@-4 -frame[-1] 10,10,255
+        -rm[-4] -r2dy[-3,-1] $row_height
+        -a[-5--1] x
+      -endif
+
+    -endif
+    -z[-1] 1,1,{w-2},{h-2} -frame[-1] 1,1,0
+
+    # Best score.
+    t_best_score={v=@{$best_score,(0,$p)};if(v==-1,-1,v)}
+    t_best_rank=@{$best_score,(1,$p)}
+    -if {$t_best_score>0} t_best_score=+$t_best_score
+    -elif {$t_best_score==-1} t_best_score=abs.
+    -endif
+    c={v=@{$best_score,(1,$p)};if(v>=1&&v<=3,v,if(v==$max_best_score_rank-1,4,if(v==$max_best_score_rank,5,0)))}
+    -_gpt_field $t_best_score\ ($t_best_rank),64,$row_height,16,$n,$c
 
     # Performance.
-    -if ${player${i}_is_playing}
-      1
-      -if {!${player${i}_is_regular}}
-        -text[-1] "n/a",0,0,57,1,255,255,255
-      -else
-        -text[-1] {round(${player${i}_performance})}%" "({1+${player${i}_performance_position}}),0,0,57,1,255,255,255
-      -endif
-      -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 90,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
-    -else
-      90,$max_height,1,3,255
-    -endif
-    width_performance={w}
+    t_performance=@{$performance,(0,$p)}
+    t_performance_rank=@{$performance,(1,$p)}
+    c={v=@{$performance,(1,$p)};if(v>=1&&v<=3,v,if(v==$max_performance_rank-1,4,if(v==$max_performance_rank,5,0)))}
+    -_gpt_field $t_performance%\ ($t_performance_rank),64,$row_height,16,$n,$c
 
-    # Average score and corresponding ranking.
-    -if ${player${i}_is_playing}
-      1
-      -if {!${player${i}_is_regular}}
-        -text[-1] "n/a",0,0,57,1,255,255,255
-      -else
-        -text[-1] ${player${i}_avg_score}" "[${player${i}_std_score}]" "({1+${player${i}_avg_position}}),0,0,57,1,255,255,255
-       -endif
-      -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] 130,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
-    -else
-      130,$max_height,1,3,255
-    -endif
-    width_avg_score={w}
+    # Average [std].
+    --lines[scores] $p -discard[-1] -1
+    t_average={if(i==-1,0,round(ia-100))}
+    -if {$t_average>0} t_average=+$t_average -endif
+    t_average_std={if(i==-1,0,round(sqrt(iv)))}
+    -rm[-1]
+    t_average_rank=@{$average,(1,$p)}
+    c={v=@{$average,(1,$p)};if(v>=1&&v<=3,v,if(v==$max_average_rank-1,4,if(v==$max_average_rank,5,0)))}
+    -_gpt_field $t_average\ [$t_average_std]\ ($t_average_rank),100,$row_height,16,$n,$c
 
-    # Gains/Losses.
-    -if ${player${i}_is_playing}
-      delta={${player${i}_gains}-${player${i}_losses}}
-      1 -text[-1] +\ ${player${i}_gains}\ -\ ${player${i}_losses}\n=\ @{-if\ {$delta>=0}\ -u\ +\ -else\ -u\ \"\"\ -endif}$delta\ \$\ \
-          ({1+${player${i}_balance_position}}),0,0,57,1,255,255,255
-      -autocrop[-1] 0 -r2dy[-1] 37 -r[-1] 130,$max_height,1,3,0,0,0.5,0.5 -negative[-1]
-    -else
-      130,$max_height,1,3,255
-    -endif
-    width_gains_losses={w}
+    # Coffee balance.
+    t_coffee_balance=@{$coffee_balance,(0,$p)}
+    -if {$t_coffee_balance>0} t_coffee_balance=+$t_coffee_balance -endif
+    t_coffee_rank=@{$coffee_balance,(1,$p)}
+    c={v=@{$coffee_balance,(1,$p)};if(v>=1&&v<=3,v,if(v==$max_coffee_balance_rank-1,4,if(v==$max_coffee_balance_rank,5,0)))}
+    -_gpt_field $t_coffee_balance\$\ ($t_coffee_rank),80,$row_height,16,$n,$c
 
-    # Arrange fields of the same row together.
-    -if {${player${i}_is_playing}" && "${player${i}_games}<$nb_significant_games} -* 0.7 -+ 100 -c 0,255 -endif
-    -if {!${player${i}_is_playing}} -f[^1] "i*(0.7+0.3*(((x+y)%8)!=0))"
-    -elif {$rank==1} -_gpt_shade[0,2-6,8] 1,0.95,0.6
-    -elif {$rank==2" && "$nb_players>=2} -_gpt_shade[0,2-6,8] 0.87,0.87,0.87
-    -elif {$rank==3" && "$nb_players>=3} -_gpt_shade[0,2-6,8] 0.91,0.82,0.77
-    -elif {$>=={$nb_players-1}" && "$nb_players>3} -_gpt_shade[0,2-6,8] 1,0.6,0.6
-    -elif {$>=={$nb_players-2}" && "$nb_players>4} -_gpt_shade[0,2-6,8] 1,0.8,0.8
-    -endif
-    -if ${player${i}_is_regular}
-      -if {${player${i}_performance_position}==0" && "$nb_performances>0} -_gpt_shade[9] 1,0.95,0.6
-      -elif {${player${i}_performance_position}==1" && "$nb_performances>1} -_gpt_shade[9] 0.87,0.87,0.87
-      -elif {${player${i}_performance_position}==2" && "$nb_performances>2} -_gpt_shade[9] 0.91,0.82,0.77
-      -elif {${player${i}_performance_position}==$nb_performances-1" && "$nb_performances>3} -_gpt_shade[9] 1,0.6,0.6
-      -elif {${player${i}_performance_position}==$nb_performances-2" && "$nb_performances>4} -_gpt_shade[9] 1,0.8,0.8
-      -endif
-      -if {${player${i}_avg_position}==0" && "$nb_avg_scores>0} -_gpt_shade[10] 1,0.95,0.6
-      -elif {${player${i}_avg_position}==1" && "$nb_avg_scores>1} -_gpt_shade[10] 0.87,0.87,0.87
-      -elif {${player${i}_avg_position}==2" && "$nb_avg_scores>2} -_gpt_shade[10] 0.91,0.82,0.77
-      -elif {${player${i}_avg_position}==$nb_avg_scores-1" && "$nb_avg_scores>3} -_gpt_shade[10] 1,0.6,0.6
-      -elif {${player${i}_avg_position}==$nb_avg_scores-2" && "$nb_avg_scores>4} -_gpt_shade[10] 1,0.8,0.8
-      -endif
-    -endif
-    -if {${player${i}_balance_position}==0" && "$nb_balances>0} -_gpt_shade[11] 1,0.95,0.6
-    -elif {${player${i}_balance_position}==1" && "$nb_balances>1} -_gpt_shade[11] 0.87,0.87,0.87
-    -elif {${player${i}_balance_position}==2" && "$nb_balances>2} -_gpt_shade[11] 0.91,0.82,0.77
-    -elif {${player${i}_balance_position}==$nb_balances-1" && "$nb_balances>3} -_gpt_shade[11] 1,0.6,0.6
-    -elif {${player${i}_balance_position}==$nb_balances-2" && "$nb_balances>4} -_gpt_shade[11] 1,0.8,0.8
-    -endif
-    -frame 1,1,0 -a x
+    # Append all fields into a single row.
+    -if {!$n} -f[$i,{$i+2}--1] "i*(0.7+0.3*(((x+y)%8)!=0))" -endif  # Add hatches for absent player.
+    -a[$i--1] x
 
-  -else -rm 1
+  -done
+
+  # Title.
+  avg_nb_players={round(@{$nb_players,a},0.5)}
+  -if {$2==0} t_title="** GREYC Poker Tour ** Session \#"@{$scores,w}"   (avg. \#player = "$avg_nb_players")"
+  -elif {$2>0} t_title="** GREYC Poker Tour ** Last "@{$scores,w}" sessions  (avg. \#player = "$avg_nb_players")"
+  -else t_title="** GREYC Poker Tour ** Session \#"@{$scores,w}"/"{-$2}" (avg. \#player = "$avg_nb_players")"
   -endif
-  -endl -done
+  1 -text[-1] $t_title,0,0,57,1,255 -r[-1] 100%,100%,1,4 -drop_shadow[-1] 5,5,2
+  -r2dy[-1] 24 -r[-1] {@{$board,w}-2},{1.5*$row_height-2},1,4,0,0,0.5,{if($2,0.9,0.6)}
+  -i[-2] 1,3,1,3,32,0,64,32,64,128,64,200,256 -r[-2] [-1],[-1],1,3,3 -compose_rgba[-2,-1]
+  -if {$2>0} -shift[-1] 0,0,0,1,2 -elif {$2<0} -mirror[-1] c -endif
+  -frame[-1] 1,1,0
+  -mv[-1] $board
 
-  # Generate table title.
-  1
-  -if {$5>0} -text[-1] "** "$2" ** Last "$nb_sessions" sessions      (avg. \#players = "$nb_avg_players),0,0,57,1,255
-  -elif {$5<0} -text[-1] "** "$2" ** Session "$nb_sessions"/"{-$5}"      (avg. \#players = "$nb_avg_players),0,0,57,1,255
-  -else -text[-1] "** "$2" ** Session \#"$nb_sessions"      (avg. \#players = "$nb_avg_players),0,0,57,1,255
-  -endif
-  -dilate[-1] 2
-  -r[-1] 100%,100%,1,4 -sh[-1] 0,1 -*[-1] 0.8 -rm[-1] -drop_shadow[-1] 5,5,3
-  -i[-2] 1,3,1,3,32,0,64,32,64,128,64,200,256
-  -if {$5>0} -mirror[-2] c -elif {$5<0} -shift[-2] 0,0,0,1,2 -endif
-  -r[-2] {w},{h},1,3,5 -compose_alpha[-2,-1]
-  -r2dy[-1] 32 -r[-1] {@{0,w}-2},64,1,3,0,1,0.5,0.5 -frame[-1] 1,1,0
-  -mv[-1] 0
-
-  # Generate row for session winners.
-  -if {!$5}
-    -text2img $last_session_winners," "
-    nb_session_winners={h}
-    -l[-1] -repeat $nb_session_winners
-      -sh[0] 0,{@{0,w}-1},$>,0,0 winner=@{-1,t} -rm[-1]
-      -repeat $nb_players # Find winner's pictures.
-        -if {$winner'=='${player$>_name}} @{-path_tmp}/${player$>_file} -r2dy[-1] 96 -endif
-      -done
+  # Session winner(s).
+  -if {!$2}
+    --columns[scores] 100% --f[-1] y -a[-2,-1] x -sort[-1] -,y
+    -f[-1] 'if(i(0,y)==i(0,0),i,-1)' -autocrop[-1] -1 -nm[-1] winners # Keep only winners.
+    nb_winners={h}
+    t_winners=""
+    -repeat $nb_winners
+      i=@{$winners,(1,$>)}
+      t_winners=${player${i}_name}"__"${t_winners}
+      @{-path_tmp}/${player{@{$winners,(1,$>)}}_file} --[-1] 255 -rr2d[-1] 56,56,2,2 -+[-1] 255 -frame[-1] 1,1,0
     -done
-    -rm[0] -frame 1,1,0 -a x -endl
-
-    ({'$last_session_winners'}) -replace[-1] {'_'},{"' '"}
-    1 -text[-1] "Session winner"@{"-if "{$nb_session_winners>1}" -u s -else -u \"\" -endif"}" : "@{-2,t},0,0,57,1,255 -rm[-2]
-    -r[-1] 100%,100%,1,4 -drop_shadow[-1] 5,5,3
-    -i[-2] 1,2,1,3,0,48,128,200,96,48 -r[-2] {w},{h},1,3,3 -compose_alpha[-2,-1] -r2dy[-1] 32
-    -r[-1] {@{0,w}-2},{@{-2,h}-2},1,3,0,1,0.1,0.5
-    -j[-1] [-2],{w+1-@{-2,w}},-1 -rm[-2]
+    t_winners=@{-_gpt_rm_underscore\ $t_winners}
+    1 -text[-1] "Session winner"@{-if\ {$nb_winners==1}\ -u\ \"\"\ -else\ -u\ s\ -endif}" : "$t_winners,0,0,57,1,255
+    -r[-1] 100%,100%,1,4 -drop_shadow[-1] 5,5,2
+    -r2dy[-1] 24 -r[-1] {@{$board,w}-2},{1.5*$row_height-2},1,4,0,0,0.1,0.5
+    -i[-2] 1,2,1,3,0,128,128,255,64,128 -r[-2] [-1],[-1],1,3,3 -compose_rgba[-2,-1]
+    -if {$2>0} -shift[-1] 0,0,0,1,2 -elif {$2<0} -mirror[-1] c -endif
+    -repeat $nb_winners -j[-1] [{-2-$<}],{w-64-$>*64},7 -done
     -frame[-1] 1,1,0
-  -else
-    1
+    -mv[-1] {$board+1}
+    -rm[-{$nb_winners+1}--1]
   -endif
-  -mv[-1] 1
 
-  # Generate first board row.
-  -l[]
-  1 -text[-1] "Rank",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_rank,$max_height,1,3,0,0,0.5,0.5
-  $width_picture,$max_height,1,3,255
-  1 -text[-1] "Player",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_name,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Score",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_score,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Played",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_player_games,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Won/\nLost",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 25 -r[-1] $width_won_lost,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Last\nsession",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 30 -r[-1] $width_last_result,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Statistics",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_stats,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Trend",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 15 -r[-1] $width_tendency,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Performance\n  (rank)",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 30 -r[-1] $width_performance,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "Average [std]\n (rank)",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 30 -r[-1] $width_avg_score,$max_height,1,3,0,0,0.5,0.5
-  1 -text[-1] "+ Gains - Losses\n= Balance (rank)",0,0,57,1,255,255,255 -autocrop[-1] 0 -r2dy[-1] 30 -r[-1] $width_gains_losses,$max_height,1,3,0,0,0.5,0.5
-  -negative[^1] -frame 1,1,0 -a x -*[-1] 0.9 -endl -mv[-1] 2
-
-  # Generate row for session losers.
-  -if {!$5}
-    -text2img $last_session_losers," "
-    nb_session_losers={h}
-    -l[-1] -repeat $nb_session_losers
-      -sh[0] 0,{@{0,w}-1},$>,0,0 loser=@{-1,t} -rm[-1]
-      -repeat $nb_players # Find loser's pictures.
-        -if {$loser'=='${player$>_name}} @{-path_tmp}/${player$>_file} -r2dy[-1] 96 -endif
-      -done
+  # Session loser(s).
+  -if {!$2}
+    --columns[losers] 100% --f[-1] y -a[-2,-1] x -sort[-1] -,y
+    -f[-1] 'if(i(0,y),i,-1)' -autocrop[-1] -1 -nm[-1] losers # Keep only losers.
+    nb_losers={h}
+    t_losers=""
+    -repeat $nb_losers
+      i=@{$losers,(1,$>)}
+      t_losers=${player${i}_name}"__"${t_losers}
+      @{-path_tmp}/${player{@{$losers,(1,$>)}}_file} --[-1] 255 -rr2d[-1] 56,56,2,2 -+[-1] 255 -frame[-1] 1,1,0
     -done
-    -rm[0] -frame 1,1,0 -a x -endl
-
-    ({'$last_session_losers'}) -replace[-1] {'_'},{"' '"}
-    1 -text[-1] "Session loser"@{"-if "{$nb_session_losers>1}" -u s -else -u \"\" -endif"}" : "@{-2,t},0,0,57,1,255 -rm[-2]
-    -r[-1] 100%,100%,1,4 -drop_shadow[-1] 5,5,3
-    -i[-2] 1,2,1,3,200,128,48,0,48,96 -r[-2] {w},{h},1,3,3 -compose_alpha[-2,-1] -r2dy[-1] 32
-    -r[-1] {@{0,w}-2},{@{-2,h}-2},1,3,0,1,0.1,0.5
-    -j[-1] [-2],{w+1-@{-2,w}},-1 -rm[-2]
+    t_losers=@{-_gpt_rm_underscore\ $t_losers}
+    1 -text[-1] "Session loser"@{-if\ {$nb_losers==1}\ -u\ \"\"\ -else\ -u\ s\ -endif}" : "$t_losers,0,0,57,1,255
+    -r[-1] 100%,100%,1,4 -drop_shadow[-1] 5,5,2
+    -r2dy[-1] 24 -r[-1] {@{$board,w}-2},{1.5*$row_height-2},1,4,0,0,0.1,0.5
+    -i[-2] 1,2,1,3,128,255,0,128,64,128 -r[-2] [-1],[-1],1,3,3 -compose_rgba[-2,-1]
+    -if {$2>0} -shift[-1] 0,0,0,1,2 -elif {$2<0} -mirror[-1] c -endif
+    -repeat $nb_losers -j[-1] [{-2-$<}],{w-64-$>*64},7 -done
     -frame[-1] 1,1,0
-  -else
-    1
+    -rm[-{$nb_losers+2}--2]
   -endif
 
-  # Remove useless images.
-  -repeat @# -if {@{0,#}==1} -rm[0] -else -mv[0] @# -endif -done
+  # Append rows together.
+  -a[$board--1] y
 
-  # Finalize rendering and return.
-  -a y 100%,100%,1,1,255 -a c -drop_shadow 6,6,4 -i[-2] {w},{h},1,3,255 -compose_alpha[-2,-1]
-  -v +
+  # Add final shadow.
+  100%,100%,1,1,255 -a[-2,-1] c -drop_shadow[-1] 6,6,4 -i[-2] {w},{h},1,3,255 -compose_alpha[-2,-1]
 
-_gpt_shade :
-  -repeat @# -l[$>]
-    -sh 0,0 -*[-1] $1 -rm[-1]
-    -sh 1,1 -*[-1] $2 -rm[-1]
-    -sh 2,2 -*[-1] $3 -rm[-1]
-  -endl -done -c 0,255
+  # Quit properly.
+  -k[$board] -v +
 
-_gpt_piechart :
-  -normalize_sum[-1] -*[-1] {2*pi}
-  3,{w},1,1,(h-y)*(x+1) -n[-1] 128,255
-  -sh[-1] {h-1},{h-1},0,0 -f[-1] 255 -rm[-1]
-  -sh[-1] {h-2},{h-2},0,0 -f[-1] 255,153,153 -rm[-1]
-  -sh[-1] {h-3},{h-3},0,0 -f[-1] 255,204,204 -rm[-1]
-  -sh[-1] 0,{min(2,h-1)},0,0 -f[-1] 255,242,154,\
-                                    222,222,222,\
-                                    208,186,172 -rm[-1]
-  128,128,1,3,255
-  R={0.45*min(w,h)}
-  -ellipse[-1] {w/2},{h/2},$R,$R,0,1,0xFFFFFFFF,0
-  angle=0
-  -repeat @{-3,#}
-    da=@{-3,$>}
-    -if {$da>0}
-      xl={w/2+$R*cos($angle-$da)}
-      yl={h/2+$R*sin($angle-$da)}
-      -line[-1] {w/2},{h/2},$xl,$yl,1,0xFFFFFFFF,0
-      xf={w/2+0.9*$R*cos($angle-$da/2)}
-      yf={h/2+0.9*$R*sin($angle-$da/2)}
-      -flood[-1] $xf,$yf,0,0,0,1,@{-2,0-2}
-      xt={w/2+0.6*$R*cos($angle-$da/2)-8}
-      yt={h/2+0.6*$R*sin($angle-$da/2)-12}
-      -if {$da>=20*pi/180}
-        -if {$>!=@{-3,#}-1} -text[-1] {$>+1},$xt,$yt,24,1,0
-        -else -text[-1] "abs.",{$xt-8},$yt,24,1,0
-        -endif
-      -endif
-      angle={$angle-$da}
-    -endif
-    -shift[-2] 0,-1
-  -done -rm[-3,-2] -frame[-1] 1,1,0
+_gpt_rm_underscore :
+  ({'"$1"'}) -replace[-1] {'_'},{'\ '} -u @{-1,t} -rm[-1]
 
-_gpt_arrow :
-  -cone3d 1.5,2 -r3d[-1] 0,1,0,90 -box3d 4,1,0 -+3d[-1] 0,-0.5 -+3d[-2,-1] -r3d[-1] 0,0,1,{180+$2} -c3d[-1] -col3d[-1] 255,255,255 -*3d[-1] {$1/7}
-  $1,$1 -m3d 2 -object3d[-1] [-2],50%,50%,0 -rm[-2]
+# $1 : Text - $2 : Width - $3 : Height - $4 : Font size - $5 : Text - $6 : Color code.
+_gpt_field :
+  -if {!$5} {$2-2},{$3-2},1,3,255 -frame[-1] 1,1,0 -return -endif
+  1 -text[-1] "$1",0,0,57,1,1 -*[-1] -1 -+[-1] 1
+  -r2dy[-1] $4 --[-1] 1 -r[-1] {$2-2},{$3-2},1,1,0,0,0.5,0.5 -+[-1] 1
+  -frame[-1] 1,1,0
+  [-1]x2
+  -if {$6==1} -*[-3] 255 -*[-2] 242 -*[-1] 153
+  -elif {$6==2} -*[-3] 222 -*[-2] 222 -*[-1] 222
+  -elif {$6==3} -*[-3] 232 -*[-2] 209 -*[-1] 196
+  -elif {$6==4} -*[-3] 255 -*[-2] 204 -*[-1] 204
+  -elif {$6==5} -*[-3] 255 -*[-2] 153 -*[-1] 153
+  -elif {$6==6} -*[-3] 240 -*[-2] 240 -*[-1] 240
+  -else -*[-3--1] 255
+  -endif
+  -a[-3--1] c
 
 #--------------------------
 #
@@ -8157,10 +8460,10 @@ gimp_logo_ca :
 #@gimp : - <b>2011/04/01</b> : version <i>1.4.9</i>.\n
 #@gimp : - <b>2011/06/08</b> : version <i>1.4.9.5</i>.\n
 #@gimp : - <b>2011/07/07</b> : version <i>1.5.0.0</i>.\n
-#@gimp : - <span foreground="purple"><b>2011/12/29</b> : version <i>1.5.0.8</i> (Current stable).</span>\n
+#@gimp : - <span foreground="purple"><b>2011/01/20</b> : version <i>1.5.0.9</i> (Current stable).</span>\n
 #@gimp : "}
 #@gimp : link = link("View latest changelog","http://www.flickr.com/groups/gmic/discuss/72157628192798905/")
-#@gimp : sep = separator(), note = note("<small>Author : <i>David Tschumperl&#233;</i>.      Latest update : <i>2011/12/29</i>.</small>")
+#@gimp : sep = separator(), note = note("<small>Author : <i>David Tschumperl&#233;</i>.      Latest update : <i>2011/01/20</i>.</small>")
 
 #@gimp Contributors : _none_, _none_
 #@gimp : note = note{"
@@ -10041,7 +10344,7 @@ gimp_apply_curve_preview :
   -mv[-1] 0
   -repeat {@#-1}
     --gimp_split_preview[-1] "-gimp_apply_curve ${1--2}",$-1
-    -axes[-1] 0,255,255,0,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -axes[-1] 0,255,255,0,13,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
     -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
     -if $-2
       [-1],[-1],1,1,-{$-2*255/100} -to_gray[-3] -histogram[-3] 256,0,255 -graph[-1] [-3],3,0,0,0,1,0
@@ -10202,7 +10505,7 @@ gimp_apply_RGBcurve_preview :
   -repeat {@#-1}
     [-1]
     --gimp_split_preview[-1] "-gimp_apply_RGBcurve 0",$-1
-    -axes[-1] 0,255,255,0,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -axes[-1] 0,255,255,0,13,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
     -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
      -if $-2
         [-1],[-1],1,1,-{$-2*255/100} -to_gray[-3] -histogram[-3] 256,0,255 -graph[-1] [-3],3,0,0,0,1,0
@@ -10378,7 +10681,7 @@ gimp_apply_YCbCrcurve_preview :
   -repeat {@#-1}
     [-1]
     --gimp_split_preview[-1] "-gimp_apply_YCbCrcurve 0",$-1
-    -axes[-1] 0,255,255,0,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -axes[-1] 0,255,255,0,13,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
     -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
      -if $-2
         [-1],[-1],1,1,-{$-2*255/100} -to_gray[-3] -histogram[-3] 256,0,255 -graph[-1] [-3],3,0,0,0,1,0
@@ -10555,7 +10858,7 @@ gimp_apply_Labcurve_preview :
   -repeat {@#-1}
     [-1]
     --gimp_split_preview[-1] "-gimp_apply_Labcurve 0",$-1
-    -axes[-1] 0,255,255,0,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
+    -axes[-1] 0,255,255,0,13,1,255 -grid[-1] 10%,10%,0,0,0.3,0xCCCCCCCC,255
     -line[-1] 0,100%,100%,0,0.3,0xCCCCCCCC,255
      -if $-2
         [-1],[-1],1,1,-{$-2*255/100} -to_gray[-3] -histogram[-3] 256,0,255 -graph[-1] [-3],3,0,0,0,1,0
@@ -10819,7 +11122,7 @@ gimp_metallic_preview :
 gimp_colormap :
   -repeat @# -l[$>] -split_opacity -to_rgb[0]
     -if {$1>=2}                # Pre-defined colormap.
-      -index[0] {$1-1},$2,1
+      -index[0] {$1-2},$2,1
     -elif {$1==1}              # Custom colormap.
       (${5-28}) -z[-1] 0,{3*$4-1}
       -r[-1] 3,{w/3},1,1,-1 -permute[-1] yzcx -r[-1] $3,1,1,3,3
@@ -14430,13 +14733,12 @@ gimp_solve_maze_preview :
   -ellipse $3%,$4%,3,3,0,1,0x1,0
 
 #@gimp GREYC Poker Tour : gimp_gpt, gimp_no_preview
-#@gimp : Absence coefficient = _float(0.6,0.5,1)
 #@gimp : Score type = _choice(0,"All-times","Last 50 sessions","Last 25 sessions","Last 10 sessions","Last tournament 50","Last tournament 25","Last tournament 10")
 #@gimp : sep = separator(), note = note{"<b>Note</b> : This filters renders and displays the current score board for the <b>GPT (GREYC Poker Tour)</b>,
 #@gimp : a small and local poker tournament organized in our research lab."};
 #@gimp : sep = separator(), note = note("<small>Author : <i>David Tschumperl&#233;</i>.      Latest update : <i>2011/03/27</i>.</small>")
 gimp_gpt :
-  -gpt ,,,$1,@{-_gimp_gpt$2}
+  -gpt ,@{-_gimp_gpt$1}
 
 _gimp_gpt0 : -u 0
 _gimp_gpt1 : -u 50
