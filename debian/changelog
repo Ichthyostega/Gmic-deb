@@ -1,11 +1,15 @@
-gmic (1.5.0.9+dfsg-1) unstable; urgency=low
+gmic (1.5.1.0+dfsg-1) unstable; urgency=low
 
   * [d3cb2da4] Remove override_dh_clean from .PHONY.
     Some debhelper versions still seem to recognize it as empty target...
   * [982453de] Merge commit 'upstream/1.5.0.9+dfsg'
   * [7c82f405] refreshing patches.
+  * [7093fa88] Updating changelog.
+  * [f8500c13] Merge tag 'upstream/1.5.1.0+dfsg'
+    Upstream version 1.5.1.0+dfsg
+  * [1e04612f] Refreshing patches.
 
- -- Bernd Zeimetz <bzed@debian.org>  Sat, 21 Jan 2012 12:37:52 +0100
+ -- Bernd Zeimetz <bzed@debian.org>  Sat, 24 Mar 2012 17:46:44 +0100
 
 gmic (1.5.0.8+dfsg-1) unstable; urgency=low
 
