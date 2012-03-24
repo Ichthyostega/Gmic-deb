@@ -59,18 +59,19 @@ int main() {
   //--------------------------------------------
   std::fprintf(stderr,"\n- 1st step : Create input list of images.\n");
 
-  gmic_list<float> image_list;
-  image_list.assign(5);
-  for (unsigned int i = 0; i<image_list._width; ++i) {
-    gmic_image<float>& img = image_list._data[i];
-    img.assign(256,256,1,3);
+  gmic_list<float> images;                            // List of images, will contain all images pixel data.
+  gmic_list<char> images_names;                       // List of images names. Can be left empty if no names are associated to images.
+  images.assign(5);                                   // Assign list to contain 5 images.
+  for (unsigned int i = 0; i<images._width; ++i) {
+    gmic_image<float>& img = images._data[i];
+    img.assign(256,256,1,3);                          // Assign i-th image of the list to be of size 256x256x1x3 (2d color image).
 
     std::fprintf(stderr,"    Input image %u =  %ux%ux%ux%u, buffer : %p\n",i,
-                 image_list._data[i]._width,
-                 image_list._data[i]._height,
-                 image_list._data[i]._depth,
-                 image_list._data[i]._spectrum,
-                 image_list._data[i]._data);
+                 images._data[i]._width,
+                 images._data[i]._height,
+                 images._data[i]._depth,
+                 images._data[i]._spectrum,
+                 images._data[i]._data);
 
     // Fill each image buffer with sinus values (with different frequencies).
     float *ptr = img._data;
@@ -88,7 +89,7 @@ int main() {
 
     // Here you can call any G'MIC command you want !
     // (here, create a deformed average of the input images, and save it as a BMP file).
-    gmic("-+ -n 0,255 -flower 8 -sharpen 100 -o foo.bmp",image_list);
+    gmic("-+ -n 0,255 -flower 8 -sharpen 100 -o foo.bmp",images,images_names);
 
   } catch (gmic_exception &e) { // Catch exception, if an error occured in the interpreter.
     std::fprintf(stderr,"\n- Error encountered when calling G'MIC : '%s'\n",e.what());
@@ -97,19 +98,19 @@ int main() {
 
   // Third step : get back modified image data.
   //-------------------------------------------
-  std::fprintf(stderr,"\n- 3st step : Returned %d output images.\n",image_list._width);
-  for (unsigned int i = 0; i<image_list._width; ++i) {
+  std::fprintf(stderr,"\n- 3st step : Returned %d output images.\n",images._width);
+  for (unsigned int i = 0; i<images._width; ++i) {
     std::fprintf(stderr,"   Output image %u = %ux%ux%ux%u, buffer : %p\n",i,
-                 image_list._data[i]._width,
-                 image_list._data[i]._height,
-                 image_list._data[i]._depth,
-                 image_list._data[i]._spectrum,
-                 image_list._data[i]._data);
+                 images._data[i]._width,
+                 images._data[i]._height,
+                 images._data[i]._depth,
+                 images._data[i]._spectrum,
+                 images._data[i]._data);
   }
 
   // Fourth step : Free image resources.
   //-------------------------------------
-  image_list.assign(0);
+  images.assign(0);
 
 
   // That's it !

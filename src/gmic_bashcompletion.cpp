@@ -136,6 +136,7 @@ int main(int argc, char **argv) {
                "#\n"
                "# This file has been generated automatically.\n"
                "# Do not edit !\n"
+               "#\n# This file should be copied/renamed in '/etc/bash_completion.d/gmic'.\n"
                "#\n\n"
                "_gmic()\n"
                "{\n"

@@ -47,7 +47,7 @@
 
 #include <locale>
 #ifndef gmic_version
-#define gmic_version 1509
+#define gmic_version 1510
 
 // Define environment variables.
 #ifndef gmic_is_beta
@@ -64,9 +64,6 @@
 #define cimg_location "./CImg.h"
 #endif
 
-// Define the structures used to store images and image lists.
-// Your image data must be copied in such structures before
-// calling the G'MIC interpreter.
 #ifdef cimg_location
 #include cimg_location
 #if cimg_OS==2
@@ -95,8 +92,8 @@ inline char *gmic_strreplace(char *const str) {
 #ifndef cimg_version
 namespace cimg_library {
 
-  // Define the G'MIC image class.
-  //------------------------------
+  // Define the G'MIC image structure.
+  //----------------------------------
 
   template<typename T> struct CImg {
     unsigned int _width;       // Number of image columns (dimension along the X-axis).
@@ -115,8 +112,8 @@ namespace cimg_library {
                     const unsigned int d=1, const unsigned int s=1);
   };
 
-  // Define the G'MIC image list class.
-  //-----------------------------------
+  // Define the G'MIC image list structure.
+  //---------------------------------------
   template<typename T> struct CImgList {
     unsigned int _width;           // Number of images in the list.
     unsigned int _allocated_width; // Allocated items in the list (must be 2^N and >size).
@@ -162,40 +159,42 @@ struct gmic_exception {
 //------------------------------------
 struct gmic {
 
-  // Internal environment variables.
-#if cimg_display!=0
-  gmic_display instant_window[10];
-#endif
-  static gmic_list<char> default_commands, default_commands_names;
-  gmic_list<char> commands, command_names, variables[27], variables_names[27], scope;
-  gmic_list<unsigned int> dowhiles, repeatdones, whiledones;
-  gmic_image<unsigned char> background3d, light3d;
-  gmic_image<float> pose3d;
-  gmic_image<char> status;
-  float focale3d, light3d_x, light3d_y, light3d_z, specular_light3d,
-    specular_shine3d, _progress, *progress;
-  bool is_released, is_debug, is_start, is_quit, is_return, is_double3d, is_default_type,
-    is_shell, check_elif;
-  int verbosity, render3d, renderd3d;
-  volatile int _cancel, *cancel;
-  unsigned int nb_carriages, position;
-
   // Constructors - Destructors.
-  // Use them to run the G'MIC interpreter from your C++ source.
+  // Use the methods below to create and run the G'MIC interpreter from your C++ source.
+
+  // Destructor.
   ~gmic();
+
+  // Constructors.
   gmic(const char *const commands_line, const char *const custom_commands=0,
        const bool include_default_commands=true, float *const p_progress=0, int *const p_cancel=0);
+
   template<typename T>
-  gmic(const int argc, const char *const *const argv, gmic_list<T>& images,
-       const char *const custom_commands=0, const bool include_default_commands=true,
-       float *const p_progress=0, int *const p_cancel=0);
-  template<typename T>
-  gmic(const char *const commands_line, gmic_list<T>& images,
+  gmic(const int argc, const char *const *const argv, gmic_list<T>& images, gmic_list<char>& images_names,
        const char *const custom_commands=0, const bool include_default_commands=true,
        float *const p_progress=0, int *const p_cancel=0);
 
+  template<typename T>
+  gmic(const char *const commands_line, gmic_list<T>& images, gmic_list<char>& images_names,
+       const char *const custom_commands=0, const bool include_default_commands=true,
+       float *const p_progress=0, int *const p_cancel=0);
+
+  // Method to call parser on an already constructed gmic object.
+  template<typename T>
+  gmic& parse(const char *const commands_line,
+              gmic_list<T> &images, gmic_list<char> &images_names) {
+    return parse(commands_line_to_CImgList(commands_line),images,images_names);
+  }
+
+  //--------------------------------------------------------------------------------------
   // All functions below should be considered as 'private' and thus, should not be used
   // in your own C++ source code. Use them at your own risk.
+  //--------------------------------------------------------------------------------------
+  template<typename T>
+  void _gmic(const char *const commands_line, gmic_list<T>& images, gmic_list<char>& images_names,
+             const char *const custom_commands, const bool include_default_commands,
+             float *const p_progress, int *const p_cancel);
+
   gmic& add_commands(const char *const data_commands,
                      gmic_list<char>& command_names, gmic_list<char>& commands);
   gmic& add_commands(std::FILE *const file,
@@ -212,11 +211,11 @@ struct gmic {
                                           const char *const command, const bool is_selection,
                                           const bool allow_new_name, gmic_image<char>& new_name);
 
-  gmic_list<char> commands_line_to_CImgList(const char *const commands_line);
-
   char *selection2string(const gmic_image<unsigned int>& selection,
                          const gmic_list<char>& images_names,
                          const bool display_selection) const;
+
+  gmic_list<char> commands_line_to_CImgList(const char *const commands_line);
 
   template<typename T>
   gmic_image<char> substitute_item(const char *const source,
@@ -270,11 +269,34 @@ struct gmic {
                           const gmic_image<unsigned int>& selection);
 
   template<typename T>
+  gmic& parse(const gmic_list<char>& commands_line,
+	      gmic_list<T> &images, gmic_list<char> &images_names) {
+    const unsigned int variables_sizes[27] = { 0 };
+    unsigned int position = 0;
+    std::setlocale(LC_NUMERIC,"C");
+    scope.assign(1U);
+    scope._data[0].assign(2,1,1,1);
+    scope._data[0]._data[0] = '.';
+    scope._data[0]._data[1] = 0;
+    dowhiles.assign(0U);
+    repeatdones.assign(0U);
+    whiledones.assign(0U);
+    status.assign(0U);
+    is_start = true;
+    is_quit = false;
+    is_return = false;
+    is_default_type = true;
+    is_shell = false;
+    *progress = -1;
+    return parse(commands_line,position,images,images_names,variables_sizes);
+  }
+
+  template<typename T>
   gmic& parse(const gmic_list<char>& commands_line, unsigned int& position,
               gmic_list<T> &images, gmic_list<char> &images_names,
 	      const unsigned int (&variables_sizes)[27]);
   gmic& parse_bool(const gmic_list<char>& commands_line, unsigned int& position,
-                   gmic_list<bool>& images, gmic_list<char> &filename,
+                   gmic_list<bool>& images, gmic_list<char> &images_names,
 		   const unsigned int (&variables_sizes)[27]);
   gmic& parse_uchar(const gmic_list<char>& commands_line, unsigned int& position,
                     gmic_list<unsigned char>& images, gmic_list<char> &images_names,
@@ -300,6 +322,24 @@ struct gmic {
   gmic& parse_double(const gmic_list<char>& commands_line, unsigned int& position,
                      gmic_list<double>& images, gmic_list<char> &images_names,
 		     const unsigned int (&variables_sizes)[27]);
+
+  // Internal environment variables.
+#if cimg_display!=0
+  gmic_display instant_window[10];
+#endif
+  static gmic_list<char> default_commands, default_commands_names;
+  gmic_list<char> commands, command_names, variables[27], variables_names[27], scope;
+  gmic_list<unsigned int> dowhiles, repeatdones, whiledones;
+  gmic_image<unsigned char> background3d, light3d;
+  gmic_image<float> pose3d;
+  gmic_image<char> status;
+  float focale3d, light3d_x, light3d_y, light3d_z, specular_light3d,
+    specular_shine3d, _progress, *progress;
+  bool is_released, is_debug, is_start, is_quit, is_return, is_double3d, is_default_type,
+    is_shell, check_elif;
+  int verbosity, render3d, renderd3d;
+  volatile int _cancel, *cancel;
+  unsigned int nb_carriages;
 
 }; // End of the 'gmic' class.
 
