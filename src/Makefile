@@ -85,7 +85,7 @@ endif
 #-----------------------------------------------
 
 # Flags to enable 'beta' version.
-IS_BETA_CFLAGS = 
+IS_BETA_CFLAGS = -Dcimg_use_vt100 
 
 # Flags that are mandatory to compile 'gmic'.
 MANDATORY_CFLAGS += -Dgmic_build -I$(USR)/include
@@ -270,6 +270,7 @@ ifeq ($(OS),Linux)
 	$(MAKE) bashcompletion
 	$(MAKE) gimp
 	$(MAKE) lib
+	$(MAKE) zart
 else
 ifeq ($(OS),Darwin)
 	@echo "**"
@@ -293,6 +294,9 @@ gimp:
 
 lib:
 	$(MAKE) "CFLAGS=$(STD_LIB_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_LIB_LDFLAGS)" gmic_lib
+
+zart: lib
+	cd ../zart && qmake-qt4 zart.pro && $(MAKE) && strip zart
 
 # Entries for non-default configurations.
 minimal:
@@ -380,12 +384,17 @@ install:
 	mkdir -p $(DESTDIR)$(USR)/include/
 	cp -f gmic.h $(DESTDIR)$(USR)/include/
 ifneq ($(OS),Darwin)
+	mkdir -p $(DESTDIR)$(USR)/share
+	mkdir -p $(DESTDIR)$(USR)/share/zart
+	cp -f ../zart/haar*.xml $(DESTDIR)$(USR)/share/zart
+	cp -f ../zart/zart $(DESTDIR)$(USR)/bin/zart
 	mkdir -p $(DESTDIR)$(USR)/lib
-	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.9
-	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0.9 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0
-	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5.0 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
-	ln -s $(DESTDIR)$(USR)/lib/libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
+	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1.0
+	ln -s libgmic.so.1.5.1.0 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1
+	ln -s libgmic.so.1.5.1 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
+	ln -s libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
 endif
+	mkdir -p $(DESTDIR)$(USR)/share/man/
 	mkdir -p $(DESTDIR)$(USR)/share/man/man1/
 	mkdir -p $(DESTDIR)$(USR)/share/man/fr/man1/
 	cp -f ../man/gmic.1.gz $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
@@ -396,13 +405,15 @@ endif
 uninstall:
 	rm -f $(DESTDIR)$(USR)/bin/gmic
 	rm -f $(DESTDIR)$(USR)/include/gmic.h
-	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1
+	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.1.0
+	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.1
 	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5
-	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.0
-	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.0.6
+	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1
 	rm -rf $(DESTDIR)$(USR)/share/doc/gmic/
 	rm -f $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
 	rm -f $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz
+	rm -f $(DESTDIR)$(USR)/bin/zart
+	rm -rf $(DESTDIR)$(USR)/share/zart/
 
 distclean: clean
 

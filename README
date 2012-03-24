@@ -12,7 +12,7 @@
 
                        ( http://gmic.sourceforge.net/ )
 
-                                    1.5.0.9
+                                    1.5.1.0
 
 --------------------------------------------------------------------------------
 
@@ -25,12 +25,13 @@
    design of image processing pipelines.
  * Provide an interpreter of this language, distributed as a C++
    open-source library embeddable in third-party applications.
- * Propose two usable binary tools embedding this interpreter :
+ * Propose three usable binary tools embedding this interpreter :
 
    - The command-line executable 'gmic' to use the G'MIC framework from a
      shell. 
    - The interactive and extensible plug-in 'gmic_gimp' to bring G'MIC capabilities
      to the image retouching software GIMP.
+   - ZArt, a real-time interface for webcam images manipulation.
 
  G'MIC is focused on the design of possibly complex pipelines for converting,
  manipulating, filtering and visualizing generic 1d/2d/3d multi-spectral image
@@ -67,8 +68,8 @@
 # Licenses
 #----------
 
- The C++ source code of G'MIC for Gimp is distributed under
- the CECILL v.2.0 license (file 'Licence_CeCILL_V2-en.txt').
+ The C++ source code of G'MIC is distributed under
+ the CECILL v.2.0 license (file 'CeCILL.rtf').
  This License is a Free-Software license, compatible with the GPL
  (using those files in a distributed closed-source project is then forbidden).
 

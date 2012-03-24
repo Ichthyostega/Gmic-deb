@@ -1797,7 +1797,8 @@ void *process_thread(void *arg) {
                    cl.data());
       std::fflush(cimg::output());
     }
-    gmic(spt.commands_line,spt.images,gmic_additional_commands,true,&spt.progress);
+    CImgList<char> images_names;
+    gmic(spt.commands_line,spt.images,images_names,gmic_additional_commands,true,&spt.progress);
   } catch (gmic_exception &e) {
     spt.images.assign();
     CImg<char>::string(e.what()).move_to(spt.error_message);
@@ -2282,7 +2283,7 @@ void create_parameters_gui(const bool reset_params) {
 
       // Parse arguments list and add recognized one to the table.
       if (event_infos) delete[] event_infos; event_infos = new void*[2*nb_arguments];
-      int current_argument = 0, current_table_line = 0;
+      unsigned int current_argument = 0, current_table_line = 0;
       const bool is_fave = filter>=indice_faves;
       for (const char *argument = gmic_arguments[filter].data(); *argument; ) {
         int err = std::sscanf(argument,"%4095[^=]=%4095[ a-zA-Z_](%4095[^)]",
@@ -2314,12 +2315,12 @@ void create_parameters_gui(const bool reset_params) {
             if (is_fave) std::sscanf(argument_fave,"%f",&value);
             if (!reset_params) std::sscanf(argument_value,"%f",&value);
             GtkObject *const
-              scale = gimp_scale_entry_new(GTK_TABLE(table),0,current_table_line,argument_name,50,6,
+              scale = gimp_scale_entry_new(GTK_TABLE(table),0,(int)current_table_line,argument_name,50,6,
                                            (double)value,(double)min_value,(double)max_value,
                                            (double)(max_value-min_value)/100,
                                            (double)(max_value-min_value)/20,
                                            2,true,0,0,0,0);
-            event_infos[2*current_argument] = (void*)current_argument;
+            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_float_parameter_changed(GTK_ADJUSTMENT(scale),event_infos+2*current_argument);
             g_signal_connect(scale,"value_changed",G_CALLBACK(on_float_parameter_changed),
@@ -2337,14 +2338,14 @@ void create_parameters_gui(const bool reset_params) {
             if (is_fave) std::sscanf(argument_fave,"%f",&value);
             if (!reset_params) std::sscanf(argument_value,"%f",&value);
             GtkObject *const
-              scale = gimp_scale_entry_new(GTK_TABLE(table),0,current_table_line,argument_name,50,6,
+              scale = gimp_scale_entry_new(GTK_TABLE(table),0,(int)current_table_line,argument_name,50,6,
                                            (double)(int)cimg::round(value,1.0f),
                                            (double)(int)cimg::round(min_value,1.0f),
                                            (double)(int)cimg::round(max_value,1.0f),
                                            (double)1,
                                            (double)cimg::max(1.0,cimg::round((max_value-min_value)/20,1,1)),
                                            0,true,0,0,0,0);
-            event_infos[2*current_argument] = (void*)current_argument;
+            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_int_parameter_changed(GTK_ADJUSTMENT(scale),event_infos+2*current_argument);
             g_signal_connect(scale,"value_changed",G_CALLBACK(on_int_parameter_changed),
@@ -2369,9 +2370,9 @@ void create_parameters_gui(const bool reset_params) {
             GtkWidget *const checkbutton = gtk_check_button_new_with_label(argument_name);
             gtk_widget_show(checkbutton);
             gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton),value);
-            gtk_table_attach(GTK_TABLE(table),checkbutton,0,3,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),checkbutton,0,3,(int)current_table_line,(int)current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_SHRINK,0,0);
-            event_infos[2*current_argument] = (void*)current_argument;
+            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_bool_parameter_changed(GTK_CHECK_BUTTON(checkbutton),event_infos+2*current_argument);
             g_signal_connect(checkbutton,"toggled",G_CALLBACK(on_bool_parameter_changed),
@@ -2385,7 +2386,7 @@ void create_parameters_gui(const bool reset_params) {
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"choice")) {
             GtkWidget *const label = gtk_label_new(argument_name);
             gtk_widget_show(label);
-            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),label,0,1,(int)current_table_line,(int)current_table_line+1,
                              GTK_FILL,GTK_SHRINK,0,0);
             gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
             GtkWidget *const combobox = gtk_combo_box_new_text();
@@ -2405,9 +2406,9 @@ void create_parameters_gui(const bool reset_params) {
             if (is_fave) std::sscanf(argument_fave,"%u",&value);
             if (!reset_params) std::sscanf(argument_value,"%u",&value);
             gtk_combo_box_set_active(GTK_COMBO_BOX(combobox),value);
-            gtk_table_attach(GTK_TABLE(table),combobox,1,3,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),combobox,1,3,(int)current_table_line,(int)current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_FILL,0,0);
-            event_infos[2*current_argument] = (void*)current_argument;
+            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_list_parameter_changed(GTK_COMBO_BOX(combobox),event_infos+2*current_argument);
             g_signal_connect(combobox,"changed",G_CALLBACK(on_list_parameter_changed),
@@ -2465,10 +2466,10 @@ void create_parameters_gui(const bool reset_params) {
               for (char *p = value; *p; ++p) if (*p==_dquote) *p='\"';
               gtk_text_buffer_set_text(buffer,value,-1);
 
-              gtk_table_attach(GTK_TABLE(table),frame,0,3,current_table_line,current_table_line+1,
+              gtk_table_attach(GTK_TABLE(table),frame,0,3,(int)current_table_line,(int)current_table_line+1,
                                (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
 
-              event_infos[2*current_argument] = (void*)current_argument;
+              event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
               event_infos[2*current_argument+1] = (void*)view;
               on_xtext_parameter_changed(event_infos+2*current_argument);
               g_signal_connect_swapped(button,"clicked",G_CALLBACK(on_xtext_parameter_changed),
@@ -2481,7 +2482,7 @@ void create_parameters_gui(const bool reset_params) {
             } else { // Single-line entry
               GtkWidget *const label = gtk_label_new(argument_name);
               gtk_widget_show(label);
-              gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,
+              gtk_table_attach(GTK_TABLE(table),label,0,1,(int)current_table_line,(int)current_table_line+1,
                                GTK_FILL,GTK_SHRINK,0,0);
               gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
               GtkWidget *const entry = gtk_entry_new_with_max_length(1023);
@@ -2493,13 +2494,13 @@ void create_parameters_gui(const bool reset_params) {
               cimg::strpare(value,'\"',true);
               for (char *p = value; *p; ++p) if (*p==_dquote) *p='\"';
               gtk_entry_set_text(GTK_ENTRY(entry),value);
-              gtk_table_attach(GTK_TABLE(table),entry,1,2,current_table_line,current_table_line+1,
+              gtk_table_attach(GTK_TABLE(table),entry,1,2,(int)current_table_line,(int)current_table_line+1,
                                (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
               GtkWidget *const button = gtk_button_new_with_label(t("Update"));
               gtk_widget_show(button);
-              gtk_table_attach(GTK_TABLE(table),button,2,3,current_table_line,current_table_line+1,
+              gtk_table_attach(GTK_TABLE(table),button,2,3,(int)current_table_line,(int)current_table_line+1,
                                GTK_FILL,GTK_SHRINK,0,0);
-              event_infos[2*current_argument] = (void*)current_argument;
+              event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
               event_infos[2*current_argument+1] = (void*)entry;
               on_text_parameter_changed(event_infos+2*current_argument);
               g_signal_connect_swapped(button,"clicked",G_CALLBACK(on_text_parameter_changed),
@@ -2524,7 +2525,7 @@ void create_parameters_gui(const bool reset_params) {
                                         !cimg::strcasecmp(argument_type,"folder"))) {
             GtkWidget *const label = gtk_label_new(argument_name);
             gtk_widget_show(label);
-            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),label,0,1,(int)current_table_line,(int)current_table_line+1,
                              GTK_FILL,GTK_SHRINK,0,0);
             gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
             GtkWidget *const
@@ -2538,9 +2539,9 @@ void create_parameters_gui(const bool reset_params) {
             if (!reset_params && *argument_value) value = argument_value;
             cimg::strpare(value,' ',false,true); cimg::strpare(value,'\"',true);
             gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(file_chooser),value);
-            gtk_table_attach(GTK_TABLE(table),file_chooser,1,3,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),file_chooser,1,3,(int)current_table_line,(int)current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
-            event_infos[2*current_argument] = (void*)current_argument;
+            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_file_parameter_changed(GTK_FILE_CHOOSER(file_chooser),event_infos+2*current_argument);
             g_signal_connect(file_chooser,"selection-changed",G_CALLBACK(on_file_parameter_changed),
@@ -2555,11 +2556,11 @@ void create_parameters_gui(const bool reset_params) {
             GtkWidget *const label = gtk_label_new(argument_name);
             gtk_widget_show(label);
             gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-            gtk_table_attach(GTK_TABLE(table),label,0,1,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),label,0,1,(int)current_table_line,(int)current_table_line+1,
                              GTK_FILL,GTK_SHRINK,0,0);
             GtkWidget *const hbox = gtk_hbox_new(false,6);
             gtk_widget_show(hbox);
-            gtk_table_attach(GTK_TABLE(table),hbox,1,2,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),hbox,1,2,(int)current_table_line,(int)current_table_line+1,
                              GTK_FILL,GTK_SHRINK,0,0);
             GtkWidget *const color_chooser = gtk_color_button_new();
             gtk_widget_show(color_chooser);
@@ -2584,7 +2585,7 @@ void create_parameters_gui(const bool reset_params) {
               gtk_color_button_set_use_alpha(GTK_COLOR_BUTTON(color_chooser),true);
               gtk_color_button_set_alpha(GTK_COLOR_BUTTON(color_chooser),(unsigned int)(alpha*257));
             } else gtk_color_button_set_use_alpha(GTK_COLOR_BUTTON(color_chooser),false);
-            event_infos[2*current_argument] = (void*)current_argument;
+            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_color_parameter_changed(GTK_COLOR_BUTTON(color_chooser),event_infos+2*current_argument);
             g_signal_connect(color_chooser,"color-set",G_CALLBACK(on_color_parameter_changed),
@@ -2603,7 +2604,7 @@ void create_parameters_gui(const bool reset_params) {
             gtk_label_set_markup(GTK_LABEL(label),argument_arg);
             gtk_label_set_line_wrap(GTK_LABEL(label),true);
             gtk_widget_show(label);
-            gtk_table_attach(GTK_TABLE(table),label,0,3,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),label,0,3,(int)current_table_line,(int)current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_SHRINK,0,0);
             gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
             found_valid_argument = true;
@@ -2626,7 +2627,7 @@ void create_parameters_gui(const bool reset_params) {
             GtkWidget *const link = gtk_link_button_new_with_label(url,label);
             gtk_widget_show(link);
             gtk_button_set_alignment(GTK_BUTTON(link),alignment,0.5);
-            gtk_table_attach(GTK_TABLE(table),link,0,3,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),link,0,3,(int)current_table_line,(int)current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_SHRINK,0,0);
             found_valid_argument = true;
           }
@@ -2635,7 +2636,7 @@ void create_parameters_gui(const bool reset_params) {
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"separator")) {
             GtkWidget *const separator = gtk_hseparator_new();
             gtk_widget_show(separator);
-            gtk_table_attach(GTK_TABLE(table),separator,0,3,current_table_line,current_table_line+1,
+            gtk_table_attach(GTK_TABLE(table),separator,0,3,(int)current_table_line,(int)current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_SHRINK,0,0);
             found_valid_argument = true;
           }
