@@ -7,8 +7,13 @@ BUILDD_MEM_OK := $(strip $(shell test $(BUILDD_MEM) -gt 1800000 && echo yes))
 	dh $@ --sourcedirectory=src
 
 clean:
+	if [ -f zart/Makefile_old ]; then mv zart/Makefile_old zart/Makefile; fi
 	rm -f src/gmic_use_lib
 	dh $@ --sourcedirectory=src
+
+override_dh_auto_configure:
+	cp zart/Makefile zart/Makefile_old
+	dh_auto_configure
 
 override_dh_auto_test: 
 	# no tests please.
