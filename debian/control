@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 7.0.50),
  libgimp2.0-dev (>= 2.4),
  libavcodec-dev, libavformat-dev, libswscale-dev,
  libx11-dev, libxrandr-dev, libfftw3-dev | fftw3-dev,
- libopencv-highgui-dev, libopenexr-dev
+ libopencv-highgui-dev, libopenexr-dev, libqt4-dev
 Standards-Version: 3.9.2
 Homepage: http://gmic.sourceforge.net/
 Vcs-Git: git://git.debian.org/collab-maint/gmic.git
@@ -22,7 +22,12 @@ Description: GREYC's Magic Image Converter
  image files. This includes classical color images, but also more
  complex data as image sequences or 3D volumetric images.
  .
- This package contains the stand-alone binary.
+ This package contains the stand-alone gmic binary and ZArt, a
+ program whose purpose is to demonstrate the possibilities of
+ the G'MIC image processing language by offering the choice of several
+ manipulations on a video stream acquired from a webcam. In other words,
+ ZArt is a GUI for G'MIC real-time manipulations on the output of a webcam.
+
 
 Package: gimp-gmic
 Architecture: any
