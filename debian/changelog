@@ -1,3 +1,12 @@
+gmic (1.5.1.5+dfsg-1~1.gbp54eefb) UNRELEASED; urgency=low
+
+  ** SNAPSHOT build @54eefb2601d832b3c2b4d446a00de4828628ce0e **
+
+  * [54eefb26] Merge tag 'upstream/1.5.1.5+dfsg'
+    Upstream version 1.5.1.5+dfsg
+
+ -- Bernd Zeimetz <bernd@bzed.de>  Wed, 20 Jun 2012 21:04:06 +0200
+
 gmic (1.5.1.0+dfsg-1) unstable; urgency=low
 
   * [d3cb2da4] Remove override_dh_clean from .PHONY.
