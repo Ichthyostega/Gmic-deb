@@ -143,11 +143,11 @@ JPEG_LDFLAGS = -ljpeg
 TIFF_CFLAGS = -Dcimg_use_tiff
 TIFF_LDFLAGS = -ltiff
 
-# Flags to enable native support for MINC image files, using the MINC2 library.
-# This requires the presence of the libminc include and library files.
+# Flags to enable native support for MINC2 image files, using the MINC2 library.
+# ( http://en.wikibooks.org/wiki/MINC/Reference/MINC2.0_Users_Guide )
 # (package 'libminc-dev' on Debian).
-MINC2_CFLAGS = -Dcimg_use_minc2
-MINC2_LDFLAGS = -lminc2
+MINC2_CFLAGS = -Dcimg_use_minc2 -I${HOME}/local/include
+MINC2_LDFLAGS = -lminc_io -lvolume_io2 -lminc2 -lnetcdf -lhdf5 -lz -L${HOME}/local/lib
 
 # Flags to enable native support for various video files, using the FFMPEG library.
 # This requires the presence of the FFMPEG include and library files.
@@ -164,12 +164,13 @@ ZLIB_LDFLAGS = -lz
 # Flags to enable native support of webcams, using the OpenCV library.
 # This requires the presence of the OpenCV include and library files.
 # (package 'libcv3-2-dev' on Debian).
-OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv
+
+#OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include -I$(USR)/include/opencv
 ifeq ($(OS),Darwin)
-OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
+#OPENCV_LDFLAGS = `pkg-config opencv --libs`   #-> Use this for OpenCV 2.2.0 !
 else
-OPENCV_LDFLAGS = -lcv -lhighgui
-# OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
+# OPENCV_LDFLAGS = -lcv -lhighgui
+# OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   #-> Use this for OpenCV 2.2.0 !
 endif
 
 # Flags to enable native support of most classical image file formats, using the GraphicsMagick++ library.
@@ -209,10 +210,10 @@ BOARD_LDFLAGS = -lboard
 # Sets of flags for building different configurations.
 STD_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(PNG_CFLAGS) \
                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
-	  	  $(EXR_CFLAGS) $(FFTW_CFLAGS) $(OPENCV_CFLAGS) # $(FFMPEG_CFLAGS) $(XSHM_CFLAGS) # $(MAGICK_CFLAGS)
+	  	  $(EXR_CFLAGS) $(FFTW_CFLAGS) # $(OPENCV_CFLAGS) $(FFMPEG_CFLAGS) $(XSHM_CFLAGS) # $(MAGICK_CFLAGS)
 STD_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(PNG_LDFLAGS) \
 		   $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) \
-	           $(EXR_LDFLAGS) $(FFTW_LDFLAGS) $(OPENCV_LDFLAGS) # $(FFMPEG_LDFLAGS) $(XSHM_LDFLAGS) # $(MAGICK_LDFLAGS)
+	           $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(OPENCV_LDFLAGS) $(FFMPEG_LDFLAGS) $(XSHM_LDFLAGS) # $(MAGICK_LDFLAGS)
 
 CUST_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(MINC2_CFLAGS) $(ZLIB_CFLAGS) \
@@ -279,6 +280,7 @@ ifeq ($(OS),Darwin)
 	$(MAKE) macosx
 	$(MAKE) bashcompletion
 	$(MAKE) gimp
+	$(MAKE) zart
 else
 	@echo "**"
 	@echo "** Windows configuration"
@@ -293,10 +295,14 @@ gimp:
 	$(MAKE) "CFLAGS=$(STD_GIMP_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_GIMP_LDFLAGS) $(OPT_LDFLAGS)" "STRIP_EXE=1" gmic_gimp
 
 lib:
-	$(MAKE) "CFLAGS=$(STD_LIB_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_LIB_LDFLAGS)" gmic_lib
+	$(MAKE) "CFLAGS=$(STD_LIB_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STD_LIB_LDFLAGS) $(OPT_LDFLAGS)" gmic_lib
 
 zart: lib
+ifneq ($(OS),Darwin)
 	cd ../zart && qmake-qt4 zart.pro && $(MAKE) && strip zart
+else
+	cd ../zart && qmake zart.pro && $(MAKE) "CFLAGS=$(STD_MACOSX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_MACOSX_LDFLAGS) $(OPT_LDFLAGS)"
+endif
 
 # Entries for non-default configurations.
 minimal:
@@ -328,8 +334,12 @@ gmic_lib.o: gmic.cpp gmic_def.h
 	$(CC) -o gmic_lib.o -c gmic.cpp -fPIC -Dgmic_minimal -Dgmic_float $(CFLAGS)
 gmic_lib: gmic_lib.o
 	ar rcs libgmic.a gmic_lib.o
+ifneq ($(OS),Darwin)
 	$(CC) -shared -Wl,-soname,libgmic.so.1 -o libgmic.so gmic_lib.o $(LDFLAGS)
 	$(CC) -o gmic_use_lib gmic_use_lib.cpp -L. -lgmic $(FFTW_LDFLAGS)
+else
+	$(CC) -shared -o libgmic.so gmic_lib.o $(LDFLAGS)
+endif
 
 gmic_gimp.o: gmic.cpp gmic_def.h
 	$(CC) -o gmic_gimp.o -c gmic.cpp -Dgmic_gimp -Dgmic_minimal -Dgmic_float $(CFLAGS)
@@ -389,8 +399,8 @@ ifneq ($(OS),Darwin)
 	cp -f ../zart/haar*.xml $(DESTDIR)$(USR)/share/zart
 	cp -f ../zart/zart $(DESTDIR)$(USR)/bin/zart
 	mkdir -p $(DESTDIR)$(USR)/lib
-	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1.0
-	ln -s libgmic.so.1.5.1.0 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1
+	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1.5
+	ln -s libgmic.so.1.5.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1
 	ln -s libgmic.so.1.5.1 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
 	ln -s libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
 endif
@@ -405,7 +415,7 @@ endif
 uninstall:
 	rm -f $(DESTDIR)$(USR)/bin/gmic
 	rm -f $(DESTDIR)$(USR)/include/gmic.h
-	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.1.0
+	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.1.5
 	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.1
 	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5
 	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1

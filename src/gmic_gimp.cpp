@@ -114,6 +114,19 @@ GimpPDBStatusType status = GIMP_PDB_SUCCESS;  // The plug-in return status.
 // Set/get plug-in persistent variables, using GIMP {get,set}_data() features.
 //-----------------------------------------------------------------------------
 
+// Get the folder path of configuration files.
+const char* get_conf_path() {
+  const char *path_conf = getenv("GMIC_GIMP_PATH");
+  if (!path_conf) {
+#if cimg_OS!=2
+    path_conf = getenv("HOME");
+#else
+    path_conf = getenv("APPDATA");
+#endif
+  }
+  return path_conf;
+}
+
 // Set/get the indice of the currently selected filter.
 void set_current_filter(const unsigned int current_filter) {
   const unsigned int ncurrent_filter = current_filter>=gmic_entries.size()?0:current_filter;
@@ -303,7 +316,8 @@ const char *t(const char *const s) {
   // French translation
   if (!std::strcmp(get_locale(),"fr")) {
     if (!s) {
-      static const char *const ns = "<b>Mise &#224; jour depuis Internet incompl&#232;te !</b>";
+      static const char *const ns = "<b>Mise &#224; jour depuis Internet incompl&#232;te !</b>\n\n"
+        "<i>Acc&#232;s impossible aux sources de filtres :</i>\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC pour GIMP");
@@ -353,8 +367,8 @@ const char *t(const char *const s) {
   // Catalan translation
   if (!std::strcmp(get_locale(),"ca")) {
     if (!s) {
-      static const char *const ns =
-        "<b>No ha estat possible establir una connexi&#243; a Internet !</b>";
+      static const char *const ns = "<b>No ha estat possible establir una connexi&#243; a Internet !</b>\n\n"
+        "<i>No es possible arribar a aquestes fonts de filtres :</i>\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC per al GIMP");
@@ -404,7 +418,8 @@ const char *t(const char *const s) {
   // Italian translation
   if (!std::strcmp(get_locale(),"it")) {
     if (!s) {
-      static const char *const ns = "<b>Impossibile aggiornare da Internet !</b>";
+      static const char *const ns = "<b>Impossibile aggiornare da Internet !</b>\n\n"
+        "<i>Impossibile raggiungere queste fonti filtri :</i>\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC per GIMP");
@@ -452,7 +467,7 @@ const char *t(const char *const s) {
   if (!std::strcmp(get_locale(),"pt")) {
     if (!s) {
       static const char *const ns = "<b>A atualiza\303\247\303\243o pela internet falhou !</b>\n\n"
-        "Por favor verifique o status da sua conex\303\243o.";
+        "<i>Incapaz de chegar a essas fontes de filtros :</i>\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC para o GIMP");
@@ -502,7 +517,8 @@ const char *t(const char *const s) {
   // German translation
   if (!std::strcmp(get_locale(),"de")) {
     if (!s) {
-      static const char *const ns = "<b>Kein Internet-Update m\303\266glich !</b>";
+      static const char *const ns = "<b>Kein Internet-Update m\303\266glich !</b>\n\n";
+      "<i>Kann diese Filter Quellen erreichen :</i>\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC f\303\274r GIMP");
@@ -550,7 +566,7 @@ const char *t(const char *const s) {
   if (!std::strcmp(get_locale(),"nl")) {
     if (!s) {
       static const char *const ns = "<b>Geen internet-update mogelijk !</b>\n\n"
-        "Controleer aub je verbinding.";
+        "<i>Kan deze filters bronnen te bereiken :</i>\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC voor GIMP");
@@ -598,7 +614,8 @@ const char *t(const char *const s) {
 
   // English translation (default)
   if (!s) {
-    static const char *const ns = "<b>Filters update from Internet (partially) failed !</b>";
+    static const char *const ns = "<b>Filters update from Internet (partially) failed !</b>\n\n"
+      "<i>Unable to reach these filters sources :</i>\n";
     return ns;
   }
   return s;
@@ -676,11 +693,11 @@ CImgList<char> update_filters(const bool try_net_update) {
   if (try_net_update) gimp_progress_init(" G'MIC : Update filters...");
 
   // Read filter sources.
-  const char *const path_home = getenv(cimg_OS!=2?"HOME":"APPDATA"), *const path_tmp = cimg::temporary_path();
+  const char *const path_conf = get_conf_path(), *const path_tmp = cimg::temporary_path();
   char filename[1024] = { 0 };
   CImgList<char> sources;
   cimg_snprintf(filename,sizeof(filename),"%s%c%sgmic_sources.cimgz",
-                path_home,cimg_file_separator,_gmic_file_prefix);
+                path_conf,cimg_file_separator,_gmic_file_prefix);
   const unsigned int old_exception_mode = cimg::exception_mode();
   try {
     cimg::exception_mode(0);
@@ -708,7 +725,7 @@ CImgList<char> update_filters(const bool try_net_update) {
     cimg_snprintf(filename_tmp,sizeof(filename_tmp),"%s%c%s%s",
                   path_tmp,cimg_file_separator,_gmic_file_prefix,s_basename);
     cimg_snprintf(filename,sizeof(filename),"%s%c%s%s",
-                  path_home,cimg_file_separator,_gmic_file_prefix,s_basename);
+                  path_conf,cimg_file_separator,_gmic_file_prefix,s_basename);
     std::remove(filename_tmp);
 
     // Try curl first.
@@ -773,7 +790,7 @@ CImgList<char> update_filters(const bool try_net_update) {
   cimglist_for(sources,l) {
     const char *s_basename = gmic_basename(sources[l]);
     cimg_snprintf(filename,sizeof(filename),"%s%c%s%s",
-                  path_home,cimg_file_separator,_gmic_file_prefix,s_basename);
+                  path_conf,cimg_file_separator,_gmic_file_prefix,s_basename);
     const unsigned int old_exception_mode = cimg::exception_mode();
     try {
       cimg::exception_mode(0);
@@ -798,6 +815,12 @@ CImgList<char> update_filters(const bool try_net_update) {
   CImg<char>::vector(0).move_to(_gmic_additional_commands);
   (_gmic_additional_commands>'y').move_to(gmic_additional_commands);
 
+  // Call update procedure.
+  cimg_snprintf(command,sizeof(command),"%s-gimp_update_filters %d",
+                get_verbosity_mode()>4?"-debug ":get_verbosity_mode()>2?"":"-v -99 ",
+                (int)try_net_update);
+  try { gmic(command,gmic_additional_commands,true); } catch (...) {}
+
   // Add fave folder if necessary (make it before actually adding faves to make tree paths valids).
   CImgList<unsigned int> _sorting_criterion;
   CImgList<char> gmic_1stlevel_names;
@@ -805,7 +828,7 @@ CImgList<char> update_filters(const bool try_net_update) {
   char filename_gmic_faves[1024] = { 0 };
   tree_view_store = gtk_tree_store_new(2,G_TYPE_UINT,G_TYPE_STRING);
   cimg_snprintf(filename_gmic_faves,sizeof(filename_gmic_faves),"%s%c%sgmic_faves",
-                path_home,cimg_file_separator,_gmic_file_prefix);
+                path_conf,cimg_file_separator,_gmic_file_prefix);
   std::FILE *file_gmic_faves = std::fopen(filename_gmic_faves,"rb");
   if (file_gmic_faves) {
     gtk_tree_store_append(tree_view_store,&fave_iter,0);
@@ -1551,7 +1574,7 @@ void on_dialog_add_fave_clicked(GtkWidget *const tree_view) {
   if (filter) {
     char filename[1024] = { 0 };
     cimg_snprintf(filename,sizeof(filename),"%s%c%sgmic_faves",
-                  getenv(cimg_OS!=2?"HOME":"APPDATA"),cimg_file_separator,_gmic_file_prefix);
+                  get_conf_path(),cimg_file_separator,_gmic_file_prefix);
     std::FILE *file = std::fopen(filename,"wb");
     if (file) {
       char basename[256] = { 0 }, label[256] = { 0 };
@@ -1613,7 +1636,7 @@ void on_dialog_remove_fave_clicked(GtkWidget *const tree_view) {
   if (filter) {
     char filename[1024] = { 0 };
     cimg_snprintf(filename,sizeof(filename),"%s%c%sgmic_faves",
-                  getenv(cimg_OS!=2?"HOME":"APPDATA"),cimg_file_separator,_gmic_file_prefix);
+                  get_conf_path(),cimg_file_separator,_gmic_file_prefix);
     std::FILE *file = std::fopen(filename,"wb");
     if (file) {
       const unsigned int _filter = filter - indice_faves;
@@ -1649,17 +1672,29 @@ void on_dialog_remove_fave_clicked(GtkWidget *const tree_view) {
 void on_dialog_refresh_clicked(GtkWidget *const tree_view) {
   gtk_widget_hide(relabel_hbox);
   gtk_widget_hide(fave_delete_button);
-  const CImgList<char> invalid_servers = update_filters(get_net_update());
+  CImgList<char> invalid_servers = update_filters(get_net_update());
   if (invalid_servers) {
     if (get_verbosity_mode()) cimglist_for(invalid_servers,l) {
         std::fprintf(cimg::output(),
-                     "\n[gmic_gimp]./update/ External filters source '%s' not responding.\n",
+                     "\n[gmic_gimp]./update/ Unable to reach filters source '%s'.\n",
                      invalid_servers[l].data());
         std::fflush(cimg::output());
       }
+    CImg<char>::string(t(0)).move_to(invalid_servers,0);
+    cimglist_for(invalid_servers,l) {
+      CImg<char>& server = invalid_servers[l];
+      if (l) {
+        server.resize(2+server.width(),1,1,1,0,0,1);
+        server[0] = '*';
+        server[1] = ' ';
+      }
+      if (l!=invalid_servers.width()-1) server.back() = '\n';
+    }
+    const CImg<char> error_message = invalid_servers>'x';
+
     GtkWidget *const
       message = gtk_message_dialog_new_with_markup(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,
-                                                   t(0),gmic_update_server,gmic_update_file,gmic_update_file);
+                                                   error_message.data(),gmic_update_server,gmic_update_file,gmic_update_file);
     gtk_widget_show(message);
     gtk_dialog_run(GTK_DIALOG(message));
     gtk_widget_destroy(message);
@@ -1701,7 +1736,7 @@ void _on_filter_doubleclicked(GtkWidget *const entry) {
     if (*label) {
       char filename[1024] = { 0 };
       cimg_snprintf(filename,sizeof(filename),"%s%c%sgmic_faves",
-                    getenv(cimg_OS!=2?"HOME":"APPDATA"),cimg_file_separator,_gmic_file_prefix);
+                    get_conf_path(),cimg_file_separator,_gmic_file_prefix);
       std::FILE *file = std::fopen(filename,"wb");
       if (file) {
         const unsigned int _filter = filter - indice_faves;

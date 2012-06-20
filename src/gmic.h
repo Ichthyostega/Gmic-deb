@@ -47,7 +47,7 @@
 
 #include <locale>
 #ifndef gmic_version
-#define gmic_version 1510
+#define gmic_version 1515
 
 // Define environment variables.
 #ifndef gmic_is_beta
@@ -196,9 +196,9 @@ struct gmic {
              float *const p_progress, int *const p_cancel);
 
   gmic& add_commands(const char *const data_commands,
-                     gmic_list<char>& command_names, gmic_list<char>& commands);
+                     gmic_list<char> (&commands_names)[27], gmic_list<char> (&commands)[27]);
   gmic& add_commands(std::FILE *const file,
-                     gmic_list<char>& command_names, gmic_list<char>& commands);
+                     gmic_list<char> (&commands_names)[27], gmic_list<char> (&commands)[27]);
   gmic_image<char> scope2string(const bool is_last_slash=true) const;
   gmic_image<char> scope2string(const gmic_image<unsigned int>& scope_selection,
                                 const bool is_last_slash=true) const;
@@ -327,8 +327,9 @@ struct gmic {
 #if cimg_display!=0
   gmic_display instant_window[10];
 #endif
-  static gmic_list<char> default_commands, default_commands_names;
-  gmic_list<char> commands, command_names, variables[27], variables_names[27], scope;
+  static gmic_list<char> default_commands[27], default_commands_names[27];
+  static bool is_default_commands;
+  gmic_list<char> commands[27], commands_names[27], variables[27], variables_names[27], scope;
   gmic_list<unsigned int> dowhiles, repeatdones, whiledones;
   gmic_image<unsigned char> background3d, light3d;
   gmic_image<float> pose3d;
