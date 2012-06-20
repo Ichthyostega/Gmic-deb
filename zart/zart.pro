@@ -2,7 +2,11 @@ TEMPLATE = app
 QT += xml network
 CONFIG	+= qt
 #CONFIG	+= warn_on debug
-INCLUDEPATH	+= .. ./include /usr/include/opencv ../src/
+!macx {
+	INCLUDEPATH	+= .. ./include /usr/include/opencv ../src/
+} else {
+	INCLUDEPATH	+= .. ./include /opt/local/include /opt/local/include/opencv ../src/
+}
 DEPENDPATH += ./include
 
 HEADERS	+= include/Settings.h \
@@ -29,7 +33,11 @@ SOURCES	+= src/Settings.cpp \
 RESOURCES = zart.qrc
 FORMS = ui/MainWindow.ui ui/DialogAbout.ui ui/DialogLicence.ui
 
-LIBS += -lX11 ../src/libgmic.a -lcxcore -lcv -lml -lhighgui -lml -lfftw3
+!macx {
+	LIBS += -lX11 ../src/libgmic.a -lcxcore -lcv -lml -lhighgui -lml -lfftw3
+} else {
+	LIBS += -lX11 ../src/libgmic.a `pkg-config opencv --libs` -lfftw3
+}
 PRE_TARGETDEPS +=  
 QMAKE_CXXFLAGS_DEBUG += -Dcimg_use_fftw3
 QMAKE_CXXFLAGS_RELEASE += -ffast-math -Dcimg_use_fftw3
@@ -37,7 +45,9 @@ UI_DIR = .ui
 MOC_DIR = .moc
 OBJECTS_DIR = .obj
 
-unix: DEFINES += _IS_UNIX_
+unix:!macx {
+	DEFINES += _IS_UNIX
+}
 
 DEFINES += cimg_display=0
 
