@@ -13,19 +13,12 @@
  // Configure LibPNG support.
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -164,12 +164,13 @@ ZLIB_LDFLAGS = -lz
- # Flags to enable native support of webcams, using the OpenCV library.
- # This requires the presence of the OpenCV include and library files.
- # (package 'libcv3-2-dev' on Debian).
--OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv
-+OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv -I$(USR)/include/opencv2
- ifeq ($(OS),Darwin)
- OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
+@@ -171,6 +171,8 @@ ifeq ($(OS),Darwin)
  else
--OPENCV_LDFLAGS = -lcv -lhighgui
-+# OPENCV_LDFLAGS = -lcv -lhighgui
- # OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
-+OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   # Use this for OpenCV 2.2.0 !
+ # OPENCV_LDFLAGS = -lcv -lhighgui
+ # OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   #-> Use this for OpenCV 2.2.0 !
++OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv -I$(USR)/include/opencv2
++PENCV_LDFLAGS = -lopencv_core -lopencv_highgui
  endif
  
  # Flags to enable native support of most classical image file formats, using the GraphicsMagick++ library.
