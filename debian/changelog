@@ -1,15 +1,27 @@
-gmic (1.5.1.5+dfsg-1) unstable; urgency=low
+gmic (1.5.0.8+dfsg-2) unstable; urgency=low
 
   * [d3cb2da4] Remove override_dh_clean from .PHONY.
     Some debhelper versions still seem to recognize it as empty target...
+  * [982453de] Merge commit 'upstream/1.5.0.9+dfsg'
+  * [7c82f405] refreshing patches.
+  * [7093fa88] Updating changelog.
+  * [f8500c13] Merge tag 'upstream/1.5.1.0+dfsg'
+    Upstream version 1.5.1.0+dfsg
+  * [1e04612f] Rfreshing patches.
+  * [ffd49557] Updating changelog.
   * [54eefb26] Merge tag 'upstream/1.5.1.5+dfsg'
     Upstream version 1.5.1.5+dfsg
+  * [317788b2] Updating changelog.
   * [03467dc0] Refreshing patches.
   * [706f87a9] Backup zart/Makefile
   * [95621201] Add build-dependencies, description and install files for zart.
-  * [eefe5f9b] Add patch to fix building with new OpenCV.
+  * [eefe5f9b] Add patch to fix building with ne OpenCV.
+  * [bdadee8c] Updating changelog.
+  * [ccb14826] Add libopencv-objdetect-dev build-dependency.
+  * [6b6322ef] More opencv fixes.
+  * [303ff61c] Add libopencv-imgproc-dev as build-dependency.
 
- -- Bernd Zeimetz <bzed@debian.org>  Wed, 20 Jun 2012 22:31:44 +0200
+ -- Bernd Zeimetz <bzed@debian.org>  Thu, 21 Jun 2012 12:23:27 +0200
 
 gmic (1.5.0.8+dfsg-1) unstable; urgency=low
 
