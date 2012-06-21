@@ -1,4 +1,4 @@
-gmic (1.5.0.8+dfsg-2) unstable; urgency=low
+gmic (1.5.1.5+dfsg-1) unstable; urgency=low
 
   * [d3cb2da4] Remove override_dh_clean from .PHONY.
     Some debhelper versions still seem to recognize it as empty target...
