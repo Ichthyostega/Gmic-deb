@@ -164,11 +164,11 @@ ZLIB_LDFLAGS = -lz
 # Flags to enable native support of webcams, using the OpenCV library.
 # This requires the presence of the OpenCV include and library files.
 # (package 'libcv3-2-dev' on Debian).
-
-#OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include -I$(USR)/include/opencv
 ifeq ($(OS),Darwin)
-#OPENCV_LDFLAGS = `pkg-config opencv --libs`   #-> Use this for OpenCV 2.2.0 !
+OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include -I$(USR)/include/opencv
+OPENCV_LDFLAGS = `pkg-config opencv --libs`   #-> Use this for OpenCV 2.2.0 !
 else
+# OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include -I$(USR)/include/opencv
 # OPENCV_LDFLAGS = -lcv -lhighgui
 # OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   #-> Use this for OpenCV 2.2.0 !
 endif
@@ -399,8 +399,8 @@ ifneq ($(OS),Darwin)
 	cp -f ../zart/haar*.xml $(DESTDIR)$(USR)/share/zart
 	cp -f ../zart/zart $(DESTDIR)$(USR)/bin/zart
 	mkdir -p $(DESTDIR)$(USR)/lib
-	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1.5
-	ln -s libgmic.so.1.5.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1
+	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1.6
+	ln -s libgmic.so.1.5.1.6 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.1
 	ln -s libgmic.so.1.5.1 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
 	ln -s libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
 endif
@@ -415,7 +415,7 @@ endif
 uninstall:
 	rm -f $(DESTDIR)$(USR)/bin/gmic
 	rm -f $(DESTDIR)$(USR)/include/gmic.h
-	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.1.5
+	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.1.6
 	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5.1
 	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1.5
 	rm -f $(DESTSIR)$(USR)/lib/libgmic.so.1
