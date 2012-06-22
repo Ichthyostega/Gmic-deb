@@ -13,8 +13,8 @@
  // Configure LibPNG support.
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -171,6 +171,8 @@ ifeq ($(OS),Darwin)
- else
+@@ -171,6 +171,8 @@ else
+ # OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include -I$(USR)/include/opencv
  # OPENCV_LDFLAGS = -lcv -lhighgui
  # OPENCV_LDFLAGS = -lopencv_core -lopencv_highgui   #-> Use this for OpenCV 2.2.0 !
 +OPENCV_CFLAGS = -Dcimg_use_opencv -I$(USR)/include/opencv -I$(USR)/include/opencv2
