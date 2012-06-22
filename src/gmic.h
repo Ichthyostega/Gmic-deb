@@ -47,7 +47,7 @@
 
 #include <locale>
 #ifndef gmic_version
-#define gmic_version 1515
+#define gmic_version 1516
 
 // Define environment variables.
 #ifndef gmic_is_beta
