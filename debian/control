@@ -15,24 +15,35 @@ Vcs-Browser: http://git.debian.org/?p=collab-maint/gmic.git
 Package: gmic
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Suggests: gmic-doc, gimp-gmic
+Suggests: gimp-gmic, gmic-zart
 Description: GREYC's Magic Image Converter
  G'MIC is an interpreter of image processing macros whose goal is to
  convert, manipulate and visualize generic 1D/2D/3D multi-spectral
  image files. This includes classical color images, but also more
  complex data as image sequences or 3D volumetric images.
  .
- This package contains the stand-alone gmic binary and ZArt, a
- program whose purpose is to demonstrate the possibilities of
- the G'MIC image processing language by offering the choice of several
- manipulations on a video stream acquired from a webcam. In other words,
- ZArt is a GUI for G'MIC real-time manipulations on the output of a webcam.
+ This package contains the stand-alone gmic binary.
 
+Package: gmic-zart
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Suggests: gmic
+Description: GREYC's Magic Image Converter - ZArt
+ G'MIC is an interpreter of image processing macros whose goal is to
+ convert, manipulate and visualize generic 1D/2D/3D multi-spectral
+ image files. This includes classical color images, but also more
+ complex data as image sequences or 3D volumetric images.
+ .
+ This package contains ZArt, a program whose purpose is to demonstrate
+ the possibilities of the G'MIC image processing language by offering
+ the choice of several manipulations on a video stream acquired from a
+ webcam. In other words, ZArt is a GUI for G'MIC real-time manipulations
+ on the output of a webcam.
 
 Package: gimp-gmic
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, gimp (>= 2.6)
-Suggests: gmic, gmic-doc
+Suggests: gmic
 Enhances: gimp
 Description: GIMP plugin for GREYC's Magic Image Converter
  G'MIC is an interpreter of image processing macros whose goal is to
