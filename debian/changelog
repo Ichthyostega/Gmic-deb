@@ -1,3 +1,12 @@
+gmic (1.5.1.6+dfsg-2) unstable; urgency=low
+
+  * [4012fb0e] Split zart into its own package.
+    This avoids pulling QT and X for a command-line tool.
+  * [e420fdb0] Add a manpage for zart.
+  * [eff81582] Remove debian/dirs to avoid empty directories.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Fri, 22 Jun 2012 18:12:19 +0200
+
 gmic (1.5.1.6+dfsg-1) unstable; urgency=low
 
   * [cfe57a54] Merge tag 'upstream/1.5.1.6+dfsg'
