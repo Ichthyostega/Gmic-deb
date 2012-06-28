@@ -1,3 +1,9 @@
+gmic (1.5.1.6+dfsg-3) unstable; urgency=low
+
+  * [152547f5] Add missing Breaks/Replaces.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Thu, 28 Jun 2012 19:55:47 +0200
+
 gmic (1.5.1.6+dfsg-2) unstable; urgency=low
 
   * [4012fb0e] Split zart into its own package.
