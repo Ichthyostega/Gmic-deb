@@ -28,6 +28,8 @@ Package: gmic-zart
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Suggests: gmic
+Replaces: gmic (<< 1.5.1.6+dfsg-3~)
+Breaks: gmic (<< 1.5.1.6+dfsg-3~)
 Description: GREYC's Magic Image Converter - ZArt
  G'MIC is an interpreter of image processing macros whose goal is to
  convert, manipulate and visualize generic 1D/2D/3D multi-spectral
