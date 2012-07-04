@@ -1,13 +1,10 @@
-Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?rev=59
 Name: gmic
-Maintainer: David Tschumperlé <David.Tschumperle@greyc.ensicaen.fr>
+Maintainer: Bernd Zeimetz <bzed@debian.org
 Source: http://gmic.sourceforge.net/
 
 Files: *
-Copyright: 2008, 2009, David Tschumperlé <David.Tschumperle@greyc.ensicaen.fr>
-Source: http://gmic.sourceforge.net/
-Source: http://gmic.sourceforge.net/
-License: other
+Copyright: 2008-2012 David Tschumperlé <David.Tschumperle@greyc.ensicaen.fr>
+License:  CeCILL FREE SOFTWARE LICENSE AGREEMENT
  CeCILL FREE SOFTWARE LICENSE AGREEMENT
  .
  Notice
@@ -481,11 +478,76 @@ License: other
  .
  Version 2.0 dated 2006-07-12.
 
-Files: debian/copyright
-Copyright: 2009 Jakub Wilk <jwilk@debian.org>, 2010 Bernd Zeimetz <bzed@debian.org>
+
+Files: zart/*
+Copyright: 2012 Sébastien Fourey <Sebastien.Fourey@greyc.ensicaen.fr> / GREYC Ensicaen
+License:  CeCILL FREE SOFTWARE LICENSE AGREEMENT
+
+Files: zart/haarcascade_eye.xml, zart/haarcascade_frontalface_*.xml
+Copyright: Copyright (C) 2000, Intel Corporation, all rights reserved.
+License: Intel License Agreement For Open Source Computer Vision Library
+ Redistribution and use in source and binary forms, with or without modification,
+ are permitted provided that the following conditions are met:
+
+   * Redistribution's of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+
+   * Redistribution's in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+
+   * The name of Intel Corporation may not be used to endorse or promote products
+     derived from this software without specific prior written permission.
+ .
+ This software is provided by the copyright holders and contributors "as is" and
+ any express or implied warranties, including, but not limited to, the implied
+ warranties of merchantability and fitness for a particular purpose are disclaimed.
+ In no event shall the Intel Corporation or contributors be liable for any direct,
+ indirect, incidental, special, exemplary, or consequential damages
+ (including, but not limited to, procurement of substitute goods or services;
+ loss of use, data, or profits; or business interruption) however caused
+ and on any theory of liability, whether in contract, strict liability,
+ or tort (including negligence or otherwise) arising in any way out of
+ the use of this software, even if advised of the possibility of such damage.
+
+
+
+Files: zart/haarcascade_mcs_*.xml
+Copyright: Copyright (c) 2006, Modesto Castrillon-Santana
+ (IUSIANI, University of Las Palmas de Gran Canaria, Spain)
+License:
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are
+  met:
+  .
+     * Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
+     * Redistributions in binary form must reproduce the above
+       copyright notice, this list of conditions and the following
+       disclaimer in the documentation and/or other materials provided
+       with the distribution.  
+     * The name of Contributor may not used to endorse or promote products 
+       derived from this software without specific prior written permission.
+  .
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+Files: debian/*
+Copyright: 2009 Jakub Wilk <jwilk@debian.org>, 2010-2012 Bernd Zeimetz <bzed@debian.org>
 License: GPL-2
  On Debian systems, the complete text of the GNU General Public License
  version 2 can be found in the /usr/share/common-licenses/GPL-2 file.
+
 
 
 Additional notices for src/gmic_def.h:
