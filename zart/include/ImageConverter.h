@@ -8,7 +8,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
@@ -46,9 +46,16 @@
 #ifndef _IMAGECONVERTER_H_
 #define _IMAGECONVERTER_H_
 
+#ifdef HAS_OPENCV2_HEADERS
+#include <opencv2/core/core_c.h>
+#include <opencv2/imgproc/imgproc_c.h>
+#else
 #include <cv.h>
-#include <QImage>
+#endif
+
 #include "CImg.h"
+
+class QImage;
 
 class ImageConverter {
 public:

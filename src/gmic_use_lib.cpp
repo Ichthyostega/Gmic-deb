@@ -6,7 +6,7 @@
  #  Description : Show how to call the G'MIC interpreter from a C++ source code.
  #
  #  Copyright   : David Tschumperle
- #                ( http://www.greyc.ensicaen.fr/~dtschump/ )
+ #                ( http://tschumperle.users.greyc.fr/ )
  #
  #  License     : CeCILL v2.0
  #                ( http://www.cecill.info/licences/Licence_CeCILL_V2-en.html )
@@ -98,7 +98,7 @@ int main() {
 
   // Third step : get back modified image data.
   //-------------------------------------------
-  std::fprintf(stderr,"\n- 3st step : Returned %d output images.\n",images._width);
+  std::fprintf(stderr,"\n- 3st step : Returned %u output images.\n",images._width);
   for (unsigned int i = 0; i<images._width; ++i) {
     std::fprintf(stderr,"   Output image %u = %ux%ux%ux%u, buffer : %p\n",i,
                  images._data[i]._width,

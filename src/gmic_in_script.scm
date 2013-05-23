@@ -6,7 +6,7 @@
 ;;                 ( http://gmic.sourceforge.net )
 ;;
 ;;   Copyright   : David Tschumperle
-;;                 ( http://www.greyc.ensicaen.fr/~dtschump/ )
+;;                 ( http://tschumperle.users.greyc.fr/ )
 ;;
 ;;   License     : CeCILL v2.0
 ;;                 ( http://www.cecill.info/licences/Licence_CeCILL_V2-en.html )

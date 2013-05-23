@@ -8,7 +8,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
@@ -48,15 +48,12 @@
 #define _FILTERTHREAD_H_
 
 #include <QThread>
-#include <QMutex>
-#include <QWaitCondition>
-#include <vector>
-#include <QImage>
-#include <cv.h>
+#include "Common.h"
 #include "CImg.h"
 #include "gmic.h"
-#include "WebcamGrabber.h"
-#include "Common.h"
+class WebcamGrabber;
+class QMutex;
+class QImage;
 
 class FilterThread : public QThread {
 
@@ -64,22 +61,18 @@ class FilterThread : public QThread {
 
  public:  
 
-  enum FilterMode { GMIC_Mode=0, FaceDetection_Mode };
   enum PreviewMode { Full, TopHalf, LeftHalf, BottomHalf, RightHalf, Camera };
 
   FilterThread( WebcamGrabber & webcam,
                const QString & command,
                QImage * outputImage,
                QMutex * imageMutex,
-               FilterMode filterMode,
                PreviewMode previewMode,
-               const QString & cascadeFile,
                int frameSkip );
 
   virtual ~FilterThread();
   
   void run();
-
   void setMousePosition( int x, int y, int buttons );
 
  public slots:
@@ -100,16 +93,12 @@ class FilterThread : public QThread {
    QString _command;
    QImage * _outputImage;
    QMutex * _imageMutex;
-   FilterMode _filterMode;
    PreviewMode _previewMode;
-   QString _cascadeFilename;
    int _frameSkip;
    bool _continue;
    int _xMouse;
    int _yMouse;
    int _buttonsMouse;
-   CvHaarClassifierCascade * _classifierCascade;
-   CvMemStorage* _memStorage;
    // G'MIC related members
    cimg_library::CImgList<float> _gmic_images;
    cimg_library::CImgList<char> _gmic_images_names;
