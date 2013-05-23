@@ -1,3 +1,12 @@
+gmic (1.5.5.2-1~1.gbp8093b5) UNRELEASED; urgency=low
+
+  ** SNAPSHOT build @8093b566b78349d3bdaafa9103ecd2b6cf6cb569 **
+
+  * [8093b566] Merge tag 'upstream/1.5.5.2'
+    Upstream version 1.5.5.2
+
+ -- Bernd Zeimetz <bernd@bzed.de>  Thu, 23 May 2013 22:30:16 +0200
+
 gmic (1.5.1.6+dfsg-4) unstable; urgency=low
 
   * [4ed5416f] Fix author/copyright information in debian/copyright and zart.1
