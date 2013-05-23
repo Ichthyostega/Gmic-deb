@@ -1,16 +1,17 @@
 TEMPLATE = app
 QT += xml network
 CONFIG	+= qt
-#CONFIG	+= warn_on debug
+CONFIG	+= warn_on release
+
 !macx {
 	INCLUDEPATH	+= .. ./include /usr/include/opencv ../src/
 } else {
 	INCLUDEPATH	+= .. ./include /opt/local/include /opt/local/include/opencv ../src/
 }
+
 DEPENDPATH += ./include
 
-HEADERS	+= include/Settings.h \
-           include/ImageView.h \
+HEADERS	+= include/ImageView.h \
            include/MainWindow.h \
            include/WebcamGrabber.h \
            include/FilterThread.h \
@@ -19,8 +20,7 @@ HEADERS	+= include/Settings.h \
            include/ImageConverter.h \
            include/DialogLicence.h
 
-SOURCES	+= src/Settings.cpp \
-           src/WebcamGrabber.cpp \
+SOURCES	+= src/WebcamGrabber.cpp \
            src/ImageView.cpp \
            src/MainWindow.cpp \
            src/ZArt.cpp \
@@ -33,12 +33,21 @@ SOURCES	+= src/Settings.cpp \
 RESOURCES = zart.qrc
 FORMS = ui/MainWindow.ui ui/DialogAbout.ui ui/DialogLicence.ui
 
-!macx {
-	LIBS += -lX11 ../src/libgmic.a -lcxcore -lcv -lml -lhighgui -lml -lfftw3
-} else {
-	LIBS += -lX11 ../src/libgmic.a `pkg-config opencv --libs` -lfftw3
+exists( /usr/include/opencv2 ) {
+ DEFINES += OPENCV2_HEADERS
 }
-PRE_TARGETDEPS +=  
+
+system(pkg-config opencv --libs > /dev/null 2>&1) {
+# LIBS += -lX11 ../src/libgmic.a `pkg-config opencv --libs` -lfftw3
+ OPENCVLIBS = $$system(pkg-config opencv --libs)
+ OPENCVLIBS = $$replace( OPENCVLIBS, -lcvaux, )
+ LIBS += -lX11 ../src/libgmic.a $$OPENCVLIBS -lfftw3
+} else {
+  LIBS += -lX11 ../src/libgmic.a -lopencv_core -lopencv_highgui -lfftw3 -lopencv_imgproc -lopencv_objdetect
+# LIBS += -lX11 ../src/libgmic.a -lcxcore -lcv -lml -lhighgui -lfftw3
+}
+
+PRE_TARGETDEPS +=
 QMAKE_CXXFLAGS_DEBUG += -Dcimg_use_fftw3
 QMAKE_CXXFLAGS_RELEASE += -ffast-math -Dcimg_use_fftw3
 UI_DIR = .ui
@@ -46,11 +55,11 @@ MOC_DIR = .moc
 OBJECTS_DIR = .obj
 
 unix:!macx {
-	DEFINES += _IS_UNIX
+	DEFINES += _IS_UNIX_
 }
 
 DEFINES += cimg_display=0
 
-#QMAKE_LIBS =  
-#QMAKE_LFLAGS_DEBUG = -lcxcore -lcv -lhighgui -lml  
-#QMAKE_LFLAGS_RELEASE = -lcxcore -lcv -lhighgui -lml  
+#QMAKE_LIBS =
+#QMAKE_LFLAGS_DEBUG = -lcxcore -lcv -lhighgui -lml
+#QMAKE_LFLAGS_RELEASE = -lcxcore -lcv -lhighgui -lml

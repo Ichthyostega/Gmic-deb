@@ -8,7 +8,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
@@ -47,44 +47,42 @@
 
 #ifndef _WEBCAMGRABBER_H_
 #define _WEBCAMGRABBER_H_
+#ifdef HAS_OPENCV2_HEADERS
+#include <opencv2/core/core_c.h>
+#include <opencv2/highgui/highgui_c.h>
+#else
+#include <cv.h>
+#include <highgui.h>
+#endif
+#include <QList>
 
-#include "cv.h"
-#include "highgui.h"
-#include <QObject>
+class WebcamGrabber {
 
-class QImage;
-
-class WebcamGrabber : public QObject {
-
-  Q_OBJECT;
-
- public:
+public:
   
-  WebcamGrabber();
+   WebcamGrabber();
 
-  virtual ~WebcamGrabber();
-  
-  inline IplImage * image() const;
+   virtual ~WebcamGrabber();
+   
+   inline IplImage * image() const;
 
-  inline int width();  
-  inline int height();
-  inline int cameraIndex();
+   inline int width();  
+   inline int height();
+   inline int cameraIndex();
 
-  static QList<int> getWebcamList();
+   static QList<int> getWebcamList();
 
- public slots:
+   void capture();
+   void setCameraIndex( int i );
 
-  void capture();
-  void setCameraIndex( int i );
+private:
 
- private:
-
-  CvCapture *_capture;  
-  IplImage *_image;
-  int _width;
-  int _height;
-  int _cameraIndex;
-  int _min;
+   CvCapture *_capture;  
+   IplImage *_image;
+   int _width;
+   int _height;
+   int _cameraIndex;
+   int _min;
 };
 
 #include "WebcamGrabber.ih"

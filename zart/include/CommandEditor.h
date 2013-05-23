@@ -8,7 +8,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the

@@ -9,7 +9,7 @@
  #                ( http://cimg.sourceforge.net )
  #
  #  Copyright   : David Tschumperle
- #                ( http://www.greyc.ensicaen.fr/~dtschump/ )
+ #                ( http://tschumperle.users.greyc.fr/ )
  #
  #  License     : CeCILL v2.0
  #                ( http://www.cecill.info/licences/Licence_CeCILL_V2-en.html )
@@ -105,11 +105,6 @@ GtkWidget *fave_delete_button = 0;            // Fave delete button.
 GtkWidget *right_frame = 0;                   // The right frame containing the filter parameters.
 GtkWidget *right_pane = 0;                    // The right scrolled window, containing the right frame.
 GimpPDBStatusType status = GIMP_PDB_SUCCESS;  // The plug-in return status.
-
-#define gmic_xstr(x) gmic_str(x)
-#define gmic_str(x) #x
-#define gmic_update_server "http://gmic.sourceforge.net/"     // The filters update server address.
-#define gmic_update_file "gmic_def." gmic_xstr(gmic_version)  // The filters update filename.
 
 // Set/get plug-in persistent variables, using GIMP {get,set}_data() features.
 //-----------------------------------------------------------------------------
@@ -279,7 +274,15 @@ bool get_net_update() {
 // Set/get the current locale.
 void set_locale() {
   char locale[16] = { 0 };
-  std::sscanf(std::setlocale(LC_ALL,0),"%c%c",&(locale[0]),&(locale[1]));
+  const char *s_locale = std::setlocale(LC_CTYPE,0);
+  if (!s_locale || std::strlen(s_locale)<2 || !cimg::strncasecmp("lc",s_locale,2)) s_locale = getenv("LANG");
+  if (!s_locale || std::strlen(s_locale)<2) s_locale = getenv("LANGUAGE");
+  if (!s_locale || std::strlen(s_locale)<2) s_locale = getenv("LC_ALL");
+  if (!s_locale || std::strlen(s_locale)<2) s_locale = getenv("LC_CTYPE");
+  if (!s_locale || std::strlen(s_locale)<2) s_locale = getenv("LC_TIME");
+  if (!s_locale || std::strlen(s_locale)<2) s_locale = getenv("LC_NAME");
+  if (!s_locale || std::strlen(s_locale)<2) s_locale = "en";
+  std::sscanf(s_locale,"%c%c",&(locale[0]),&(locale[1]));
   cimg::uncase(locale);
   gimp_set_data("gmic_locale",locale,std::strlen(locale)+1);
 }
@@ -312,57 +315,6 @@ inline const char* gmic_basename(const char *const s)  {
 //------------------------------------------
 #define _t(source,dest) if (!std::strcmp(source,s)) { static const char *const ns = dest; return ns; }
 const char *t(const char *const s) {
-
-  // French translation
-  if (!std::strcmp(get_locale(),"fr")) {
-    if (!s) {
-      static const char *const ns = "<b>Mise &#224; jour depuis Internet incompl&#232;te !</b>\n\n"
-        "<i>Acc&#232;s impossible aux sources de filtres :</i>\n";
-      return ns;
-    }
-    _t("G'MIC for GIMP","G'MIC pour GIMP");
-    _t("<i>Select a filter...</i>","<i>Choisissez un filtre...</i>");
-    _t("<i>No parameters to set...</i>","<i>Pas de param&#232;tres...</i>");
-    _t("<b> Input / Output : </b>","<b> Entr&#233;es / Sorties : </b>");
-    _t("Input layers...","Calques d'entr\303\251e...");
-    _t("None","Aucun");
-    _t("Active (default)","Actif (d\303\251faut)");
-    _t("All","Tous");
-    _t("Active & below","Actif & en dessous");
-    _t("Active & above","Actif & au dessus");
-    _t("All visibles","Tous les visibles");
-    _t("All invisibles","Tous les invisibles");
-    _t("All visibles (decr.)","Tous les visibles (d\303\251cr.)");
-    _t("All invisibles (decr.)","Tous les invisibles (d\303\251cr.)");
-    _t("All (decr.)","Tous (d\303\251cr.)");
-    _t("Output mode...","Mode de sortie...");
-    _t("In place (default)","Sur place (d\303\251faut)");
-    _t("New layer(s)","Nouveau(x) calque(s)");
-    _t("New active layer(s)","Nouveau(x) calque(s) actifs");
-    _t("New image","Nouvelle image");
-    _t("Output preview...","Mode d'aper\303\247u...");
-    _t("1st output (default)","1\303\250re image (d\303\251faut)");
-    _t("2nd output","2\303\250me image");
-    _t("3rd output","3\303\250me image");
-    _t("4th output","4\303\250me image");
-    _t("1st -> 2nd","1\303\250re -> 2\303\250me");
-    _t("1st -> 3rd","1\303\250re -> 3\303\250me");
-    _t("1st -> 4th","1\303\250re -> 4\303\250me");
-    _t("All outputs","Toutes les images");
-    _t("Output messages...","Messages de sortie...");
-    _t("Quiet (default)","Aucun message (d\303\251faut)");
-    _t("Verbose (console)","Mode verbeux (console)");
-    _t("Verbose (logfile)","Mode verbeux (fichier log)");
-    _t("Very verbose (console)","Mode tr\303\250s verbeux (console)");
-    _t("Very verbose (logfile)","Mode tr\303\250s verbeux (fichier log)");
-    _t("Debug mode (console)","Mode d\303\251bogage (console)");
-    _t("Debug mode (logfile)","Mode d\303\251bogage (fichier log)");
-    _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
-    _t("_Maximize","_Maximiser");
-    _t("_Restore","_R\303\251duire");
-    _t("Update","Actualiser");
-    _t("Rename","Renommer");
-  }
 
   // Catalan translation
   if (!std::strcmp(get_locale(),"ca")) {
@@ -415,6 +367,155 @@ const char *t(const char *const s) {
     _t("Rename","Canviar");
   }
 
+  // Dutch translation
+  if (!std::strcmp(get_locale(),"nl")) {
+    if (!s) {
+      static const char *const ns = "<b>Geen internet-update mogelijk !</b>\n\n"
+        "<i>Kan deze filters bronnen te bereiken :</i>\n";
+      return ns;
+    }
+    _t("G'MIC for GIMP","G'MIC voor GIMP");
+    _t("<i>Select a filter...</i>","<i>Kies een filter...</i>");
+    _t("<i>No parameters to set...</i>","<i>Geen parameters nodig...</i>");
+    _t("<b> Input / Output : </b>","<b> Input / Output : </b>");
+    _t("Input layers...","Input lagen...");
+    _t("None","Geen");
+    _t("Active (default)","Actieve laag (standaard)");
+    _t("All","Alle");
+    _t("Active & below","Actieve & onderliggende");
+    _t("Active & above","Actieve & bovenliggende");
+    _t("All visibles","Alle zichtbare");
+    _t("All invisibles","Alle niet zichtbare");
+    _t("All visibles (decr.)","Alle zichtbare (afnemend)");
+    _t("All invisibles (decr.)","Alle niet zichtbare (afnemend)");
+    _t("All (decr.)","Alle (afnemend)");
+    _t("Output mode...","Output mode...");
+    _t("In place (default)","Vervang bestaande (standaard)");
+    _t("New layer(s)","Nieuwe laag/lagen");
+    _t("New active layer(s)","Nieuwe actieve laag/lagen");
+    _t("New image","Nieuwe afbeelding");
+    _t("Output preview...","Output voorbeeld...");
+    _t("1st output (default)","1e Resultaat (standaard)");
+    _t("2nd output","2e Resultaat");
+    _t("3rd output","3e Resultaat");
+    _t("4th output","4e Resultaat");
+    _t("1st -> 2nd","1e -> 2e");
+    _t("1st -> 3rd","1e -> 3e");
+    _t("1st -> 4th","1e -> 4e");
+    _t("All outputs","Alle resultaten");
+    _t("Output messages...","Output berichten...");
+    _t("Quiet (default)","Geen melding (standaard)");
+    _t("Verbose (console)","Uitgebreid (console)");
+    _t("Verbose (logfile)","Uitgebreid (logfile)");
+    _t("Very verbose (console)","Heel uitgebreid (console)");
+    _t("Very verbose (logfile)","Heel uitgebreid (logfile)");
+    _t("Debug mode (console)","Debug mode (console)");
+    _t("Debug mode (logfile)","Debug mode (logfile)");
+    _t(" Available filters (%u) :"," Beschikbare filters (%u) :");
+    _t("_Maximize","_Maximaliseren");
+    _t("_Restore","_Vermindering");
+    _t("Rename","Hernoemen");
+  }
+
+  // French translation
+  if (!std::strcmp(get_locale(),"fr")) {
+    if (!s) {
+      static const char *const ns = "<b>Mise &#224; jour depuis Internet incompl&#232;te !</b>\n\n"
+        "<i>Acc&#232;s impossible aux sources de filtres :</i>\n";
+      return ns;
+    }
+    _t("G'MIC for GIMP","G'MIC pour GIMP");
+    _t("<i>Select a filter...</i>","<i>Choisissez un filtre...</i>");
+    _t("<i>No parameters to set...</i>","<i>Pas de param&#232;tres...</i>");
+    _t("<b> Input / Output : </b>","<b> Entr&#233;es / Sorties : </b>");
+    _t("Input layers...","Calques d'entr\303\251e...");
+    _t("None","Aucun");
+    _t("Active (default)","Actif (d\303\251faut)");
+    _t("All","Tous");
+    _t("Active & below","Actif & en dessous");
+    _t("Active & above","Actif & au dessus");
+    _t("All visibles","Tous les visibles");
+    _t("All invisibles","Tous les invisibles");
+    _t("All visibles (decr.)","Tous les visibles (d\303\251cr.)");
+    _t("All invisibles (decr.)","Tous les invisibles (d\303\251cr.)");
+    _t("All (decr.)","Tous (d\303\251cr.)");
+    _t("Output mode...","Mode de sortie...");
+    _t("In place (default)","Sur place (d\303\251faut)");
+    _t("New layer(s)","Nouveau(x) calque(s)");
+    _t("New active layer(s)","Nouveau(x) calque(s) actifs");
+    _t("New image","Nouvelle image");
+    _t("Output preview...","Mode d'aper\303\247u...");
+    _t("1st output (default)","1\303\250re image (d\303\251faut)");
+    _t("2nd output","2\303\250me image");
+    _t("3rd output","3\303\250me image");
+    _t("4th output","4\303\250me image");
+    _t("1st -> 2nd","1\303\250re -> 2\303\250me");
+    _t("1st -> 3rd","1\303\250re -> 3\303\250me");
+    _t("1st -> 4th","1\303\250re -> 4\303\250me");
+    _t("All outputs","Toutes les images");
+    _t("Output messages...","Messages de sortie...");
+    _t("Quiet (default)","Aucun message (d\303\251faut)");
+    _t("Verbose (console)","Mode verbeux (console)");
+    _t("Verbose (logfile)","Mode verbeux (fichier log)");
+    _t("Very verbose (console)","Mode tr\303\250s verbeux (console)");
+    _t("Very verbose (logfile)","Mode tr\303\250s verbeux (fichier log)");
+    _t("Debug mode (console)","Mode d\303\251bogage (console)");
+    _t("Debug mode (logfile)","Mode d\303\251bogage (fichier log)");
+    _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
+    _t("_Maximize","_Maximiser");
+    _t("_Restore","_R\303\251duire");
+    _t("Update","Actualiser");
+    _t("Rename","Renommer");
+  }
+
+  // German translation
+  if (!std::strcmp(get_locale(),"de")) {
+    if (!s) {
+      static const char *const ns = "<b>Kein Internet-Update m\303\266glich !</b>\n\n"
+        "<i>Kann diese Filter Quellen erreichen :</i>\n";
+      return ns;
+    }
+    _t("G'MIC for GIMP","G'MIC f\303\274r GIMP");
+    _t("<i>Select a filter...</i>","<i>W\303\244hlen Sie einen Filter...</i>");
+    _t("<i>No parameters to set...</i>","<i>Keine w\303\244hlbaren Parameter...</i>");
+    _t("<b> Input / Output : </b>","<b> Eingabe / Ausgabe : </b>");
+    _t("Input layers...","Eingabeebenen...");
+    _t("None","Keine");
+    _t("Active (default)","Aktive (Standard)");
+    _t("All","Alle");
+    _t("Active & below","Aktive & darunterliegende");
+    _t("Active & above","Aktive & dar\303\274berliegende");
+    _t("All visibles","Alle sichtbaren");
+    _t("All invisibles","Alle nicht sichtbaren");
+    _t("All visibles (decr.)","Alle sichtbaren (absteigend)");
+    _t("All invisibles (decr.)","Alle nicht sichtbaren (absteigend)");
+    _t("All (decr.)","Alle (absteigend)");
+    _t("Output mode...","Ausgabemodus...");
+    _t("In place (default)","Bestehende ersetzen (standard)");
+    _t("New layer(s)","Neue Ebene(n)");
+    _t("New active layer(s)","Neue aktive Ebene(n)");
+    _t("New image","Neues Bild");
+    _t("Output preview...","Ausgabevorschau...");
+    _t("1st output (default)","1. Ausgabe (Standard)");
+    _t("2nd output","2. Ausgabe");
+    _t("3rd output","3. Ausgabe");
+    _t("4th output","4. Ausgabe");
+    _t("1st -> 2nd","1. -> 2.");
+    _t("1st -> 3rd","1. -> 3.");
+    _t("1st -> 4th","1. -> 4.");
+    _t("All outputs","Alle Ausgaben");
+    _t("Output messages...","Ausgabemeldungen...");
+    _t("Quiet (default)","Keine Meldung (Standard)");
+    _t("Verbose (console)","Ausf\303\274hrlich (Konsole)");
+    _t("Verbose (logfile)","Ausf\303\274hrlich (Logfile)");
+    _t("Very verbose (console)","Sehr ausf\303\274hrlich (Konsole)");
+    _t("Very verbose (logfile)","Sehr ausf\303\274hrlich (Logfile)");
+    _t("Debug mode (console)","Debug-Modus (Konsole)");
+    _t("Debug mode (logfile)","Debug-Modus (Logfile)");
+    _t(" Available filters (%u) :"," Verf\303\274gbare Filter (%u) :");
+    _t("Rename","Umbenennen");
+  }
+
   // Italian translation
   if (!std::strcmp(get_locale(),"it")) {
     if (!s) {
@@ -461,6 +562,57 @@ const char *t(const char *const s) {
     _t("Debug mode (logfile)","Debug Mode (logfile)");
     _t(" Available filters (%u) :"," Filtri disponibili (%u) :");
     _t("Update","Aggiornare");
+  }
+
+  // Polish translation
+  if (!std::strcmp(get_locale(),"pl")) {
+    if (!s) {
+      static const char *const ns = "<b>Aktualizacja filtr\303\263w przez internet (cz\304\231\305\233ciowo) nie powiod\305\202a si\304\231 !</b>\n\n"
+        "<i>Brak dost\304\231pu do tych \305\272r\303\263de\305\202 filtr\303\263w :</i>\n";
+      return ns;
+    }
+    _t("G'MIC for GIMP","G'MIC dla GIMP");
+    _t("<i>Select a filter...</i>","<i>Wybierz filtr...</i>");
+    _t("<i>No parameters to set...</i>","<i>Brak parametr\304\205w do ustawienia...</i>");
+    _t("<b> Input / Output : </b>","<b> Wej\305\233cie / Wyj\305\233cie : </b>");
+    _t("Input layers...","Warstwy wej\305\233cia...");
+    _t("None","Brak");
+    _t("Active (default)","Aktywna (domy\305\233lnie)");
+    _t("All","Wszystkie");
+    _t("Active & below","Aktywna & poni\305\274ej");
+    _t("Active & above","Aktywna & powy\305\274ej");
+    _t("All visibles","Wszystkie widoczne");
+    _t("All invisibles","Wszystkie niewidoczne");
+    _t("All visibles (decr.)","Wszystkie widoczne (od do\305\202u)");
+    _t("All invisibles (decr.)","Wszystkie niewidoczne (od do\305\202u)");
+    _t("All (decr.)","Wszystkie (od do\305\202u)");
+    _t("Output mode...","Tryb wyj\305\233cia...");
+    _t("In place (default)","Na miejscu (domy\305\233lnie)");
+    _t("New layer(s)","Nowa/e warstwa/y");
+    _t("New active layer(s)","Nowa/e aktywna/e warstwa/y");
+    _t("New image","Nowy obraz");
+    _t("Output preview...","Podgl\304\205d wyj\305\233cia dla warstw...");
+    _t("1st output (default)","Pierwszej (domy\305\233lnie)");
+    _t("2nd output","Drugiej");
+    _t("3rd output","Trzeciej");
+    _t("4th output","Czwartej");
+    _t("1st -> 2nd","Od 1 do 2");
+    _t("1st -> 3rd","Od 1 do 3");
+    _t("1st -> 4th","Od 1 do 4");
+    _t("All outputs","Wszystkich");
+    _t("Output messages...","Komunikat wyj\305\233cia...");
+    _t("Quiet (default)","Brak (domy\305\233lnie)");
+    _t("Verbose (console)","Og\303\263lny (konsola)");
+    _t("Verbose (logfile)","Og\303\263lny (plik log)");
+    _t("Very verbose (console)","Dok\305\202adny (konsola)");
+    _t("Very verbose (logfile)","Dok\305\202adny (plik log)");
+    _t("Debug mode (console)","Debugowanie (konsola)");
+    _t("Debug mode (logfile)","Debugowanie (plik log)");
+    _t(" Available filters (%u) :"," Dost\304\231pne filtry (%u) :");
+    _t("_Maximize","_Maksymalizuj");
+    _t("_Restore","_Cofnij");
+    _t("Update","Uaktualnij");
+    _t("Rename","Zmiana nazwy");
   }
 
   // Portuguese translation
@@ -514,102 +666,105 @@ const char *t(const char *const s) {
     _t("Rename","Renomear");
   }
 
-  // German translation
-  if (!std::strcmp(get_locale(),"de")) {
+  // Serbian translation
+  if (!std::strcmp(get_locale(),"sr")) {
     if (!s) {
-      static const char *const ns = "<b>Kein Internet-Update m\303\266glich !</b>\n\n";
-      "<i>Kann diese Filter Quellen erreichen :</i>\n";
+      static const char *const ns = "<b>A\305\276uriranje filtera sa interneta (delimi\304\215no) neuspe\305\241no !</b>\n\n"
+        "<i>Nije mogu\304\207e dospeti do izvorne lokacije ovih filtera :</i>\n";
       return ns;
     }
-    _t("G'MIC for GIMP","G'MIC f\303\274r GIMP");
-    _t("<i>Select a filter...</i>","<i>W\303\244hlen Sie einen Filter...</i>");
-    _t("<i>No parameters to set...</i>","<i>Keine w\303\244hlbaren Parameter...</i>");
-    _t("<b> Input / Output : </b>","<b> Eingabe / Ausgabe : </b>");
-    _t("Input layers...","Eingabeebenen...");
-    _t("None","Keine");
-    _t("Active (default)","Aktive (Standard)");
-    _t("All","Alle");
-    _t("Active & below","Aktive & darunterliegende");
-    _t("Active & above","Aktive & dar\303\274berliegende");
-    _t("All visibles","Alle sichtbaren");
-    _t("All invisibles","Alle nicht sichtbaren");
-    _t("All visibles (decr.)","Alle sichtbaren (absteigend)");
-    _t("All invisibles (decr.)","Alle nicht sichtbaren (absteigend)");
-    _t("All (decr.)","Alle (absteigend)");
-    _t("Output mode...","Ausgabemodus...");
-    _t("In place (default)","Bestehende ersetzen (standard)");
-    _t("New layer(s)","Neue Ebene(n)");
-    _t("New active layer(s)","Neue aktive Ebene(n)");
-    _t("New image","Neues Bild");
-    _t("Output preview...","Ausgabevorschau...");
-    _t("1st output (default)","1. Ausgabe (Standard)");
-    _t("2nd output","2. Ausgabe");
-    _t("3rd output","3. Ausgabe");
-    _t("4th output","4. Ausgabe");
-    _t("1st -> 2nd","1. -> 2.");
-    _t("1st -> 3rd","1. -> 3.");
-    _t("1st -> 4th","1. -> 4.");
-    _t("All outputs","Alle Ausgaben");
-    _t("Output messages...","Ausgabemeldungen...");
-    _t("Quiet (default)","Keine Meldung (Standard)");
-    _t("Verbose (console)","Ausf\303\274hrlich (Konsole)");
-    _t("Verbose (logfile)","Ausf\303\274hrlich (Logfile)");
-    _t("Very verbose (console)","Sehr ausf\303\274hrlich (Konsole)");
-    _t("Very verbose (logfile)","Sehr ausf\303\274hrlich (Logfile)");
-    _t("Debug mode (console)","Debug-Modus (Konsole)");
-    _t("Debug mode (logfile)","Debug-Modus (Logfile)");
-    _t(" Available filters (%u) :"," Verf\303\274gbare Filter (%u) :");
-    _t("Rename","Umbenennen");
+    _t("G'MIC for GIMP","G'MIC za GIMP");
+    _t("<i>Select a filter...</i>","<i>Izaberite filter...</i>");
+    _t("<i>No parameters to set...</i>","<i>Nema parametara za pode\305\241avanje...</i>");
+    _t("<b> Input / Output : </b>","<b> Ulazni podaci / Rezultati : </b>");
+    _t("Input layers...","Ulazni slojevi...");
+    _t("None","Nijedan");
+    _t("Active (default)","Aktivan (podrazumevana opcija)");
+    _t("All","Svi");
+    _t("Active & below","Aktivni & ispod");
+    _t("Active & above","Aktivni & iznad");
+    _t("All visibles","Svi vidljivi");
+    _t("All invisibles","Svi nevidljivi");
+    _t("All visibles (decr.)","Svi vidljivi (po opadaju\304\207em nizu)");
+    _t("All invisibles (decr.)","Svi nevidljivi (po opadaju\304\207em nizu)");
+    _t("All (decr.)","Svi (po opadaju\304\207em nizu)");
+    _t("Output mode...","Izlazni mod...");
+    _t("In place (default)","Umesto (podrazumevana opcija)");
+    _t("New layer(s)","Novi sloj(evi)");
+    _t("New active layer(s)","Novi aktivni sloj(evi)");
+    _t("New image","Nova slika");
+    _t("Output preview...","Pregled rezultata...");
+    _t("1st output (default)","prvi rezultat (podrazumevana opcija)");
+    _t("2nd output","drugi rezultat");
+    _t("3rd output","tre\304\207i rezultat");
+    _t("4th output","\304\215etvrti rezultat");
+    _t("1st -> 2nd","prvi -> drugi");
+    _t("1st -> 3rd","prvi -> tre\304\207i");
+    _t("1st -> 4th","prvi -> \304\215etvrti");
+    _t("All outputs","Svi rezultati");
+    _t("Output messages...","Izlazne poruke...");
+    _t("Quiet (default)","Tiho (podrazumevana opcija)");
+    _t("Verbose (console)","Op\305\241irnije (konzola)");
+    _t("Verbose (logfile)","Op\305\241irnije (log fajl)");
+    _t("Very verbose (console)","Vrlo op\305\241irno (konzola)");
+    _t("Very verbose (logfile)","Vrlo op\305\241irno (log fajl)");
+    _t("Debug mode (console)","Mod za otklanjanje programskih gre\305\241aka (konzola)");
+    _t("Debug mode (logfile)","Mod za otklanjanje programskih gre\305\241aka (log fajl)");
+    _t(" Available filters (%u) :"," Raspolo\305\276ivi filteri (%u) :");
+    _t("_Maximize","_Maksimizirati");
+    _t("_Restore","_Vratiti");
+    _t("Rename","Preimenovati");
   }
 
-  // Dutch translation
-  if (!std::strcmp(get_locale(),"nl")) {
+  // Spanish translation (Castillan)
+  if (!std::strcmp(get_locale(),"es")) {
     if (!s) {
-      static const char *const ns = "<b>Geen internet-update mogelijk !</b>\n\n"
-        "<i>Kan deze filters bronnen te bereiken :</i>\n";
+      static const char *const ns = "<b>No es posible establecer conexión a Internet !</b>\n\n"
+        "<i>No es posible acceder a estas fuentes de filtros :</i>\n";
       return ns;
     }
-    _t("G'MIC for GIMP","G'MIC voor GIMP");
-    _t("<i>Select a filter...</i>","<i>Kies een filter...</i>");
-    _t("<i>No parameters to set...</i>","<i>Geen parameters nodig...</i>");
-    _t("<b> Input / Output : </b>","<b> Input / Output : </b>");
-    _t("Input layers...","Input lagen...");
-    _t("None","Geen");
-    _t("Active (default)","Actieve laag (standaard)");
-    _t("All","Alle");
-    _t("Active & below","Actieve & onderliggende");
-    _t("Active & above","Actieve & bovenliggende");
-    _t("All visibles","Alle zichtbare");
-    _t("All invisibles","Alle niet zichtbare");
-    _t("All visibles (decr.)","Alle zichtbare (afnemend)");
-    _t("All invisibles (decr.)","Alle niet zichtbare (afnemend)");
-    _t("All (decr.)","Alle (afnemend)");
-    _t("Output mode...","Output mode...");
-    _t("In place (default)","Vervang bestaande (standaard)");
-    _t("New layer(s)","Nieuwe laag/lagen");
-    _t("New active layer(s)","Nieuwe actieve laag/lagen");
-    _t("New image","Nieuwe afbeelding");
-    _t("Output preview...","Output voorbeeld...");
-    _t("1st output (default)","1e Resultaat (standaard)");
-    _t("2nd output","2e Resultaat");
-    _t("3rd output","3e Resultaat");
-    _t("4th output","4e Resultaat");
-    _t("1st -> 2nd","1e -> 2e");
-    _t("1st -> 3rd","1e -> 3e");
-    _t("1st -> 4th","1e -> 4e");
-    _t("All outputs","Alle resultaten");
-    _t("Output messages...","Output berichten...");
-    _t("Quiet (default)","Geen melding (standaard)");
-    _t("Verbose (console)","Uitgebreid (console)");
-    _t("Verbose (logfile)","Uitgebreid (logfile)");
-    _t("Very verbose (console)","Heel uitgebreid (console)");
-    _t("Very verbose (logfile)","Heel uitgebreid (logfile)");
-    _t("Debug mode (console)","Debug mode (console)");
-    _t("Debug mode (logfile)","Debug mode (logfile)");
-    _t(" Available filters (%u) :"," Beschikbare filters (%u) :");
-    _t("_Maximize","_Maximaliseren");
-    _t("_Restore","_Vermindering");
-    _t("Rename","Hernoemen");
+    _t("G'MIC for GIMP","G'MIC para GIMP");
+    _t("<i>Select a filter...</i>","<i>Selecciona un filtro...</i>");
+    _t("<i>No parameters to set...</i>","<i>Sin par\303\241metros...</i>");
+    _t("<b> Input / Output : </b>","<b> Entrada / Salida : </b>");
+    _t("Input layers...","Capas de entrada...");
+    _t("None","Ninguna");
+    _t("Active (default)","Activa (predet.)");
+    _t("All","Todas");
+    _t("Active & below","Activa e inferior");
+    _t("Active & above","Activa y superior");
+    _t("All visibles","Todas las visibles");
+    _t("All invisibles","Todas las invisibles");
+    _t("All visibles (decr.)","Todas las visibles (decr.)");
+    _t("All invisibles (decr.)","Todas las invisibles (decr.)");
+    _t("All (decr.)","Todas (decr.)");
+    _t("Output mode...","Modo de salida...");
+    _t("In place (default)","En la capa actual (predet.)");
+    _t("New layer(s)","Capa/as nueva/as");
+    _t("New active layer(s)","Capa/as nueva/as activa");
+    _t("New image","Imagen nueva");
+    _t("Output preview...","Previsualizaci\303\263n de la salida...");
+    _t("1st output (default)","1ra imagen (predet.)");
+    _t("2nd output","2da imagen");
+    _t("3rd output","3ra imagen");
+    _t("4th output","4ta imagen");
+    _t("1st -> 2nd","1ra -> 2da");
+    _t("1st -> 3rd","1ra -> 3ra");
+    _t("1st -> 4th","1ra -> 4ta");
+    _t("All outputs","Todas las imagenes (salida)");
+    _t("Output messages...","Mensajes de salida...");
+    _t("Quiet (default)","Sin mensajes (predet.)");
+    _t("Verbose (console)","Detallado (consola)");
+    _t("Verbose (logfile)","Detallado (archivo_registro)");
+    _t("Very verbose (console)","Muy detallado (consola)");
+    _t("Very verbose (logfile)","Muy detallado (archivo_registro)");
+    _t("Debug mode (console)","Depuraci\303\263n (consola)");
+    _t("Debug mode (logfile)","Depuraci\303\263n (archivo_registro)");
+    _t(" Available filters (%u) :"," Filtros disponibles (%u) :");
+    _t("_Maximize","_Maximizar");
+    _t("_Restore","_Restaurar");
+    _t("Update","Actualitzaci\303\263n");
+    _t("Rename","Renombrar");
   }
 
   // English translation (default)
@@ -711,15 +866,14 @@ CImgList<char> update_filters(const bool try_net_update) {
     }
   }
   cimg::exception_mode(old_exception_mode);
-  cimg_snprintf(filename,sizeof(filename),gmic_update_server "gmic_def.%u",gmic_version);
-  sources.insert(CImg<char>::string(filename),0);
-  sources.insert(CImg<char>::string("gmic"),1);
+
   if (try_net_update) gimp_progress_pulse();
 
   // Get filter definition files from external web servers.
   char command[1024] = { 0 }, filename_tmp[1024] = { 0 }, sep = 0;
   CImgList<char> invalid_servers;
-  cimglist_for(sources,l) if (try_net_update && !cimg::strncasecmp(sources[l],"http://",7)) {
+  cimglist_for(sources,l) if (try_net_update && (!cimg::strncasecmp(sources[l],"http://",7) ||
+                                                 !cimg::strncasecmp(sources[l],"https://",8))) {
     const char *const s_basename = gmic_basename(sources[l]);
     gimp_progress_set_text_printf(" G'MIC : Update filters '%s'...",s_basename);
     cimg_snprintf(filename_tmp,sizeof(filename_tmp),"%s%c%s%s",
@@ -737,7 +891,7 @@ CImgList<char> update_filters(const bool try_net_update) {
     } else // Quiet mode.
       cimg_snprintf(command,sizeof(command),_gmic_path "curl -f --silent --compressed -o \"%s\" %s",
                     filename_tmp,sources[l].data());
-    int _status = cimg::system(command);
+    cimg::system(command);
     std::FILE *file = std::fopen(filename_tmp,"rb");
 
     // Try with 'wget' if 'curl' failed.
@@ -750,7 +904,7 @@ CImgList<char> update_filters(const bool try_net_update) {
       } else // Quiet mode.
         cimg_snprintf(command,sizeof(command),_gmic_path "wget -q -r -l 0 --no-cache -O \"%s\" %s",
                       filename_tmp,sources[l].data());
-      _status = cimg::system(command);
+      cimg::system(command);
       file = std::fopen(filename_tmp,"rb");
     }
 
@@ -769,7 +923,7 @@ CImgList<char> update_filters(const bool try_net_update) {
       } else
         cimg_snprintf(command,sizeof(command),_gmic_path "gunzip --quiet %s.gz",
                       filename_tmp);
-      _status = cimg::system(command);
+      cimg::system(command);
       file = std::fopen(filename_tmp,"rb");
       if (!file) { cimg_snprintf(command,sizeof(command),"%s.gz",filename_tmp); std::remove(command); }
     }
@@ -807,6 +961,7 @@ CImgList<char> update_filters(const bool try_net_update) {
     cimg::exception_mode(old_exception_mode);
     if (try_net_update) gimp_progress_pulse();
   }
+
   if (!is_default_update) { // Add hardcoded default filters if no updates.
     _gmic_additional_commands.insert(2,0);
     CImg<char>(data_gmic_def,1,size_data_gmic_def-1,1,1,true).move_to(_gmic_additional_commands[0]);
@@ -1694,7 +1849,7 @@ void on_dialog_refresh_clicked(GtkWidget *const tree_view) {
 
     GtkWidget *const
       message = gtk_message_dialog_new_with_markup(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,
-                                                   error_message.data(),gmic_update_server,gmic_update_file,gmic_update_file);
+                                                   "%s",error_message.data());
     gtk_widget_show(message);
     gtk_dialog_run(GTK_DIALOG(message));
     gtk_widget_destroy(message);
@@ -2333,8 +2488,10 @@ void create_parameters_gui(const bool reset_params) {
           if (*argument) ++argument;
           cimg::strpare(argument_name,' ',false,true);
           cimg::strpare(argument_name,'\"',true);
-          cimg::strescape(argument_name);
+          cimg::strunescape(argument_name);
           cimg::strpare(_argument_type,' ',false,true);
+          cimg::strpare(argument_arg,' ',false,true);
+
           const bool is_silent_argument = (*_argument_type=='_');
           char
             *const argument_type = _argument_type + (is_silent_argument?1:0),
@@ -2495,7 +2652,7 @@ void create_parameters_gui(const bool reset_params) {
               char *value = std::strchr(argument_arg,',') + 1;
               if (is_fave) value = argument_fave;
               if (!reset_params && *argument_value) value = argument_value;
-              else if (!is_fave) cimg::strescape(value);
+              else if (!is_fave) cimg::strunescape(value);
               cimg::strpare(value,' ',false,true);
               cimg::strpare(value,'\"',true);
               for (char *p = value; *p; ++p) if (*p==_dquote) *p='\"';
@@ -2634,7 +2791,7 @@ void create_parameters_gui(const bool reset_params) {
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"note")) {
             cimg::strpare(argument_arg,' ',false,true);
             cimg::strpare(argument_arg,'\"',true);
-            cimg::strescape(argument_arg);
+            cimg::strunescape(argument_arg);
             GtkWidget *const label = gtk_label_new(NULL);
             gtk_label_set_markup(GTK_LABEL(label),argument_arg);
             gtk_label_set_line_wrap(GTK_LABEL(label),true);
@@ -2656,7 +2813,7 @@ void create_parameters_gui(const bool reset_params) {
             }
             cimg::strpare(label,' ',false,true);
             cimg::strpare(label,'\"',true);
-            cimg::strescape(label);
+            cimg::strunescape(label);
             cimg::strpare(url,' ',false,true);
             cimg::strpare(url,'\"',true);
             GtkWidget *const link = gtk_link_button_new_with_label(url,label);
@@ -2740,8 +2897,8 @@ bool create_dialog_gui() {
   GtkWidget *const maximize_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),t("_Maximize"),1);
   g_signal_connect(maximize_button,"clicked",G_CALLBACK(on_dialog_maximize_button_clicked),0);
 
-  GtkWidget *apply_button = apply_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),
-                                                                 GTK_STOCK_APPLY,GTK_RESPONSE_APPLY);
+  GtkWidget *apply_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),
+                                                  GTK_STOCK_APPLY,GTK_RESPONSE_APPLY);
   g_signal_connect(apply_button,"clicked",G_CALLBACK(on_dialog_apply_clicked),0);
 
   GtkWidget *ok_button = gtk_dialog_add_button(GTK_DIALOG(dialog_window),
