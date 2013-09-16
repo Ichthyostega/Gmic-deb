@@ -37,8 +37,8 @@ override_dh_compress:
 
 override_dh_auto_build:
 	dh_auto_build -- \
-		LDFLAGS="-Wl,--as-needed" \
-		CFLAGS="$(GMIC_CFLAGS) -I. -I/usr/include/libavcodec/ -I/usr/include/libavformat/ -I/usr/include/libswscale/"
+		MANDATORY_LDFLAGS="-Wl,--as-needed" \
+		MANDATORY_CFLAGS="$(GMIC_CFLAGS) -I. -I/usr/include/libavcodec/ -I/usr/include/libavformat/ -I/usr/include/libswscale/"
 
 
 override_dh_install:
