@@ -54,7 +54,7 @@
 #define _gmic_path ""
 #define _gmic_file_prefix "."
 #endif
-#if !defined(__MACOSX__)  && !defined(__APPLE__)
+#if !defined(__MACOSX__) && !defined(__APPLE__)
 #include <pthread.h>
 #endif
 #include <locale>
@@ -835,6 +835,23 @@ void flush_tree_view(GtkWidget *const tree_view) {
 //-------------------------------------------------
 CImgList<char> update_filters(const bool try_net_update) {
 
+  // Build list of filter sources.
+  CImgList<float> _sources;
+  CImgList<char> _names;
+  char command[1024] = { 0 };
+  cimg_snprintf(command,sizeof(command),"%s-gimp_filter_sources",
+                get_verbosity_mode()>4?"-debug ":get_verbosity_mode()>2?"":"-v -99 ");
+  try { gmic(command,_sources,_names,gmic_additional_commands,true); } catch (...) {}
+  CImgList<char> sources;
+  _sources.move_to(sources);
+  cimglist_for(sources,l) {
+    char &c = sources[l].unroll('x').back();
+    if (c) {
+      if (c==1) { c = 0; sources[l].columns(0,sources[l].width()); sources[l].back() = 1; }
+      else sources[l].columns(0,sources[l].width());
+    }
+  }
+
   // Free existing definitions.
   if (tree_view_store) g_object_unref(tree_view_store);
   gmic_additional_commands.assign();
@@ -847,30 +864,11 @@ CImgList<char> update_filters(const bool try_net_update) {
   gmic_arguments.assign(1);
   if (try_net_update) gimp_progress_init(" G'MIC : Update filters...");
 
-  // Read filter sources.
+  // Get filter definition files from external web servers.
   const char *const path_conf = get_conf_path(), *const path_tmp = cimg::temporary_path();
   char filename[1024] = { 0 };
-  CImgList<char> sources;
-  cimg_snprintf(filename,sizeof(filename),"%s%c%sgmic_sources.cimgz",
-                path_conf,cimg_file_separator,_gmic_file_prefix);
-  const unsigned int old_exception_mode = cimg::exception_mode();
-  try {
-    cimg::exception_mode(0);
-    sources.load_cimg(filename);
-  } catch(...) {
-    if (get_verbosity_mode()) {
-      std::fprintf(cimg::output(),
-                   "\n[gmic_gimp]./update/ Source file '%s' not found.\n",
-                   filename);
-      std::fflush(cimg::output());
-    }
-  }
-  cimg::exception_mode(old_exception_mode);
-
   if (try_net_update) gimp_progress_pulse();
-
-  // Get filter definition files from external web servers.
-  char command[1024] = { 0 }, filename_tmp[1024] = { 0 }, sep = 0;
+  char filename_tmp[1024] = { 0 }, sep = 0;
   CImgList<char> invalid_servers;
   cimglist_for(sources,l) if (try_net_update && (!cimg::strncasecmp(sources[l],"http://",7) ||
                                                  !cimg::strncasecmp(sources[l],"https://",8))) {
@@ -950,7 +948,7 @@ CImgList<char> update_filters(const bool try_net_update) {
       cimg::exception_mode(0);
       CImg<char>::get_load_raw(filename).move_to(_gmic_additional_commands);
       CImg<char>::string("\n#@gimp ________\n",false).unroll('y').move_to(_gmic_additional_commands);
-      if (!l) is_default_update = true;
+      if (sources[l].back()==1) is_default_update = true;
     } catch(...) {
       if (get_verbosity_mode())
         std::fprintf(cimg::output(),
@@ -962,22 +960,14 @@ CImgList<char> update_filters(const bool try_net_update) {
     if (try_net_update) gimp_progress_pulse();
   }
 
-  if (!is_default_update) { // Add hardcoded default filters if no updates.
-    _gmic_additional_commands.insert(2,0);
-    CImg<char>(data_gmic_def,1,size_data_gmic_def-1,1,1,true).move_to(_gmic_additional_commands[0]);
-    CImg<char>::string("\n#@gimp ____________________\n",false).unroll('y').move_to(_gmic_additional_commands[1]);
+  if (!is_default_update) { // Add hardcoded default filters if no updates of the default commands.
+    CImg<char>(data_gmic_def,1,size_data_gmic_def-1,1,1,true).move_to(_gmic_additional_commands);
+    CImg<char>::string("\n#@gimp ________\n",false).unroll('y').move_to(_gmic_additional_commands);
   }
   CImg<char>::vector(0).move_to(_gmic_additional_commands);
   (_gmic_additional_commands>'y').move_to(gmic_additional_commands);
 
-  // Call update procedure.
-  cimg_snprintf(command,sizeof(command),"%s-gimp_update_filters %d",
-                get_verbosity_mode()>4?"-debug ":get_verbosity_mode()>2?"":"-v -99 ",
-                (int)try_net_update);
-  try { gmic(command,gmic_additional_commands,true); } catch (...) {}
-
   // Add fave folder if necessary (make it before actually adding faves to make tree paths valids).
-  CImgList<unsigned int> _sorting_criterion;
   CImgList<char> gmic_1stlevel_names;
   GtkTreeIter iter, fave_iter, parent[8];
   char filename_gmic_faves[1024] = { 0 };
@@ -991,7 +981,6 @@ CImgList<char> update_filters(const bool try_net_update) {
     const char *treepath = gtk_tree_model_get_string_from_iter(GTK_TREE_MODEL(tree_view_store),&fave_iter);
     CImg<char>::vector(0).move_to(gmic_1stlevel_names);
     CImg<char>::string(treepath).move_to(gmic_1stlevel_entries);
-    CImg<unsigned int>::vector(0).move_to(_sorting_criterion);
   }
 
   // Parse filters descriptions for GIMP, and create corresponding sorted treeview_store.
@@ -1049,7 +1038,6 @@ CImgList<char> update_filters(const bool try_net_update) {
               const char *_nentry = gtk_label_get_text(GTK_LABEL(markup2ascii));
               unsigned int order = 0;
               for (unsigned int i = 0; i<4; ++i) { order<<=8; if (*_nentry) order|=(unsigned char)cimg::uncase(*(_nentry++)); }
-              CImg<unsigned int>::vector(order).move_to(_sorting_criterion);
               gtk_widget_destroy(markup2ascii);
             }
           }
@@ -1088,7 +1076,6 @@ CImgList<char> update_filters(const bool try_net_update) {
             const char *_nentry = gtk_label_get_text(GTK_LABEL(markup2ascii));
             unsigned int order = 0;
             for (unsigned int i = 0; i<3; ++i) { order<<=8; if (*_nentry) order|=cimg::uncase(*(_nentry++)); }
-            CImg<unsigned int>::vector(order).move_to(_sorting_criterion);
             gtk_widget_destroy(markup2ascii);
           }
         }
@@ -1102,8 +1089,6 @@ CImgList<char> update_filters(const bool try_net_update) {
     }
   }
 
-  CImg<int> sorting_permutations, sorting_criterion = (_sorting_criterion>'y').sort(sorting_permutations);
-  gtk_tree_store_reorder(tree_view_store,0,sorting_permutations.data());
   if (try_net_update) gimp_progress_pulse();
 
   // Load faves.
@@ -1957,15 +1942,11 @@ struct st_process_thread {
   const char *commands_line;
   float progress;
 #if !defined(__MACOSX__)  && !defined(__APPLE__)
-  pthread_mutex_t is_running;
-  pthread_mutex_t wait_lock;
+  pthread_mutex_t is_running, wait_lock;
   pthread_cond_t wait_cond;
   pthread_t thread;
 #endif
 };
-
-#if !defined(__MACOSX__)  && !defined(__APPLE__)
-#endif
 
 // Thread that runs the G'MIC interpreter.
 void *process_thread(void *arg) {
@@ -2025,7 +2006,10 @@ void process_image(const char *const commands_line) {
     const char *const cl = _commands_line + (!std::strncmp(_commands_line,"-v -99 ",7) || !std::strncmp(_commands_line,"-debug ",7)?7:0);
     cimg_snprintf(new_label,sizeof(new_label),"[G'MIC] %s : %s",gtk_label_get_text(GTK_LABEL(markup2ascii)),cl);
     gtk_widget_destroy(markup2ascii);
-  } else cimg_snprintf(new_label,sizeof(new_label),"[G'MIC] : %s",_commands_line);
+  } else {
+    cimg_snprintf(new_label,sizeof(new_label),"[G'MIC] : %s",_commands_line);
+    gimp_progress_init_printf(" G'MIC : %s...",_commands_line);
+  }
 
   // Get input layers for the chosen filter.
   st_process_thread spt;
@@ -2044,7 +2028,7 @@ void process_image(const char *const commands_line) {
 
   // Create processing thread and wait for its completion.
   if (run_mode!=GIMP_RUN_NONINTERACTIVE) {
-#if !defined(__MACOSX__)  && !defined(__APPLE__)
+#if !defined(__MACOSX__) && !defined(__APPLE__)
     spt.is_thread = true;
     pthread_mutex_init(&spt.is_running,0);
     pthread_mutex_init(&spt.wait_lock,0);
@@ -2876,8 +2860,9 @@ bool create_dialog_gui() {
 
   // Create main dialog window with buttons.
   char dialog_title[64] = { 0 };
-  cimg_snprintf(dialog_title,sizeof(dialog_title),"%s - %d.%d.%d.%d%s",
+  cimg_snprintf(dialog_title,sizeof(dialog_title),"%s %u bits - %d.%d.%d.%d%s",
                 t("G'MIC for GIMP"),
+                sizeof(void*)==8?64:32,
                 gmic_version/1000,(gmic_version/100)%10,(gmic_version/10)%10,gmic_version%10,
                 gmic_is_beta?" (beta)":"");
 
@@ -3177,10 +3162,12 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
     } break;
 
     case GIMP_RUN_NONINTERACTIVE : {
-      const unsigned int _input_mode = get_input_mode();
+      const unsigned int _input_mode = get_input_mode(), _output_mode = get_output_mode();
       set_input_mode(param[3].data.d_int32 + 2);
+      set_output_mode(0);
       process_image(param[4].data.d_string);
       set_input_mode(_input_mode + 2);
+      set_output_mode(_output_mode + 2);
     } break;
     }
 
@@ -3216,7 +3203,7 @@ void gmic_query() {
                          "G'MIC",                    // help
                          "David Tschumperl\303\251", // author
                          "David Tschumperl\303\251", // copyright
-                         "2008",                     // date
+                         "2013",                     // date
                          "_G'MIC...",                // menu_path
                          "RGB*, GRAY*",              // image_types
                          GIMP_PLUGIN,                // type

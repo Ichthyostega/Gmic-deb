@@ -68,6 +68,7 @@ _gmic_def()
 	      -rainbow_lut --rainbow_lut\
 	      -roddy --roddy\
 	      -remove_duplicates --remove_duplicates\
+	      -remove_empty --remove_empty\
 	      -select --select\
 	      -sh --sh\
 	      -shared --shared\
@@ -171,7 +172,9 @@ _gmic_def()
 	      -float2int8 --float2int8\
 	      -int82float --int82float\
 	      -index --index\
+	      -image_integral --image_integral\
 	      -map --map\
+	      -map_clut --map_clut\
 	      -mix_channels --mix_channels\
 	      -negative --negative\
 	      -noise --noise\
@@ -268,6 +271,7 @@ _gmic_def()
 	      -append --append\
 	      -append_tiles --append_tiles\
 	      -autocrop --autocrop\
+	      -autocrop_components --autocrop_components\
 	      -autocrop_seq --autocrop_seq\
 	      -channels --channels\
 	      -columns --columns\
@@ -284,9 +288,7 @@ _gmic_def()
 	      -permute --permute\
 	      -r --r\
 	      -resize --resize\
-	      -resize_pow2 --resize_pow2\
-	      -resize2x --resize2x\
-	      -resize3x --resize3x\
+	      -pow2 --pow2\
 	      -rr2d --rr2d\
 	      -resize_ratio2d --resize_ratio2d\
 	      -r2dx --r2dx\
@@ -302,6 +304,8 @@ _gmic_def()
 	      -rotate --rotate\
 	      -rotate_tileable --rotate_tileable\
 	      -rows --rows\
+	      -scale2x --scale2x\
+	      -scale3x --scale3x\
 	      -shift --shift\
 	      -shrink_x --shrink_x\
 	      -shrink_xy --shrink_xy\
@@ -330,6 +334,7 @@ _gmic_def()
 	      -blur_xyz --blur_xyz\
 	      -blur_y --blur_y\
 	      -blur_z --blur_z\
+	      -bokeh --bokeh\
 	      -compose_freq --compose_freq\
 	      -convolve --convolve\
 	      -convolve_fft --convolve_fft\
@@ -337,6 +342,8 @@ _gmic_def()
 	      -cross_correlation --cross_correlation\
 	      -curvature --curvature\
 	      -deblur --deblur\
+	      -deblur_goldmeinel --deblur_goldmeinel\
+	      -deblur_richardsonlucy --deblur_richardsonlucy\
 	      -deconvolve_fft --deconvolve_fft\
 	      -deinterlace --deinterlace\
 	      -denoise --denoise\
@@ -387,6 +394,7 @@ _gmic_def()
 	      -split_freq --split_freq\
 	      -solidify --solidify\
 	      -solidify_linear --solidify_linear\
+	      -solve_poisson --solve_poisson\
 	      -structuretensors --structuretensors\
 	      -tv_flow --tv_flow\
 	      -unsharp --unsharp\
@@ -442,6 +450,7 @@ _gmic_def()
 	      -maze --maze\
 	      -maze_mask --maze_mask\
 	      -object3d --object3d\
+	      -pack_sprites --pack_sprites\
 	      -piechart --piechart\
 	      -plasma --plasma\
 	      -point --point\
@@ -567,6 +576,10 @@ _gmic_def()
 	      -triangle3d --triangle3d\
 	      -volume3d --volume3d\
 	      -weird3d --weird3d\
+	      -apply_parallel --apply_parallel\
+	      -apply_parallel2 --apply_parallel2\
+	      -apply_parallel4 --apply_parallel4\
+	      -apply_parallel8 --apply_parallel8\
 	      -check --check\
 	      -continue --continue\
 	      -break --break\
@@ -584,11 +597,13 @@ _gmic_def()
 	      -l --l\
 	      -local --local\
 	      -onfail --onfail\
+	      -parallel --parallel\
 	      -progress --progress\
 	      -q --q\
 	      -quit --quit\
 	      -repeat --repeat\
 	      -return --return\
+	      -rprogress --rprogress\
 	      -skip --skip\
 	      -u --u\
 	      -status --status\
@@ -615,6 +630,7 @@ _gmic_def()
 	      -shift_tiles --shift_tiles\
 	      -taquin --taquin\
 	      -tunnel --tunnel\
+	      -boxfitting --boxfitting\
 	      -cartoon --cartoon\
 	      -circlism --circlism\
 	      -color_ellipses --color_ellipses\
@@ -859,6 +875,7 @@ _gmic_def()
 	      rainbow_lut\
 	      roddy\
 	      remove_duplicates\
+	      remove_empty\
 	      select\
 	      sh\
 	      shared\
@@ -962,7 +979,9 @@ _gmic_def()
 	      float2int8\
 	      int82float\
 	      index\
+	      image_integral\
 	      map\
+	      map_clut\
 	      mix_channels\
 	      negative\
 	      noise\
@@ -1059,6 +1078,7 @@ _gmic_def()
 	      append\
 	      append_tiles\
 	      autocrop\
+	      autocrop_components\
 	      autocrop_seq\
 	      channels\
 	      columns\
@@ -1075,9 +1095,7 @@ _gmic_def()
 	      permute\
 	      r\
 	      resize\
-	      resize_pow2\
-	      resize2x\
-	      resize3x\
+	      pow2\
 	      rr2d\
 	      resize_ratio2d\
 	      r2dx\
@@ -1093,6 +1111,8 @@ _gmic_def()
 	      rotate\
 	      rotate_tileable\
 	      rows\
+	      scale2x\
+	      scale3x\
 	      shift\
 	      shrink_x\
 	      shrink_xy\
@@ -1121,6 +1141,7 @@ _gmic_def()
 	      blur_xyz\
 	      blur_y\
 	      blur_z\
+	      bokeh\
 	      compose_freq\
 	      convolve\
 	      convolve_fft\
@@ -1128,6 +1149,8 @@ _gmic_def()
 	      cross_correlation\
 	      curvature\
 	      deblur\
+	      deblur_goldmeinel\
+	      deblur_richardsonlucy\
 	      deconvolve_fft\
 	      deinterlace\
 	      denoise\
@@ -1178,6 +1201,7 @@ _gmic_def()
 	      split_freq\
 	      solidify\
 	      solidify_linear\
+	      solve_poisson\
 	      structuretensors\
 	      tv_flow\
 	      unsharp\
@@ -1233,6 +1257,7 @@ _gmic_def()
 	      maze\
 	      maze_mask\
 	      object3d\
+	      pack_sprites\
 	      piechart\
 	      plasma\
 	      point\
@@ -1358,6 +1383,10 @@ _gmic_def()
 	      triangle3d\
 	      volume3d\
 	      weird3d\
+	      apply_parallel\
+	      apply_parallel2\
+	      apply_parallel4\
+	      apply_parallel8\
 	      check\
 	      continue\
 	      break\
@@ -1375,11 +1404,13 @@ _gmic_def()
 	      l\
 	      local\
 	      onfail\
+	      parallel\
 	      progress\
 	      q\
 	      quit\
 	      repeat\
 	      return\
+	      rprogress\
 	      skip\
 	      u\
 	      status\
@@ -1406,6 +1437,7 @@ _gmic_def()
 	      shift_tiles\
 	      taquin\
 	      tunnel\
+	      boxfitting\
 	      cartoon\
 	      circlism\
 	      color_ellipses\
@@ -1725,7 +1757,7 @@ _gmic_def()
 		return 0
 		;;
 		"-sort_list" | "--sort_list")
-		COMPREPLY=( $(compgen -W "_ordering={+|-},_x,_y,_z,_c >") )
+		COMPREPLY=( $(compgen -W "_ordering={+|-},_criterion >") )
 		return 0
 		;;
 		"-add" | "--add")
@@ -1921,7 +1953,7 @@ _gmic_def()
 		return 0
 		;;
 		"-apply_channels" | "--apply_channels")
-		COMPREPLY=( $(compgen -W ""command",_channels={All,RGBA,RGB,Y,CbCr,Cb,Cr,L,ab,a,b,H,S,V,K,A,ch,c,h,R,G,B,A},_normalize={0=cut|1=normalize} >") )
+		COMPREPLY=( $(compgen -W ""command",_channels={all=0|rgba=1|rgb=2|y=3|cbcr=4|cb=5|cr=6|l=7|ab=8|a=9|b=10|h=11|s=12|v=13|k=14|cg=15|ch=16|c=17|H=18|r=19|g=20|b=21|alpha==22},_normalize={0=cut|1=normalize} >") )
 		return 0
 		;;
 		"-autoindex" | "--autoindex")
@@ -1988,6 +2020,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "value1,value2,... (noargs)") )
 		return 0
 		;;
+		"-autocrop_components" | "--autocrop_components")
+		COMPREPLY=( $(compgen -W "_threshold[%],_min_area[%]>=0,_is_high_connectivity={0|1},_output_type={0=crop|1=segmentation|2=coordinates} >") )
+		return 0
+		;;
 		"-autocrop_seq" | "--autocrop_seq")
 		COMPREPLY=( $(compgen -W "value1,value2,...|auto >") )
 		return 0
@@ -2040,7 +2076,7 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "[image],_interpolation,_boundary,_ax,_ay,_az,_ac {[image_w]|width>0[%]},_{[image_h]|height>0[%]},_{[image_d]|depth>0[%]},_{[image_s]|spectrum>0[%]},_interpolation,_boundary,_ax,_ay,_az,_ac (noargs)") )
 		return 0
 		;;
-		"-resize_pow2" | "--resize_pow2")
+		"-pow2" | "--pow2")
 		COMPREPLY=( $(compgen -W "_interpolation,_boundary,_ax,_ay,_az,_ac >") )
 		return 0
 		;;
@@ -2137,7 +2173,7 @@ _gmic_def()
 		return 0
 		;;
 		"-bilateral" | "--bilateral")
-		COMPREPLY=( $(compgen -W "std_variation_s>0[%],std_variation_r>0 >") )
+		COMPREPLY=( $(compgen -W "[guide],std_variation_s>0[%],std_variation_r>0 std_variation_s>0[%],std_variation_r>0") )
 		return 0
 		;;
 		"-blur" | "--blur")
@@ -2180,6 +2216,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "amplitude[%]>=0,_boundary={0=dirichlet|1=neumann} >") )
 		return 0
 		;;
+		"-bokeh" | "--bokeh")
+		COMPREPLY=( $(compgen -W "_amplitude>=0,_smoothness>=0,0<=_density<=100,_bokeh_size>0,0<=_bokeh_outline_size<=100,_bokeh_outline_amplitude>=0,_bokeh_smoothness>=0 >") )
+		return 0
+		;;
 		"-convolve" | "--convolve")
 		COMPREPLY=( $(compgen -W "[mask],_boundary,_is_normalized={0|1} >") )
 		return 0
@@ -2190,6 +2230,14 @@ _gmic_def()
 		;;
 		"-deblur" | "--deblur")
 		COMPREPLY=( $(compgen -W "amplitude[%]>=0,_nb_iter>=0,_dt>=0,_regul>=0,_regul_type={0=Tikhonov|1=meancurv.|2=TV} >") )
+		return 0
+		;;
+		"-deblur_goldmeinel" | "--deblur_goldmeinel")
+		COMPREPLY=( $(compgen -W "sigma>=0,_nb_iter>=0,_acceleration>=0,_kernel_type={0=quasi-gaussian(faster)|1=gaussian}. >") )
+		return 0
+		;;
+		"-deblur_richardsonlucy" | "--deblur_richardsonlucy")
+		COMPREPLY=( $(compgen -W "sigma>=0,nb_iter>=0,_kernel_type={0=quasi-gaussian(faster)|1=gaussian}. >") )
 		return 0
 		;;
 		"-deinterlace" | "--deinterlace")
@@ -2342,6 +2390,10 @@ _gmic_def()
 		;;
 		"-solidify_linear" | "--solidify_linear")
 		COMPREPLY=( $(compgen -W "_sigma>=1,_dsigma>=1,0<=_precision<=1 >") )
+		return 0
+		;;
+		"-solve_poisson" | "--solve_poisson")
+		COMPREPLY=( $(compgen -W ""laplacian_command",_nb_iterations>=0,_time_step>0,_nb_scales>=0 >") )
 		return 0
 		;;
 		"-structuretensors" | "--structuretensors")
@@ -2524,6 +2576,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "[object3d],_x[%],_y[%],_z,_opacity,_rendering_mode,_is_double3d={0|1},_is_zbuffer={0|1},_focale,_light_x,_light_y,_light_z,_specular_lightness,_specular_shininess >") )
 		return 0
 		;;
+		"-pack_sprites" | "--pack_sprites")
+		COMPREPLY=( $(compgen -W "_nb_scales>=0,0<=_min_scale<=100,_allow_rotation={0=0°|1=180°|2=90°|3=any},_spacing,_precision>=0,,max_iterations>=0 >") )
+		return 0
+		;;
 		"-piechart" | "--piechart")
 		COMPREPLY=( $(compgen -W "label_height>=0,label_R,label_G,label_B,"label1",value1,R1,G1,B1,...,"labelN",valueN,RN,GN,BN >") )
 		return 0
@@ -2565,7 +2621,7 @@ _gmic_def()
 		return 0
 		;;
 		"-spline" | "--spline")
-		COMPREPLY=( $(compgen -W "x0[%],y0[%],u0[%],v0[%],x1[%],y1[%],u1[%],v1[%],_nb_samples>=2,_opacity,_color1,.. >") )
+		COMPREPLY=( $(compgen -W "x0[%],y0[%],u0[%],v0[%],x1[%],y1[%],u1[%],v1[%],_nb_vertices>=2,_opacity,_color1,.. >") )
 		return 0
 		;;
 		"-text" | "--text")
@@ -2801,7 +2857,7 @@ _gmic_def()
 		return 0
 		;;
 		"-spline3d" | "--spline3d")
-		COMPREPLY=( $(compgen -W "x0[%],y0[%],z0[%],u0[%],v0[%],w0[%],x1[%],y1[%],z1[%],u1[%],v1[%],w1[%],_nb_samples>=2 >") )
+		COMPREPLY=( $(compgen -W "x0[%],y0[%],z0[%],u0[%],v0[%],w0[%],x1[%],y1[%],z1[%],u1[%],v1[%],w1[%],_nb_vertices>=2 >") )
 		return 0
 		;;
 		"-star3d" | "--star3d")
@@ -2844,6 +2900,22 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "_resolution>0 >") )
 		return 0
 		;;
+		"-apply_parallel" | "--apply_parallel")
+		COMPREPLY=( $(compgen -W ""command" >") )
+		return 0
+		;;
+		"-apply_parallel2" | "--apply_parallel2")
+		COMPREPLY=( $(compgen -W "overlap[%],"command" >") )
+		return 0
+		;;
+		"-apply_parallel4" | "--apply_parallel4")
+		COMPREPLY=( $(compgen -W "overlap[%],"command" >") )
+		return 0
+		;;
+		"-apply_parallel8" | "--apply_parallel8")
+		COMPREPLY=( $(compgen -W "overlap[%],"command" >") )
+		return 0
+		;;
 		"-check" | "--check")
 		COMPREPLY=( $(compgen -W "expression >") )
 		return 0
@@ -2864,12 +2936,20 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "boolean filename") )
 		return 0
 		;;
+		"-parallel" | "--parallel")
+		COMPREPLY=( $(compgen -W ""command1","command2",... >") )
+		return 0
+		;;
 		"-progress" | "--progress")
 		COMPREPLY=( $(compgen -W "0<=value<=100 -1") )
 		return 0
 		;;
 		"-repeat" | "--repeat")
 		COMPREPLY=( $(compgen -W "nb_iterations >") )
+		return 0
+		;;
+		"-rprogress" | "--rprogress")
+		COMPREPLY=( $(compgen -W "0<=value<=100|-1|"command",0<=value_min<=100,0<=value_max<=100 >") )
 		return 0
 		;;
 		"-skip" | "--skip")
@@ -2968,6 +3048,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "_level>=0,_factor>0,_cx,_cy,_opacity,_angle >") )
 		return 0
 		;;
+		"-boxfitting" | "--boxfitting")
+		COMPREPLY=( $(compgen -W "_min_box_size>=1,_max_box_size>=0,_initial_density>=0,_nb_attempts>=1 >") )
+		return 0
+		;;
 		"-cartoon" | "--cartoon")
 		COMPREPLY=( $(compgen -W "_smoothness,_sharpening,_threshold>=0,_thickness>=0,_color>=0,quantization>0 >") )
 		return 0
@@ -2981,7 +3065,7 @@ _gmic_def()
 		return 0
 		;;
 		"-cubism" | "--cubism")
-		COMPREPLY=( $(compgen -W "_nb_iter>=0,_bloc_size>0,_max_angle,_opacity,_smoothness>=0 >") )
+		COMPREPLY=( $(compgen -W "_density>=0,0<=_thickness<=50,_max_angle,_opacity,_smoothness>=0 >") )
 		return 0
 		;;
 		"-dotsbw" | "--dotsbw")
@@ -3016,306 +3100,6 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "nb_levels>=2,_size_dark>=2,_size_bright>=2,_shape={0=square|1=diamond|2=circle|3=inv-square|4=inv-diamond|5=inv-circle},_smoothness[%]>=0 >") )
 		return 0
 		;;
-		"-hardsketchbw" | "--hardsketchbw")
-		COMPREPLY=( $(compgen -W "_amplitude>=0,_density>=0,_opacity,0<=_edge_threshold<=100,_is_fast={0|1} >") )
-		return 0
-		;;
-		"-hearts" | "--hearts")
-		COMPREPLY=( $(compgen -W "_density>=0 >") )
-		return 0
-		;;
-		"-houghsketchbw" | "--houghsketchbw")
-		COMPREPLY=( $(compgen -W "_density>=0,_radius>0,0<=_threshold<=100,0<=_opacity<=1,_votesize[%]>0 >") )
-		return 0
-		;;
-		"-lightrays" | "--lightrays")
-		COMPREPLY=( $(compgen -W "100<=_density<=0,_cx,_cy,_ray_length>=0,_ray_attenuation>=0 >") )
-		return 0
-		;;
-		"-light_relief" | "--light_relief")
-		COMPREPLY=( $(compgen -W "_ambient_light,_specular_lightness,_specular_size,_light_smoothness,_darkness,_xl,_yl,_zl,_zscale,_opacity_bumpmap={0|1} >") )
-		return 0
-		;;
-		"-mosaic" | "--mosaic")
-		COMPREPLY=( $(compgen -W "_density>=0,_edges={0|1} >") )
-		return 0
-		;;
-		"-pencilbw" | "--pencilbw")
-		COMPREPLY=( $(compgen -W "_size>=0,_amplitude>=0 >") )
-		return 0
-		;;
-		"-polaroid" | "--polaroid")
-		COMPREPLY=( $(compgen -W "_size1>=0,_size2>=0 >") )
-		return 0
-		;;
-		"-poster_edges" | "--poster_edges")
-		COMPREPLY=( $(compgen -W "0<=_edge_threshold<=100,0<=_edge_shade<=100,_edge_thickness>=0,_edge_antialiasing>=0,0<=_posterization_level<=15,_posterization_antialiasing>=0 >") )
-		return 0
-		;;
-		"-rodilius" | "--rodilius")
-		COMPREPLY=( $(compgen -W "0<=_amplitude<=100,_0<=thickness<=100,_sharpness>=0,_nb_orientations>0,_offset,_color_mode={0=darker|1=brighter} >") )
-		return 0
-		;;
-		"-stained_glass" | "--stained_glass")
-		COMPREPLY=( $(compgen -W "_edges[%]>=0,shading>=0,is_thin_separators={0|1} >") )
-		return 0
-		;;
-		"-stars" | "--stars")
-		COMPREPLY=( $(compgen -W "_density[%]>=0,_depth>=0,_size>0,_nb_branches>=1,0<=_thickness<=1,_smoothness[%]>=0,_R,_G,_B,_opacity >") )
-		return 0
-		;;
-		"-sponge" | "--sponge")
-		COMPREPLY=( $(compgen -W "_size>0 >") )
-		return 0
-		;;
-		"-stencil" | "--stencil")
-		COMPREPLY=( $(compgen -W "_radius[%]>=0,_smoothness>=0,_iterations>=0 >") )
-		return 0
-		;;
-		"-stencilbw" | "--stencilbw")
-		COMPREPLY=( $(compgen -W "_edges>=0,_smoothness>=0 >") )
-		return 0
-		;;
-		"-tetris" | "--tetris")
-		COMPREPLY=( $(compgen -W "_scale>0 >") )
-		return 0
-		;;
-		"-warhol" | "--warhol")
-		COMPREPLY=( $(compgen -W "_M>0,_N>0,_smoothness>=0,_color>=0 >") )
-		return 0
-		;;
-		"-weave" | "--weave")
-		COMPREPLY=( $(compgen -W "_density>=0,0<=_thickness<=100,0<=_shadow<=100,_shading>=0,_fibers_amplitude>=0,_fibers_smoothness>=0,_angle,-1<=_x_curvature<=1,-1<=_y_curvature<=1 >") )
-		return 0
-		;;
-		"-whirls" | "--whirls")
-		COMPREPLY=( $(compgen -W "_texture>=0,_smoothness>=0,_darkness>=0,_lightness>=0 >") )
-		return 0
-		;;
-		"-euclidean2polar" | "--euclidean2polar")
-		COMPREPLY=( $(compgen -W "_cx,_cy,_n>0,_boundary={0=dirichlet|1=neumann|2=cyclic} >") )
-		return 0
-		;;
-		"-deform" | "--deform")
-		COMPREPLY=( $(compgen -W "_amplitude>=0 >") )
-		return 0
-		;;
-		"-fisheye" | "--fisheye")
-		COMPREPLY=( $(compgen -W "_x,_y,0<=_radius<=100,_amplitude>=0 >") )
-		return 0
-		;;
-		"-flower" | "--flower")
-		COMPREPLY=( $(compgen -W "_amplitude,_frequency,_offset_r[%],_angle,_cx,_cy,_boundary={0=dirichlet|1=neumann|2=cyclic} >") )
-		return 0
-		;;
-		"-kaleidoscope" | "--kaleidoscope")
-		COMPREPLY=( $(compgen -W "_cx,_cy,_radius,_angle,_boundary={0=dirichlet|1=neumann|2=cyclic} >") )
-		return 0
-		;;
-		"-map_sphere" | "--map_sphere")
-		COMPREPLY=( $(compgen -W "_width>0,_height>0,_radius,_dilation>0,_fading>=0,_fading_power>=0 >") )
-		return 0
-		;;
-		"-polar2euclidean" | "--polar2euclidean")
-		COMPREPLY=( $(compgen -W "_cx,_cy,_n>0,_boundary={0=dirichlet|1=neumann|2=cyclic} >") )
-		return 0
-		;;
-		"-raindrops" | "--raindrops")
-		COMPREPLY=( $(compgen -W "_amplitude,_density>=0,_wavelength>=0,_merging_steps>=0 >") )
-		return 0
-		;;
-		"-ripple" | "--ripple")
-		COMPREPLY=( $(compgen -W "_amplitude,_frequency,_shape={0=bloc|1=triangle|2=sine|3=sine+|4=random},_angle,_offset >") )
-		return 0
-		;;
-		"-rotoidoscope" | "--rotoidoscope")
-		COMPREPLY=( $(compgen -W "_cx,_cy,_tiles>0,_smoothness[%]>=0,_boundary={0=dirichlet|1=neumann|2=cyclic} >") )
-		return 0
-		;;
-		"-symmetrize" | "--symmetrize")
-		COMPREPLY=( $(compgen -W "_x[%],_y[%],_angle,_boundary={0=dirichlet|1=neumann|2=cyclic},_is_antisymmetry={0|1},_swap_sides={0|1} >") )
-		return 0
-		;;
-		"-transform_polar" | "--transform_polar")
-		COMPREPLY=( $(compgen -W ""expr_radius",_"expr_angle",_x_center,_y_center,_boundary={0=dirichlet|1=neumann} >") )
-		return 0
-		;;
-		"-twirl" | "--twirl")
-		COMPREPLY=( $(compgen -W "_amplitude,_cx,_cy,_boundary={0=dirichlet|1=neumann|2=cyclic} >") )
-		return 0
-		;;
-		"-warp_perspective" | "--warp_perspective")
-		COMPREPLY=( $(compgen -W "_x-angle,_y-angle,_zoom>0,_x-center,_y-center,_boundary={0=dirichlet|1=neumann|2=cyclic} >") )
-		return 0
-		;;
-		"-water" | "--water")
-		COMPREPLY=( $(compgen -W "_amplitude>=0,_smoothness>=0 >") )
-		return 0
-		;;
-		"-wave" | "--wave")
-		COMPREPLY=( $(compgen -W "_amplitude>=0,_frequency>=0,_center_x,_center_y >") )
-		return 0
-		;;
-		"-wind" | "--wind")
-		COMPREPLY=( $(compgen -W "_amplitude>=0,_angle,0<=_attenuation<=1,_threshold >") )
-		return 0
-		;;
-		"-zoom" | "--zoom")
-		COMPREPLY=( $(compgen -W "_factor,_cx,_cy,_cz,_boundary={0=dirichlet|1=neumann|2=cyclic} >") )
-		return 0
-		;;
-		"-cracks" | "--cracks")
-		COMPREPLY=( $(compgen -W "_density>=0,_amplitude,_relief={0|1} >") )
-		return 0
-		;;
-		"-light_patch" | "--light_patch")
-		COMPREPLY=( $(compgen -W "_density>0,_darkness>=0,_lightness>=0 >") )
-		return 0
-		;;
-		"-noise_hurl" | "--noise_hurl")
-		COMPREPLY=( $(compgen -W "_amplitude>=0 >") )
-		return 0
-		;;
-		"-pixelize" | "--pixelize")
-		COMPREPLY=( $(compgen -W "_scale_x>0,_scale_y>0,_scale_z>0 >") )
-		return 0
-		;;
-		"-shade_stripes" | "--shade_stripes")
-		COMPREPLY=( $(compgen -W "_frequency>=0,_direction={0=horizontal|1=vertical},_darkness>=0,_lightness>=0 >") )
-		return 0
-		;;
-		"-shadow_patch" | "--shadow_patch")
-		COMPREPLY=( $(compgen -W "_opacity>=0 >") )
-		return 0
-		;;
-		"-spread" | "--spread")
-		COMPREPLY=( $(compgen -W "_dx>=0,_dy>=0,_dz>=0 >") )
-		return 0
-		;;
-		"-stripes_y" | "--stripes_y")
-		COMPREPLY=( $(compgen -W "_frequency>=0 >") )
-		return 0
-		;;
-		"-texturize_canvas" | "--texturize_canvas")
-		COMPREPLY=( $(compgen -W "_amplitude>=0,_fibrousness>=0,_emboss_level>=0 >") )
-		return 0
-		;;
-		"-vignette" | "--vignette")
-		COMPREPLY=( $(compgen -W "_strength>=0,0<=_radius_min<=100,0<=_radius_max<=100 >") )
-		return 0
-		;;
-		"-watermark_visible" | "--watermark_visible")
-		COMPREPLY=( $(compgen -W "_text,0<_opacity<1,_size>0,_angle,_mode={0=remove|1=add},_smoothness>=0 >") )
-		return 0
-		;;
-		"-blend" | "--blend")
-		COMPREPLY=( $(compgen -W "blending_mode,0<=_opacity<=1,_revert_layer_order={0|1} >") )
-		return 0
-		;;
-		"-blend_edges" | "--blend_edges")
-		COMPREPLY=( $(compgen -W "smoothness[%]>=0 >") )
-		return 0
-		;;
-		"-fade_diamond" | "--fade_diamond")
-		COMPREPLY=( $(compgen -W "0<=_start<=100,0<=_end<=100 >") )
-		return 0
-		;;
-		"-fade_linear" | "--fade_linear")
-		COMPREPLY=( $(compgen -W "_angle,0<=_start<=100,0<=_end<=100 >") )
-		return 0
-		;;
-		"-fade_radial" | "--fade_radial")
-		COMPREPLY=( $(compgen -W "0<=_start<=100,0<=_end<=100 >") )
-		return 0
-		;;
-		"-fade_x" | "--fade_x")
-		COMPREPLY=( $(compgen -W "0<=_start<=100,0<=_end<=100 >") )
-		return 0
-		;;
-		"-fade_y" | "--fade_y")
-		COMPREPLY=( $(compgen -W "0<=_start<=100,0<=_end<=100 >") )
-		return 0
-		;;
-		"-fade_z" | "--fade_z")
-		COMPREPLY=( $(compgen -W "0<=_start<=100,0<=_end<=100 >") )
-		return 0
-		;;
-		"-animate" | "--animate")
-		COMPREPLY=( $(compgen -W "filter_name,"param1_start,..,paramN_start","param1_end,..,paramN_end",nb_frames>=0,_output_frames={0|1},_output_filename delay>0") )
-		return 0
-		;;
-		"-morph" | "--morph")
-		COMPREPLY=( $(compgen -W "nb_frames>0,_smoothness>=0,_precision>0 >") )
-		return 0
-		;;
-		"-register_nonrigid" | "--register_nonrigid")
-		COMPREPLY=( $(compgen -W "_smoothness>=0,_precision>0,_nb_scale>=0 >") )
-		return 0
-		;;
-		"-register_rigid" | "--register_rigid")
-		COMPREPLY=( $(compgen -W "_smoothness>=0 >") )
-		return 0
-		;;
-		"-transition_plasma" | "--transition_plasma")
-		COMPREPLY=( $(compgen -W "_nb_frames>=2,_scale>=0,_smoothness[%]>=0 >") )
-		return 0
-		;;
-		"-transition3d" | "--transition3d")
-		COMPREPLY=( $(compgen -W "_nb_frames>=2,_nb_xtiles>0,_nb_ytiles>0,_axis_x,_axis_y,_axis_z,_is_antialias >") )
-		return 0
-		;;
-		"-x_jawbreaker" | "--x_jawbreaker")
-		COMPREPLY=( $(compgen -W "0<_width<20,0<_height<20,0<_balls<=8 >") )
-		return 0
-		;;
-		"-x_mandelbrot" | "--x_mandelbrot")
-		COMPREPLY=( $(compgen -W "_julia={0|1},_c0r,_c0i >") )
-		return 0
-		;;
-		"-x_minesweeper" | "--x_minesweeper")
-		COMPREPLY=( $(compgen -W "8<=_width=<20,8<=_height<=20 >") )
-		return 0
-		;;
-		"-x_quantize_rgb" | "--x_quantize_rgb")
-		COMPREPLY=( $(compgen -W "_nbcolors>=2 >") )
-		return 0
-		;;
-		"-x_whirl" | "--x_whirl")
-		COMPREPLY=( $(compgen -W "_opacity>=0 >") )
-		return 0
-		;;
-		"-output_pink3d" | "--output_pink3d")
-		COMPREPLY=( $(compgen -W "filename >") )
-		return 0
-		;;
-		"-pink_grayskel" | "--pink_grayskel")
-		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_lambda=0 >") )
-		return 0
-		;;
-		"-pink_heightmaxima" | "--pink_heightmaxima")
-		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_height=1 >") )
-		return 0
-		;;
-		"-pink_heightminima" | "--pink_heightminima")
-		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_height=1 >") )
-		return 0
-		;;
-		"-pink_htkern" | "--pink_htkern")
-		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_type={""|u} >") )
-		return 0
-		;;
-		"-pink_lvkern" | "--pink_lvkern")
-		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_type={""|u} >") )
-		return 0
-		;;
-		"-pink_reg_minima" | "--pink_reg_minima")
-		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26} >") )
-		return 0
-		;;
-		"-pink_skelcurv" | "--pink_skelcurv")
-		COMPREPLY=( $(compgen -W "_prio={0|1|2|3|4|8|6|26},_connectivity={4|8|6|26},_inhibit={""} >") )
-		return 0
-		;;
 		"-pink_skelend" | "--pink_skelend")
 		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_n=0 >") )
 		return 0
@@ -3332,8 +3116,8 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_inverse={0|1},_height=0 >") )
 		return 0
 		;;
-		"-alert" | "--alert")
-		COMPREPLY=( $(compgen -W "_title,_message,_label_button1,_label_button2,... >") )
+		"-light_relief" | "--light_relief")
+		COMPREPLY=( $(compgen -W "_ambient_light,_specular_lightness,_specular_size,_light_smoothness,_darkness,_xl,_yl,_zl,_zscale,_opacity_bumpmap={0|1} >") )
 		return 0
 		;;
 		"-arg" | "--arg")
@@ -3348,8 +3132,8 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "value1,value2,...|auto >") )
 		return 0
 		;;
-		"-basename" | "--basename")
-		COMPREPLY=( $(compgen -W "file_path,_variable_name_for_folder >") )
+		"-poster_edges" | "--poster_edges")
+		COMPREPLY=( $(compgen -W "0<=_edge_threshold<=100,0<=_edge_shade<=100,_edge_thickness>=0,_edge_antialiasing>=0,0<=_posterization_level<=15,_posterization_antialiasing>=0 >") )
 		return 0
 		;;
 		"-bin" | "--bin")
@@ -3360,8 +3144,8 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "binary_int1,... >") )
 		return 0
 		;;
-		"-dec" | "--dec")
-		COMPREPLY=( $(compgen -W "decimal_int1,... >") )
+		"-stars" | "--stars")
+		COMPREPLY=( $(compgen -W "_density[%]>=0,_depth>=0,_size>0,_nb_branches>=1,0<=_thickness<=1,_smoothness[%]>=0,_R,_G,_B,_opacity >") )
 		return 0
 		;;
 		"-dec2str" | "--dec2str")
@@ -3384,8 +3168,12 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "value >") )
 		return 0
 		;;
-		"-file_mv" | "--file_mv")
-		COMPREPLY=( $(compgen -W "filename_src,filename_dest >") )
+		"-weave" | "--weave")
+		COMPREPLY=( $(compgen -W "_density>=0,0<=_thickness<=100,0<=_shadow<=100,_shading>=0,_fibers_amplitude>=0,_fibers_smoothness>=0,_angle,-1<=_x_curvature<=1,-1<=_y_curvature<=1 >") )
+		return 0
+		;;
+		"-whirls" | "--whirls")
+		COMPREPLY=( $(compgen -W "_texture>=0,_smoothness>=0,_darkness>=0,_lightness>=0 >") )
 		return 0
 		;;
 		"-file_rm" | "--file_rm")
@@ -3416,16 +3204,24 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "hexadecimal_int1,... >") )
 		return 0
 		;;
-		"-hex2str" | "--hex2str")
-		COMPREPLY=( $(compgen -W "hexadecimal_string >") )
+		"-raindrops" | "--raindrops")
+		COMPREPLY=( $(compgen -W "_amplitude,_density>=0,_wavelength>=0,_merging_steps>=0 >") )
+		return 0
+		;;
+		"-ripple" | "--ripple")
+		COMPREPLY=( $(compgen -W "_amplitude,_frequency,_shape={0=bloc|1=triangle|2=sine|3=sine+|4=random},_angle,_offset >") )
 		return 0
 		;;
 		"-img2text" | "--img2text")
 		COMPREPLY=( $(compgen -W "_line_separator >") )
 		return 0
 		;;
-		"-is_percent" | "--is_percent")
-		COMPREPLY=( $(compgen -W "string >") )
+		"-symmetrize" | "--symmetrize")
+		COMPREPLY=( $(compgen -W "_x[%],_y[%],_angle,_boundary={0=dirichlet|1=neumann|2=cyclic},_is_antisymmetry={0|1},_swap_sides={0|1} >") )
+		return 0
+		;;
+		"-transform_polar" | "--transform_polar")
+		COMPREPLY=( $(compgen -W ""expr_radius",_"expr_angle",_x_center,_y_center,_boundary={0=dirichlet|1=neumann} >") )
 		return 0
 		;;
 		"-oct" | "--oct")
@@ -3482,6 +3278,330 @@ _gmic_def()
 		;;
 		"-gpt" | "--gpt")
 		COMPREPLY=( $(compgen -W "_scorefile,_number_of_sessions>=0 >") )
+		return 0
+		;;
+		"-h" | "--h")
+		COMPREPLY=( $(compgen -W "$coms" -- "$cur") )
+		return 0
+		;;
+		"-d" | "--d")
+		COMPREPLY=( $(compgen -W "_X,_Y,_Z >") )
+		return 0
+		;;
+		"-da" | "--da")
+		COMPREPLY=( $(compgen -W "_width>0,_height>0 >") )
+		return 0
+		;;
+		"-dg" | "--dg")
+		COMPREPLY=( $(compgen -W "_width>32,_height>32,_plot_type,_vertex_type,_xmin,_xmax,_ymin,_ymax,_xlabel,_ylabel >") )
+		return 0
+		;;
+		"-dh" | "--dh")
+		COMPREPLY=( $(compgen -W "_width>0,_height>0,_clusters>0,_min_value[%],_max_value[%],_show_axes={0|1} >") )
+		return 0
+		;;
+		"-dp" | "--dp")
+		COMPREPLY=( $(compgen -W "_width>32,_height>32,_outline_type,_fill_R,_fill_G,_fill_B,_theta_start,_theta_end >") )
+		return 0
+		;;
+		"-dt" | "--dt")
+		COMPREPLY=( $(compgen -W "_size_factor>0,_ellipse_factor>=0,_colored_mode={0|1} >") )
+		return 0
+		;;
+		"-dw" | "--dw")
+		COMPREPLY=( $(compgen -W "_cell_size>0 >") )
+		return 0
+		;;
+		"-e" | "--e")
+		COMPREPLY=( $(compgen -W "message >") )
+		return 0
+		;;
+		"-on" | "--on")
+		COMPREPLY=( $(compgen -W "filename >") )
+		return 0
+		;;
+		"-vignette" | "--vignette")
+		COMPREPLY=( $(compgen -W "_strength>=0,0<=_radius_min<=100,0<=_radius_max<=100 >") )
+		return 0
+		;;
+		"-watermark_visible" | "--watermark_visible")
+		COMPREPLY=( $(compgen -W "_text,0<_opacity<1,_size>0,_angle,_mode={0=remove|1=add},_smoothness>=0 >") )
+		return 0
+		;;
+		"-blend" | "--blend")
+		COMPREPLY=( $(compgen -W "blending_mode,0<=_opacity<=1,_revert_layer_order={0|1} >") )
+		return 0
+		;;
+		"-blend_edges" | "--blend_edges")
+		COMPREPLY=( $(compgen -W "smoothness[%]>=0 >") )
+		return 0
+		;;
+		"-w" | "--w")
+		COMPREPLY=( $(compgen -W "_width[%]>=-1,_height[%]>=-1,_normalization,_fullscreen,_title >") )
+		return 0
+		;;
+		"-mv" | "--mv")
+		COMPREPLY=( $(compgen -W "position[%] >") )
+		return 0
+		;;
+		"-nm" | "--nm")
+		COMPREPLY=( $(compgen -W "name,_is_modified={0|1} >") )
+		return 0
+		;;
+		"-+" | "--+")
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		return 0
+		;;
+		"-<<" | "--<<")
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		return 0
+		;;
+		"->>" | "-->>")
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		return 0
+		;;
+		"-animate" | "--animate")
+		COMPREPLY=( $(compgen -W "filter_name,"param1_start,..,paramN_start","param1_end,..,paramN_end",nb_frames>=0,_output_frames={0|1},_output_filename delay>0") )
+		return 0
+		;;
+		"-==" | "--==")
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		return 0
+		;;
+		"->=" | "-->=")
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		return 0
+		;;
+		"->" | "-->")
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		return 0
+		;;
+		"-transition_plasma" | "--transition_plasma")
+		COMPREPLY=( $(compgen -W "_nb_frames>=2,_scale>=0,_smoothness[%]>=0 >") )
+		return 0
+		;;
+		"-transition3d" | "--transition3d")
+		COMPREPLY=( $(compgen -W "_nb_frames>=2,_nb_xtiles>0,_nb_ytiles>0,_axis_x,_axis_y,_axis_z,_is_antialias >") )
+		return 0
+		;;
+		"-x_jawbreaker" | "--x_jawbreaker")
+		COMPREPLY=( $(compgen -W "0<_width<20,0<_height<20,0<_balls<=8 >") )
+		return 0
+		;;
+		"-<" | "--<")
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		return 0
+		;;
+		"-//" | "--//")
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		return 0
+		;;
+		"-x_quantize_rgb" | "--x_quantize_rgb")
+		COMPREPLY=( $(compgen -W "_nbcolors>=2 >") )
+		return 0
+		;;
+		"-x_whirl" | "--x_whirl")
+		COMPREPLY=( $(compgen -W "_opacity>=0 >") )
+		return 0
+		;;
+		"-**" | "--**")
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		return 0
+		;;
+		"-pink_grayskel" | "--pink_grayskel")
+		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_lambda=0 >") )
+		return 0
+		;;
+		"-pink_heightmaxima" | "--pink_heightmaxima")
+		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_height=1 >") )
+		return 0
+		;;
+		"-pink_heightminima" | "--pink_heightminima")
+		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_height=1 >") )
+		return 0
+		;;
+		"-pink_htkern" | "--pink_htkern")
+		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_type={""|u} >") )
+		return 0
+		;;
+		"-pink_lvkern" | "--pink_lvkern")
+		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_type={""|u} >") )
+		return 0
+		;;
+		"-pink_reg_minima" | "--pink_reg_minima")
+		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26} >") )
+		return 0
+		;;
+		"-pink_skelcurv" | "--pink_skelcurv")
+		COMPREPLY=( $(compgen -W "_prio={0|1|2|3|4|8|6|26},_connectivity={4|8|6|26},_inhibit={""} >") )
+		return 0
+		;;
+		"-pink_skelend" | "--pink_skelend")
+		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_n=0 >") )
+		return 0
+		;;
+		"-pink_skeleton" | "--pink_skeleton")
+		COMPREPLY=( $(compgen -W "_prio={0|1|2|3|4|8|6|26},_connectivity={4|8|6|26},_inhibit={""} >") )
+		return 0
+		;;
+		"-pink_skelpar" | "--pink_skelpar")
+		COMPREPLY=( $(compgen -W "_algorithm={0..29},_nsteps=_1,_inhibit="" >") )
+		return 0
+		;;
+		"-pink_wshed" | "--pink_wshed")
+		COMPREPLY=( $(compgen -W "_connectivity={4|8|6|26},_inverse={0|1},_height=0 >") )
+		return 0
+		;;
+		"-alert" | "--alert")
+		COMPREPLY=( $(compgen -W "_title,_message,_label_button1,_label_button2,... >") )
+		return 0
+		;;
+		"-z" | "--z")
+		COMPREPLY=( $(compgen -W "x0[%],x1[%],_boundary x0[%],y0[%],x1[%],y1[%],_boundary x0[%],y0[%],z0[%],x1[%],y1[%],z1[%],_boundary x0[%],y0[%],z0[%],c0[%],x1[%],y1[%],z1[%],c1[%],_boundary (noargs)") )
+		return 0
+		;;
+		"-r" | "--r")
+		COMPREPLY=( $(compgen -W "[image],_interpolation,_boundary,_ax,_ay,_az,_ac {[image_w]|width>0[%]},_{[image_h]|height>0[%]},_{[image_d]|depth>0[%]},_{[image_s]|spectrum>0[%]},_interpolation,_boundary,_ax,_ay,_az,_ac (noargs)") )
+		return 0
+		;;
+		"-autocrop_coords" | "--autocrop_coords")
+		COMPREPLY=( $(compgen -W "value1,value2,...|auto >") )
+		return 0
+		;;
+		"-basename" | "--basename")
+		COMPREPLY=( $(compgen -W "file_path,_variable_name_for_folder >") )
+		return 0
+		;;
+		"-r2dx" | "--r2dx")
+		COMPREPLY=( $(compgen -W "width>0,_interpolation,_boundary,_ax,_ay,_az,_ac >") )
+		return 0
+		;;
+		"-r2dy" | "--r2dy")
+		COMPREPLY=( $(compgen -W "height>0,_interpolation,_boundary,_ax,_ay,_az,_ac >") )
+		return 0
+		;;
+		"-r3dx" | "--r3dx")
+		COMPREPLY=( $(compgen -W "width>0,_interpolation,_boundary,_ax,_ay,_az,_ac >") )
+		return 0
+		;;
+		"-r3dy" | "--r3dy")
+		COMPREPLY=( $(compgen -W "height>0,_interpolation,_boundary,_ax,_ay,_az,_ac >") )
+		return 0
+		;;
+		"-r3dz" | "--r3dz")
+		COMPREPLY=( $(compgen -W "depth>0,_interpolation,_boundary,_ax,_ay,_az,_ac >") )
+		return 0
+		;;
+		"-s" | "--s")
+		COMPREPLY=( $(compgen -W "{x|y|z|c}..{x|y|z|c},_nb_parts keep_splitting_values={+|-},value1,value2,...") )
+		return 0
+		;;
+		"-y" | "--y")
+		COMPREPLY=( $(compgen -W "axis={x|y|z|c} >") )
+		return 0
+		;;
+		"-b" | "--b")
+		COMPREPLY=( $(compgen -W "std_variation>=0[%],_boundary={0=dirichlet|1=neumann},_kernel={0=quasi-gaussian(faster)|1=gaussian} >") )
+		return 0
+		;;
+		"-g" | "--g")
+		COMPREPLY=( $(compgen -W "{x|y|z}..{x|y|z},_scheme (noargs)") )
+		return 0
+		;;
+		"-j" | "--j")
+		COMPREPLY=( $(compgen -W "[sprite],_x[%],_y[%],_z[%],_c[%],_opacity,_[sprite_mask],_max_opacity_mask >") )
+		return 0
+		;;
+		"-t" | "--t")
+		COMPREPLY=( $(compgen -W "text,_x[%],_y[%],_font_height>=0,_opacity,_color1,.. >") )
+		return 0
+		;;
+		"-+3d" | "--+3d")
+		COMPREPLY=( $(compgen -W "tx,_ty,_tz [object3d] (noargs)") )
+		return 0
+		;;
+		"-b3d" | "--b3d")
+		COMPREPLY=( $(compgen -W "R,_G,_B [image] (noargs)") )
+		return 0
+		;;
+		"-col3d" | "--col3d")
+		COMPREPLY=( $(compgen -W "R,_G,_B,_opacity >") )
+		return 0
+		;;
+		"-/3d" | "--/3d")
+		COMPREPLY=( $(compgen -W "factor factor_x,factor_y,_factor_z") )
+		return 0
+		;;
+		"-db3d" | "--db3d")
+		COMPREPLY=( $(compgen -W "is_doubled={0|1} >") )
+		return 0
+		;;
+		"-f3d" | "--f3d")
+		COMPREPLY=( $(compgen -W "focale >") )
+		return 0
+		;;
+		"-img2text" | "--img2text")
+		COMPREPLY=( $(compgen -W "_line_separator >") )
+		return 0
+		;;
+		"-is_percent" | "--is_percent")
+		COMPREPLY=( $(compgen -W "string >") )
+		return 0
+		;;
+		"-m3d" | "--m3d")
+		COMPREPLY=( $(compgen -W "mode >") )
+		return 0
+		;;
+		"-md3d" | "--md3d")
+		COMPREPLY=( $(compgen -W "mode >") )
+		return 0
+		;;
+		"-*3d" | "--*3d")
+		COMPREPLY=( $(compgen -W "factor factor_x,factor_y,_factor_z") )
+		return 0
+		;;
+		"-o3d" | "--o3d")
+		COMPREPLY=( $(compgen -W "opacity >") )
+		return 0
+		;;
+		"-region_feature" | "--region_feature")
+		COMPREPLY=( $(compgen -W "region_label,feature,_default_value >") )
+		return 0
+		;;
+		"-str" | "--str")
+		COMPREPLY=( $(compgen -W "string >") )
+		return 0
+		;;
+		"-r3d" | "--r3d")
+		COMPREPLY=( $(compgen -W "u,v,w,angle >") )
+		return 0
+		;;
+		"-sl3d" | "--sl3d")
+		COMPREPLY=( $(compgen -W "value>=0 >") )
+		return 0
+		;;
+		"-ss3d" | "--ss3d")
+		COMPREPLY=( $(compgen -W "value>=0 >") )
+		return 0
+		;;
+		"--3d" | "---3d")
+		COMPREPLY=( $(compgen -W "tx,_ty,_tz >") )
+		return 0
+		;;
+		"-t3d" | "--t3d")
+		COMPREPLY=( $(compgen -W "[ind_texture],_[ind_coords] >") )
+		return 0
+		;;
+		"-x" | "--x")
+		COMPREPLY=( $(compgen -W "command >") )
+		return 0
+		;;
+		"-u" | "--u")
+		COMPREPLY=( $(compgen -W "value >") )
+		return 0
+		;;
+		"-frame" | "--frame")
+		COMPREPLY=( $(compgen -W "size_x[%]>=0,_size_y[%]>=0,_col1,...,_colN >") )
 		return 0
 		;;
 		"-h" | "--h")

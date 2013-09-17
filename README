@@ -12,7 +12,7 @@
 
                        ( http://gmic.sourceforge.net/ )
 
-                                    1.5.5.2
+                                    1.5.7.0
 
 --------------------------------------------------------------------------------
 
@@ -38,7 +38,7 @@
    - A web-service 'G'MIC Online', to allow users applying image processing
      algorithms directly in a web browser.
    - A Qt-based interface 'ZArt', for real-time manipulation of webcam images.
-   - A C++ library 'libgmic', to be linked to third-party applications.
+   - A thread-safe C++ library 'libgmic', to be linked to third-party applications.
 
  G'MIC is focused on the design of possibly complex pipelines for converting,
  manipulating, filtering and visualizing generic 1d/2d/3d multi-spectral image
