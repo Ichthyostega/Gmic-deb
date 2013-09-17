@@ -8,7 +8,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
@@ -45,7 +45,6 @@
  */
 #include "Common.h"
 #include "WebcamGrabber.h"
-#include <QImage>
 #include <QCoreApplication>
 #include <QDir>
 #include <QStringList>
@@ -53,21 +52,21 @@ using namespace std;
 
 WebcamGrabber::WebcamGrabber()
 {   
-  _capture = 0;
-  _image = 0;
-  _width = 0;
-  _height = 0;
+   _capture = 0;
+   _image = 0;
+   _width = 0;
+   _height = 0;
 }
 
 WebcamGrabber::~WebcamGrabber()
 {
-  cvReleaseCapture( &_capture );
+   cvReleaseCapture( &_capture );
 }
 
 void
 WebcamGrabber::capture()
 {
-  _image = cvQueryFrame( _capture );
+   _image = cvQueryFrame( _capture );
 }
 
 QList<int>
@@ -87,14 +86,14 @@ WebcamGrabber::getWebcamList()
    CvCapture *capture = 0;
    int i = 0;
    for ( i = 0; i < 6 ; ++i ) {
-     capture = cvCaptureFromCAM( i );
-     if ( capture ) {
-       cvReleaseCapture( &capture );
-       camList.push_back(i);
-     }
+      capture = cvCaptureFromCAM( i );
+      if ( capture ) {
+	 cvReleaseCapture( &capture );
+	 camList.push_back(i);
+      }
    }
 #endif
-  return camList;
+   return camList;
 }
 
 void
@@ -105,6 +104,12 @@ WebcamGrabber::setCameraIndex( int i )
   }
   _capture = cvCaptureFromCAM( i );
   _image = cvQueryFrame( _capture );
+  if ( _image->width != 640 || _image->height != 480 ) {
+     cvSetCaptureProperty(_capture,CV_CAP_PROP_FRAME_WIDTH,640);
+     cvSetCaptureProperty(_capture,CV_CAP_PROP_FRAME_HEIGHT,480);
+     _image = cvQueryFrame( _capture );
+     _image = cvQueryFrame( _capture );
+  }
   _width = _image->width;
   _height = _image->height;
   _cameraIndex = i;

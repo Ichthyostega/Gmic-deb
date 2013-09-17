@@ -7,7 +7,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
@@ -54,27 +54,35 @@ using namespace std;
 int main( int argc, char *argv[] )
 {
   QApplication app( argc, argv );
-  app.setWindowIcon( QIcon(":images/icon.png") );
-  app.setApplicationName( "ZArt" );
-
+  app.setWindowIcon( QIcon(":images/gmic_hat.png") );
+  QCoreApplication::setOrganizationName("GREYC");
+  QCoreApplication::setOrganizationDomain("greyc.fr");
+  QCoreApplication::setApplicationName("ZArt");
+  
   QStringList args = app.arguments();
   if ( args.size() == 2 && ( args[1] == "-h" || args[1] == "--help") ) {
      cout << "Usage:" << endl
-          << "       " << QFileInfo(argv[0]).baseName().toAscii().constData() << " [options]" << endl
-          << "   " << "Options: " << endl
-          << "       --help | -h : print this help." << endl
-          << "       --cam N     : disable camera detection and force selection of" << endl
-          << "                     camera with index N." << endl
+          << "       " << QFileInfo(argv[0]).baseName().toAscii().constData()
+	  << " [options]" << endl
+          << "  " << "Options: " << endl
+          << "      --help | -h : print this help." << endl
+          << "      --cam N     : disable camera detection and force selection"
+	  << "                    camera with index N." << endl
           << endl;
      exit(EXIT_FAILURE);
   }
 
   if ( ! WebcamGrabber::getWebcamList().count() ) {
-     QMessageBox::critical(0,QString("ZArt %1: Error").arg(ZART_VERSION),"No webcam found.<br/><br/>(ZArt is useless without a webcam!)");
+     const char * message =
+	"No webcam found.<br/><br/>"
+	"(ZArt is useless without a webcam!)";
+     QMessageBox::critical(0,
+			   QString("ZArt %1: Error").arg(ZART_VERSION),
+			   message);
      exit(EXIT_FAILURE);
   }
 
-  MainWindow *mainWindow = new MainWindow;
-  mainWindow->show();
+  MainWindow mainWindow;
+  mainWindow.show();
   return app.exec();
 }

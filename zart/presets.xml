@@ -2,9 +2,9 @@
 <document name="Presets">
 
 <!-- *********************
-      
-         Artistic 
-      
+
+         Artistic
+
 *********************** -->
 <preset_group name="Artistic">
 
@@ -13,7 +13,7 @@
   </preset>
 
   <preset name="Hard sketch">
---hardsketchbw 300,30,0.2,5 -compose_hardlight
+--hardsketchbw 300,30,0.2,5 -blend hardlight
   </preset>
 
   <preset name="Old photograph">
@@ -23,7 +23,7 @@
   <preset name="Psychedelic">
 -r 50%,50%,1,3 --mirror x --mirror y -+ -/ 4 -equalize 256
   </preset>
-  
+
   <preset name="Stencil">
 -r 75%,75%,1,3 -stencilbw ,
   </preset>
@@ -35,9 +35,9 @@
 </preset_group>
 
 <!-- *******************
-      
+
            Colors
-      
+
 *******************  -->
 <preset_group name="Colors">
 
@@ -67,7 +67,7 @@ time={@|%9}
   </preset>
 
   <preset name="Intensity profile">
---lines @y -s[-1] c
+--rows @y -s[-1] c
 -graph[-4] [-3],1,0,255,0,1,255,200,200
 -graph[-4] [-2],1,0,255,0,1,200,255,200
 -graph[-4] [-1],1,0,255,0,1,200,200,255
@@ -79,7 +79,7 @@ time={@|%9}
   <preset name="Local normalization">
 -rgb2lab -s c -normalize_local[0] 3 -a c -lab2rgb
   </preset>
-  
+
   <preset name="RGB">
 -r 50%,50% --s c -channels[-2] -1,0
 -channels[-1] -2,0
@@ -91,9 +91,9 @@ time={@|%9}
 </preset_group>
 
 <!-- *******************
-      
+
            Contours
-      
+
 *******************  -->
 <preset_group name="Contours">
 
@@ -153,7 +153,7 @@ radius=15
   </preset>
 
   <preset name="Hough transform">
--r 50%,50% --hough {w},{h},1 -+[-1] 1 -pow[-1] 0.3 -r[-1] 100%,100%,1,3 -n[-1] 0,255 
+-r 50%,50% --hough {w},{h},1 -+[-1] 1 -pow[-1] 0.3 -r[-1] 100%,100%,1,3 -n[-1] 0,255
 -if @{!,b}
   x={max(0,@{!,x}-w)}
   y=@{!,y}
@@ -181,16 +181,16 @@ radius=15
 
 
 <!-- **********************
-      
+
         Frequencies
-      
+
 *********************** -->
 <preset_group name="Frequencies">
 
   <preset name="Fourier transform">
 -r 50%,50%
---fft -a[-2,-1] c -norm[-1] -+[-1] 1 -log[-1] 
--n[-1] 0,255 -shift[-1] 50%,50%,0,0,2 -r[-1] 100%,100%,1,3 
+--fft -a[-2,-1] c -norm[-1] -+[-1] 1 -log[-1]
+-n[-1] 0,255 -shift[-1] 50%,50%,0,0,2 -r[-1] 100%,100%,1,3
 -a x
   </preset>
 
@@ -220,8 +220,8 @@ radius=15
   _rmin=0 _rmax=200 _is_update=1
 -endif
 -fft[0]
--shift[0,1] 50%,50%,0,0,2 
---a[0,1] c -norm[-1] -+[-1] 1 -log[-1] -n[-1] 0,255 
+-shift[0,1] 50%,50%,0,0,2
+--a[0,1] c -norm[-1] -+[-1] 1 -log[-1] -n[-1] 0,255
 -*[0,1] [2]
 -shift[0,1] -50%,-50%,0,0,2
 -ifft[0,1]
@@ -237,9 +237,9 @@ radius=15
 </preset_group>
 
 <!-- ***********************
-      
+
            Geometry
-      
+
 ************************ -->
 <preset_group name="Geometry">
 
@@ -258,9 +258,9 @@ radius=15
 </preset_group>
 
 <!-- *********************
-      
+
           Rendering
-      
+
 ********************** -->
 <preset_group name="Rendering">
 
@@ -280,9 +280,9 @@ radius=15
 </preset_group>
 
 <!-- *******************
-      
+
            Smoothing
-      
+
 *******************  -->
 <preset_group name="Smoothing">
 
@@ -331,9 +331,9 @@ sigma_r=5
 
 
 <!-- ***********************
-      
+
           Various
-      
+
 ************************ -->
 <preset_group name="Various">
 

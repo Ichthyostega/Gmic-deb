@@ -8,7 +8,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
@@ -50,6 +50,6 @@
 #include <iostream>
 #define SHOW( V ) std::cout << " " #V " = " << ( V ) << std::endl
 
-#define ZART_VERSION "1.0.0"
+#define ZART_VERSION "1.0.2"
 
 #endif

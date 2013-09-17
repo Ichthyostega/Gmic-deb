@@ -8,7 +8,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
@@ -70,7 +70,6 @@ public:
    ~MainWindow();
    QString getPreset( const QString & name );
 
-
 public slots:
 
    void play();
@@ -86,16 +85,13 @@ public slots:
    void licence();
    void visitGMIC();
    void setFrameSkip(int );
-   void setPresetsFile();
+   void setPresetsFile( const QString & = QString() );
    void savePresetsFile();
 
-   void onGMICFilterModeChoice(bool);
-
    void onWebcamSelected( QAction * );
-   void onGetOnlinePresets( bool );
-   void onUseBuiltinPresets();
+   void onUseOnlinePresets( bool );
+   void onUseBuiltinPresets( bool );
    void networkReplyFinished(QNetworkReply*);
-   void onCascadeChanged( const QString & );
    void onPreviewModeChanged( int index );
    void onRightPanel( bool );
    void onPlay();
@@ -112,9 +108,11 @@ private:
    QString _currentDir;
    QString _imageFilters;
    QNetworkAccessManager * _networkManager;
-   QButtonGroup * _bgFilterChoice;
    QButtonGroup * _bgZoom;
    QString _filtersPath;
+
+   QAction * _onlinePresetsAction;
+   QAction * _builtInPresetsAction;
 };
 
 #endif

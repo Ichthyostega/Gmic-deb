@@ -8,7 +8,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
@@ -45,6 +45,7 @@
  */
 #include <iostream>
 #include <QPainter>
+#include <QImage>
 #include <QMutex>
 #include "ImageConverter.h"
 #include <cassert>
@@ -100,10 +101,10 @@ void ImageConverter::convert( const cimg_library::CImg<float> & in, QImage * out
 }
 
 void ImageConverter::merge( IplImage * iplImage,
-                           const cimg_library::CImg<float> & cimgImage,
-                           QImage * out,
-                           QMutex * imageMutex,
-                           MergeDirection direction )
+			    const cimg_library::CImg<float> & cimgImage,
+			    QImage * out,
+			    QMutex * imageMutex,
+			    MergeDirection direction )
 {
    IplImage * cameraImage = iplImage;
    if ( iplImage->width != cimgImage.width() || iplImage->height!= cimgImage.height() ) {
@@ -112,7 +113,6 @@ void ImageConverter::merge( IplImage * iplImage,
       _image = cvCreateImage(cvSize(cimgImage.width(),cimgImage.height()),IPL_DEPTH_8U,3);
       cvResize(iplImage,_image,CV_INTER_LINEAR);
       cameraImage = _image;
-
       imageMutex->lock();
       QSize size( cimgImage.width(), cimgImage.height());
       if ( out->size() != size ) {

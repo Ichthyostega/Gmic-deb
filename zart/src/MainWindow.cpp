@@ -8,7 +8,7 @@
  * 
  * Copyright Sebastien Fourey / GREYC Ensicaen (2010-...) 
  * 
- *                    http://www.greyc.ensicaen.fr/~seb/
+ *                    https://foureys.users.greyc.fr/
  * 
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
@@ -45,27 +45,28 @@
  */
 #include <iostream>
 
-#include <QtGui>
-#include <QtXml>
+#include <QAction>
+#include <QActionGroup>
 #include <QComboBox>
-#include <QLabel>
-#include <QSlider>
+#include <QDesktopServices>
+#include <QDir>
+#include <QFileInfo>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QImageWriter>
-#include <QNetworkAccessManager>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <QMessageBox>
-#include <QAction>
-#include <QActionGroup>
-#include <QList>
-#include <QDesktopServices>
-#include <QUrl>
-#include <QDir>
 #include <QKeySequence>
+#include <QLabel>
+#include <QList>
+#include <QMessageBox>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QSettings>
 #include <QShortcut>
+#include <QSlider>
+#include <QUrl>
+#include <QtXml>
 
 #include "Common.h"
 #include "DialogAbout.h"
@@ -74,7 +75,6 @@
 #include "ImageView.h"
 #include "MainWindow.h"
 #include "WebcamGrabber.h"
-#include "Settings.h"
 #include "FilterThread.h"
 
 MainWindow::MainWindow( QWidget * parent )
@@ -84,10 +84,15 @@ MainWindow::MainWindow( QWidget * parent )
    setupUi(this);
    setWindowTitle( QString("ZArt %1").arg((ZART_VERSION)) );
 
-#if QT_VERSION > 0x040600
-   _tbPlay->setIcon( QIcon::fromTheme("media-playback-start",QIcon(":/images/media-playback-start.png")) );
-   _tbZoomOriginal->setIcon( QIcon::fromTheme("zoom-original", QIcon(":/images/zoom-original.png") ));
-   _tbZoomFit->setIcon( QIcon::fromTheme("zoom-fit-best", QIcon(":/images/zoom-fit-best.png") ));
+   QSettings settings;
+
+#if QT_VERSION >= 0x040600
+   _tbPlay->setIcon( QIcon::fromTheme("media-playback-start",
+				      QIcon(":/images/media-playback-start.png")) );
+   _tbZoomOriginal->setIcon( QIcon::fromTheme("zoom-original",
+					      QIcon(":/images/zoom-original.png") ));
+   _tbZoomFit->setIcon( QIcon::fromTheme("zoom-fit-best",
+					 QIcon(":/images/zoom-fit-best.png") ));
 #else
    _tbPlay->setIcon( QIcon(":/images/media-playback-start.png") );
    _tbZoomOriginal->setIcon( QIcon(":/images/zoom-original.png") );
@@ -100,7 +105,7 @@ MainWindow::MainWindow( QWidget * parent )
 
    QAction * action = new QAction( "&Save presets...", this );
    action->setShortcut( QKeySequence::SaveAs );
-#if QT_VERSION > 0x040600
+#if QT_VERSION >= 0x040600
    action->setIcon( QIcon::fromTheme( "document-save-as" ) );
 #endif
    menu->addAction( action );
@@ -109,8 +114,9 @@ MainWindow::MainWindow( QWidget * parent )
 
    action = new QAction( "&Quit", this );
    action->setShortcut( QKeySequence::Quit );
-#if QT_VERSION > 0x040600
-   action->setIcon( QIcon::fromTheme( "application-exit", QIcon(":/images/application-exit.png") ) );
+#if QT_VERSION >= 0x040600
+   action->setIcon( QIcon::fromTheme( "application-exit",
+				      QIcon(":/images/application-exit.png") ) );
 #else
    action->setIcon( QIcon(":/images/application-exit.png") );
 #endif
@@ -160,57 +166,61 @@ MainWindow::MainWindow( QWidget * parent )
    // Options menu
    menu = menuBar()->addMenu( "&Options" );
 
-   action = new QAction("Show right panel",this);
+   action = new QAction("Show right panel",menu);
    action->setCheckable(true);
-   action->setChecked(true);
+   action->setChecked(settings.value("showRightPanel",true).toBool());
    action->setShortcut(QKeySequence("Ctrl+F"));
    connect( action, SIGNAL(triggered(bool)),
-           this, SLOT(onRightPanel(bool)));
+	    this, SLOT(onRightPanel(bool)));
    menu->addAction(action);
-
    menu->addSeparator();
-   action = new QAction( "&Get online presets", this );
-   action->setCheckable( true );
-   connect( action, SIGNAL( toggled(bool ) ),
-	   this, SLOT( onGetOnlinePresets(bool ) ) );
-   menu->addAction( action );
+   
 
-   // Get online presets if configured.
-   onGetOnlinePresets( globalSettings.value( "GetOnlinePresets", false ).toBool() );
+   // Presets
+   QString presetsConfig = settings.value("Presets",QString("Built-in")).toString();
+  
+   QActionGroup * group = new QActionGroup(menu);
+   group->setExclusive(true);
 
-   action = new QAction( "&Set preset file...", this );
-#if QT_VERSION > 0x040600
-   action->setIcon( QIcon::fromTheme( "document-open", QIcon(":/images/document-open.png") ) );
-#else
-   action->setIcon( QIcon(":/images/document-open.png") );
-#endif
-   connect( action, SIGNAL( triggered() ),
-	   this, SLOT( setPresetsFile() ) );
-   menu->addAction( action );
-
-   // Load presets file if configured.
-   if ( !globalSettings.value( "GetOnlinePresets", false ).toBool()
-         && !globalSettings.value( "PresetsFile", QString() ).toString().isEmpty() ) {
-      QFile presetsTreeFile( globalSettings.value( "PresetsFile", QString() ).toString() );
-      QString error;
-      presetsTreeFile.open( QIODevice::ReadOnly );
-      _presets.setContent( &presetsTreeFile, false, &error );
-      presetsTreeFile.close();
-      _treeGPresets->clear();
-      addPresets( _presets.elementsByTagName("document").at(0).toElement(), 0 );
+   // Built-in
+   _builtInPresetsAction = new QAction( "&Built-in presets", menu );
+   _builtInPresetsAction->setCheckable( true );
+   connect( _builtInPresetsAction, SIGNAL( toggled(bool) ),
+	    this, SLOT( onUseBuiltinPresets(bool) ) );
+   group->addAction( _builtInPresetsAction );
+   menu->addAction( _builtInPresetsAction );
+   _builtInPresetsAction->setChecked(true); // Default to Built-in presets
+   
+   // Online
+   _onlinePresetsAction = new QAction( "&Online presets", menu );
+   _onlinePresetsAction->setCheckable( true );
+   connect( _onlinePresetsAction, SIGNAL( toggled(bool ) ),
+	    this, SLOT( onUseOnlinePresets(bool ) ) );
+   menu->addAction( _onlinePresetsAction );
+   group->addAction( _onlinePresetsAction );
+   if ( presetsConfig == "Online" ) {
+      _onlinePresetsAction->setChecked(true);
    }
 
-   action = new QAction( "&Use built-in presets", this );
-   connect( action, SIGNAL( triggered() ),
-	   this, SLOT( onUseBuiltinPresets() ) );
+   // File  
+   action = new QAction( "&Presets file...", menu );
+   action->setCheckable( true );
+   group->addAction( action );
    menu->addAction( action );
-   if ( ! globalSettings.value("GetOnlinePresets", false ).toBool()
-         && globalSettings.value( "PresetsFile", QString() ).toString().isEmpty() )
-      onUseBuiltinPresets();
-
+   QString filename = settings.value("PresetsFile",QString()).toString();
+   if ( presetsConfig == "File" && 
+	!filename.isEmpty() ) {
+      setPresetsFile(filename);
+      action->setChecked(true);
+   }
+   connect( action, SIGNAL( triggered() ),
+	   this, SLOT( setPresetsFile() ) );
+    
+   // Help menu
    menu = menuBar()->addMenu( "&Help" );
 
    action = new QAction( "&Visit G'MIC website", this );
+   action->setIcon( QIcon(":/images/gmic_hat.png") );
    connect( action, SIGNAL( triggered() ),
            this, SLOT( visitGMIC() ) );
    menu->addAction( action );
@@ -226,12 +236,6 @@ MainWindow::MainWindow( QWidget * parent )
    menu->addAction( action );
 
    _imageView->QWidget::resize( _webcam.width(), _webcam.height() );
-
-   _bgFilterChoice = new QButtonGroup(this);
-   _bgFilterChoice->addButton( _rbGMIC );
-   _bgFilterChoice->addButton( _rbOpenCV );
-   _rbGMIC->setChecked( true );
-
 
    _bgZoom = new QButtonGroup(this);
    _bgZoom->setExclusive(true);
@@ -278,9 +282,6 @@ MainWindow::MainWindow( QWidget * parent )
    connect( _imageView, SIGNAL( mouseMove( QMouseEvent * ) ),
            this, SLOT( imageViewMouseEvent( QMouseEvent * ) ) );
 
-   connect( _rbGMIC, SIGNAL( toggled(bool ) ),
-           this, SLOT( onGMICFilterModeChoice(bool) ) );
-
    connect( _treeGPresets, SIGNAL( itemClicked( QTreeWidgetItem *, int )),
 	   this, SLOT( presetClicked( QTreeWidgetItem *, int ) ) );
 
@@ -306,35 +307,19 @@ MainWindow::MainWindow( QWidget * parent )
    _imageFilters.chop(1);
    _imageFilters += ")";
 
-   // Cascade files combobox
-   QStringList files;
-   _filtersPath = "/usr/share/zart";
-   files = QDir(_filtersPath,"haarcascade_*.xml").entryList();
-   if ( ! files.size() ) {
-      _filtersPath = QFileInfo(qApp->arguments()[0]).absolutePath();
-      files = QDir(_filtersPath,"haarcascade_*.xml").entryList();
-   }
-   if ( files.size() ) {
-      QStringList::iterator itFile = files.begin();
-      while ( itFile != files.end() ) {
-         _cbCascades->addItem( (*itFile++).replace(".xml","").replace("haarcascade_","") );
-      }
-      connect( _cbCascades, SIGNAL( currentIndexChanged( const QString & ) ),
-              this, SLOT( onCascadeChanged( const QString & ) ) );
-   } else {
-      _rbOpenCV->setEnabled(false);
-      _cbCascades->addItem("No xml files found");
-      _cbCascades->setEnabled(false);
-   }
-
    _filterThread = 0;
+
+   if ( ! settings.value("showRightPanel",true).toBool() ) 
+      _rightPanel->hide();
 }
 
 MainWindow::~MainWindow()
 { 
-   _filterThread->stop();
-   _filterThread->wait();
-   delete _filterThread;
+   if ( _filterThread ) {
+      _filterThread->stop();
+      _filterThread->wait();
+      delete _filterThread;
+   }
 }
 
 void
@@ -409,13 +394,11 @@ MainWindow::play()
    FilterThread::PreviewMode  previewMode = static_cast<FilterThread::PreviewMode>(pm);
 
    _filterThread = new FilterThread( _webcam,
-                                    _commandEditor->toPlainText(),
-                                    &_imageView->image(),
-                                    &_imageView->imageMutex(),
-                                    _rbGMIC->isChecked() ? FilterThread::GMIC_Mode : FilterThread::FaceDetection_Mode,
-                                    previewMode,
-                                    QString("%1%2haarcascade_%3.xml").arg(_filtersPath).arg(QDir::separator()).arg( _cbCascades->currentText() ),
-                                    _sliderSkipFrames->value() );
+				     _commandEditor->toPlainText(),
+				     &_imageView->image(),
+				     &_imageView->imageMutex(),
+				     previewMode,
+				     _sliderSkipFrames->value() );
 
    connect( _filterThread, SIGNAL( imageAvailable() ),
            this, SLOT( onImageAvailable() ) );
@@ -439,16 +422,18 @@ MainWindow::onPlay()
 {
   if ( _filterThread ) {
      stop();
-#if QT_VERSION > 0x040600
-   _tbPlay->setIcon( QIcon::fromTheme("media-playback-start",QIcon(":/images/media-playback-start.png")) );
+#if QT_VERSION >= 0x040600
+   _tbPlay->setIcon( QIcon::fromTheme("media-playback-start",
+				      QIcon(":/images/media-playback-start.png")) );
 #else
    _tbPlay->setIcon( QIcon(":/images/media-playback-start.png") );
 #endif
    _tbPlay->setToolTip("Launch processing (Ctrl+P)");
   } else {
      play();
-#if QT_VERSION > 0x040600
-   _tbPlay->setIcon( QIcon::fromTheme("media-playback-stop",QIcon(":/images/media-playback-stop.png")) );
+#if QT_VERSION >= 0x040600
+   _tbPlay->setIcon( QIcon::fromTheme("media-playback-stop",
+				      QIcon(":/images/media-playback-stop.png")) );
 #else
    _tbPlay->setIcon( QIcon(":/images/media-playback-stop.png") );
 #endif
@@ -470,7 +455,7 @@ MainWindow::imageViewMouseEvent( QMouseEvent * e )
 void
 MainWindow::commandModified()
 {
-   if ( _filterThread && _filterThread->isRunning() && _rbGMIC->isChecked()) {
+   if ( _filterThread && _filterThread->isRunning() ) {
       stop();
       play();
    }
@@ -488,8 +473,6 @@ MainWindow::presetDoubleClicked( QTreeWidgetItem * item, int  )
 {
    if ( item->childCount() ) return;
    _commandEditor->setPlainText( getPreset( item->text(0) ) );
-   if ( ! _rbGMIC->isChecked() )
-      _rbGMIC->setChecked( true );
    if ( _cbPreviewMode->currentText().startsWith("Camera") ) {
       _cbPreviewMode->setCurrentIndex(0);
       onPreviewModeChanged(0);
@@ -542,14 +525,11 @@ MainWindow::onWebcamSelected( QAction * action )
 }
 
 void 
-MainWindow::onGetOnlinePresets( bool on )
+MainWindow::onUseOnlinePresets( bool on )
 {
-   // globalSettings.setValue( "GetOnlinePresets", on );
    if ( on ) {
-      QNetworkRequest request( QUrl("http://www.greyc.ensicaen.fr/~seb/zart_presets.xml" ) );
+      QNetworkRequest request( QUrl("https://foureys.users.greyc.fr/ZArt/zart_presets.xml" ) );
       _networkManager->get( request );
-   } else {
-      globalSettings.setValue( "GetOnlinePresets", false );
    }
 }
 
@@ -561,10 +541,12 @@ MainWindow::networkReplyFinished( QNetworkReply* reply )
                             "Network Error",
                             "Could not retreive the preset file from"
                             " the Web. Maybe a problem with your network"
-                            " connection." );
+   			     " connection." );
+      _builtInPresetsAction->setChecked( true );
+      QSettings().setValue( "Presets", "Built-in" );
       return;
    }
-   globalSettings.setValue( "GetOnlinePresets", true );
+   QSettings().setValue( "Presets", "Online" );
    QString error;
    _presets.setContent( reply, false, &error );
    _treeGPresets->clear();
@@ -572,14 +554,25 @@ MainWindow::networkReplyFinished( QNetworkReply* reply )
 }
 
 void
-MainWindow::setPresetsFile()
+MainWindow::setPresetsFile( const QString & file )
 {
-   QString filename = QFileDialog::getOpenFileName( this,
-						   "Open a presets file",
-						   ".",
-						   "Preset files (*.xml)" );
+   QString filename = file;
+   if ( filename.isEmpty() )  {
+      QSettings settings;
+      QString s = settings.value("PresetsFile").toString();
+      QString dir = ".";
+      if ( QFileInfo(s).exists() ) 
+	 dir = QFileInfo(s).absolutePath();
+      filename = QFileDialog::getOpenFileName( this,
+					       "Open a presets file",
+					       dir,
+					       "Preset files (*.xml)" );
+   }
    if ( ! filename.isEmpty() ) {
-      globalSettings.setValue( "PresetsFile", filename );
+      QSettings settings;
+      settings.setValue( "PresetsFile", filename );
+      settings.setValue( "Presets", "File" );
+
       QFile presetsTreeFile( filename );
       QString error;
       presetsTreeFile.open( QIODevice::ReadOnly );
@@ -587,10 +580,28 @@ MainWindow::setPresetsFile()
       presetsTreeFile.close();
       _treeGPresets->clear();
       addPresets( _presets.elementsByTagName("document").at(0).toElement(),
-                 0 );
-      globalSettings.setValue("GetOnlinePresets", false );
+		  0 );
+   } else {
+      _builtInPresetsAction->setChecked( true );
    }
 }
+
+void 
+MainWindow::onUseBuiltinPresets(bool on)
+{
+   if ( on ) {
+      QFile presetsTreeFile( ":/presets.xml" );
+      QString error;
+      presetsTreeFile.open( QIODevice::ReadOnly );
+      _presets.setContent( &presetsTreeFile, false, &error );
+      presetsTreeFile.close();
+      _treeGPresets->clear();
+      addPresets( _presets.elementsByTagName("document").at(0).toElement(),
+		  0 );
+      QSettings().setValue( "Presets", "Built-in" );
+   }
+}
+
 
 void
 MainWindow::savePresetsFile()
@@ -604,40 +615,6 @@ MainWindow::savePresetsFile()
       presetsFile.open( QIODevice::WriteOnly );
       presetsFile.write( _presets.toByteArray() );
       presetsFile.close();
-      globalSettings.setValue("GetOnlinePresets", false );
-   }
-}
-
-void 
-MainWindow::onUseBuiltinPresets()
-{
-   QFile presetsTreeFile( ":/presets.xml" );
-   QString error;
-   presetsTreeFile.open( QIODevice::ReadOnly );
-   _presets.setContent( &presetsTreeFile, false, &error );
-   presetsTreeFile.close();
-   _treeGPresets->clear();
-   addPresets( _presets.elementsByTagName("document").at(0).toElement(),
-	      0 );
-   globalSettings.setValue( "PresetsFile", QString() );
-   globalSettings.setValue( "GetOnlinePresets", false );
-}
-
-void
-MainWindow::onGMICFilterModeChoice( bool )
-{
-   if ( _filterThread && _filterThread->isRunning() ) {
-      stop();
-      play();
-   }
-}
-
-void
-MainWindow::onCascadeChanged( const QString &  )
-{
-   if ( _filterThread && _filterThread->isRunning() ) {
-      stop();
-      play();
    }
 }
 
@@ -654,11 +631,14 @@ MainWindow::onRightPanel( bool on )
 {
    if ( on && !_rightPanel->isVisible()) {
       _rightPanel->show();
+      QSettings().setValue("showRightPanel",true);
       return;
    }
    if ( !on && _rightPanel->isVisible()) {
       _rightPanel->hide();
+      QSettings().setValue("showRightPanel",false);
       return;
    }
 }
 
+   

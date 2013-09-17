@@ -1,9 +1,9 @@
 --------------------------------------------------------------------------------
-                    ________   ______           __      
-                   /\_____  \ /\  _  \         /\ \__   
-                   \/____//'/'\ \ \L\ \   _ __ \ \ ,_\  
-                        //'/'  \ \  __ \ /\`'__\\ \ \/  
-                       //'/'___ \ \ \/\ \\ \ \/  \ \ \_ 
+                    ________   ______           __
+                   /\_____  \ /\  _  \         /\ \__
+                   \/____//'/'\ \ \L\ \   _ __ \ \ ,_\
+                        //'/'  \ \  __ \ /\`'__\\ \ \/
+                       //'/'___ \ \ \/\ \\ \ \/  \ \ \_
                        /\_______\\ \_\ \_\\ \_\   \ \__\
                        \/_______/ \/_/\/_/ \/_/    \/__/
 
@@ -23,7 +23,7 @@ a GUI for G'MIC real-time manipulations on the output of a webcam.
  - Sebastien Fourey ( http://www.greyc.ensicaen.fr/~seb/ )
    Project manager / GUI Programming
 
- - David Tschumperle ( http://www.greyc.ensicaen.fr/~dtschump/ )
+ - David Tschumperle ( http://tschumperle.users.greyc.fr/ )
    G'MIC scripts
 
 # Institution
