@@ -1,1 +1,4 @@
 usr/bin/gmic
+etc/bash_completion.d/gmic
+usr/share/man/fr/man1/gmic.1.gz
+usr/share/man/man1/gmic.1.gz

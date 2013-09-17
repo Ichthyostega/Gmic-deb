@@ -43,11 +43,7 @@ override_dh_auto_build:
 
 override_dh_install:
 	chmod 755 debian/libgmic*.install
-	dh_install --sourcedirectory=src --fail-missing
-	install -d $(CURDIR)/debian/gmic/etc/bash_completion.d
-	install -D -m644 src/gmic_bashcompletion.sh \
-	                 $(CURDIR)/debian/gmic/etc/bash_completion.d/gmic
-
+	dh_install --fail-missing
 
 .PHONY: override_dh_auto_test override_dh_compress override_dh_auto_build override_dh_install
 
