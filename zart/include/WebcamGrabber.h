@@ -47,14 +47,6 @@
 
 #ifndef _WEBCAMGRABBER_H_
 #define _WEBCAMGRABBER_H_
-#ifdef HAS_OPENCV2_HEADERS
-#include <opencv2/core/core_c.h>
-#include <opencv2/highgui/highgui_c.h>
-#else
-#include <cv.h>
-#include <highgui.h>
-#endif
-#include <QList>
 
 #if defined(HAS_OPENCV2_HEADERS) || defined(OPENCV2_HEADERS)
 #include <opencv2/core/core_c.h>
