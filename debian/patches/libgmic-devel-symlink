@@ -1,14 +1,14 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -400,6 +400,7 @@ ifneq ($(OS),Darwin)
+@@ -406,6 +406,7 @@ ifneq ($(OS),Darwin)
  	cp -f ../zart/zart $(DESTDIR)$(USR)/bin/zart
  	mkdir -p $(DESTDIR)$(USR)/lib
- 	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7.0
-+	ln -s libgmic.so.1.5.7.0 $(DESTDIR)$(USR)/lib/libgmic.so
- 	ln -s libgmic.so.1.5.7.0 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
+ 	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7.1
++	ln -s libgmic.so.1.5.7.1 $(DESTDIR)$(USR)/lib/libgmic.so
+ 	ln -s libgmic.so.1.5.7.1 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
  	ln -s libgmic.so.1.5.7 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
  	ln -s libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
-@@ -419,6 +420,7 @@ uninstall:
+@@ -425,6 +426,7 @@ uninstall:
  	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
  	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5
  	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1

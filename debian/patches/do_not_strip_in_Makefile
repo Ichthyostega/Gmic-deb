@@ -1,6 +1,6 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -299,7 +299,7 @@ lib:
+@@ -306,7 +306,7 @@ lib:
  
  zart: lib
  ifneq ($(OS),Darwin)
@@ -9,7 +9,7 @@
  else
  	cd ../zart && qmake zart.pro && $(MAKE) "CFLAGS=$(STD_MACOSX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_MACOSX_LDFLAGS) $(OPT_LDFLAGS)"
  endif
-@@ -351,7 +351,6 @@ gmic_gimp.o: gmic.cpp gmic_def.h
+@@ -355,7 +355,6 @@ gmic_gimp.o: gmic.cpp gmic_def.h
  	$(CC) -o gmic_gimp.o -c gmic.cpp $(CFLAGS) -Dgmic_gimp -Dgmic_float_only
  gmic_gimp : gmic_gimp.o gmic_gimp.cpp
  	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o `gimptool-2.0$(EXE) --cflags` $(CFLAGS) `gimptool-2.0$(EXE) --libs` $(LDFLAGS)
@@ -17,7 +17,7 @@
  
  gmic_minimal: gmic.cpp
  	$(CC) -o gmic gmic.cpp $(CFLAGS) -Dgmic_float_only -Dgmic_main $(LDFLAGS)
-@@ -376,7 +375,6 @@ gmic_double.o: gmic.cpp
+@@ -380,7 +379,6 @@ gmic_double.o: gmic.cpp
  	$(CC) -o gmic_double.o -c gmic.cpp $(CFLAGS) -Dgmic_split_compilation -Dgmic_double
  gmic_gmic: gmic_bool.o gmic_uchar.o gmic_char.o gmic_ushort.o gmic_short.o gmic_uint.o gmic_int.o gmic_float.o gmic_double.o gmic_def.h
  	$(CC) -o gmic gmic_bool.o gmic_uchar.o gmic_char.o gmic_ushort.o gmic_short.o gmic_uint.o gmic_int.o gmic_float.o gmic_double.o $(LDFLAGS)
