@@ -4038,6 +4038,19 @@ namespace cimg_library_suffixed {
       return res;
     }
 
+    // Return number of available CPU cores.
+    inline unsigned int nb_cpus() {
+      unsigned int res = 1;
+#if cimg_OS==2
+      SYSTEM_INFO sysinfo;
+      GetSystemInfo(&sysinfo);
+      res = (unsigned int)sysinfo.dwNumberOfProcessors;
+#else
+      res = (unsigned int)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+      return res?res:1U;
+    }
+
     // Lock/unlock mutex for CImg multi-thread programming.
     inline int mutex(const unsigned int n, const int lock_mode) {
       switch (lock_mode) {
@@ -4254,7 +4267,7 @@ namespace cimg_library_suffixed {
       cimg::mutex(2);
       static unsigned long t0 = 0;
       const unsigned long t = cimg::time();
-      if (is_tic) return (t0 = t);
+      if (is_tic) { cimg::mutex(2,0); return (t0 = t); }
       const unsigned long dt = t>=t0?(t - t0):cimg::type<unsigned long>::max();
       const unsigned int
         edays = (unsigned int)(dt/86400000.0),
@@ -26525,8 +26538,9 @@ namespace cimg_library_suffixed {
        \param[in,out] real Real part of the pixel values.
        \param[in,out] imag Imaginary part of the pixel values.
        \param is_invert Tells if the forward (\c false) or inverse (\c true) FFT is computed.
+       \param nb_threads Number of parallel threads used for the computation. Use \c 0 to set this to the number of available cpus.
     **/
-    static void FFT(CImg<T>& real, CImg<T>& imag, const bool is_invert=false) {
+    static void FFT(CImg<T>& real, CImg<T>& imag, const bool is_invert=false, const unsigned int nb_threads=0) {
       if (!real)
         throw CImgInstanceException("CImgList<%s>::FFT(): Empty specified real part.",
                                     pixel_type());
@@ -26540,6 +26554,12 @@ namespace cimg_library_suffixed {
 
 #ifdef cimg_use_fftw3
       cimg::mutex(12);
+      const unsigned int _nb_threads = nb_threads?nb_threads:cimg::nb_cpus();
+#ifndef cimg_use_fftw3_singlethread
+      static int fftw_st = fftw_init_threads();
+      cimg::unused(fftw_st);
+      fftw_plan_with_nthreads(_nb_threads);
+#endif
       fftw_complex *data_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*real._width*real._height*real._depth);
       if (!data_in) throw CImgInstanceException("CImgList<%s>::FFT(): Failed to allocate memory (%s) for computing FFT of image (%u,%u,%u,%u).",
                                                 pixel_type(),
@@ -26574,8 +26594,12 @@ namespace cimg_library_suffixed {
       }
       fftw_destroy_plan(data_plan);
       fftw_free(data_in);
+#ifndef cimg_use_fftw3_singlethread
+      fftw_cleanup_threads();
+#endif
       cimg::mutex(12,0);
 #else
+      cimg::unused(nb_threads);
       if (real._depth>1) FFT(real,imag,'z',is_invert);
       if (real._height>1) FFT(real,imag,'y',is_invert);
       if (real._width>1) FFT(real,imag,'x',is_invert);

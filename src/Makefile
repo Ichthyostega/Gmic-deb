@@ -48,8 +48,14 @@
 #----------------------------------
 OS := $(shell uname)
 CC = g++
+ifeq ($(OS),Linux)
+OS = Unix
+endif
 ifeq ($(OS),GNU/kFreeBSD)
-OS = Linux
+OS = Unix
+endif
+ifeq ($(OS),GNU)
+OS = Unix
 endif
 ifeq ($(OS),Darwin)
 PLUGINDIR = ~/Library/Application\ Support/Gimp/plug-ins
@@ -186,7 +192,7 @@ EXR_LDFLAGS = -lIlmImf -lHalf
 # This requires the presence of the FFTW3 include and library files.
 # (package 'libfftw3-dev' on Debian).
 FFTW_CFLAGS = -Dcimg_use_fftw3
-FFTW_LDFLAGS = -lfftw3
+FFTW_LDFLAGS = -lfftw3 -lfftw3_threads
 ifeq ($(OSTYPE),msys)
 FFTW_LDFLAGS = -lfftw3-3
 endif
@@ -220,7 +226,7 @@ STATIC_UNIX_LDFLAGS = $(PARALLEL_LDFLAGS) \
 	              /usr/lib/libjpeg.a \
                       /usr/lib/libtiff.a \
                       /usr/lib/libz.a \
-                      /usr/lib/libfftw3.a
+                      /usr/lib/libfftw3.a /usr/lib/libfftw3_threads.a
 
 # Unix : Custom build.
 CUST_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
@@ -259,7 +265,7 @@ STD_LIB_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(FFTW_LDFLAGS)
 
 # GMICol : Standard build.
 GMICOL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0
-GMICOL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(ZLIB_LDFLAGS) /usr/lib/libfftw3.a
+GMICOL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(ZLIB_LDFLAGS) /usr/lib/libfftw3.a /usr/lib/libfftw3_threads.a
 
 #--------------------------
 # Define Makefile entries.
@@ -267,9 +273,9 @@ GMICOL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(PNG_LDFLAGS) $(
 
 # Main entries
 all:
-ifeq ($(OS),Linux)
+ifeq ($(OS),Unix)
 	@echo "**"
-	@echo "** Linux configuration"
+	@echo "** Generic unix configuration."
 	@echo "**"
 	$(MAKE) linux
 	$(MAKE) gimp
@@ -278,14 +284,14 @@ ifeq ($(OS),Linux)
 else
 ifeq ($(OS),Darwin)
 	@echo "**"
-	@echo "** MacOSX configuration"
+	@echo "** MacOSX configuration."
 	@echo "**"
 	$(MAKE) macosx
 	$(MAKE) gimp
 	$(MAKE) zart
 else
 	@echo "**"
-	@echo "** Windows configuration"
+	@echo "** Windows configuration."
 	@echo "**"
 	$(MAKE) windows
 	$(MAKE) gimp
@@ -399,8 +405,8 @@ ifneq ($(OS),Darwin)
 	mkdir -p $(DESTDIR)$(USR)/share/zart
 	cp -f ../zart/zart $(DESTDIR)$(USR)/bin/zart
 	mkdir -p $(DESTDIR)$(USR)/lib
-	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7.0
-	ln -s libgmic.so.1.5.7.0 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
+	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7.1
+	ln -s libgmic.so.1.5.7.1 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
 	ln -s libgmic.so.1.5.7 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
 	ln -s libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
 endif
@@ -415,7 +421,7 @@ endif
 uninstall:
 	rm -f $(DESTDIR)$(USR)/bin/gmic
 	rm -f $(DESTDIR)$(USR)/include/gmic.h
-	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7.0
+	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7.1
 	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
 	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5
 	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1
