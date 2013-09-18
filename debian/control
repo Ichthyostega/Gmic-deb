@@ -9,10 +9,10 @@ Build-Depends: debhelper (>= 8.1.3),
  libavcodec-dev, libavformat-dev, libswscale-dev,
  libx11-dev, libxrandr-dev, libfftw3-dev | fftw3-dev,
  libopencv-highgui-dev, libopencv-objdetect-dev, libopencv-imgproc-dev, libopenexr-dev, libqt4-dev
-Standards-Version: 3.9.2
+Standards-Version: 3.9.4
 Homepage: http://gmic.sourceforge.net/
-Vcs-Git: git://git.debian.org/collab-maint/gmic.git
-Vcs-Browser: http://git.debian.org/?p=collab-maint/gmic.git
+Vcs-Git: git://anonscm.debian.org/collab-maint/gmic.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/gmic.git
 
 Package: gmic
 Architecture: any
@@ -65,6 +65,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Pre-Depends: ${misc:Pre-Depends}
 Multi-Arch: same
+Section: libs
 Description: GREYC's Magic Image Converter - shared library
  G'MIC is an interpreter of image processing macros whose goal is to
  convert, manipulate and visualize generic 1D/2D/3D multi-spectral
@@ -75,6 +76,7 @@ Description: GREYC's Magic Image Converter - shared library
 
 Package: libgmic-dev
 Architecture: any
+Section: libdevel
 Depends: ${shlibs:Depends}, ${misc:Depends}, libgmic1 (= ${binary:Version})
 Description: GREYC's Magic Image Converter - development files
  G'MIC is an interpreter of image processing macros whose goal is to
