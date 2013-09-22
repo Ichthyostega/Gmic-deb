@@ -1,0 +1,13 @@
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -407,8 +407,8 @@ ifneq ($(OS),Darwin)
+ 	mkdir -p $(DESTDIR)$(USR)/lib
+ 	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
+ 	ln -s libgmic.so.1.5.7 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
+-	ln -s libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
+-	ln -s libgmic.so.1 $(DESTDIR)$(USR)/lib/libgmic.so
++	ln -s libgmic.so.1.5.7 $(DESTDIR)$(USR)/lib/libgmic.so.1
++	ln -s libgmic.so.1.5.7 $(DESTDIR)$(USR)/lib/libgmic.so
+ endif
+ 	mkdir -p $(DESTDIR)$(USR)/share/man/
+ 	mkdir -p $(DESTDIR)$(USR)/share/man/man1/
