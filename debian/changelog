@@ -23,8 +23,17 @@ gmic (1.5.7.1-1) unstable; urgency=low
   * [d81f1188] Remove special git-import-orig rules from debian/gbp.conf
   * [0e043a5c] Remove dh_auto_configure override. zart/Makefile is not
     being shipped in the tarball anymore.
+  * [33ae4a9b] Fixing various lintian warnings.
+  * [00ead79b] Merge branch 'upstream'
+    Upstream tarball re-release with fixes for our lintian errors.
+    Thanks, David!
+  * [ec797fd5] Revert "Remove dh_auto_configure override."
+    This reverts commit 0e043a5c876613884c3ace8ad7a7ebcbfb4deef9.
+  * [23229c12] Revert "Add missing library symlink for devel package."
+    This reverts commit 3af37ccfc8da06d5247e42e9bfb9149686cd2e5e.
+  * [9ed51a86] Add patch fixing ldconfig-symlink-referencing-wrong-file.
 
- -- Bernd Zeimetz <bzed@debian.org>  Tue, 17 Sep 2013 23:00:18 +0200
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 22 Sep 2013 21:43:33 +0200
 
 gmic (1.5.1.6+dfsg-4) unstable; urgency=low
 
