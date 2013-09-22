@@ -405,10 +405,10 @@ ifneq ($(OS),Darwin)
 	mkdir -p $(DESTDIR)$(USR)/share/zart
 	cp -f ../zart/zart $(DESTDIR)$(USR)/bin/zart
 	mkdir -p $(DESTDIR)$(USR)/lib
-	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7.1
-	ln -s libgmic.so.1.5.7.1 $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
+	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
 	ln -s libgmic.so.1.5.7 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
 	ln -s libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
+	ln -s libgmic.so.1 $(DESTDIR)$(USR)/lib/libgmic.so
 endif
 	mkdir -p $(DESTDIR)$(USR)/share/man/
 	mkdir -p $(DESTDIR)$(USR)/share/man/man1/
@@ -421,10 +421,10 @@ endif
 uninstall:
 	rm -f $(DESTDIR)$(USR)/bin/gmic
 	rm -f $(DESTDIR)$(USR)/include/gmic.h
-	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7.1
 	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
 	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5
 	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1
+	rm -f $(DESTDIR)$(USR)/lib/libgmic.so
 	rm -rf $(DESTDIR)$(USR)/share/doc/gmic/
 	rm -f $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
 	rm -f $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz
