@@ -1,3 +1,11 @@
+gmic (1.5.7.1-2) unstable; urgency=low
+
+  * [6c37ae00] Updating description as suggested by upstream.
+  * [ef5bff79] Drop -mtune=generic option from upstream's Makefile.
+    Thanks to KiBi (Closes: #725525)
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 06 Oct 2013 22:10:09 +0200
+
 gmic (1.5.7.1-1) unstable; urgency=low
 
   * [8093b566] Merge tag 'upstream/1.5.5.2'
