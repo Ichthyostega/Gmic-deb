@@ -1,0 +1,11 @@
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -92,7 +92,7 @@ DEBUG_CFLAGS = -Dcimg_use_vt100 -Dcimg_v
+ 
+ # Flags to enable optimizations.
+ ifeq ($(IS_GCC),yes)
+-OPT_CFLAGS = -O3 #-mtune=generic # -fno-tree-pre # -ffast-math
++OPT_CFLAGS = #-O3 #-mtune=generic # -fno-tree-pre # -ffast-math
+ endif
+ ifeq ($(CC),icc)
+ OPT_CFLAGS = -O3 -ipo -no-prec-div -override-limits

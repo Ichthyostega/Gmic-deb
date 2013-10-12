@@ -3,16 +3,18 @@
 BUILDD_MEM := $(shell awk '/^MemTotal:/ {print $$2}' /proc/meminfo)
 BUILDD_MEM_OK := $(strip $(shell test $(BUILDD_MEM) -gt 1800000 && echo yes))
 ifneq (,$(findstring arm,$(shell dpkg-architecture -qDEB_BUILD_GNU_CPU)))
-  GMIC_CFLAGS = -g -fno-tree-pre
+  # building on arm
+  GMIC_CFLAGS = -O1 -g -fno-tree-pre
 else
   ifneq (,$(findstring mips,$(shell dpkg-architecture -qDEB_BUILD_GNU_CPU)))
-    GMIC_CFLAGS = -g -fno-tree-pre
+      # building on mips
+      GMIC_CFLAGS = -O1 -g -fno-tree-pre
   else
     ifeq (yes,$(BUILDD_MEM_OK))
-      GMIC_CFLAGS = $(CFLAGS)
-       else
-         GMIC_CFLAGS = -g -fno-tree-pre
-       endif
+        GMIC_CFLAGS = -O3
+    else
+        GMIC_CFLAGS = -O2 -g -fno-tree-pre
+    endif
   endif
 endif
 
