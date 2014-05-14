@@ -67,43 +67,54 @@ endif
 ifeq ($(OSTYPE),msys)
 EXE = .exe
 endif
-ifeq ($(CC),g++)
-IS_GCC = yes
-endif
 
 #------------------------------------------------
 # Set compilation flags for build customization.
 #------------------------------------------------
 
 # Flags to enable 'beta' version.
-IS_BETA_CFLAGS = -Dcimg_use_vt100 
+IS_BETA_CFLAGS = 
 
 # Flags that are mandatory to compile 'gmic'.
 MANDATORY_CFLAGS += -Dgmic_build -I$(USR)/include
 MANDATORY_LDFLAGS += -L$(USR)/lib
-ifeq ($(IS_GCC),yes)
+ifeq ($(CC),g++)
 MANDATORY_CFLAGS += -Wall -W
 MANDATORY_LDFLAGS += -lm
 endif
 MANDATORY_CFLAGS+=$(IS_BETA_CFLAGS)
+ifeq ($(OS),Unix)
+MANDATORY_CFLAGS+= -Dcimg_use_vt100
+endif
+ifeq ($(OSTYPE),msys)
+MANDATORY_LDFLAGS = -Wl,--stack,16777216
+endif
 
 # Flags to enable debugging.
-DEBUG_CFLAGS = -Dcimg_use_vt100 -Dcimg_verbosity=3 -g
+DEBUG_CFLAGS = -Dcimg_verbosity=3 -g
 
 # Flags to enable optimizations.
-ifeq ($(IS_GCC),yes)
-OPT_CFLAGS = -O3 -mtune=generic # -fno-tree-pre # -ffast-math
+ifeq ($(CC),g++)
+OPT_CFLAGS = -O3 -fno-ipa-sra -mtune=generic # -fno-tree-pre # -ffast-math
+endif
+ifeq ($(CC),clang++)
+OPT_CFLAGS = -O1
 endif
 ifeq ($(CC),icc)
-OPT_CFLAGS = -O3 -ipo -no-prec-div -override-limits
+OPT_CFLAGS = -fast
 endif
 
 # Flags to enable parallel processing.
-ifneq ($(OSTYPE),Darwin)
+ifneq ($(OS),Darwin)
 PARALLEL_CFLAGS = -Dgmic_is_parallel
 ifneq ($(OSTYPE),msys)
 PARALLEL_LDFLAGS = -lpthread
 endif
+endif
+
+# Flags to enable extra checking of image buffer pointers.
+ifneq ($(OS),Darwin)
+CHECKIMAGE_CFLAGS = -Dgmic_check_image
 endif
 
 # Flags to enable image display, using X11
@@ -208,64 +219,67 @@ BOARD_LDFLAGS = -lboard
 #----------------------------------------------------------------
 
 # Unix : Standard build.
-STD_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(X11_CFLAGS) $(PNG_CFLAGS) \
+STD_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(CHECKIMAGE_CFLAGS) $(PARALLEL_CFLAGS) $(X11_CFLAGS) $(PNG_CFLAGS) \
                   $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
-	  	  $(EXR_CFLAGS) $(FFTW_CFLAGS) # $(OPENCV_CFLAGS) $(FFMPEG_CFLAGS) $(XSHM_CFLAGS) # $(MAGICK_CFLAGS)
+	  	  $(EXR_CFLAGS) $(FFTW_CFLAGS) # $(XSHM_CFLAGS) $(OPENCV_CFLAGS) $(FFMPEG_CFLAGS) # $(MAGICK_CFLAGS)
 STD_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(X11_LDFLAGS) $(PNG_LDFLAGS) \
 		   $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) \
-	           $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(OPENCV_LDFLAGS) $(FFMPEG_LDFLAGS) $(XSHM_LDFLAGS) # $(MAGICK_LDFLAGS)
+	           $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(XSHM_LDFLAGS) $(OPENCV_LDFLAGS) $(FFMPEG_LDFLAGS) # $(MAGICK_LDFLAGS)
 
 # Unix : Minimal build.
-MINIMAL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) ${TIFF_CFLAGS} ${PNG_CFLAGS} $(ZLIB_CFLAGS) $(FFTW_CFLAGS) # $(OPENCV_CFLAGS)
-MINIMAL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS) ${TIFF_LDFLAGS} ${PNG_LDFLAGS} $(ZLIB_LDFLAGS) $(FFTW_LDFLAGS) # $(OPENCV_LDFLAGS)
+MINIMAL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(CHECKIMAGE_CFLAGS) $(PARALLEL_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) \
+	              ${TIFF_CFLAGS} ${PNG_CFLAGS} $(ZLIB_CFLAGS) $(FFTW_CFLAGS) # $(OPENCV_CFLAGS)
+MINIMAL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(X11_LDFLAGS) \
+	               ${TIFF_LDFLAGS} ${PNG_LDFLAGS} $(ZLIB_LDFLAGS) $(FFTW_LDFLAGS) # $(OPENCV_LDFLAGS)
 
 # Unix : Static build.
-STATIC_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0
+STATIC_PATH = /usr/lib/
+STATIC_EXTRA =
+STATIC_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(CHECKIMAGE_CFLAGS) $(PARALLEL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0
 STATIC_UNIX_LDFLAGS = $(PARALLEL_LDFLAGS) \
-	              /usr/lib/libpng.a \
-	              /usr/lib/libjpeg.a \
-                      /usr/lib/libtiff.a \
-                      /usr/lib/libz.a \
-                      /usr/lib/libfftw3.a /usr/lib/libfftw3_threads.a
+	              $(STATIC_PATH)/libpng.a \
+	              $(STATIC_PATH)/libjpeg.a \
+                      $(STATIC_PATH)/libz.a \
+                      $(STATIC_PATH)/libfftw3.a $(STATIC_PATH)/libfftw3_threads.a $(STATIC_EXTRA)
 
 # Unix : Custom build.
-CUST_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(XSHM_CFLAGS) $(PNG_CFLAGS) \
+CUST_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(CHECKIMAGE_CFLAGS) $(PARALLEL_CFLAGS) $(OPT_CFLAGS) $(DEBUG_CFLAGS) $(X11_CFLAGS) $(PNG_CFLAGS) \
                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(ZLIB_CFLAGS) \
-	           $(FFTW_CFLAGS) $(EXR_CFLAGS) $(OPENCV_CFLAGS) # $(FFMPEG_CFLAGS) $(MAGICK_CFLAGS)  $(BOARD_CFLAGS) $(MINC2_CFLAGS)
-CUST_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(DEBUG_LDFLAGS) $(X11_LDFLAGS) $(XSHM_LDFLAGS) $(PNG_LDFLAGS) \
+	           $(FFTW_CFLAGS) # $(EXR_CFLAGS) $(OPENCV_CFLAGS) $(XSHM_CFLAGS)  $(FFMPEG_CFLAGS) $(MAGICK_CFLAGS)  $(BOARD_CFLAGS) $(MINC2_CFLAGS)
+CUST_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(X11_LDFLAGS) $(PNG_LDFLAGS) \
                     $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(ZLIB_LDFLAGS) \
-	    	    $(FFTW_LDFLAGS) $(EXR_LDFLAGS) $(OPENCV_LDFLAGS) # $(FFMPEG_LDFLAGS) $(MAGICK_LDFLAGS) $(BOARD_LDFLAGS) $(MINC2_LDFLAGS)
+	    	    $(FFTW_LDFLAGS) # $(EXR_LDFLAGS) $(OPENCV_LDFLAGS) # $(XSHM_LDFLAGS) $(FFMPEG_LDFLAGS) $(MAGICK_LDFLAGS) $(BOARD_LDFLAGS) $(MINC2_LDFLAGS)
 
 # Windows : Standard build.
-STD_WINDOWS_CFLAGS= $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(GDI32_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(FFTW_CFLAGS)
+STD_WINDOWS_CFLAGS= $(MANDATORY_CFLAGS) $(CHECKIMAGE_CFLAGS) $(PARALLEL_CFLAGS) $(GDI32_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(FFTW_CFLAGS)
 STD_WINDOWS_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(GDI32_LDFLAGS) $(ZLIB_LDFLAGS) $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) $(FFTW_LDFLAGS)
 
 # Windows : Minimal build.
-MINIMAL_WINDOWS_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(DEBUG_CFLAGS) $(GDI32_CFLAGS)
-MINIMAL_WINDOWS_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(DEBUG_LDFLAGS) $(GDI32_LDFLAGS)
+MINIMAL_WINDOWS_CFLAGS = $(MANDATORY_CFLAGS) $(CHECKIMAGE_CFLAGS) $(PARALLEL_CFLAGS) $(DEBUG_CFLAGS) $(GDI32_CFLAGS)
+MINIMAL_WINDOWS_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(GDI32_LDFLAGS)
 
 # Mac-OSX : Standard build.
-STD_MACOSX_CFLAGS= $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(X11_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) \
+STD_MACOSX_CFLAGS= $(MANDATORY_CFLAGS) $(X11_CFLAGS) $(ZLIB_CFLAGS) $(PNG_CFLAGS) \
                    $(JPEG_CFLAGS) $(TIFF_CFLAGS) \
 		   $(EXR_CFLAGS) $(FFTW_CFLAGS) # $(MAGICK_CFLAGS)
-STD_MACOSX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(X11_LDFLAGS) $(ZLIB_LDFLAGS) \
+STD_MACOSX_LDFLAGS = $(MANDATORY_LDFLAGS) $(X11_LDFLAGS) $(ZLIB_LDFLAGS) \
 		     $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(TIFF_LDFLAGS) \
 		     $(EXR_LDFLAGS) $(FFTW_LDFLAGS) # $(MAGICK_LDFLAGS)
 
 # GIMP plug-in : Standard build.
-STD_GIMP_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(ZLIB_CFLAGS) ${IS_BETA_CFLAGS} -Dcimg_display=0 -Dcimg_use_rng
+STD_GIMP_CFLAGS = $(MANDATORY_CFLAGS) $(CHECKIMAGE_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(ZLIB_CFLAGS) ${IS_BETA_CFLAGS} -Dcimg_display=0 -Dcimg_use_rng
 STD_GIMP_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(FFTW_LDFLAGS) $(PNG_LDFLAGS) $(ZLIB_LDFLAGS)
 ifeq ($(OSTYPE),msys)
 STD_GIMP_LDFLAGS += -mwindows -lpthread
 endif
 
 # Libgmic : Standard build.
-STD_LIB_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0
+STD_LIB_CFLAGS = $(MANDATORY_CFLAGS) $(CHECKIMAGE_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0 # -fno-ipa-sra
 STD_LIB_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(FFTW_LDFLAGS)
 
 # GMICol : Standard build.
-GMICOL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0
-GMICOL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(ZLIB_LDFLAGS) /usr/lib/libfftw3.a /usr/lib/libfftw3_threads.a
+GMICOL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(CHECKIMAGE_CFLAGS) $(PARALLEL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0
+GMICOL_UNIX_LDFLAGS = $(MANDATORY_LDFLAGS) $(PARALLEL_LDFLAGS) $(PNG_LDFLAGS) $(JPEG_LDFLAGS) $(ZLIB_LDFLAGS) /usr/lib/x86_64-linux-gnu/libfftw3.a /usr/lib/x86_64-linux-gnu/libfftw3_threads.a
 
 #--------------------------
 # Define Makefile entries.
@@ -277,24 +291,18 @@ ifeq ($(OS),Unix)
 	@echo "**"
 	@echo "** Generic unix configuration."
 	@echo "**"
-	$(MAKE) linux
-	$(MAKE) gimp
-	$(MAKE) lib
-	$(MAKE) zart
+	$(MAKE) linux gimp lib  # zart
 else
 ifeq ($(OS),Darwin)
 	@echo "**"
 	@echo "** MacOSX configuration."
 	@echo "**"
-	$(MAKE) macosx
-	$(MAKE) gimp
-	$(MAKE) zart
+	$(MAKE) macosx gimp  # zart
 else
 	@echo "**"
 	@echo "** Windows configuration."
 	@echo "**"
-	$(MAKE) windows
-	$(MAKE) gimp
+	$(MAKE) windows gimp
 endif
 endif
 
@@ -313,34 +321,37 @@ endif
 
 # Entries for other configurations.
 gmicol:
-	$(MAKE) "CFLAGS+=$(GMICOL_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(GMICOL_UNIX_LDFLAGS)" gmic_minimal
+	$(MAKE) "CFLAGS+=$(GMICOL_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(GMICOL_UNIX_LDFLAGS)" gmic_cli_standard
 
 static:
-	$(MAKE) "CFLAGS+=$(STATIC_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STATIC_UNIX_LDFLAGS)" gmic_minimal
+	$(MAKE) "CFLAGS+=$(STATIC_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS+=$(STATIC_UNIX_LDFLAGS)" gmic_cli_standard
 
 minimal:
-	$(MAKE) "CFLAGS+=$(MINIMAL_UNIX_CFLAGS)" "LDFLAGS+=$(MINIMAL_UNIX_LDFLAGS)" gmic_minimal
+	$(MAKE) "CFLAGS+=$(MINIMAL_UNIX_CFLAGS)" "LDFLAGS+=$(MINIMAL_UNIX_LDFLAGS)" gmic_cli_standard
 
 linux:
-	$(MAKE) "CFLAGS=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_UNIX_LDFLAGS)" "STRIP_EXE=1" gmic_gmic
+	$(MAKE) "CFLAGS=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_UNIX_LDFLAGS)" "STRIP_EXE=1" gmic_cli_standard
+
+linux_alltypes:
+	$(MAKE) "CFLAGS=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_UNIX_LDFLAGS)" "STRIP_EXE=1" gmic_cli_alltypes
 
 custom:
-	$(MAKE) "CFLAGS=$(CUST_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(CUST_UNIX_LDFLAGS)" "STRIP_EXE=1" gmic_gmic
+	$(MAKE) "CFLAGS=$(CUST_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(CUST_UNIX_LDFLAGS)" "STRIP_EXE=1" gmic_cli_alltypes
 
 solaris:
-	$(MAKE) "CFLAGS=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_UNIX_LDFLAGS) -R$(USR)/X11R6/lib -lrt -lnsl -lsocket" "STRIP_EXE=1" gmic_gmic
+	$(MAKE) "CFLAGS=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_UNIX_LDFLAGS) -R$(USR)/X11R6/lib -lrt -lnsl -lsocket" "STRIP_EXE=1" gmic_cli_standard
 
 macosx:
-	$(MAKE) "CFLAGS=$(STD_MACOSX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_MACOSX_LDFLAGS) $(OPT_LDFLAGS)" gmic_gmic
+	$(MAKE) "CFLAGS=$(STD_MACOSX_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_MACOSX_LDFLAGS) $(OPT_LDFLAGS)" gmic_cli_standard
 
 windows:
-	$(MAKE) "CFLAGS=$(STD_WINDOWS_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_WINDOWS_LDFLAGS)" "STRIP_EXE=1" gmic_gmic
+	$(MAKE) "CFLAGS=$(STD_WINDOWS_CFLAGS) $(OPT_CFLAGS)" "LDFLAGS=$(STD_WINDOWS_LDFLAGS)" "STRIP_EXE=1" gmic_cli_standard
 
 wminimal:
-	$(MAKE) "CFLAGS=$(MINIMAL_WINDOWS_CFLAGS)" "LDFLAGS=$(MINIMAL_WINDOWS_LDFLAGS)" gmic_minimal
+	$(MAKE) "CFLAGS=$(MINIMAL_WINDOWS_CFLAGS)" "LDFLAGS=$(MINIMAL_WINDOWS_LDFLAGS)" gmic_cli_standard
 
 # Internal rules to build compilation modules.
-gmic_lib.o: gmic.cpp gmic_def.h
+gmic_lib.o: gmic.cpp
 	$(CC) -o gmic_lib.o -c gmic.cpp -fPIC $(CFLAGS) -Dgmic_float_only
 gmic_lib: gmic_lib.o
 	ar rcs libgmic.a gmic_lib.o
@@ -351,14 +362,11 @@ else
 	$(CC) -shared -o libgmic.so gmic_lib.o $(LDFLAGS)
 endif
 
-gmic_gimp.o: gmic.cpp gmic_def.h
+gmic_gimp.o: gmic.cpp
 	$(CC) -o gmic_gimp.o -c gmic.cpp $(CFLAGS) -Dgmic_gimp -Dgmic_float_only
 gmic_gimp : gmic_gimp.o gmic_gimp.cpp
 	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o `gimptool-2.0$(EXE) --cflags` $(CFLAGS) `gimptool-2.0$(EXE) --libs` $(LDFLAGS)
 	strip gmic_gimp$(EXE)
-
-gmic_minimal: gmic.cpp
-	$(CC) -o gmic gmic.cpp $(CFLAGS) -Dgmic_float_only -Dgmic_main $(LDFLAGS)
 
 gmic_bool.o: gmic.cpp
 	$(CC) -o gmic_bool.o -c gmic.cpp $(CFLAGS) -Dgmic_split_compilation -Dgmic_bool
@@ -378,16 +386,19 @@ gmic_float.o: gmic.cpp
 	$(CC) -o gmic_float.o -c gmic.cpp $(CFLAGS) -Dgmic_split_compilation -Dgmic_float -Dgmic_main
 gmic_double.o: gmic.cpp
 	$(CC) -o gmic_double.o -c gmic.cpp $(CFLAGS) -Dgmic_split_compilation -Dgmic_double
-gmic_gmic: gmic_bool.o gmic_uchar.o gmic_char.o gmic_ushort.o gmic_short.o gmic_uint.o gmic_int.o gmic_float.o gmic_double.o gmic_def.h
+gmic_cli_alltypes: gmic_bool.o gmic_uchar.o gmic_char.o gmic_ushort.o gmic_short.o gmic_uint.o gmic_int.o gmic_float.o gmic_double.o
 	$(CC) -o gmic gmic_bool.o gmic_uchar.o gmic_char.o gmic_ushort.o gmic_short.o gmic_uint.o gmic_int.o gmic_float.o gmic_double.o $(LDFLAGS)
 	strip gmic$(EXE)
 
-def:
+gmic_cli_standard: gmic.cpp
+	$(CC) -o gmic gmic.cpp $(CFLAGS) -Dgmic_float_only -Dgmic_main $(LDFLAGS)
+
+gmic_def: gmic_def.gmic
 	@echo "#ifndef gmic_gimp" > gmic_def.h
-	\gmic gmic_def.gmic raw:gmic_def.gmic,char -compress_gmic -type char -o -.h | sed 's/unnamed/gmic_def/' | sed 's/ \};/, 0 \};\n\nunsigned int size_data_gmic_def = sizeof(data_gmic_def);\n/g' >> gmic_def.h
+	@\gmic gmic_def.gmic raw:gmic_def.gmic,char -compress_gmic -o -.h,char | sed 's/unnamed/gmic_def/' | sed 's/ \};/, 0 \};\n\nunsigned int size_data_gmic_def = sizeof(data_gmic_def);\n/g' >> gmic_def.h
 	@echo "#else" >> gmic_def.h
-	\gmic gmic_def.gmic -update_gmic_gimp @.,0 raw:$(HOME)/.update@..gmic,char -compress_gmic_gimp -type char -o -.h | sed 's/unnamed/gmic_def/' | sed 's/ \};/, 0 \};\n\nunsigned int size_data_gmic_def = sizeof(data_gmic_def);\n/g' >> gmic_def.h
-	\gmic -v - ../html/img/logoGMIC.ppm -permute cxyz -type uchar -o -.h | sed 's/unnamed/gmic_logo/' >> gmic_def.h
+	@\gmic gmic_def.gmic -update_gmic_gimp @.,0 raw:$(HOME)/.update@..gmic,char -compress_gmic_gimp -o -.h,char | sed 's/unnamed/gmic_def/' | sed 's/ \};/, 0 \};\n\nunsigned int size_data_gmic_def = sizeof(data_gmic_def);\n/g' >> gmic_def.h
+	\gmic -v - ../html/img/logoGMIC.ppm -permute cxyz -o -.h,uchar | sed 's/unnamed/gmic_logo/' >> gmic_def.h
 	@echo "unsigned int size_data_logo = sizeof(data_gmic_logo);" >> gmic_def.h
 	@echo "#endif" >> gmic_def.h
 	@echo >>gmic_def.h
@@ -402,12 +413,12 @@ install:
 	cp -f gmic.h $(DESTDIR)$(USR)/include/
 ifneq ($(OS),Darwin)
 	mkdir -p $(DESTDIR)$(USR)/share
-	mkdir -p $(DESTDIR)$(USR)/share/zart
-	cp -f ../zart/zart $(DESTDIR)$(USR)/bin/zart
+#	mkdir -p $(DESTDIR)$(USR)/share/zart
+#	cp -f ../zart/zart $(DESTDIR)$(USR)/bin/zart
 	mkdir -p $(DESTDIR)$(USR)/lib
-	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
-	ln -s libgmic.so.1.5.7 $(DESTDIR)$(USR)/lib/libgmic.so.1.5
-	ln -s libgmic.so.1.5 $(DESTDIR)$(USR)/lib/libgmic.so.1
+	cp -f libgmic.so $(DESTDIR)$(USR)/lib/libgmic.so.1.5.8
+	ln -s libgmic.so.1.5.8 $(DESTDIR)$(USR)/lib/libgmic.so.1
+#	ln -s libgmic.so.1.5.8 $(DESTDIR)$(USR)/lib/libgmic.so.1
 	ln -s libgmic.so.1 $(DESTDIR)$(USR)/lib/libgmic.so
 endif
 	mkdir -p $(DESTDIR)$(USR)/share/man/
@@ -421,15 +432,15 @@ endif
 uninstall:
 	rm -f $(DESTDIR)$(USR)/bin/gmic
 	rm -f $(DESTDIR)$(USR)/include/gmic.h
-	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5.7
-	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5
+	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5.8
+#	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1.5
 	rm -f $(DESTDIR)$(USR)/lib/libgmic.so.1
 	rm -f $(DESTDIR)$(USR)/lib/libgmic.so
 	rm -rf $(DESTDIR)$(USR)/share/doc/gmic/
 	rm -f $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
 	rm -f $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz
-	rm -f $(DESTDIR)$(USR)/bin/zart
-	rm -rf $(DESTDIR)$(USR)/share/zart/
+#	rm -f $(DESTDIR)$(USR)/bin/zart
+#	rm -rf $(DESTDIR)$(USR)/share/zart/
 
 distclean: clean
 

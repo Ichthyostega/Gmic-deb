@@ -85,6 +85,7 @@ bool is_block_preview = false;                // Flag to block preview computati
 void **event_infos;                           // Infos that are passed to the GUI callback functions.
 int image_id = 0;                             // The image concerned by the plug-in execution.
 unsigned int indice_faves = 0;                // The starting index of favorite filters.
+unsigned int nb_available_filters = 0;        // The number of available filters (non-testing).
 std::FILE *logfile = 0;                       // The log file if any.
 GimpRunMode run_mode;                         // Run-mode used to call the plug-in.
 GtkTreeStore *tree_view_store = 0;            // The list of the filters as a GtkTreeView model.
@@ -274,7 +275,7 @@ bool get_net_update() {
 // Set/get the current locale.
 void set_locale() {
   char locale[16] = { 0 };
-  const char *s_locale = std::setlocale(LC_CTYPE,0);
+  const char *s_locale = setlocale(LC_CTYPE,0);
   if (!s_locale || std::strlen(s_locale)<2 || !cimg::strncasecmp("lc",s_locale,2)) s_locale = getenv("LANG");
   if (!s_locale || std::strlen(s_locale)<2) s_locale = getenv("LANGUAGE");
   if (!s_locale || std::strlen(s_locale)<2) s_locale = getenv("LC_ALL");
@@ -319,8 +320,8 @@ const char *t(const char *const s) {
   // Catalan translation
   if (!std::strcmp(get_locale(),"ca")) {
     if (!s) {
-      static const char *const ns = "<b>No ha estat possible establir una connexi&#243; a Internet !</b>\n\n"
-        "<i>No es possible arribar a aquestes fonts de filtres :</i>\n";
+      static const char *const ns = "No ha estat possible establir una connexi&#243; a Internet !\n\n"
+        "No es possible arribar a aquestes fonts de filtres :\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC per al GIMP");
@@ -370,8 +371,8 @@ const char *t(const char *const s) {
   // Dutch translation
   if (!std::strcmp(get_locale(),"nl")) {
     if (!s) {
-      static const char *const ns = "<b>Geen internet-update mogelijk !</b>\n\n"
-        "<i>Kan deze filters bronnen te bereiken :</i>\n";
+      static const char *const ns = "Geen internet-update mogelijk !\n\n"
+        "Kan deze filters bronnen te bereiken :\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC voor GIMP");
@@ -420,8 +421,8 @@ const char *t(const char *const s) {
   // French translation
   if (!std::strcmp(get_locale(),"fr")) {
     if (!s) {
-      static const char *const ns = "<b>Mise &#224; jour depuis Internet incompl&#232;te !</b>\n\n"
-        "<i>Acc&#232;s impossible aux sources de filtres :</i>\n";
+      static const char *const ns = "Mise &#224; jour depuis Internet incompl&#232;te !\n\n"
+        "Acc&#232;s impossible aux sources de filtres :\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC pour GIMP");
@@ -471,8 +472,8 @@ const char *t(const char *const s) {
   // German translation
   if (!std::strcmp(get_locale(),"de")) {
     if (!s) {
-      static const char *const ns = "<b>Kein Internet-Update m\303\266glich !</b>\n\n"
-        "<i>Kann diese Filter Quellen erreichen :</i>\n";
+      static const char *const ns = "Kein Internet-Update m\303\266glich !\n\n"
+        "Kann diese Filter Quellen erreichen :\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC f\303\274r GIMP");
@@ -519,8 +520,8 @@ const char *t(const char *const s) {
   // Italian translation
   if (!std::strcmp(get_locale(),"it")) {
     if (!s) {
-      static const char *const ns = "<b>Impossibile aggiornare da Internet !</b>\n\n"
-        "<i>Impossibile raggiungere queste fonti filtri :</i>\n";
+      static const char *const ns = "Impossibile aggiornare da Internet !\n\n"
+        "Impossibile raggiungere queste fonti filtri :\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC per GIMP");
@@ -567,8 +568,8 @@ const char *t(const char *const s) {
   // Polish translation
   if (!std::strcmp(get_locale(),"pl")) {
     if (!s) {
-      static const char *const ns = "<b>Aktualizacja filtr\303\263w przez internet (cz\304\231\305\233ciowo) nie powiod\305\202a si\304\231 !</b>\n\n"
-        "<i>Brak dost\304\231pu do tych \305\272r\303\263de\305\202 filtr\303\263w :</i>\n";
+      static const char *const ns = "Aktualizacja filtr\303\263w przez internet (cz\304\231\305\233ciowo) nie powiod\305\202a si\304\231 !\n\n"
+        "Brak dost\304\231pu do tych \305\272r\303\263de\305\202 filtr\303\263w :\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC dla GIMP");
@@ -618,8 +619,8 @@ const char *t(const char *const s) {
   // Portuguese translation
   if (!std::strcmp(get_locale(),"pt")) {
     if (!s) {
-      static const char *const ns = "<b>A atualiza\303\247\303\243o pela internet falhou !</b>\n\n"
-        "<i>Incapaz de chegar a essas fontes de filtros :</i>\n";
+      static const char *const ns = "A atualiza\303\247\303\243o pela internet falhou !\n\n"
+        "Incapaz de chegar a essas fontes de filtros :\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC para o GIMP");
@@ -669,8 +670,8 @@ const char *t(const char *const s) {
   // Serbian translation
   if (!std::strcmp(get_locale(),"sr")) {
     if (!s) {
-      static const char *const ns = "<b>A\305\276uriranje filtera sa interneta (delimi\304\215no) neuspe\305\241no !</b>\n\n"
-        "<i>Nije mogu\304\207e dospeti do izvorne lokacije ovih filtera :</i>\n";
+      static const char *const ns = "A\305\276uriranje filtera sa interneta (delimi\304\215no) neuspe\305\241no !\n\n"
+        "Nije mogu\304\207e dospeti do izvorne lokacije ovih filtera :\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC za GIMP");
@@ -719,8 +720,8 @@ const char *t(const char *const s) {
   // Spanish translation (Castillan)
   if (!std::strcmp(get_locale(),"es")) {
     if (!s) {
-      static const char *const ns = "<b>No es posible establecer conexión a Internet !</b>\n\n"
-        "<i>No es posible acceder a estas fuentes de filtros :</i>\n";
+      static const char *const ns = "No es posible establecer conexión a Internet !\n\n"
+        "No es posible acceder a estas fuentes de filtros :\n";
       return ns;
     }
     _t("G'MIC for GIMP","G'MIC para GIMP");
@@ -769,8 +770,8 @@ const char *t(const char *const s) {
 
   // English translation (default)
   if (!s) {
-    static const char *const ns = "<b>Filters update from Internet (partially) failed !</b>\n\n"
-      "<i>Unable to reach these filters sources :</i>\n";
+    static const char *const ns = "Filters update from Internet (partially) failed !\n\n"
+      "Unable to reach these filters sources :\n";
     return ns;
   }
   return s;
@@ -825,9 +826,8 @@ void flush_tree_view(GtkWidget *const tree_view) {
   gtk_tree_view_remove_column(GTK_TREE_VIEW(tree_view),gtk_tree_view_get_column(GTK_TREE_VIEW(tree_view),0));
   GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
   char tree_view_title[64] = { 0 };
-  cimg_snprintf(tree_view_title,sizeof(tree_view_title),t(" Available filters (%u) :"),gmic_entries.size()-1);
+  cimg_snprintf(tree_view_title,sizeof(tree_view_title),t(" Available filters (%u) :"),nb_available_filters);
   GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(tree_view_title,renderer,"markup",1,NULL);
-
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view),column);
 }
 
@@ -906,32 +906,55 @@ CImgList<char> update_filters(const bool try_net_update) {
       file = std::fopen(filename_tmp,"rb");
     }
 
-    // Check for gzip compressed version of the file.
-    if (file && (std::fscanf(file," #@gmi%c",&sep)!=1 || sep!='c')) { // G'MIC header not found -> perhaps a .gz compressed file ?
-      std::fclose(file);
-      cimg_snprintf(command,sizeof(command),"%s.gz",filename_tmp);
-      std::rename(filename_tmp,command);
-      if (get_verbosity_mode()) {
-        cimg_snprintf(command,sizeof(command),_gmic_path "gunzip %s.gz",
-                      filename_tmp);
-        std::fprintf(cimg::output(),
-                     "\n[gmic_gimp]./update/ %s\n",
-                     command);
-        std::fflush(cimg::output());
-      } else
-        cimg_snprintf(command,sizeof(command),_gmic_path "gunzip --quiet %s.gz",
-                      filename_tmp);
-      cimg::system(command);
-      file = std::fopen(filename_tmp,"rb");
-      if (!file) { cimg_snprintf(command,sizeof(command),"%s.gz",filename_tmp); std::remove(command); }
-    }
+    // Download succeeded, check file content and uncompress it if necessary.
+    if (file) {
 
-    if (file) { // Copy file to its final location.
-      std::fclose(file);
-      CImg<unsigned char>::get_load_raw(filename_tmp).save_raw(filename);
-      std::remove(filename_tmp);
-    } else invalid_servers.insert(sources[l]);
+      // Check for gzip compressed version of the file.
+      if (std::fscanf(file," #@gmi%c",&sep)!=1 || sep!='c') { // G'MIC header not found -> perhaps a .gz compressed file ?
+        std::fclose(file);
+        cimg_snprintf(command,sizeof(command),"%s.gz",filename_tmp);
+        std::rename(filename_tmp,command);
+        if (get_verbosity_mode()) {
+          cimg_snprintf(command,sizeof(command),_gmic_path "gunzip %s.gz",
+                        filename_tmp);
+          std::fprintf(cimg::output(),
+                       "\n[gmic_gimp]./update/ %s\n",
+                       command);
+          std::fflush(cimg::output());
+        } else
+          cimg_snprintf(command,sizeof(command),_gmic_path "gunzip --quiet %s.gz",
+                        filename_tmp);
+        cimg::system(command);
+        file = std::fopen(filename_tmp,"rb");
+        if (!file) { // If failed, go back to initial state.
+          cimg_snprintf(command,sizeof(command),"%s.gz",filename_tmp);
+          std::rename(command,filename_tmp);
+          file = std::fopen(filename_tmp,"rb");
+        }
+      }
 
+      // Eventually, uncompress .cimgz file.
+      if (file && (std::fscanf(file," #@gmi%c",&sep)!=1 || sep!='c')) {
+        std::rewind(file);
+        bool is_cimg = true;
+        try {
+          CImg<unsigned char> buffer; buffer.load_cimg(file); std::fclose(file);
+          buffer.save_raw(filename_tmp); file = std::fopen(filename_tmp,"rb"); }
+        catch (...) { is_cimg = false; std::rewind(file); }
+        if (get_verbosity_mode())
+          std::fprintf(cimg::output(),
+                       "\n[gmic_gimp]./update/ File '%s' was%s in .cimg[z] format.\n",
+                       filename_tmp,is_cimg?"":" not");
+      }
+
+      // Copy file to its final location.
+      if (file && std::fscanf(file," #@gmi%c",&sep)==1 && sep=='c') {
+        std::fclose(file);
+        CImg<unsigned char>::get_load_raw(filename_tmp).save_raw(filename);
+        std::remove(filename_tmp);
+      } else invalid_servers.insert(sources[l]); // Failed in recognizing file header.
+
+    } else invalid_servers.insert(sources[l]);  // Failed in downloading file.
     gimp_progress_pulse();
   }
   gimp_progress_set_text(" G'MIC : Update filters...");
@@ -987,6 +1010,8 @@ CImgList<char> update_filters(const bool try_net_update) {
   char line[256*1024] = { 0 }, preview_command[256] = { 0 }, arguments[16384] = { 0 }, entry[256] = { 0 }, locale[16] = { 0 };
   std::strcpy(locale,get_locale());
   int level = 0, err = 0;
+  bool is_testing = false;
+  nb_available_filters = 0;
   cimg_snprintf(line,sizeof(line),"#@gimp_%s ",locale);
 
   // Use English for default language if no translated filters found.
@@ -1026,6 +1051,13 @@ CImgList<char> update_filters(const bool try_net_update) {
                 break;
               }
             }
+
+            // Detect if filter is in 'Testing/' (won't be count in number of filters).
+            GtkWidget *const markup2ascii = gtk_label_new(0);
+            gtk_label_set_markup(GTK_LABEL(markup2ascii),nentry);
+            const char *_nentry = gtk_label_get_text(GTK_LABEL(markup2ascii));
+            is_testing = !std::strcmp(_nentry,"Testing");
+
             if (!is_duplicate) {
               gtk_tree_store_append(tree_view_store,&parent[level],level?&parent[level-1]:0);
               gtk_tree_store_set(tree_view_store,&parent[level],0,0,1,nentry,-1);
@@ -1033,13 +1065,10 @@ CImgList<char> update_filters(const bool try_net_update) {
                                                                          &parent[level]);
               CImg<char>::string(nentry).move_to(gmic_1stlevel_names);
               CImg<char>::string(treepath).move_to(gmic_1stlevel_entries);
-              GtkWidget *const markup2ascii = gtk_label_new(0);
-              gtk_label_set_markup(GTK_LABEL(markup2ascii),nentry);
-              const char *_nentry = gtk_label_get_text(GTK_LABEL(markup2ascii));
               unsigned int order = 0;
               for (unsigned int i = 0; i<4; ++i) { order<<=8; if (*_nentry) order|=(unsigned char)cimg::uncase(*(_nentry++)); }
-              gtk_widget_destroy(markup2ascii);
             }
+            gtk_widget_destroy(markup2ascii);
           }
           ++level;
         }
@@ -1078,6 +1107,7 @@ CImgList<char> update_filters(const bool try_net_update) {
             for (unsigned int i = 0; i<3; ++i) { order<<=8; if (*_nentry) order|=cimg::uncase(*(_nentry++)); }
             gtk_widget_destroy(markup2ascii);
           }
+          if (!is_testing) ++nb_available_filters;  // Count only non-testing filters.
         }
       }
     } else { // Line is the continuation of an entry.
@@ -1222,7 +1252,7 @@ void convert_image_float2uchar(CImg<float>& img) {
 
 // Calibrate any image to fit the number of required channels (GRAY,GRAYA, RGB or RGBA).
 //---------------------------------------------------------------------------------------
-void calibrate_image(CImg<float>& img, const unsigned int channels, const bool preview) {
+void calibrate_image(CImg<float>& img, const unsigned int channels, const bool is_preview) {
   if (!img || !channels) return;
   switch (channels) {
 
@@ -1231,7 +1261,7 @@ void calibrate_image(CImg<float>& img, const unsigned int channels, const bool p
     case 1 : // from GRAY
       break;
     case 2 : // from GRAYA
-      if (preview) {
+      if (is_preview) {
         float *ptr_r = img.data(0,0,0,0), *ptr_a = img.data(0,0,0,1);
         cimg_forXY(img,x,y) {
           const unsigned int a = (unsigned int)*(ptr_a++), i = 96 + (((x^y)&8)<<3);
@@ -1246,7 +1276,7 @@ void calibrate_image(CImg<float>& img, const unsigned int channels, const bool p
       break;
     case 4 : // from RGBA
       img.get_shared_channels(0,2).RGBtoYCbCr();
-      if (preview) {
+      if (is_preview) {
         float *ptr_r = img.data(0,0,0,0), *ptr_a = img.data(0,0,0,3);
         cimg_forXY(img,x,y) {
           const unsigned int a = (unsigned int)*(ptr_a++), i = 96 + (((x^y)&8)<<3);
@@ -1285,7 +1315,7 @@ void calibrate_image(CImg<float>& img, const unsigned int channels, const bool p
       img.resize(-100,-100,1,3);
       break;
     case 2: // from GRAYA
-      if (preview) {
+      if (is_preview) {
         float *ptr_r = img.data(0,0,0,0), *ptr_a = img.data(0,0,0,1);
         cimg_forXY(img,x,y) {
           const unsigned int a = (unsigned int)*(ptr_a++), i = 96 + (((x^y)&8)<<3);
@@ -1298,7 +1328,7 @@ void calibrate_image(CImg<float>& img, const unsigned int channels, const bool p
     case 3: // from RGB
       break;
     case 4: // from RGBA
-      if (preview) {
+      if (is_preview) {
         float *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1),
           *ptr_b = img.data(0,0,0,2), *ptr_a = img.data(0,0,0,3);
         cimg_forXY(img,x,y) {
@@ -1449,7 +1479,7 @@ CImg<int> get_input_layers(CImgList<T>& images) {
 
 // Return the G'MIC command line needed to run the selected filter.
 //-----------------------------------------------------------------
-const char* get_commands_line(const bool preview) {
+const char* get_commands_line(const bool is_preview) {
   const unsigned int
     filter = get_current_filter(),
     nbparams = get_filter_nbparams(filter);
@@ -1461,7 +1491,7 @@ const char* get_commands_line(const bool preview) {
   case 3: case 4 : CImg<char>("-",1).move_to(lres); break;                // Very verbose.
   default: CImg<char>("-debug -",8).move_to(lres);                        // Debug.
   }
-  const CImg<char> &command_item = (preview?gmic_preview_commands[filter]:gmic_commands[filter]);
+  const CImg<char> &command_item = (is_preview?gmic_preview_commands[filter]:gmic_commands[filter]);
   if (command_item) {
     lres.insert(command_item);
     if (nbparams) {
@@ -1696,6 +1726,12 @@ void on_dialog_apply_clicked() {
   process_image(0);
   _create_dialog_gui = false;
   _gimp_preview_invalidate();
+  const char *const commands_line = get_commands_line(false);
+  if (commands_line) { // Remember command line for the next use of the filter.
+    char s_tmp[64] = { 0 };
+    cimg_snprintf(s_tmp,sizeof(s_tmp),"gmic_commands_line%u",get_current_filter());
+    gimp_set_data(s_tmp,commands_line,std::strlen(commands_line));
+  }
 }
 
 void on_dialog_net_update_toggled(GtkToggleButton *const toggle_button) {
@@ -2061,11 +2097,18 @@ void process_image(const char *const commands_line) {
 
   // Check that everything went fine, else display an error dialog.
   if (spt.error_message) {
-    GtkWidget *const
-      message = gtk_message_dialog_new(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"%s",spt.error_message.data());
-    gtk_widget_show(message);
-    gtk_dialog_run(GTK_DIALOG(message));
-    gtk_widget_destroy(message);
+
+    if (run_mode!=GIMP_RUN_NONINTERACTIVE) {
+      GtkWidget *const
+        message = gtk_message_dialog_new(0,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"%s",spt.error_message.data());
+      gtk_widget_show(message);
+      gtk_dialog_run(GTK_DIALOG(message));
+      gtk_widget_destroy(message);
+    } else {
+      std::fprintf(cimg::output(),"\n[gmic_gimp]./error/ When runnin command '%s', this error occured :\n%s\n",
+                   _commands_line,spt.error_message.data());
+      std::fflush(cimg::output());
+    }
     status = GIMP_PDB_CALLING_ERROR;
   } else {
 
@@ -2092,7 +2135,9 @@ void process_image(const char *const commands_line) {
     // Transfer the output layers back into GIMP.
     GimpPixelRgn region;
     gint x1, y1, x2, y2;
-    const unsigned int output_mode = get_output_mode();
+    const unsigned int
+      _output_mode = get_output_mode(),
+      output_mode = get_input_mode()==0?cimg::max(1U,_output_mode):_output_mode;
     switch (output_mode) {
     case 0 : { // Output in 'Replace' mode.
       gimp_image_undo_group_start(image_id);
@@ -2321,10 +2366,10 @@ void process_preview() {
     // Run G'MIC.
     process_thread(&spt);
     if (spt.error_message) {
-      const float white[] = { 255,255,255 };
-      spt.images.assign(1).back().fill(0).draw_text(0,0," Preview \n  error ",white,0,1,57).
+      const float white[] = { 155,155,155 };
+      spt.images.assign(1).back().fill(0).draw_text(0,0," Preview\n  error ",white,0,1,57).
         resize(-100,-100,1,4).get_shared_channel(3).dilate(5);
-      spt.images[0].resize(w,h,1,4,0,0,0.5,0.5);
+      spt.images[0].resize(w,h,1,4,0,0,0.5,0.5)+=100;
     }
 
     // Transfer the output layers back into GIMP preview.
@@ -2486,7 +2531,7 @@ void create_parameters_gui(const bool reset_params) {
           bool found_valid_argument = false;
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"float")) {
             float value = 0, min_value = 0, max_value = 100;
-            std::setlocale(LC_NUMERIC,"C");
+            setlocale(LC_NUMERIC,"C");
             std::sscanf(argument_arg,"%f%*c%f%*c%f",&value,&min_value,&max_value);
             if (is_fave) std::sscanf(argument_fave,"%f",&value);
             if (!reset_params) std::sscanf(argument_value,"%f",&value);
@@ -2509,7 +2554,7 @@ void create_parameters_gui(const bool reset_params) {
           // Check for an int-valued argument.
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"int")) {
             float value = 0, min_value = 0, max_value = 100;
-            std::setlocale(LC_NUMERIC,"C");
+            setlocale(LC_NUMERIC,"C");
             std::sscanf(argument_arg,"%f%*c%f%*c%f",&value,&min_value,&max_value);
             if (is_fave) std::sscanf(argument_fave,"%f",&value);
             if (!reset_params) std::sscanf(argument_value,"%f",&value);
@@ -2860,11 +2905,12 @@ bool create_dialog_gui() {
 
   // Create main dialog window with buttons.
   char dialog_title[64] = { 0 };
-  cimg_snprintf(dialog_title,sizeof(dialog_title),"%s %u bits - %d.%d.%d.%d%s",
+  cimg_snprintf(dialog_title,sizeof(dialog_title),"%s %d.%d.%d.%d%s - %s %u bits",
                 t("G'MIC for GIMP"),
-                sizeof(void*)==8?64:32,
                 gmic_version/1000,(gmic_version/100)%10,(gmic_version/10)%10,gmic_version%10,
-                gmic_is_beta?" (beta)":"");
+                gmic_is_beta?" (beta)":"",
+                cimg::stros(),
+                sizeof(void*)==8?64:32);
 
   dialog_window = gimp_dialog_new(dialog_title,"gmic",0,(GtkDialogFlags)0,0,0,NULL);
   gimp_window_set_transient(GTK_WINDOW(dialog_window));
@@ -3074,7 +3120,8 @@ bool create_dialog_gui() {
   GtkTreeViewColumn *const column = gtk_tree_view_column_new();
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view),column);
   flush_tree_view(tree_view);
-
+  GtkRequisition requisition; gtk_widget_size_request((GtkWidget*)tree_view,&requisition);
+  gtk_widget_set_size_request((GtkWidget*)tree_view,cimg::max(210,requisition.width),-1);
   g_signal_connect(tree_view,"cursor-changed",G_CALLBACK(on_filter_selected),0);
   g_signal_connect(tree_view,"row-activated",G_CALLBACK(on_filter_doubleclicked),0);
 
@@ -3203,7 +3250,7 @@ void gmic_query() {
                          "G'MIC",                    // help
                          "David Tschumperl\303\251", // author
                          "David Tschumperl\303\251", // copyright
-                         "2013",                     // date
+                         "2014",                     // date
                          "_G'MIC...",                // menu_path
                          "RGB*, GRAY*",              // image_types
                          GIMP_PLUGIN,                // type
