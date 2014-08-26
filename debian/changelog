@@ -1,3 +1,21 @@
+gmic (1.6.0.0-1) unstable; urgency=medium
+
+  * [2448f469] Merge tag 'upstream/1.5.8.6'
+    Upstream version 1.5.8.6
+  * [4207852d] Refreshing patches.
+  * [3a1b1d4d] Remove libav* build-dependencies.
+    They are not used right now.
+  * [192a118f] Keep building zart - was disable dby upstream.
+  * [3d668b4a] Merge tag 'upstream/1.6.0.0'
+    Upstream version 1.6.0.0
+  * [c369f4c8] Re-check build-dependencies.
+    libav-* were removed before already. (Closes: #755815)
+  * [a6ebfc17] Refreshing patches.
+  * [d056c91f] copy zart/Makefile only if it exists.
+  * [68d88091] Update gmic-zart.install
+
+ -- Bernd Zeimetz <bzed@debian.org>  Tue, 26 Aug 2014 17:36:19 +0200
+
 gmic (1.5.7.1-4) unstable; urgency=low
 
   * [223f8c2f] Simplyfy optimization setting selection.
