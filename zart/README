@@ -20,7 +20,7 @@ a GUI for G'MIC real-time manipulations on the output of a webcam.
 # Developers
 #-----------
 
- - Sebastien Fourey ( http://www.greyc.ensicaen.fr/~seb/ )
+ - Sebastien Fourey ( http://foureys.users.greyc.fr/ )
    Project manager / GUI Programming
 
  - David Tschumperle ( http://tschumperle.users.greyc.fr/ )
@@ -31,7 +31,7 @@ a GUI for G'MIC real-time manipulations on the output of a webcam.
 
  GREYC Image / CNRS UMR 6072 / FRANCE
 
- Team web page : http://www.greyc.ensicaen.fr/EquipeImage/
+ Team web page : https://www.greyc.fr/image
 
 # Licenses
 #----------

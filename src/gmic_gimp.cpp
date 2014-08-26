@@ -224,6 +224,16 @@ unsigned int get_preview_mode(const bool normalized=true) {
   return normalized?(preview_mode<2?0:(preview_mode-2)):preview_mode;
 }
 
+void set_preview_size(const unsigned int preview_size) {
+  gimp_set_data("gmic_preview_size",&preview_size,sizeof(unsigned int));
+}
+
+unsigned int get_preview_size(const bool normalized=true) {
+  unsigned int preview_size = 0;
+  gimp_get_data("gmic_preview_size",&preview_size);
+  return normalized?(preview_size<2?0:(preview_size-2)):preview_size;
+}
+
 void set_verbosity_mode(const unsigned int verbosity) {
   gimp_set_data("gmic_verbosity_mode",&verbosity,sizeof(unsigned int));
 }
@@ -361,6 +371,11 @@ const char *t(const char *const s) {
     _t("Very verbose (logfile)","Molt verb\303\263s (arxiu)");
     _t("Debug mode (console)","Depuraci\303\263 (consola)");
     _t("Debug mode (logfile)","Depuraci\303\263 (arxiu)");
+    _t("Preview size...","Mida de previsualitzaci\303\263...");
+    _t("Tiny (default)","Molt petita (predet.)");
+    _t("Small","Petita");
+    _t("Normal","Normal");
+    _t("Large","Gran");
     _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
     _t("_Maximize","_Maximitzar");
     _t("_Restore","_Restaurar");
@@ -412,6 +427,11 @@ const char *t(const char *const s) {
     _t("Very verbose (logfile)","Heel uitgebreid (logfile)");
     _t("Debug mode (console)","Debug mode (console)");
     _t("Debug mode (logfile)","Debug mode (logfile)");
+    _t("Preview size...","Voorbeeldformaat...");
+    _t("Tiny (default)","Zeer klein (standaard)");
+    _t("Small","Klein");
+    _t("Normal","Normale");
+    _t("Large","Groot");
     _t(" Available filters (%u) :"," Beschikbare filters (%u) :");
     _t("_Maximize","_Maximaliseren");
     _t("_Restore","_Vermindering");
@@ -462,6 +482,11 @@ const char *t(const char *const s) {
     _t("Very verbose (logfile)","Mode tr\303\250s verbeux (fichier log)");
     _t("Debug mode (console)","Mode d\303\251bogage (console)");
     _t("Debug mode (logfile)","Mode d\303\251bogage (fichier log)");
+    _t("Preview size...","Taille d'aper\303\247u...");
+    _t("Tiny (default)","Minuscule (d\303\251faut)");
+    _t("Small","Petite");
+    _t("Normal","Normal");
+    _t("Large","Grande");
     _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
     _t("_Maximize","_Maximiser");
     _t("_Restore","_R\303\251duire");
@@ -513,6 +538,11 @@ const char *t(const char *const s) {
     _t("Very verbose (logfile)","Sehr ausf\303\274hrlich (Logfile)");
     _t("Debug mode (console)","Debug-Modus (Konsole)");
     _t("Debug mode (logfile)","Debug-Modus (Logfile)");
+    _t("Preview size...","Vorschaugrosse...");
+    _t("Tiny (default)","Winzig (Standard)");
+    _t("Small","Klein");
+    _t("Normal","Normal");
+    _t("Large","Gross");
     _t(" Available filters (%u) :"," Verf\303\274gbare Filter (%u) :");
     _t("Rename","Umbenennen");
   }
@@ -561,6 +591,11 @@ const char *t(const char *const s) {
     _t("Very verbose (logfile)","Messaggi Dettagliati (logfile)");
     _t("Debug mode (console)","Debug Mode (console)");
     _t("Debug mode (logfile)","Debug Mode (logfile)");
+    _t("Preview size...","Anteprima dimensioni...");
+    _t("Tiny (default)","Minuscolo (default)");
+    _t("Small","Piccolo");
+    _t("Normal","Normale");
+    _t("Large","Grande");
     _t(" Available filters (%u) :"," Filtri disponibili (%u) :");
     _t("Update","Aggiornare");
   }
@@ -609,6 +644,11 @@ const char *t(const char *const s) {
     _t("Very verbose (logfile)","Dok\305\202adny (plik log)");
     _t("Debug mode (console)","Debugowanie (konsola)");
     _t("Debug mode (logfile)","Debugowanie (plik log)");
+    _t("Preview size...","Rozmiar podgl\304\205d...");
+    _t("Tiny (default)","Male (domy\305\233lnie)");
+    _t("Small","Mala");
+    _t("Normal","Normalne");
+    _t("Large","Duza");
     _t(" Available filters (%u) :"," Dost\304\231pne filtry (%u) :");
     _t("_Maximize","_Maksymalizuj");
     _t("_Restore","_Cofnij");
@@ -660,6 +700,11 @@ const char *t(const char *const s) {
     _t("Very verbose (logfile)","Modo verbose ampliada (arquivo)");
     _t("Debug mode (console)","Modo Debug (console)");
     _t("Debug mode (logfile)","Modo Debug (arquivo)");
+    _t("Preview size...","O tamanho da visualiza\303\247\303\243o...");
+    _t("Tiny (default)","Minusculo (Padr\303\243o)");
+    _t("Small","Pequeno");
+    _t("Normal","Normal");
+    _t("Large","Grande");
     _t(" Available filters (%u) :"," Filtros dispon\303\255veis (%u) :");
     _t("_Maximize","_Maximizar");
     _t("_Restore","Restaurar");
@@ -711,6 +756,11 @@ const char *t(const char *const s) {
     _t("Very verbose (logfile)","Vrlo op\305\241irno (log fajl)");
     _t("Debug mode (console)","Mod za otklanjanje programskih gre\305\241aka (konzola)");
     _t("Debug mode (logfile)","Mod za otklanjanje programskih gre\305\241aka (log fajl)");
+    _t("Preview size...","Pregled velicine...");
+    _t("Tiny (default)","Veoma mali (podrazumevana opcija)");
+    _t("Small","Mali");
+    _t("Normal","Normalno");
+    _t("Large","Veliki");
     _t(" Available filters (%u) :"," Raspolo\305\276ivi filteri (%u) :");
     _t("_Maximize","_Maksimizirati");
     _t("_Restore","_Vratiti");
@@ -761,6 +811,11 @@ const char *t(const char *const s) {
     _t("Very verbose (logfile)","Muy detallado (archivo_registro)");
     _t("Debug mode (console)","Depuraci\303\263n (consola)");
     _t("Debug mode (logfile)","Depuraci\303\263n (archivo_registro)");
+    _t("Preview size...","Tamano de previsualizaci\303\263n...");
+    _t("Tiny (default)","Muy pequena (predet.)");
+    _t("Small","Pequena");
+    _t("Normal","Normal");
+    _t("Large","Grande");
     _t(" Available filters (%u) :"," Filtros disponibles (%u) :");
     _t("_Maximize","_Maximizar");
     _t("_Restore","_Restaurar");
@@ -887,8 +942,13 @@ CImgList<char> update_filters(const bool try_net_update) {
       std::fprintf(cimg::output(),"\n[gmic_gimp]./update/ %s\n",command);
       std::fflush(cimg::output());
     } else // Quiet mode.
-      cimg_snprintf(command,sizeof(command),_gmic_path "curl -f --silent --compressed -o \"%s\" %s",
+#if cimg_OS==1
+      cimg_snprintf(command,sizeof(command),_gmic_path "curl -f --silent --compressed -o \"%s\" %s 2> /dev/null",
                     filename_tmp,sources[l].data());
+#else
+    cimg_snprintf(command,sizeof(command),_gmic_path "curl -f --silent --compressed -o \"%s\" %s",
+                  filename_tmp,sources[l].data());
+#endif
     cimg::system(command);
     std::FILE *file = std::fopen(filename_tmp,"rb");
 
@@ -900,8 +960,13 @@ CImgList<char> update_filters(const bool try_net_update) {
         std::fprintf(cimg::output(),"\n[gmic_gimp]./update/ %s\n",command);
         std::fflush(cimg::output());
       } else // Quiet mode.
+#if cimg_OS==1
+        cimg_snprintf(command,sizeof(command),_gmic_path "wget -q -r -l 0 --no-cache -O \"%s\" %s 2> /dev/null",
+                      filename_tmp,sources[l].data());
+#else
         cimg_snprintf(command,sizeof(command),_gmic_path "wget -q -r -l 0 --no-cache -O \"%s\" %s",
                       filename_tmp,sources[l].data());
+#endif
       cimg::system(command);
       file = std::fopen(filename_tmp,"rb");
     }
@@ -914,16 +979,21 @@ CImgList<char> update_filters(const bool try_net_update) {
         std::fclose(file);
         cimg_snprintf(command,sizeof(command),"%s.gz",filename_tmp);
         std::rename(filename_tmp,command);
-        if (get_verbosity_mode()) {
+        if (get_verbosity_mode()) { // Verbose mode.
           cimg_snprintf(command,sizeof(command),_gmic_path "gunzip %s.gz",
                         filename_tmp);
           std::fprintf(cimg::output(),
                        "\n[gmic_gimp]./update/ %s\n",
                        command);
           std::fflush(cimg::output());
-        } else
+    } else // Quiet mode.
+#if cimg_OS==1
+          cimg_snprintf(command,sizeof(command),_gmic_path "gunzip --quiet %s.gz 2> /dev/null",
+                        filename_tmp);
+#else
           cimg_snprintf(command,sizeof(command),_gmic_path "gunzip --quiet %s.gz",
                         filename_tmp);
+#endif
         cimg::system(command);
         file = std::fopen(filename_tmp,"rb");
         if (!file) { // If failed, go back to initial state.
@@ -1553,6 +1623,24 @@ void _gimp_preview_invalidate() {
   }
 }
 
+// Resize preview widget.
+void resize_preview(const unsigned int size=2) {
+  char tmp[256] = { 0 };
+  std::sprintf(tmp,
+               "style \"gimp-large-preview\"\n"
+               "{\n"
+               "  GimpPreview::size = %u\n"
+               "}\n"
+               "class \"GimpPreview\" style \"gimp-large-preview\"",
+               200+size*120);
+  gtk_rc_parse_string(tmp);
+  if (GIMP_IS_PREVIEW(gui_preview)) {
+    gtk_widget_destroy(gui_preview);
+    gui_preview=0;
+    _gimp_preview_invalidate();
+  }
+}
+
 // Handle preview resize event.
 void on_dialog_resized() {
   static int opw = 0, oph = 0;
@@ -1684,6 +1772,14 @@ void on_dialog_preview_mode_changed(GtkComboBox *const combobox) {
   if (value<2) gtk_combo_box_set_active(combobox,value=2);
   set_preview_mode((unsigned int)value);
   _gimp_preview_invalidate();
+}
+
+void on_dialog_preview_size_changed(GtkComboBox *const combobox) {
+  int value = 0;
+  g_object_get(combobox,"active",&value,NULL);
+  if (value<2) gtk_combo_box_set_active(combobox,value=2);
+  set_preview_size((unsigned int)value);
+  resize_preview(value-2);
 }
 
 void on_dialog_maximize_button_clicked(GtkButton *const button) {
@@ -2357,19 +2453,34 @@ void process_preview() {
             y0 = (int)(yp/factor)*ch/h,
             x1 = (int)((xp+w)/factor)*cw/w - 1,
             y1 = (int)((yp+h)/factor)*ch/h - 1;
-          images_uchar[l].get_crop(x0,y0,x1,y1).resize(w,h,1,-100).move_to(spt.images[l]);
+          images_uchar[l].get_crop(x0,y0,x1,y1).move_to(spt.images[l]);
           images_uchar[l].assign();
         }
       }
     }
 
     // Run G'MIC.
+    CImg<unsigned char> original_preview;
+    if (spt.images) original_preview = spt.images[0];
+    else original_preview.assign(w,h,1,4,0);
+
     process_thread(&spt);
     if (spt.error_message) {
-      const float white[] = { 155,155,155 };
-      spt.images.assign(1).back().fill(0).draw_text(0,0," Preview\n  error ",white,0,1,57).
-        resize(-100,-100,1,4).get_shared_channel(3).dilate(5);
-      spt.images[0].resize(w,h,1,4,0,0,0.5,0.5)+=100;
+      spt.images.assign(1);
+      original_preview.move_to(spt.images[0]);
+      CImgList<char> images_names;
+      char command[1024] = { 0 };
+      cimg_snprintf(command,sizeof(command),"%s-gimp_error_preview \"%s\"",
+                    get_verbosity_mode()>4?"-debug ":get_verbosity_mode()>2?"":"-v -99 ",
+                    spt.error_message.data());
+      try {
+        gmic(command,spt.images,images_names,gmic_additional_commands,true);
+      } catch (...) {  // Fallback for '-gimp_error_preview'.
+        const float white[] = { 155,155,155 };
+        spt.images.assign(1).back().draw_text(0,0," Preview\n  error ",white,0,1,57).
+          resize(-100,-100,1,4).get_shared_channel(3).dilate(5);
+        spt.images[0].resize(w,h,1,4,0,0,0.5,0.5)+=100;
+      }
     }
 
     // Transfer the output layers back into GIMP preview.
@@ -2527,6 +2638,12 @@ void create_parameters_gui(const bool reset_params) {
             *const argument_value = get_filter_parameter(filter,current_argument),
             *const argument_fave = get_fave_parameter(filter,current_argument);
 
+#if defined(_WIN64)
+          typedef unsigned long long pint;
+#else
+          typedef unsigned long pint;
+#endif
+
           // Check for a float-valued argument.
           bool found_valid_argument = false;
           if (!found_valid_argument && !cimg::strcasecmp(argument_type,"float")) {
@@ -2541,7 +2658,7 @@ void create_parameters_gui(const bool reset_params) {
                                            (double)(max_value-min_value)/100,
                                            (double)(max_value-min_value)/20,
                                            2,true,0,0,0,0);
-            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
+            event_infos[2*current_argument] = (void*)(pint)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_float_parameter_changed(GTK_ADJUSTMENT(scale),event_infos+2*current_argument);
             g_signal_connect(scale,"value_changed",G_CALLBACK(on_float_parameter_changed),
@@ -2566,7 +2683,7 @@ void create_parameters_gui(const bool reset_params) {
                                            (double)1,
                                            (double)cimg::max(1.0,cimg::round((max_value-min_value)/20,1,1)),
                                            0,true,0,0,0,0);
-            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
+            event_infos[2*current_argument] = (void*)(pint)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_int_parameter_changed(GTK_ADJUSTMENT(scale),event_infos+2*current_argument);
             g_signal_connect(scale,"value_changed",G_CALLBACK(on_int_parameter_changed),
@@ -2593,7 +2710,7 @@ void create_parameters_gui(const bool reset_params) {
             gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton),value);
             gtk_table_attach(GTK_TABLE(table),checkbutton,0,3,(int)current_table_line,(int)current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_SHRINK,0,0);
-            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
+            event_infos[2*current_argument] = (void*)(pint)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_bool_parameter_changed(GTK_CHECK_BUTTON(checkbutton),event_infos+2*current_argument);
             g_signal_connect(checkbutton,"toggled",G_CALLBACK(on_bool_parameter_changed),
@@ -2629,7 +2746,7 @@ void create_parameters_gui(const bool reset_params) {
             gtk_combo_box_set_active(GTK_COMBO_BOX(combobox),value);
             gtk_table_attach(GTK_TABLE(table),combobox,1,3,(int)current_table_line,(int)current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_FILL,0,0);
-            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
+            event_infos[2*current_argument] = (void*)(pint)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_list_parameter_changed(GTK_COMBO_BOX(combobox),event_infos+2*current_argument);
             g_signal_connect(combobox,"changed",G_CALLBACK(on_list_parameter_changed),
@@ -2690,7 +2807,7 @@ void create_parameters_gui(const bool reset_params) {
               gtk_table_attach(GTK_TABLE(table),frame,0,3,(int)current_table_line,(int)current_table_line+1,
                                (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
 
-              event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
+              event_infos[2*current_argument] = (void*)(pint)current_argument;
               event_infos[2*current_argument+1] = (void*)view;
               on_xtext_parameter_changed(event_infos+2*current_argument);
               g_signal_connect_swapped(button,"clicked",G_CALLBACK(on_xtext_parameter_changed),
@@ -2721,7 +2838,7 @@ void create_parameters_gui(const bool reset_params) {
               gtk_widget_show(button);
               gtk_table_attach(GTK_TABLE(table),button,2,3,(int)current_table_line,(int)current_table_line+1,
                                GTK_FILL,GTK_SHRINK,0,0);
-              event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
+              event_infos[2*current_argument] = (void*)(pint)current_argument;
               event_infos[2*current_argument+1] = (void*)entry;
               on_text_parameter_changed(event_infos+2*current_argument);
               g_signal_connect_swapped(button,"clicked",G_CALLBACK(on_text_parameter_changed),
@@ -2762,7 +2879,7 @@ void create_parameters_gui(const bool reset_params) {
             gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(file_chooser),value);
             gtk_table_attach(GTK_TABLE(table),file_chooser,1,3,(int)current_table_line,(int)current_table_line+1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
-            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
+            event_infos[2*current_argument] = (void*)(pint)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_file_parameter_changed(GTK_FILE_CHOOSER(file_chooser),event_infos+2*current_argument);
             g_signal_connect(file_chooser,"selection-changed",G_CALLBACK(on_file_parameter_changed),
@@ -2806,7 +2923,7 @@ void create_parameters_gui(const bool reset_params) {
               gtk_color_button_set_use_alpha(GTK_COLOR_BUTTON(color_chooser),true);
               gtk_color_button_set_alpha(GTK_COLOR_BUTTON(color_chooser),(unsigned int)(alpha*257));
             } else gtk_color_button_set_use_alpha(GTK_COLOR_BUTTON(color_chooser),false);
-            event_infos[2*current_argument] = (void*)(unsigned long)current_argument;
+            event_infos[2*current_argument] = (void*)(pint)current_argument;
             event_infos[2*current_argument+1] = (void*)0;
             on_color_parameter_changed(GTK_COLOR_BUTTON(color_chooser),event_infos+2*current_argument);
             g_signal_connect(color_chooser,"color-set",G_CALLBACK(on_color_parameter_changed),
@@ -2969,7 +3086,7 @@ bool create_dialog_gui() {
   gtk_label_set_markup(GTK_LABEL(frame_title),t("<b> Input / Output : </b>"));
   gtk_frame_set_label_widget(GTK_FRAME(left_frame),frame_title);
 
-  GtkWidget *const left_table = gtk_table_new(4,1,false);
+  GtkWidget *const left_table = gtk_table_new(5,1,false);
   gtk_widget_show(left_table);
   gtk_table_set_row_spacings(GTK_TABLE(left_table),6);
   gtk_table_set_col_spacings(GTK_TABLE(left_table),6);
@@ -3021,21 +3138,33 @@ bool create_dialog_gui() {
   gtk_table_attach_defaults(GTK_TABLE(left_table),verbosity_combobox,0,1,2,3);
   g_signal_connect(verbosity_combobox,"changed",G_CALLBACK(on_dialog_verbosity_mode_changed),0);
 
-  GtkWidget *const preview_combobox = gtk_combo_box_new_text();
-  gtk_widget_show(preview_combobox);
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),t("Output preview..."));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),"-");
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),t("1st output (default)"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),t("2nd output"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),t("3rd output"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),t("4th output"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),t("1st -> 2nd"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),t("1st -> 3rd"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),t("1st -> 4th"));
-  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_combobox),t("All outputs"));
-  gtk_combo_box_set_active(GTK_COMBO_BOX(preview_combobox),get_preview_mode(false));
-  gtk_table_attach_defaults(GTK_TABLE(left_table),preview_combobox,0,1,3,4);
-  g_signal_connect(preview_combobox,"changed",G_CALLBACK(on_dialog_preview_mode_changed),0);
+  GtkWidget *const preview_mode_combobox = gtk_combo_box_new_text();
+  gtk_widget_show(preview_mode_combobox);
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),t("Output preview..."));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),"-");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),t("1st output (default)"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),t("2nd output"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),t("3rd output"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),t("4th output"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),t("1st -> 2nd"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),t("1st -> 3rd"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),t("1st -> 4th"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_mode_combobox),t("All outputs"));
+  gtk_combo_box_set_active(GTK_COMBO_BOX(preview_mode_combobox),get_preview_mode(false));
+  gtk_table_attach_defaults(GTK_TABLE(left_table),preview_mode_combobox,0,1,3,4);
+  g_signal_connect(preview_mode_combobox,"changed",G_CALLBACK(on_dialog_preview_mode_changed),0);
+
+  GtkWidget *const preview_size_combobox = gtk_combo_box_new_text();
+  gtk_widget_show(preview_size_combobox);
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_size_combobox),t("Preview size..."));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_size_combobox),"-");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_size_combobox),t("Tiny (default)"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_size_combobox),t("Small"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_size_combobox),t("Normal"));
+  gtk_combo_box_append_text(GTK_COMBO_BOX(preview_size_combobox),t("Large"));
+  gtk_combo_box_set_active(GTK_COMBO_BOX(preview_size_combobox),get_preview_size(false));
+  gtk_table_attach_defaults(GTK_TABLE(left_table),preview_size_combobox,0,1,4,5);
+  g_signal_connect(preview_size_combobox,"changed",G_CALLBACK(on_dialog_preview_size_changed),0);
 
   drawable_preview = gimp_drawable_get(gimp_image_get_active_drawable(image_id));
   gui_preview = 0;
@@ -3169,11 +3298,8 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
 #if cimg_OS==2
   cimg::curl_path("_gmic\\curl",true);
 #endif
-  gtk_rc_parse_string("style \"gimp-large-preview\"\n"
-                      "{\n"
-                      "  GimpPreview::size = 320\n"
-                      "}\n"
-                      "class \"GimpPreview\" style \"gimp-large-preview\"");
+  const unsigned int ps = get_preview_size(false);
+  if (ps) resize_preview(get_preview_size(true));
 
   try {
 
