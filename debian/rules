@@ -27,7 +27,7 @@ clean:
 	dh $@ --sourcedirectory=src
 
 override_dh_auto_configure:
-	cp zart/Makefile zart/Makefile_old
+	if [ -f Makefile ]; then cp zart/Makefile zart/Makefile_old; fi
 	dh_auto_configure
 
 override_dh_auto_test: 
