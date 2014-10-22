@@ -121,6 +121,7 @@
 #if cimg_OS==1
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #elif cimg_OS==2
 #ifndef NOMINMAX
@@ -140,6 +141,15 @@
 #include <stdio.h>
 #define cimg_snprintf snprintf
 #define cimg_vsnprintf vsnprintf
+#endif
+
+// Look for C++11 features
+#if !defined(cimg_use_cpp11) && __cplusplus>201100
+#define cimg_use_cpp11
+#endif
+#ifdef cimg_use_cpp11
+#include <initializer_list>
+#include <utility>
 #endif
 
 // Configure filename separator.
@@ -4661,6 +4671,21 @@ namespace cimg_library_suffixed {
       return errn;
     }
 
+    //! Check if a path is a directory
+    /**
+       \param path Specified path to test.
+    **/
+    inline bool is_directory(const char *const path) {
+      if (!path || !*path) return false;
+#if cimg_OS==1
+      struct stat st_buf;
+      if (!stat(path,&st_buf) && S_ISDIR(st_buf.st_mode)) return true;
+#elif cimg_OS==2
+      if (GetFileAttributes(path)&16) return true;
+#endif
+      return false;
+    }
+
     //! Get/set path to store temporary files.
     /**
        \param user_path Specified path, or \c 0 to get the path currently used.
@@ -6478,7 +6503,9 @@ namespace cimg_library_suffixed {
        }
        \endcode
     **/
-    bool is_key(const char *const keycode) const {
+    volatile bool& is_key(const char *const keycode) {
+      static bool f = false;
+      f = false;
 #define _cimg_iskey_test2(k) if (!cimg::strcasecmp(keycode,#k)) return _is_key##k;
       _cimg_iskey_test2(ESC); _cimg_iskey_test2(F1); _cimg_iskey_test2(F2); _cimg_iskey_test2(F3);
       _cimg_iskey_test2(F4); _cimg_iskey_test2(F5); _cimg_iskey_test2(F6); _cimg_iskey_test2(F7);
@@ -6505,7 +6532,7 @@ namespace cimg_library_suffixed {
       _cimg_iskey_test2(PAD6); _cimg_iskey_test2(PAD7); _cimg_iskey_test2(PAD8);
       _cimg_iskey_test2(PAD9); _cimg_iskey_test2(PADADD); _cimg_iskey_test2(PADSUB);
       _cimg_iskey_test2(PADMUL); _cimg_iskey_test2(PADDIV);
-      return false;
+      return f;
     }
 
     //! Return \c true if specified key sequence has been typed on the associated window, \c false otherwise.
@@ -9575,6 +9602,106 @@ namespace cimg_library_suffixed {
       _CImg_stdarg(*this,value0,value1,(unsigned long)size_x*size_y*size_z*size_c,int);
     }
 
+#ifdef cimg_use_cpp11
+    //! Construct image with specified size and initialize pixel values from an initializer list of integers.
+    /**
+       Construct a new image instance of size \c size_x x \c size_y x \c size_z x \c size_c,
+       with pixels of type \c T, and initialize pixel
+       values from the specified initializer list of integers { \c value0,\c value1,\c ... }
+       \param size_x Image width().
+       \param size_y Image height().
+       \param size_z Image depth().
+       \param size_c Image spectrum() (number of channels).
+       \param { value0, value1, ... } Initialization list
+       \param repeat_values Tells if the value filling process is repeated over the image.
+
+       \note
+       - Similar to CImg(unsigned int,unsigned int,unsigned int,unsigned int), but it also fills
+         the pixel buffer with a sequence of specified integer values.
+       \par Example
+       \code
+       const CImg<float> img(2,2,1,3,      // Construct a 2x2 color (RGB) image.
+                             { 0,255,0,255,    // Set the 4 values for the red component.
+                               0,0,255,255,    // Set the 4 values for the green component.
+                               64,64,64,64 }); // Set the 4 values for the blue component.
+       img.resize(150,150).display();
+       \endcode
+       \image html ref_constructor1.jpg
+    **/
+    template<typename t>
+    CImg(const unsigned int size_x, const unsigned int size_y, const unsigned int size_z, const unsigned int size_c,
+         const std::initializer_list<t> values,
+	 const bool repeat_values=true):
+      _width(0),_height(0),_depth(0),_spectrum(0),_is_shared(false),_data(0) {
+#define _cimg_constructor_cpp11(repeat_values) \
+  auto it = values.begin(); \
+  unsigned long siz = size(); \
+  if (repeat_values) for (T *ptrd = _data; siz--; ) { \
+    *(ptrd++) = (T)(*(it++)); if (it==values.end()) it = values.begin(); } \
+  else { siz = cimg::min(siz,values.size()); for (T *ptrd = _data; siz--; ) *(ptrd++) = (T)(*(it++)); }
+      assign(size_x,size_y,size_z,size_c);
+      _cimg_constructor_cpp11(repeat_values);
+    }
+
+    template<typename t>
+    CImg(const unsigned int size_x, const unsigned int size_y, const unsigned int size_z,
+         std::initializer_list<t> values,
+	 const bool repeat_values=true):
+      _width(0),_height(0),_depth(0),_spectrum(0),_is_shared(false),_data(0) {
+      assign(size_x,size_y,size_z);
+      _cimg_constructor_cpp11(repeat_values);
+    }
+
+    template<typename t>
+    CImg(const unsigned int size_x, const unsigned int size_y,
+         std::initializer_list<t> values,
+	 const bool repeat_values=true):
+      _width(0),_height(0),_depth(0),_spectrum(0),_is_shared(false),_data(0) {
+      assign(size_x,size_y);
+      _cimg_constructor_cpp11(repeat_values);
+    }
+
+    template<typename t>
+    CImg(const unsigned int size_x,
+         std::initializer_list<t> values,
+         const bool repeat_values=true):_width(0),_height(0),_depth(0),_spectrum(0),_is_shared(false),_data(0) {
+      assign(size_x);
+      _cimg_constructor_cpp11(repeat_values);
+    }
+
+    //! Construct single channel 1D image with pixel values and width obtained from an initializer list of integers.
+    /**
+       Construct a new image instance of size \c width x \c 1 x \c 1 x \c 1,
+       with pixels of type \c T, and initialize pixel
+       values from the specified initializer list of integers { \c value0,\c value1,\c ... }. Image width is
+       given by the size of the initializer list.
+       \param { value0, value1, ... } Initialization list
+       \note
+       - Similar to CImg(unsigned int,unsigned int,unsigned int,unsigned int) with height=1, depth=1, and spectrum=1,
+         but it also fills the pixel buffer with a sequence of specified integer values.
+       \par Example
+       \code
+       const CImg<float> img = {10,20,30,20,10 }; // Construct a 5x1 image with one channel, and set its pixel values.
+       img.resize(150,150).display();
+       \endcode
+       \image html ref_constructor1.jpg
+     **/
+    template<typename t>
+    CImg(const std::initializer_list<t> values):
+      _width(0),_height(0),_depth(0),_spectrum(0),_is_shared(false),_data(0) {
+      assign(values.size(),1,1,1);
+      auto it = values.begin();
+      unsigned long siz = _width;
+      for (T *ptrd = _data; siz--; ) *(ptrd++) = (T)(*(it++));
+    }
+
+    template<typename t>
+    CImg<T> & operator=(std::initializer_list<t> values) {
+      _cimg_constructor_cpp11(siz>values.size());
+      return *this;
+    }
+#endif
+
     //! Construct image with specified size and initialize pixel values from a sequence of doubles.
     /**
        Construct a new image instance of size \c size_x x \c size_y x \c size_z x \c size_c, with pixels of type \c T,
@@ -9927,6 +10054,18 @@ namespace cimg_library_suffixed {
     explicit CImg(const CImgDisplay &disp):_width(0),_height(0),_depth(0),_spectrum(0),_is_shared(false),_data(0) {
       disp.snapshot(*this);
     }
+
+    // Constructor and assignment operator for rvalue references (c++11).
+    // This avoids an additional image copy for methods returning new images. Can save RAM for big images !
+#ifdef cimg_use_cpp11
+    CImg(CImg<T>&& img):_width(0),_height(0),_depth(0),_spectrum(0),_is_shared(false),_data(0) {
+      swap(img);
+    }
+    CImg<T>& operator=(CImg<T>&& img) {
+      if (_is_shared) return assign(img);
+      return img.swap(*this);
+    }
+#endif
 
     //! Construct empty image \inplace.
     /**
@@ -19159,12 +19298,13 @@ namespace cimg_library_suffixed {
       CImg<ulongT> hist = get_histogram(nb_levels,vmin,vmax);
       unsigned long cumul = 0;
       cimg_forX(hist,pos) { cumul+=hist[pos]; hist[pos] = cumul; }
+      if (!cumul) cumul = 1;
 #ifdef cimg_use_openmp
 #pragma omp parallel for if (size()>=1048576)
 #endif
       cimg_rof(*this,ptrd,T) {
         const int pos = (int)((*ptrd-vmin)*(nb_levels-1)/(vmax-vmin));
-        if (pos>=0 && pos<(int)nb_levels) *ptrd = (T)(vmin + (vmax-vmin)*hist[pos]/size());
+        if (pos>=0 && pos<(int)nb_levels) *ptrd = (T)(vmin + (vmax-vmin)*hist[pos]/cumul);
       }
       return *this;
     }
@@ -33864,13 +34004,24 @@ namespace cimg_library_suffixed {
       }
       --p;
       if ((int)points(p,0)==cx0 && (int)points(p,1)==cy0) --nb_points;
-
       if (nb_points<=1) return draw_point((int)npoints(0,0),(int)npoints(0,1),color,opacity);
       if (nb_points==2) return draw_line((int)npoints(0,0),(int)npoints(0,1),
                                          (int)npoints(1,0),(int)npoints(1,1),color,opacity);
       if (nb_points==3) return draw_triangle((int)npoints(0,0),(int)npoints(0,1),
                                              (int)npoints(1,0),(int)npoints(1,1),
                                              (int)npoints(2,0),(int)npoints(2,1),color,opacity);
+
+      // Shift the coordinates so that the first and last vertices are not located on the same scanline.
+      if (npoints(0,1)==npoints(nb_points-1,1)) {
+        const intT y0 = npoints(0,1);
+        unsigned int off = 1;
+        while ((int)npoints(off,1)==y0 && off<nb_points) ++off;
+        if (off<nb_points) {
+          npoints.get_shared_points(0,nb_points-1,0).shift(-(int)off,0,0,0,2);
+          npoints.get_shared_points(0,nb_points-1,1).shift(-(int)off,0,0,0,2);
+        }
+      }
+
       cimg_init_scanline(color,1);
 
       if (opacity!=1) { // For non-opaque polygons, do a little trick to avoid horizontal lines artefacts.
@@ -39101,7 +39252,8 @@ namespace cimg_library_suffixed {
      **/
     CImg<T>& load_tiff(const char *const filename,
 		       const unsigned int first_frame=0, const unsigned int last_frame=~0U,
-		       const unsigned int step_frame=1) {
+		       const unsigned int step_frame=1,
+                       float *const voxel_size=0) {
       if (!filename)
         throw CImgArgumentException(_cimg_instance
                                     "load_tiff(): Specified filename is (null).",
@@ -39113,6 +39265,7 @@ namespace cimg_library_suffixed {
       unsigned int nlast_frame = first_frame<last_frame?last_frame:first_frame;
 
 #ifndef cimg_use_tiff
+      cimg::unused(voxel_size);
       if (nfirst_frame || nlast_frame!=~0U || nstep_frame>1)
         throw CImgArgumentException(_cimg_instance
                                     "load_tiff(): Unable to read sub-images from file '%s' unless libtiff is enabled.",
@@ -39135,7 +39288,7 @@ namespace cimg_library_suffixed {
         TIFFSetDirectory(tif,0);
         CImg<T> frame;
         for (unsigned int l = nfirst_frame; l<=nlast_frame; l+=nstep_frame) {
-          frame._load_tiff(tif,l);
+          frame._load_tiff(tif,l,voxel_size);
           if (l==nfirst_frame)
             assign(frame._width,frame._height,1+(nlast_frame-nfirst_frame)/nstep_frame,frame._spectrum);
           if (frame._width>_width || frame._height>_height || frame._spectrum>_spectrum)
@@ -39156,8 +39309,9 @@ namespace cimg_library_suffixed {
     //! Load image from a TIFF file \newinstance.
     static CImg<T> get_load_tiff(const char *const filename,
 				 const unsigned int first_frame=0, const unsigned int last_frame=~0U,
-				 const unsigned int step_frame=1) {
-      return CImg<T>().load_tiff(filename,first_frame,last_frame,step_frame);
+				 const unsigned int step_frame=1,
+                                 float *const voxel_size=0) {
+      return CImg<T>().load_tiff(filename,first_frame,last_frame,step_frame,voxel_size);
     }
 
     // (Original contribution by Jerome Boulanger).
@@ -39261,7 +39415,7 @@ namespace cimg_library_suffixed {
       }
     }
 
-    CImg<T>& _load_tiff(TIFF *const tif, const unsigned int directory) {
+    CImg<T>& _load_tiff(TIFF *const tif, const unsigned int directory, float *const voxel_size) {
       if (!TIFFSetDirectory(tif,directory)) return assign();
       uint16 samplesperpixel = 1, bitspersample = 8, photo = 0;
       uint16 sampleformat = 1;
@@ -39273,6 +39427,11 @@ namespace cimg_library_suffixed {
       TIFFGetField(tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
       TIFFGetFieldDefaulted(tif,TIFFTAG_BITSPERSAMPLE,&bitspersample);
       TIFFGetField(tif,TIFFTAG_PHOTOMETRIC,&photo);
+      if (voxel_size) {
+        TIFFGetField(tif,TIFFTAG_XRESOLUTION,voxel_size);
+        TIFFGetField(tif,TIFFTAG_YRESOLUTION,voxel_size+1);
+        voxel_size[2] = 1;
+      }
 
       const unsigned int spectrum = is_spp?samplesperpixel:photo==3?3:1;
       assign(nx,ny,1,spectrum);
@@ -40122,6 +40281,11 @@ namespace cimg_library_suffixed {
         throw CImgArgumentException(_cimg_instance
                                     "load_raw(): Specified filename is (null).",
                                     cimg_instance);
+      if (cimg::is_directory(filename))
+        throw CImgArgumentException(_cimg_instance
+                                    "load_raw(): Specified filename '%s' is a directory.",
+                                    cimg_instance,filename);
+
       unsigned int siz = size_x*size_y*size_z*size_c,
         _size_x = size_x, _size_y = size_y, _size_z = size_z, _size_c = size_c;
       std::FILE *const nfile = file?file:cimg::fopen(filename,"rb");
@@ -41022,7 +41186,7 @@ namespace cimg_library_suffixed {
         if (disp.wheel()) {
           if (disp.is_keyCTRLLEFT() || disp.is_keyCTRLRIGHT()) {
             go_out = !(go_in = disp.wheel()>0); go_in_center = false;
-          } else if (disp.is_keySHIFTLEFT() || disp.is_keySHIFTRIGHT()) { go_right = !(go_left = disp.wheel()>0); }
+          } else if (disp.is_keySHIFTLEFT() || disp.is_keySHIFTRIGHT()) { go_left = !(go_right = disp.wheel()>0); }
           else if (disp.is_keyALT() || disp.is_keyALTGR() || _depth==1) { go_down = !(go_up = disp.wheel()>0); }
           disp.set_wheel();
         }
@@ -41131,9 +41295,9 @@ namespace cimg_library_suffixed {
           if (mX>=width() && mY<height()) {
             Y = y0 + mY*(1+y1-y0)/_height; Z = z0 + (mX-_width)*(1+z1-z0)/_depth; X = _XYZ[0];
           }
-          if (x1-x0>4) { x0 = X - 7*(X-x0)/8; x1 = X + 7*(x1-X)/8; }
-          if (y1-y0>4) { y0 = Y - 7*(Y-y0)/8; y1 = Y + 7*(y1-Y)/8; }
-          if (z1-z0>4) { z0 = Z - 7*(Z-z0)/8; z1 = Z + 7*(z1-Z)/8; }
+          if (x1-x0>4) { x0 = X - 3*(X-x0)/4; x1 = X + 3*(x1-X)/4; }
+          if (y1-y0>4) { y0 = Y - 3*(Y-y0)/4; y1 = Y + 3*(y1-Y)/4; }
+          if (z1-z0>4) { z0 = Z - 3*(Z-z0)/4; z1 = Z + 3*(z1-Z)/4; }
         }
         if (go_out) {
           const int
@@ -41151,32 +41315,32 @@ namespace cimg_library_suffixed {
           if (z1>=depth()) { z0-=(z1-depth()+1); z1 = depth()-1; if (z0<0) z0 = 0; }
         }
         if (go_left) {
-          const int delta = (x1-x0)/5, ndelta = delta?delta:(_width>1?1:0);
+          const int delta = (x1-x0)/4, ndelta = delta?delta:(_width>1?1:0);
           if (x0-ndelta>=0) { x0-=ndelta; x1-=ndelta; }
           else { x1-=x0; x0 = 0; }
         }
         if (go_right) {
-          const int delta = (x1-x0)/5, ndelta = delta?delta:(_width>1?1:0);
+          const int delta = (x1-x0)/4, ndelta = delta?delta:(_width>1?1:0);
           if (x1+ndelta<width()) { x0+=ndelta; x1+=ndelta; }
           else { x0+=(width()-1-x1); x1 = width()-1; }
         }
         if (go_up) {
-          const int delta = (y1-y0)/5, ndelta = delta?delta:(_height>1?1:0);
+          const int delta = (y1-y0)/4, ndelta = delta?delta:(_height>1?1:0);
           if (y0-ndelta>=0) { y0-=ndelta; y1-=ndelta; }
           else { y1-=y0; y0 = 0; }
         }
         if (go_down) {
-          const int delta = (y1-y0)/5, ndelta = delta?delta:(_height>1?1:0);
+          const int delta = (y1-y0)/4, ndelta = delta?delta:(_height>1?1:0);
           if (y1+ndelta<height()) { y0+=ndelta; y1+=ndelta; }
           else { y0+=(height()-1-y1); y1 = height()-1; }
         }
         if (go_inc) {
-          const int delta = (z1-z0)/5, ndelta = delta?delta:(_depth>1?1:0);
+          const int delta = (z1-z0)/4, ndelta = delta?delta:(_depth>1?1:0);
           if (z0-ndelta>=0) { z0-=ndelta; z1-=ndelta; }
           else { z1-=z0; z0 = 0; }
         }
         if (go_dec) {
-          const int delta = (z1-z0)/5, ndelta = delta?delta:(_depth>1?1:0);
+          const int delta = (z1-z0)/4, ndelta = delta?delta:(_depth>1?1:0);
           if (z1+ndelta<depth()) { z0+=ndelta; z1+=ndelta; }
           else { z0+=(depth()-1-z1); z1 = depth()-1; }
         }
@@ -41830,9 +41994,9 @@ namespace cimg_library_suffixed {
         if (reset_view) { x0 = 0; x1 = width()*height()*depth()-1; y0 = ymin; y1 = ymax; reset_view = false; }
         CImg<T> zoom(x1-x0+1,1,1,spectrum());
         cimg_forC(*this,c) zoom.get_shared_channel(c) = CImg<T>(data(x0,0,0,c),x1-x0+1,1,1,1,true);
-
         if (y0==y1) { y0 = zoom.min_max(y1); const double dy = y1 - y0; y0-=dy/20; y1+=dy/20; }
         if (y0==y1) { --y0; ++y1; }
+
         const CImg<intT> selection = zoom.get_select_graph(disp,plot_type,vertex_type,
         					           labelx,
                                                            nxmin + x0*(nxmax-nxmin)/siz1,
@@ -43095,7 +43259,8 @@ namespace cimg_library_suffixed {
        - If \c cimg_use_tif is not defined at compilation time the
         function uses CImg<T>&save_other(const char*).
      **/
-    const CImg<T>& save_tiff(const char *const filename, const unsigned int compression_type=0) const {
+    const CImg<T>& save_tiff(const char *const filename, const unsigned int compression_type=0,
+                             const float *const voxel_size=0) const {
       if (!filename)
         throw CImgArgumentException(_cimg_instance
                                     "save_tiff(): Specified filename is (null).",
@@ -43105,7 +43270,7 @@ namespace cimg_library_suffixed {
 #ifdef cimg_use_tiff
       TIFF *tif = TIFFOpen(filename,"w");
       if (tif) {
-        cimg_forZ(*this,z) get_slice(z)._save_tiff(tif,z,compression_type);
+        cimg_forZ(*this,z) get_slice(z)._save_tiff(tif,z,compression_type,voxel_size);
         TIFFClose(tif);
       } else throw CImgIOException(_cimg_instance
                                    "save_tiff(): Failed to open file '%s' for writing.",
@@ -43113,20 +43278,21 @@ namespace cimg_library_suffixed {
                                    filename);
       return *this;
 #else
-      cimg::unused(compression_type);
+      cimg::unused(compression_type,voxel_size);
       return save_other(filename);
 #endif
     }
 
 #ifdef cimg_use_tiff
 
-#define _cimg_save_tiff(types,typed,compression_type) if (!std::strcmp(types,pixel_type())) { \
-      const typed foo = (typed)0; return _save_tiff(tif,directory,foo,compression_type); }
+#define _cimg_save_tiff(types,typed,compression_type,voxel_size) if (!std::strcmp(types,pixel_type())) { \
+      const typed foo = (typed)0; return _save_tiff(tif,directory,foo,compression_type,voxel_size); }
 
     // [internal] Save a plane into a tiff file
     template<typename t>
     const CImg<T>& _save_tiff(TIFF *tif, const unsigned int directory, const t& pixel_t,
-                              const unsigned int compression_type) const {
+                              const unsigned int compression_type,
+                              const float *const voxel_size=0) const {
       if (is_empty() || !tif || pixel_t) return *this;
       const char *const filename = TIFFFileName(tif);
       uint32 rowsperstrip = (uint32)-1;
@@ -43136,6 +43302,12 @@ namespace cimg_library_suffixed {
       TIFFSetDirectory(tif,directory);
       TIFFSetField(tif,TIFFTAG_IMAGEWIDTH,_width);
       TIFFSetField(tif,TIFFTAG_IMAGELENGTH,_height);
+      if (voxel_size) {
+        const float vx = voxel_size[0], vy = voxel_size[1], _vz = voxel_size[2], vz = _vz>0?_vz:1;
+        TIFFSetField(tif,TIFFTAG_RESOLUTIONUNIT,RESUNIT_NONE);
+        TIFFSetField(tif,TIFFTAG_XRESOLUTION,vx/vz);
+        TIFFSetField(tif,TIFFTAG_YRESOLUTION,vy/vz);
+      }
       TIFFSetField(tif,TIFFTAG_ORIENTATION,ORIENTATION_TOPLEFT);
       TIFFSetField(tif,TIFFTAG_SAMPLESPERPIXEL,spp);
       if (cimg::type<t>::is_float()) TIFFSetField(tif,TIFFTAG_SAMPLEFORMAT,3);
@@ -43171,18 +43343,19 @@ namespace cimg_library_suffixed {
       return (*this);
     }
 
-    const CImg<T>& _save_tiff(TIFF *tif, const unsigned int directory, const unsigned int compression_type) const {
-      _cimg_save_tiff("bool",unsigned char,compression_type);
-      _cimg_save_tiff("char",char,compression_type);
-      _cimg_save_tiff("unsigned char",unsigned char,compression_type);
-      _cimg_save_tiff("short",short,compression_type);
-      _cimg_save_tiff("unsigned short",unsigned short,compression_type);
-      _cimg_save_tiff("int",int,compression_type);
-      _cimg_save_tiff("unsigned int",unsigned int,compression_type);
-      _cimg_save_tiff("long",int,compression_type);
-      _cimg_save_tiff("unsigned long",unsigned int,compression_type);
-      _cimg_save_tiff("float",float,compression_type);
-      _cimg_save_tiff("double",float,compression_type);
+    const CImg<T>& _save_tiff(TIFF *tif, const unsigned int directory, const unsigned int compression_type,
+                              const float *const voxel_size) const {
+      _cimg_save_tiff("bool",unsigned char,compression_type,voxel_size);
+      _cimg_save_tiff("char",char,compression_type,voxel_size);
+      _cimg_save_tiff("unsigned char",unsigned char,compression_type,voxel_size);
+      _cimg_save_tiff("short",short,compression_type,voxel_size);
+      _cimg_save_tiff("unsigned short",unsigned short,compression_type,voxel_size);
+      _cimg_save_tiff("int",int,compression_type,voxel_size);
+      _cimg_save_tiff("unsigned int",unsigned int,compression_type,voxel_size);
+      _cimg_save_tiff("long",int,compression_type,voxel_size);
+      _cimg_save_tiff("unsigned long",unsigned int,compression_type,voxel_size);
+      _cimg_save_tiff("float",float,compression_type,voxel_size);
+      _cimg_save_tiff("double",float,compression_type,voxel_size);
       const char *const filename = TIFFFileName(tif);
       throw CImgInstanceException(_cimg_instance
                                   "save_tiff(): Unsupported pixel type '%s' for file '%s'.",
@@ -47775,12 +47948,14 @@ namespace cimg_library_suffixed {
     **/
     CImgList<T>& load_tiff(const char *const filename,
 			   const unsigned int first_frame=0, const unsigned int last_frame=~0U,
-			   const unsigned int step_frame=1) {
+			   const unsigned int step_frame=1,
+                           float *const voxel_size=0) {
       const unsigned int
 	nfirst_frame = first_frame<last_frame?first_frame:last_frame,
 	nstep_frame = step_frame?step_frame:1;
       unsigned int nlast_frame = first_frame<last_frame?last_frame:first_frame;
 #ifndef cimg_use_tiff
+      cimg::unused(voxel_size);
       if (nfirst_frame || nlast_frame!=~0U || nstep_frame!=1)
         throw CImgArgumentException(_cimglist_instance
                                     "load_tiff(): Unable to load sub-images from file '%s' unless libtiff is enabled.",
@@ -47808,7 +47983,7 @@ namespace cimg_library_suffixed {
         TIFFSetWarningHandler(0);
         TIFFSetErrorHandler(0);
 #endif
-        cimglist_for(*this,l) _data[l]._load_tiff(tif,nfirst_frame + l*nstep_frame);
+        cimglist_for(*this,l) _data[l]._load_tiff(tif,nfirst_frame + l*nstep_frame,voxel_size);
         TIFFClose(tif);
       } else throw CImgIOException(_cimglist_instance
                                    "load_tiff(): Failed to open file '%s'.",
@@ -47821,8 +47996,9 @@ namespace cimg_library_suffixed {
     //! Load a multi-page TIFF file \newinstance.
     static CImgList<T> get_load_tiff(const char *const filename,
 				     const unsigned int first_frame=0, const unsigned int last_frame=~0U,
-				     const unsigned int step_frame=1) {
-      return CImgList<T>().load_tiff(filename,first_frame,last_frame,step_frame);
+				     const unsigned int step_frame=1,
+                                     float *const voxel_size=0) {
+      return CImgList<T>().load_tiff(filename,first_frame,last_frame,step_frame,voxel_size);
     }
 
     //@}
@@ -48782,7 +48958,8 @@ namespace cimg_library_suffixed {
       \param filename Filename to write data to.
       \param compression_type Compression mode used to write data.
     **/
-    const CImgList<T>& save_tiff(const char *const filename, const unsigned int compression_type=0) const {
+    const CImgList<T>& save_tiff(const char *const filename, const unsigned int compression_type=0,
+                                 const float *const voxel_size=0) const {
       if (!filename)
         throw CImgArgumentException(_cimglist_instance
                                     "save_tiff(): Specified filename is (null).",
@@ -48790,11 +48967,11 @@ namespace cimg_library_suffixed {
       if (is_empty()) { cimg::fempty(0,filename); return *this; }
 
 #ifndef cimg_use_tiff
-      if (_width==1) _data[0].save_tiff(filename,compression_type);
+      if (_width==1) _data[0].save_tiff(filename,compression_type,voxel_size);
       else cimglist_for(*this,l) {
           char nfilename[1024] = { 0 };
           cimg::number_filename(filename,l,6,nfilename);
-          _data[l].save_tiff(nfilename,compression_type);
+          _data[l].save_tiff(nfilename,compression_type,voxel_size);
         }
 #else
       TIFF *tif = TIFFOpen(filename,"w");
@@ -48802,8 +48979,8 @@ namespace cimg_library_suffixed {
         for (unsigned int dir = 0, l = 0; l<_width; ++l) {
           const CImg<T>& img = (*this)[l];
           if (img) {
-            if (img._depth==1) img._save_tiff(tif,dir++,compression_type);
-            else cimg_forZ(img,z) img.get_slice(z)._save_tiff(tif,dir++,compression_type);
+            if (img._depth==1) img._save_tiff(tif,dir++,compression_type,voxel_size);
+            else cimg_forZ(img,z) img.get_slice(z)._save_tiff(tif,dir++,compression_type,voxel_size);
           }
         }
         TIFFClose(tif);

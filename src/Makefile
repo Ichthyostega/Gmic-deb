@@ -80,15 +80,18 @@ INCLUDE=include
 IS_BETA_CFLAGS = 
 
 # Flags that are mandatory to compile 'gmic'.
-MANDATORY_CFLAGS += -Dgmic_build -I$(USR)/$(INCLUDE)
+MANDATORY_CFLAGS += -std=c++11 -Dgmic_build -I$(USR)/$(INCLUDE)
 MANDATORY_LIBS += -L$(USR)/$(LIB)
 ifeq ($(CC),g++)
 MANDATORY_CFLAGS += -Wall -W
 MANDATORY_LIBS += -lm
 endif
-MANDATORY_CFLAGS+=$(IS_BETA_CFLAGS)
+MANDATORY_CFLAGS += $(IS_BETA_CFLAGS)
 ifeq ($(OS),Unix)
-MANDATORY_CFLAGS+= -Dcimg_use_vt100
+MANDATORY_CFLAGS += -Dcimg_use_vt100
+endif
+ifeq ($(OS),Darwin)
+MANDATORY_CFLAGS += -stdlib=libc++
 endif
 ifeq ($(OSTYPE),msys)
 MANDATORY_LIBS = -Wl,--stack,16777216
@@ -99,13 +102,17 @@ DEBUG_CFLAGS = -Dcimg_verbosity=3 -g
 
 # Flags to enable optimizations.
 ifeq ($(CC),g++)
-OPT_CFLAGS = -O2 -fno-ipa-sra -mtune=generic # -fno-tree-pre # -ffast-math
+ifeq ($(OS),Darwin)
+OPT_CFLAGS = -O2 -mtune=generic
+else
+OPT_CFLAGS = -O2 -fno-ipa-sra -mtune=generic
 endif
-ifeq ($(CC),clang++)
-OPT_CFLAGS = -O2
-endif
+else
 ifeq ($(CC),icpc)
 OPT_CFLAGS = -fast
+else
+OPT_CFLAGS = -O2
+endif
 endif
 
 # Flags to enable parallel processing.
@@ -267,16 +274,29 @@ STD_MACOSX_LIBS = $(MANDATORY_LIBS) $(X11_LIBS) $(ZLIB_LIBS) \
 		     $(EXR_LIBS) $(FFTW_LIBS) # $(MAGICK_LIBS)
 
 # GIMP plug-in : Standard build.
-STD_GIMP_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(ZLIB_CFLAGS) ${IS_BETA_CFLAGS} -Dcimg_display=0 -Dcimg_use_rng
+STD_GIMP_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(ZLIB_CFLAGS) ${IS_BETA_CFLAGS} -Dcimg_use_rng
 STD_GIMP_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(OPENMP_LIBS) $(FFTW_LIBS) $(PNG_LIBS) $(ZLIB_LIBS)
-ifeq ($(OSTYPE),msys)
-STD_GIMP_LIBS += -mwindows -lpthread
+ifeq ($(OS),Unix)
+STD_GIMP_CFLAGS += $(X11_CFLAGS)
+STD_GIMP_LIBS += $(X11_LIBS)
+else
+ifeq ($(OS),Darwin)
+STD_GIMP_CFLAGS += $(X11_CFLAGS)
+STD_GIMP_LIBS += $(X11_LIBS)
+else
+STD_GIMP_CFLAGS += -mwindows -lpthread $(GDI32_CFLAGS)
+STD_GIMP_LIBS += -mwindows -lpthread $(GDI32_LIBS)
+endif
 endif
 
 # Libgmic : Standard build.
+ifeq ($(OS),Darwin)
+STD_LIB_CFLAGS = $(MANDATORY_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0 # $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) -fno-ipa-sra
+STD_LIB_LIBS = $(MANDATORY_LIBS) $(FFTW_LIBS) #  $(PARALLEL_LIBS) $(OPENMP_LIBS)
+else
 STD_LIB_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0 # -fno-ipa-sra
 STD_LIB_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(OPENMP_LIBS) $(FFTW_LIBS)
-
+endif
 # GMICol : Standard build.
 GMICOL_UNIX_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0
 GMICOL_UNIX_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(ZLIB_LIBS) /usr/lib/x86_64-linux-gnu/libfftw3.a /usr/lib/x86_64-linux-gnu/libfftw3_threads.a
@@ -369,7 +389,7 @@ gmic_def.h: gmic_def.gmic
 	@echo "#ifndef gmic_gimp" > gmic_def.h
 	@\gmic gmic_def.gmic raw:gmic_def.gmic,char -compress_gmic -o -.h,char | sed 's/unnamed/gmic_def/' | sed 's/ \};/, 0 \};\n\nunsigned int size_data_gmic_def = sizeof(data_gmic_def);\n/g' >> gmic_def.h
 	@echo "#else" >> gmic_def.h
-	@\gmic gmic_def.gmic -update_gmic @.,0 raw:$(HOME)/.update@..gmic,char -compress_gmic_gimp -o -.h,char | sed 's/unnamed/gmic_def/' | sed 's/ \};/, 0 \};\n\nunsigned int size_data_gmic_def = sizeof(data_gmic_def);\n/g' >> gmic_def.h
+	@\gmic gmic_def.gmic -update_server @.,0 raw:$(HOME)/.update@..gmic,char -compress_gmic_gimp -o -.h,char | sed 's/unnamed/gmic_def/' | sed 's/ \};/, 0 \};\n\nunsigned int size_data_gmic_def = sizeof(data_gmic_def);\n/g' >> gmic_def.h
 	\gmic -v - ../html/img/logoGMIC.ppm -permute cxyz -o -.h,uchar | sed 's/unnamed/gmic_logo/' >> gmic_def.h
 	@echo "unsigned int size_data_logo = sizeof(data_gmic_logo);" >> gmic_def.h
 	@echo "#endif" >> gmic_def.h

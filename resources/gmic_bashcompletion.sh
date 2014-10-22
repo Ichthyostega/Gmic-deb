@@ -59,6 +59,7 @@ _gmic_def()
 	      -heart --heart\
 	      -i --i\
 	      -input --input\
+	      -input_gpl --input_gpl\
 	      -o --o\
 	      -output --output\
 	      -output_ggr --output_ggr\
@@ -840,6 +841,7 @@ _gmic_def()
 	      -x_2048 --x_2048\
 	      -x_blobs --x_blobs\
 	      -x_bouncing --x_bouncing\
+	      -x_colorize --x_colorize\
 	      -x_fire --x_fire\
 	      -x_fireworks --x_fireworks\
 	      -x_fisheye --x_fisheye\
@@ -859,6 +861,9 @@ _gmic_def()
 	      -x_quantize_rgb --x_quantize_rgb\
 	      -x_reflection3d --x_reflection3d\
 	      -x_rubber3d --x_rubber3d\
+	      -x_segment --x_segment\
+	      -x_select_color --x_select_color\
+	      -x_select_palette --x_select_palette\
 	      -x_shadebobs --x_shadebobs\
 	      -x_spline --x_spline\
 	      -x_tetris --x_tetris\
@@ -913,6 +918,7 @@ _gmic_def()
 	      heart\
 	      i\
 	      input\
+	      input_gpl\
 	      o\
 	      output\
 	      output_ggr\
@@ -1694,6 +1700,7 @@ _gmic_def()
 	      x_2048\
 	      x_blobs\
 	      x_bouncing\
+	      x_colorize\
 	      x_fire\
 	      x_fireworks\
 	      x_fisheye\
@@ -1713,6 +1720,9 @@ _gmic_def()
 	      x_quantize_rgb\
 	      x_reflection3d\
 	      x_rubber3d\
+	      x_segment\
+	      x_select_color\
+	      x_select_palette\
 	      x_shadebobs\
 	      x_spline\
 	      x_tetris\
@@ -1806,6 +1816,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "_width>0,_height>0 >") )
 		return 0
 		;;
+		"-input_gpl" | "--input_gpl")
+		COMPREPLY=( $(compgen -W "filename >") )
+		return 0
+		;;
 		"-output_ggr" | "--output_ggr")
 		COMPREPLY=( $(compgen -W "filename,_gradient_name >") )
 		return 0
@@ -1823,7 +1837,7 @@ _gmic_def()
 		return 0
 		;;
 		"-pass" | "--pass")
-		COMPREPLY=( $(compgen -W "_shared_state={0=non-shared|1=shared|2=adaptive} >") )
+		COMPREPLY=( $(compgen -W "_shared_state={0=non-shared(copy)|1=shared|2=adaptive} >") )
 		return 0
 		;;
 		"-plot" | "--plot")
@@ -1835,11 +1849,11 @@ _gmic_def()
 		return 0
 		;;
 		"-shared" | "--shared")
-		COMPREPLY=( $(compgen -W "x0[%],x1[%],y[%],z[%],v[%] y0[%],y1[%],z[%],v[%] z0[%],z1[%],v[%] v0[%],v1[%] (noargs)") )
+		COMPREPLY=( $(compgen -W "x0[%],x1[%],y[%],z[%],v[%] y0[%],y1[%],z[%],v[%] z0[%],z1[%],v[%] v0[%],v1[%] (noarg)") )
 		return 0
 		;;
 		"-srand" | "--srand")
-		COMPREPLY=( $(compgen -W "value (noargs)") )
+		COMPREPLY=( $(compgen -W "value (noarg)") )
 		return 0
 		;;
 		"-testimage2d" | "--testimage2d")
@@ -1859,7 +1873,7 @@ _gmic_def()
 		return 0
 		;;
 		"-wait" | "--wait")
-		COMPREPLY=( $(compgen -W "delay (noargs)") )
+		COMPREPLY=( $(compgen -W "delay (noarg)") )
 		return 0
 		;;
 		"-warn" | "--warn")
@@ -1887,11 +1901,11 @@ _gmic_def()
 		return 0
 		;;
 		"-add" | "--add")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-and" | "--and")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-atan2" | "--atan2")
@@ -1899,59 +1913,59 @@ _gmic_def()
 		return 0
 		;;
 		"-bsl" | "--bsl")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-bsr" | "--bsr")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-div" | "--div")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-eq" | "--eq")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-ge" | "--ge")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-gt" | "--gt")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-le" | "--le")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-lt" | "--lt")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-max" | "--max")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-mdiv" | "--mdiv")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-min" | "--min")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-mod" | "--mod")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-mmul" | "--mmul")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-mul" | "--mul")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-mul_channels" | "--mul_channels")
@@ -1959,31 +1973,31 @@ _gmic_def()
 		return 0
 		;;
 		"-neq" | "--neq")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-or" | "--or")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-pow" | "--pow")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-rol" | "--rol")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-ror" | "--ror")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-sub" | "--sub")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-xor" | "--xor")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-apply_curve" | "--apply_curve")
@@ -2003,7 +2017,7 @@ _gmic_def()
 		return 0
 		;;
 		"-cut" | "--cut")
-		COMPREPLY=( $(compgen -W "{value0[%]|[image0]},{value1[%]|[image1]} [image] (noargs)") )
+		COMPREPLY=( $(compgen -W "{value0[%]|[image0]},{value1[%]|[image1]} [image] (noarg)") )
 		return 0
 		;;
 		"-discard" | "--discard")
@@ -2083,7 +2097,7 @@ _gmic_def()
 		return 0
 		;;
 		"-round" | "--round")
-		COMPREPLY=( $(compgen -W "rounding_value>=0,_rounding_type (noargs)") )
+		COMPREPLY=( $(compgen -W "rounding_value>=0,_rounding_type (noarg)") )
 		return 0
 		;;
 		"-roundify" | "--roundify")
@@ -2095,7 +2109,7 @@ _gmic_def()
 		return 0
 		;;
 		"-threshold" | "--threshold")
-		COMPREPLY=( $(compgen -W "value[%],_is_soft (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%],_is_soft (noarg)") )
 		return 0
 		;;
 		"-apply_channels" | "--apply_channels")
@@ -2163,7 +2177,7 @@ _gmic_def()
 		return 0
 		;;
 		"-autocrop" | "--autocrop")
-		COMPREPLY=( $(compgen -W "value1,value2,... (noargs)") )
+		COMPREPLY=( $(compgen -W "value1,value2,... (noarg)") )
 		return 0
 		;;
 		"-autocrop_components" | "--autocrop_components")
@@ -2303,7 +2317,7 @@ _gmic_def()
 		return 0
 		;;
 		"-split" | "--split")
-		COMPREPLY=( $(compgen -W "{x|y|z|c}..{x|y|z|c},_nb_parts!=0 keep_splitting_values={+|-},value1,value2,... (noargs)") )
+		COMPREPLY=( $(compgen -W "{x|y|z|c}..{x|y|z|c},_nb_parts!=0 keep_splitting_values={+|-},value1,value2,... (noarg)") )
 		return 0
 		;;
 		"-split_tiles" | "--split_tiles")
@@ -2459,7 +2473,7 @@ _gmic_def()
 		return 0
 		;;
 		"-gradient" | "--gradient")
-		COMPREPLY=( $(compgen -W "{x|y|z}..{x|y|z},_scheme (noargs)") )
+		COMPREPLY=( $(compgen -W "{x|y|z}..{x|y|z},_scheme (noarg)") )
 		return 0
 		;;
 		"-gradient_orientation" | "--gradient_orientation")
@@ -2475,7 +2489,7 @@ _gmic_def()
 		return 0
 		;;
 		"-hessian" | "--hessian")
-		COMPREPLY=( $(compgen -W "{xx|xy|xz|yy|yz|zz}..{xx|xy|xz|yy|yz|zz} (noargs)") )
+		COMPREPLY=( $(compgen -W "{xx|xy|xz|yy|yz|zz}..{xx|xy|xz|yy|yz|zz} (noarg)") )
 		return 0
 		;;
 		"-ihaar" | "--ihaar")
@@ -2915,7 +2929,7 @@ _gmic_def()
 		return 0
 		;;
 		"-elevation3d" | "--elevation3d")
-		COMPREPLY=( $(compgen -W "z-factor [elevation_map] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "z-factor [elevation_map] 'formula' (noarg)") )
 		return 0
 		;;
 		"-extrude3d" | "--extrude3d")
@@ -2963,7 +2977,7 @@ _gmic_def()
 		return 0
 		;;
 		"-light3d" | "--light3d")
-		COMPREPLY=( $(compgen -W "position_x,position_y,position_z [texture] (noargs)") )
+		COMPREPLY=( $(compgen -W "position_x,position_y,position_z [texture] (noarg)") )
 		return 0
 		;;
 		"-line3d" | "--line3d")
@@ -3806,6 +3820,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "_run_in_parallel={0=no|1=yes|2=auto} >") )
 		return 0
 		;;
+		"-x_colorize" | "--x_colorize")
+		COMPREPLY=( $(compgen -W "_is_lineart={0|1},_max_resolution={0|>=128},_multichannels_output={0|1},_[palette1],_[palette2] >") )
+		return 0
+		;;
 		"-x_jawbreaker" | "--x_jawbreaker")
 		COMPREPLY=( $(compgen -W "0<_width<20,0<_height<20,0<_balls<=8 >") )
 		return 0
@@ -3820,6 +3838,18 @@ _gmic_def()
 		;;
 		"-x_quantize_rgb" | "--x_quantize_rgb")
 		COMPREPLY=( $(compgen -W "_nbcolors>=2 >") )
+		return 0
+		;;
+		"-x_segment" | "--x_segment")
+		COMPREPLY=( $(compgen -W "_max_resolution={0|>=128} >") )
+		return 0
+		;;
+		"-x_select_color" | "--x_select_color")
+		COMPREPLY=( $(compgen -W "_variable_name >") )
+		return 0
+		;;
+		"-x_select_palette" | "--x_select_palette")
+		COMPREPLY=( $(compgen -W "_variable_name,_number_of_columns>=0 >") )
 		return 0
 		;;
 		"-x_whirl" | "--x_whirl")
@@ -3879,7 +3909,7 @@ _gmic_def()
 		return 0
 		;;
 		"-sh" | "--sh")
-		COMPREPLY=( $(compgen -W "x0[%],x1[%],y[%],z[%],v[%] y0[%],y1[%],z[%],v[%] z0[%],z1[%],v[%] v0[%],v1[%] (noargs)") )
+		COMPREPLY=( $(compgen -W "x0[%],x1[%],y[%],z[%],v[%] y0[%],y1[%],z[%],v[%] z0[%],z1[%],v[%] v0[%],v1[%] (noarg)") )
 		return 0
 		;;
 		"-v" | "--v")
@@ -3903,79 +3933,79 @@ _gmic_def()
 		return 0
 		;;
 		"-+" | "--+")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-&" | "--&")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-<<" | "--<<")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"->>" | "-->>")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-/" | "--/")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-==" | "--==")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"->=" | "-->=")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"->" | "-->")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-<=" | "--<=")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-<" | "--<")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-//" | "--//")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-%" | "--%")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-**" | "--**")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-*" | "--*")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-!=" | "--!=")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-|" | "--|")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-^" | "--^")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"--" | "---")
-		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noargs)") )
+		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
 		"-c" | "--c")
-		COMPREPLY=( $(compgen -W "{value0[%]|[image0]},{value1[%]|[image1]} [image] (noargs)") )
+		COMPREPLY=( $(compgen -W "{value0[%]|[image0]},{value1[%]|[image1]} [image] (noarg)") )
 		return 0
 		;;
 		"-f" | "--f")
@@ -4035,7 +4065,7 @@ _gmic_def()
 		return 0
 		;;
 		"-s" | "--s")
-		COMPREPLY=( $(compgen -W "{x|y|z|c}..{x|y|z|c},_nb_parts!=0 keep_splitting_values={+|-},value1,value2,... (noargs)") )
+		COMPREPLY=( $(compgen -W "{x|y|z|c}..{x|y|z|c},_nb_parts!=0 keep_splitting_values={+|-},value1,value2,... (noarg)") )
 		return 0
 		;;
 		"-y" | "--y")
@@ -4047,7 +4077,7 @@ _gmic_def()
 		return 0
 		;;
 		"-g" | "--g")
-		COMPREPLY=( $(compgen -W "{x|y|z}..{x|y|z},_scheme (noargs)") )
+		COMPREPLY=( $(compgen -W "{x|y|z}..{x|y|z},_scheme (noarg)") )
 		return 0
 		;;
 		"-j" | "--j")
@@ -4083,7 +4113,7 @@ _gmic_def()
 		return 0
 		;;
 		"-l3d" | "--l3d")
-		COMPREPLY=( $(compgen -W "position_x,position_y,position_z [texture] (noargs)") )
+		COMPREPLY=( $(compgen -W "position_x,position_y,position_z [texture] (noarg)") )
 		return 0
 		;;
 		"-m3d" | "--m3d")
