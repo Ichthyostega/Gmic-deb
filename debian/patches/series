@@ -1,5 +1,4 @@
-no-mtune-generic-option
+disable-optimization-in-upstream-makefile
 ldconfig-symlink-referencing-wrong-file
 do_not_strip_in_Makefile
-disable-optimization-in-upstream-makefile
 build-zart

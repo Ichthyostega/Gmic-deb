@@ -1,15 +1,15 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -314,7 +314,7 @@ lib:
+@@ -334,7 +334,7 @@ lib:
  
  zart: lib
  ifneq ($(OS),Darwin)
 -	cd ../zart && qmake-qt4 zart.pro && $(MAKE) && strip zart
-+	cd ../zart && qmake-qt4 zart.pro && $(MAKE)
++	cd ../zart && qmake-qt4 zart.pro && $(MAKE) # && strip zart
  else
  	cd ../zart && qmake zart.pro && $(MAKE) "CFLAGS=$(STD_MACOSX_CFLAGS) $(OPT_CFLAGS)" "SUBLIBS=$(STD_MACOSX_LIBS) $(OPT_LIBS)"
  endif
-@@ -360,7 +360,7 @@ gmic_gimp.o: gmic.cpp CImg.h
+@@ -380,7 +380,7 @@ gmic_gimp.o: gmic.cpp CImg.h
  	$(CC) -o gmic_gimp.o -c gmic.cpp $(CFLAGS) -Dgmic_gimp
  gmic_gimp : gmic_gimp.o gmic_gimp.cpp
  	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o `gimptool-2.0$(EXE) --cflags` $(CFLAGS) `gimptool-2.0$(EXE) --libs` $(LIBS)

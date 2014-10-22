@@ -1,6 +1,6 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -398,8 +398,9 @@ ifneq ($(OS),Darwin)
+@@ -418,8 +418,9 @@ ifneq ($(OS),Darwin)
  	mkdir -p $(DESTDIR)$(USR)/share
  	mkdir -p $(DESTDIR)$(USR)/$(LIB)
  	cp -f libgmic.so $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.0
