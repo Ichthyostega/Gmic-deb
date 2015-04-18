@@ -1,11 +1,11 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -311,7 +311,7 @@ ifeq ($(OS),Unix)
+@@ -334,7 +334,7 @@ ifeq ($(OS),Unix)
  	@echo "**"
  	@echo "** Generic unix configuration."
  	@echo "**"
 -	$(MAKE) linux gimp lib  # zart
-+	$(MAKE) linux gimp lib zart
++	$(MAKE) linux gimp lib  zart
  else
  ifeq ($(OS),Darwin)
  	@echo "**"

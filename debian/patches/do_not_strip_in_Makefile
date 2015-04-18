@@ -1,20 +1,20 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -334,7 +334,7 @@ lib:
+@@ -357,7 +357,7 @@ lib:
  
  zart: lib
  ifneq ($(OS),Darwin)
 -	cd ../zart && qmake-qt4 zart.pro && $(MAKE) && strip zart
-+	cd ../zart && qmake-qt4 zart.pro && $(MAKE) # && strip zart
++	cd ../zart && qmake-qt4 zart.pro && $(MAKE) #&& strip zart
  else
  	cd ../zart && qmake zart.pro && $(MAKE) "CFLAGS=$(STD_MACOSX_CFLAGS) $(OPT_CFLAGS)" "SUBLIBS=$(STD_MACOSX_LIBS) $(OPT_LIBS)"
  endif
-@@ -380,7 +380,7 @@ gmic_gimp.o: gmic.cpp CImg.h
- 	$(CC) -o gmic_gimp.o -c gmic.cpp $(CFLAGS) -Dgmic_gimp
- gmic_gimp : gmic_gimp.o gmic_gimp.cpp
- 	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o `gimptool-2.0$(EXE) --cflags` $(CFLAGS) `gimptool-2.0$(EXE) --libs` $(LIBS)
--	strip gmic_gimp$(EXE)
-+	#strip gmic_gimp$(EXE)
+@@ -365,7 +365,7 @@ endif
+ # Entries for other configurations.
+ linux:
+ 	$(MAKE) "CFLAGS=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LIBS=$(STD_UNIX_LIBS)" gmic
+-	strip gmic$(EXE)
++	#strip gmic$(EXE)
  
- gmic: gmic.cpp gmic.h CImg.h
- 	$(CC) -o gmic gmic.cpp $(CFLAGS) -Dgmic_main $(LIBS)
+ solaris:
+ 	$(MAKE) "CFLAGS=$(STD_UNIX_CFLAGS) $(OPT_CFLAGS)" "LIBS=$(STD_UNIX_LIBS) -R$(USR)/X11R6/lib -lrt -lnsl -lsocket" gmic

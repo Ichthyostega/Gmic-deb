@@ -1,6 +1,6 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -105,7 +105,7 @@ ifeq ($(CC),g++)
+@@ -111,7 +111,7 @@ ifeq ($(notdir $(CC)),g++)
  ifeq ($(OS),Darwin)
  OPT_CFLAGS = -O2 -mtune=generic
  else
@@ -8,4 +8,4 @@
 +OPT_CFLAGS = -fno-ipa-sra
  endif
  else
- ifeq ($(CC),icpc)
+ ifeq ($(notdir $(CC)),icpc)
