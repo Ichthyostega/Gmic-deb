@@ -21,7 +21,7 @@
  * modify and/ or redistribute the software under the terms of the CeCILL
  * license as circulated by CEA, CNRS and INRIA at the following URL
  * "http://www.cecill.info". See also the directory "Licence" which comes
- * with this source code for the full text of the CeCILL licence. 
+ * with this source code for the full text of the CeCILL license. 
  * 
  * As a counterpart to the access to the source code and  rights to copy,
  * modify and redistribute granted by the license, users are provided only
@@ -54,8 +54,8 @@ class QPaintEvent;
 class ImageView : public QWidget {
   Q_OBJECT;
  public:
+
   ImageView( QWidget * parent = 0 );
-  void paintEvent( QPaintEvent * );
   
   inline QImage & image();
   inline QMutex & imageMutex();
@@ -67,16 +67,21 @@ class ImageView : public QWidget {
   void checkSize();
 
  protected:
-  void mousePressEvent( QMouseEvent * event );
-  void mouseReleaseEvent( QMouseEvent * event );
-  void mouseMoveEvent( QMouseEvent * event );
-  void resizeEvent ( QResizeEvent * event );
+  void paintEvent( QPaintEvent * );
+  void mousePressEvent( QMouseEvent * );
+  void mouseReleaseEvent( QMouseEvent * );
+  void mouseMoveEvent( QMouseEvent * );
+  void resizeEvent ( QResizeEvent * );
+  void keyPressEvent( QKeyEvent * );
+  void closeEvent( QCloseEvent * );
 
  signals:
   void mousePress( QMouseEvent * );
   void mouseMove( QMouseEvent * );
-
- private:
+  void aboutToClose();
+  void spaceBarPressed();
+  void escapePressed();
+private:
   QMouseEvent mapMousePositionToImage( QMouseEvent * e );
   QImage _image;
   QMutex _imageMutex;

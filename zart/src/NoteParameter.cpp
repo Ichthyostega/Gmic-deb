@@ -1,8 +1,9 @@
 /** -*- mode: c++ ; c-basic-offset: 3 -*-
- * @file   WebcamGrabber.cpp
+ * @file   NoteParameter.cpp
  * @author Sebastien Fourey
- * @date   July 2010
- * @brief Definition of methods of the class WebcamGrabber
+ * @date   Nov 2014
+ * 
+ * @brief  Declaration of the class NoteParameter
  * 
  * This file is part of the ZArt software's source code.
  * 
@@ -21,7 +22,7 @@
  * modify and/ or redistribute the software under the terms of the CeCILL
  * license as circulated by CEA, CNRS and INRIA at the following URL
  * "http://www.cecill.info". See also the directory "Licence" which comes
- * with this source code for the full text of the CeCILL licence. 
+ * with this source code for the full text of the CeCILL license. 
  * 
  * As a counterpart to the access to the source code and  rights to copy,
  * modify and redistribute granted by the license, users are provided only
@@ -41,76 +42,48 @@
  * same conditions as regards security. 
  * 
  * The fact that you are presently reading this means that you have had
- * knowledge of the CeCILL license and that you accept its terms. 
+ * knowledge of the CeCILL license and that you accept its terms.
  */
+#include "NoteParameter.h"
 #include "Common.h"
-#include "WebcamGrabber.h"
-#include <QCoreApplication>
-#include <QDir>
-#include <QStringList>
-using namespace std;
+#include <QLabel>
+#include <QGridLayout>
 
-WebcamGrabber::WebcamGrabber()
-{   
-   _capture = 0;
-   _image = 0;
-   _width = 0;
-   _height = 0;
+NoteParameter::NoteParameter(QDomNode node, QObject *parent)
+  : AbstractParameter(parent),
+    _label(0)
+{
+   _text = node.attributes().namedItem( "text" ).nodeValue();
 }
 
-WebcamGrabber::~WebcamGrabber()
+NoteParameter::~NoteParameter()
 {
-   cvReleaseCapture( &_capture );
+  delete _label;
 }
 
 void
-WebcamGrabber::capture()
+NoteParameter::addTo(QWidget * widget, int row)
 {
-   _image = cvQueryFrame( _capture );
+  QGridLayout * grid = dynamic_cast<QGridLayout*>( widget->layout() );
+  if ( ! grid ) return;
+  delete _label;
+  _label = new QLabel(_text,widget);
+  _label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
+  _label->setWordWrap(true);
+  grid->addWidget(_label,row,0,1,3);
 }
 
-QList<int>
-WebcamGrabber::getWebcamList()
+QString
+NoteParameter::textValue() const
 {
-   QList<int> camList;
-#if defined(_IS_UNIX_)
-   int i = 0;
-   for ( i = 0; i < 6 ; ++i ) {
-      QFile file(QString("/dev/video%1").arg(i));
-      if ( file.open(QFile::ReadOnly) ) {
-         file.close();
-         camList.push_back(i);
-      }
-   }
-#else
-   CvCapture *capture = 0;
-   int i = 0;
-   for ( i = 0; i < 6 ; ++i ) {
-      capture = cvCaptureFromCAM( i );
-      if ( capture ) {
-	 cvReleaseCapture( &capture );
-	 camList.push_back(i);
-      }
-   }
-#endif
-   return camList;
+  return QString::null;
 }
 
 void
-WebcamGrabber::setCameraIndex( int i )
+NoteParameter::reset()
 {
-  if ( _capture ) {
-    cvReleaseCapture( &_capture );
-  }
-  _capture = cvCaptureFromCAM( i );
-  _image = cvQueryFrame( _capture );
-  if ( _image->width != 640 || _image->height != 480 ) {
-     cvSetCaptureProperty(_capture,CV_CAP_PROP_FRAME_WIDTH,640);
-     cvSetCaptureProperty(_capture,CV_CAP_PROP_FRAME_HEIGHT,480);
-     _image = cvQueryFrame( _capture );
-     _image = cvQueryFrame( _capture );
-  }
-  _width = _image->width;
-  _height = _image->height;
-  _cameraIndex = i;
+}
+
+void NoteParameter::saveValueInDOM()
+{
 }

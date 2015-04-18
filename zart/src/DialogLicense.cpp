@@ -1,8 +1,8 @@
 /** -*- mode: c++ ; c-basic-offset: 3 -*-
- * @file   DialogLicence.cpp
+ * @file   DialogLicense.cpp
  * @author Sebastien Fourey
  * @date   Feb. 2012
- * @brief  Definition of methods of DialogLicence.
+ * @brief  Definition of methods of DialogLicense.
  * 
  * This file is part of the ZArt software's source code.
  * 
@@ -20,8 +20,8 @@
  * abiding by the rules of distribution of free software.  You can  use, 
  * modify and/ or redistribute the software under the terms of the CeCILL
  * license as circulated by CEA, CNRS and INRIA at the following URL
- * "http://www.cecill.info". See also the directory "Licence" which comes
- * with this source code for the full text of the CeCILL licence. 
+ * "http://www.cecill.info". See also the directory "License" which comes
+ * with this source code for the full text of the CeCILL license. 
  * 
  * As a counterpart to the access to the source code and  rights to copy,
  * modify and redistribute granted by the license, users are provided only
@@ -43,20 +43,20 @@
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL license and that you accept its terms.
  */
-#include "DialogLicence.h"
+#include "DialogLicense.h"
 #include "Common.h"
 #include <QFile>
 
 /**
  * Constructor
  */
-DialogLicence::DialogLicence( QWidget * parent )
+DialogLicense::DialogLicense( QWidget * parent )
    :QDialog( parent )
 {
    setupUi( this );
-   QFile licence(":/Licence_CeCILL_V2-en.html");
-   licence.open(QFile::ReadOnly);
-   _text->setText(licence.readAll());
+   QFile license(":/Licence_CeCILL_V2-en.html");
+   license.open(QFile::ReadOnly);
+   _text->setText(license.readAll());
 }
 
 

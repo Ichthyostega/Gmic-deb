@@ -21,7 +21,7 @@
  * modify and/ or redistribute the software under the terms of the CeCILL
  * license as circulated by CEA, CNRS and INRIA at the following URL
  * "http://www.cecill.info". See also the directory "Licence" which comes
- * with this source code for the full text of the CeCILL licence.
+ * with this source code for the full text of the CeCILL license.
  *
  * As a counterpart to the access to the source code and  rights to copy,
  * modify and redistribute granted by the license, users are provided only
@@ -50,59 +50,70 @@
 #include <QThread>
 #include "Common.h"
 #include "CImg.h"
+#include "CriticalRef.h"
 #include "gmic.h"
-class WebcamGrabber;
+class ImageSource;
 class QMutex;
 class QImage;
+class QSemaphore;
 
 class FilterThread : public QThread {
+  Q_OBJECT
+public:
 
-  Q_OBJECT;
+  enum PreviewMode { Full, TopHalf, LeftHalf, BottomHalf, RightHalf, Original };
 
- public:
-
-  enum PreviewMode { Full, TopHalf, LeftHalf, BottomHalf, RightHalf, Camera };
-
-  FilterThread( WebcamGrabber & webcam,
-               const QString & command,
-               QImage * outputImage,
-               QMutex * imageMutex,
-               PreviewMode previewMode,
-               int frameSkip );
+  FilterThread( ImageSource & webcam,
+                const QString & command,
+                QImage * outputImage,
+                QMutex * imageMutex,
+                PreviewMode previewMode,
+                int frameSkip,
+                int fps,
+                QSemaphore * blockingSemaphore );
 
   virtual ~FilterThread();
 
   void run();
   void setMousePosition( int x, int y, int buttons );
 
- public slots:
+  void setArguments(const QString & );
+
+public slots:
 
   void setFrameSkip( int );
+  void setFPS( int );
   void setPreviewMode( PreviewMode );
   void stop();
 
- signals:
+signals:
 
-   void imageAvailable();
+  void imageAvailable();
+  void endOfCapture();
 
- private:
+private:
 
-   void setCommand( const QString & command );
+  void setCommand( const QString & command );
 
-   WebcamGrabber & _webcam;
-   QString _command;
-   QImage * _outputImage;
-   QMutex * _imageMutex;
-   PreviewMode _previewMode;
-   int _frameSkip;
-   bool _continue;
-   int _xMouse;
-   int _yMouse;
-   int _buttonsMouse;
-   // G'MIC related members
-   cimg_library::CImgList<float> _gmic_images;
-   cimg_library::CImgList<char> _gmic_images_names;
-   gmic _gmic;
+  ImageSource & _imageSource;
+  QString _command;
+  CriticalRef<QString> _arguments;
+  bool _commandUpdated;
+  QImage * _outputImage;
+  QMutex * _imageMutex;
+  QSemaphore * _blockingSemaphore;
+  PreviewMode _previewMode;
+  int _frameSkip;
+  unsigned long _frameInterval;
+  int _fps;
+  bool _continue;
+  int _xMouse;
+  int _yMouse;
+  int _buttonsMouse;
+  // G'MIC related members
+  cimg_library::CImgList<float> _gmic_images;
+  cimg_library::CImgList<char> _gmic_images_names;
+  gmic * _gmic;
 };
 
 #endif // _FILTERTHREAD_H_
