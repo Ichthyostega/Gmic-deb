@@ -1,8 +1,9 @@
 /** -*- mode: c++ ; c-basic-offset: 3 -*-
- * @file   WebcamGrabber.h
+ * @file   ChoiceParameter.cpp
  * @author Sebastien Fourey
- * @date   July 2010
- * @brief  Declaration of the class ImageFilter
+ * @date   Nov 2014
+ *
+ * @brief  Declaration of the class AbstractParameter
  *
  * This file is part of the ZArt software's source code.
  *
@@ -21,7 +22,7 @@
  * modify and/ or redistribute the software under the terms of the CeCILL
  * license as circulated by CEA, CNRS and INRIA at the following URL
  * "http://www.cecill.info". See also the directory "Licence" which comes
- * with this source code for the full text of the CeCILL licence.
+ * with this source code for the full text of the CeCILL license.
  *
  * As a counterpart to the access to the source code and  rights to copy,
  * modify and redistribute granted by the license, users are provided only
@@ -42,50 +43,84 @@
  *
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL license and that you accept its terms.
- *
  */
+#include "ChoiceParameter.h"
+#include "Common.h"
+#include <QWidget>
+#include <QGridLayout>
+#include <QComboBox>
+#include <QLabel>
+#include <QDomNamedNodeMap>
 
-#ifndef _WEBCAMGRABBER_H_
-#define _WEBCAMGRABBER_H_
+ChoiceParameter::ChoiceParameter(QDomNode node, QObject *parent)
+  : AbstractParameter(parent),
+    _node(node),
+    _label(0),
+    _comboBox(0)
+{
+  _name = node.attributes().namedItem( "name" ).nodeValue();
 
-#if defined(HAS_OPENCV2_HEADERS) || defined(OPENCV2_HEADERS)
-#include <opencv2/core/core_c.h>
-#include <opencv2/highgui/highgui_c.h>
-#else
-#include <cv.h>
-#include <highgui.h>
-#endif
-#include <QList>
+  QString def = node.toElement().attribute("default","0");
+  QString value = node.toElement().attribute("savedValue",def);
+  _default = def.toInt();
+  _value = value.toInt();
+}
 
-class WebcamGrabber {
+ChoiceParameter::~ChoiceParameter()
+{
+  delete _comboBox;
+  delete _label;
+}
 
-public:
+void
+ChoiceParameter::addTo(QWidget * widget, int row)
+{
+  QGridLayout * grid = dynamic_cast<QGridLayout*>( widget->layout() );
+  if ( ! grid ) return;
+  delete _comboBox;
+  delete _label;
 
-   WebcamGrabber();
+  _comboBox = new QComboBox(widget);
+  QDomNamedNodeMap attributes = _node.attributes();
+  bool done = false;
+  for ( int i = 0; i < 50 && !done; ++i ) {
+    QDomAttr attr = attributes.namedItem(QString("choice%1").arg(i)).toAttr();
+    if ( attr.isNull() ) {
+      done = true;
+    } else {
+      _comboBox->addItem(attr.nodeValue(),QVariant(i));
+    }
+  }
+  _comboBox->setCurrentIndex(_value);
 
-   virtual ~WebcamGrabber();
+  grid->addWidget(_label = new QLabel(_name,widget),row,0,1,1);
+  grid->addWidget(_comboBox,row,1,1,2);
+  connect( _comboBox, SIGNAL(currentIndexChanged(int)),
+           this, SLOT(onComboBoxIndexChanged(int)));
+}
 
-   inline IplImage * image() const;
+QString
+ChoiceParameter::textValue() const
+{
+  return QString("%1").arg(_comboBox->currentIndex());
+}
 
-   inline int width();
-   inline int height();
-   inline int cameraIndex();
+void
+ChoiceParameter::reset()
+{
+  _comboBox->setCurrentIndex(_default);
+  _value = _default;
+}
 
-   static QList<int> getWebcamList();
+void ChoiceParameter::saveValueInDOM()
+{
+  _node.toElement().setAttribute("savedValue",_comboBox->currentIndex());
+}
 
-   void capture();
-   void setCameraIndex( int i );
+void
+ChoiceParameter::onComboBoxIndexChanged(int i)
+{
+  _value = i;
+  emit valueChanged();
+}
 
-private:
-
-   CvCapture *_capture;
-   IplImage *_image;
-   int _width;
-   int _height;
-   int _cameraIndex;
-   int _min;
-};
-
-#include "WebcamGrabber.ih"
-
-#endif

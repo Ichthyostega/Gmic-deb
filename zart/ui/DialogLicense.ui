@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DialogLicence</class>
- <widget class="QDialog" name="DialogLicence">
+ <class>DialogLicense</class>
+ <widget class="QDialog" name="DialogLicense">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,13 +11,13 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>LIcence</string>
+   <string>License</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>ZArt licence</string>
+      <string>ZArt license</string>
      </property>
     </widget>
    </item>
@@ -72,7 +72,7 @@
   <connection>
    <sender>_pkOk</sender>
    <signal>pressed()</signal>
-   <receiver>DialogLicence</receiver>
+   <receiver>DialogLicense</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">

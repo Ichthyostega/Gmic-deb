@@ -21,7 +21,7 @@
  * modify and/ or redistribute the software under the terms of the CeCILL
  * license as circulated by CEA, CNRS and INRIA at the following URL
  * "http://www.cecill.info". See also the directory "Licence" which comes
- * with this source code for the full text of the CeCILL licence. 
+ * with this source code for the full text of the CeCILL license. 
  * 
  * As a counterpart to the access to the source code and  rights to copy,
  * modify and redistribute granted by the license, users are provided only
@@ -48,8 +48,17 @@
 #define _COMMON_H_
 
 #include <iostream>
-#define SHOW( V ) std::cout << " " #V " = " << ( V ) << std::endl
 
-#define ZART_VERSION "1.0.2"
+#ifdef _ZART_DEBUG_
+#define SHOW( V ) std::cerr << " " #V " = " << ( V ) << std::endl << std::flush
+#define QSHOW( V ) std::cerr << " " #V " = " << ( QString("%1").arg( V ).toLatin1().constData() ) << std::endl << std::flush
+#define CERR std::cerr
+#else
+#define SHOW( V ) if ( false ) std::cerr << std::endl
+#define QSHOW( V ) if ( false ) std::cerr << std::endl
+#define CERR if ( false ) std::cerr
+#endif
+
+#define ZART_VERSION "3.0.0"
 
 #endif

@@ -21,7 +21,7 @@
  * modify and/ or redistribute the software under the terms of the CeCILL
  * license as circulated by CEA, CNRS and INRIA at the following URL
  * "http://www.cecill.info". See also the directory "Licence" which comes
- * with this source code for the full text of the CeCILL licence.
+ * with this source code for the full text of the CeCILL license.
  *
  * As a counterpart to the access to the source code and  rights to copy,
  * modify and redistribute granted by the license, users are provided only
@@ -54,6 +54,7 @@
 #endif
 
 #include "CImg.h"
+#include <QMutex>
 
 class QImage;
 
@@ -63,6 +64,7 @@ public:
    enum MergeDirection { MergeTop, MergeLeft, MergeBottom, MergeRight };
 
    static void convert( const IplImage * in, QImage * out );
+   static void convert( const QImage & in, IplImage ** out  );
    static void convert( const IplImage * in, cimg_library::CImg<float> & out );
    static void convert( const cimg_library::CImg<float> & in, QImage * out );
    static void merge( IplImage * iplImage,

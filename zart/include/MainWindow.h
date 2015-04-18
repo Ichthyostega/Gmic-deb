@@ -21,7 +21,7 @@
  * modify and/ or redistribute the software under the terms of the CeCILL
  * license as circulated by CEA, CNRS and INRIA at the following URL
  * "http://www.cecill.info". See also the directory "Licence" which comes
- * with this source code for the full text of the CeCILL licence. 
+ * with this source code for the full text of the CeCILL license. 
  * 
  * As a counterpart to the access to the source code and  rights to copy,
  * modify and redistribute granted by the license, users are provided only
@@ -51,9 +51,17 @@
 #include <QTimer>
 #include <QTime>
 #include <QLineEdit>
+#include <QDomNode>
+#include <QVector>
 #include "ui_MainWindow.h"
-#include "WebcamGrabber.h"
+#include "WebcamSource.h"
+#include "StillImageSource.h"
+#include "VideoFileSource.h"
 #include "FilterThread.h"
+#include <QMutex>
+#include <QSemaphore>
+
+
 class QScrollArea;
 class ImageView;
 class QSpinBox;
@@ -61,58 +69,93 @@ class QComboBox;
 class QNetworkReply;
 class QNetworkAccessManager;
 class QMenu;
+class TreeWidgetPresetItem;
+class FullScreenWidget;
 
 class MainWindow : public QMainWindow, public Ui::MainWindow {
    Q_OBJECT
 public:
 
+
    MainWindow( QWidget * parent = 0 );
    ~MainWindow();
    QString getPreset( const QString & name );
 
+   enum Source { Webcam, StillImage, Video };
+   enum DisplayMode { InWindow, FullScreen };
+
 public slots:
 
    void play();
-   void stop();
+   void stop(bool restart = false);
    void onImageAvailable();
+   void onEndOfSource();
+   void onButtonPlay(bool);
    void commandModified();
    void presetClicked( QTreeWidgetItem * item, int column );
-   void presetDoubleClicked( QTreeWidgetItem * item, int column );
 
    void imageViewMouseEvent( QMouseEvent * );
    void snapshot();
    void about();
-   void licence();
+   void license();
    void visitGMIC();
-   void setFrameSkip(int );
+   void setWebcamSkipFrames(int );
+   void setVideoSkipFrames(int );
+   void setImageFPS(int );
+   void setVideoFPS(int );
    void setPresetsFile( const QString & = QString() );
    void savePresetsFile();
 
-   void onWebcamSelected( QAction * );
+   void onWebcamComboChanged( int index );
    void onUseOnlinePresets( bool );
    void onUseBuiltinPresets( bool );
+   void onReloadPresets();
    void networkReplyFinished(QNetworkReply*);
    void onPreviewModeChanged( int index );
    void onRightPanel( bool );
-   void onPlay();
+   void onComboSourceChanged( int );
+   void onOpenImageFile();
+   void onOpenVideoFile();
+   void updateWindowTitle();
+   void onVideoFileLoop(bool);
+   void changePlayButtonAppearence(bool);
+   void onFilterThreadFinished();
+   void onCommandParametersChanged();
+   void enterFullScreenMode();
+   void leaveFullScreenMode();
 
 private:
 
-   void addPresets( const QDomElement &, QTreeWidgetItem * );
+   void setPresets( const QDomElement & );
+   void addPresets( const QDomElement &,
+                    TreeWidgetPresetItem *,
+                    TreeWidgetPresetItem * );
+   void setCurrentPreset( QDomNode node );
+   void showOneSourceImage();
 
    int _firstWebcamIndex;
    int _secondWebcamIndex;
-   WebcamGrabber _webcam;
+   WebcamSource _webcam;
+   StillImageSource _stillImage;
+   VideoFileSource _videoFile;
+   ImageSource * _currentSource;
    FilterThread * _filterThread;
    QDomDocument _presets;
+   QDomNode _currentPresetNode;
    QString _currentDir;
    QString _imageFilters;
    QNetworkAccessManager * _networkManager;
    QButtonGroup * _bgZoom;
    QString _filtersPath;
-
    QAction * _onlinePresetsAction;
    QAction * _builtInPresetsAction;
+   QAction * _startStopAction;
+   Source _source;
+   DisplayMode _displayMode;
+   FullScreenWidget * _fullScreenWidget;
+   int _presetsCount;
+   QSemaphore _filterThreadSemaphore;
+   bool _zeroFPS;
 };
 
 #endif

@@ -60,11 +60,11 @@ int main() {
   std::fprintf(stderr,"\n- 1st step : Create input list of images.\n");
 
   gmic_list<float> images;                            // List of images, will contain all images pixel data.
-  gmic_list<char> images_names;                       // List of images names. Can be left empty if no names are associated to images.
+  gmic_list<char> images_names;                       // List of images names. Can be left empty if no names.
   images.assign(5);                                   // Assign list to contain 5 images.
   for (unsigned int i = 0; i<images._width; ++i) {
     gmic_image<float>& img = images._data[i];
-    img.assign(256,256,1,3);                          // Assign i-th image of the list to be of size 256x256x1x3 (2d color image).
+    img.assign(256,256,1,3);                          // Assign i-th image with size 256x256x1x3 (2d color image).
 
     std::fprintf(stderr,"    Input image %u =  %ux%ux%ux%u, buffer : %p\n",i,
                  images._data[i]._width,
@@ -78,7 +78,7 @@ int main() {
     for (unsigned int c = 0; c<img._spectrum; ++c)
       for (unsigned int y = 0; y<img._height; ++y)
         for (unsigned int x = 0; x<img._width; ++x)
-          *(ptr++) = std::cos(x/(1.+i))*std::sin(y/(1.+i+c));
+          *(ptr++) = std::cos(x/(1. + i))*std::sin(y/(1. + i + c));
   }
 
   // Second step : Call G'MIC API to process input images.
@@ -130,7 +130,7 @@ int main() {
 
   // Fourth step : Free image resources.
   //-------------------------------------
-  images.assign(0);
+  images.assign(0U);
 
   // That's it !
   //-------------

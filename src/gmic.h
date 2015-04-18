@@ -4,7 +4,7 @@
  #                ( C++ header file )
  #
  #  Description : GREYC's Magic for Image Computing
- #                ( http://gmic.sourceforge.net )
+ #                ( http://gmic.eu )
  #                This file is also a part of the CImg Library project.
  #                ( http://cimg.sourceforge.net )
  #
@@ -46,39 +46,30 @@
 */
 #include <locale>
 #ifndef gmic_version
-#define gmic_version 1601
+#define gmic_version 1620
 
 // Define environment variables.
-#ifndef gmic_is_beta
-#define gmic_is_beta 0
-#endif // #ifndef gmic_is_beta
+#ifndef gmic_pixel_type
+#define gmic_pixel_type float
+#endif
 #ifndef cimg_verbosity
 #define cimg_verbosity 1
 #endif // #ifndef cimg_verbosity
+#ifdef _MSC_VER
+#pragma comment(linker,"/STACK:6291456")
+#pragma inline_depth(2)
+#endif // #ifdef _MSC_VER
 
 #ifdef gmic_build
 #define cimg_plugin "gmic.cpp"
 #include "./CImg.h"
 #if cimg_OS==2
 #include <process.h>
-#ifdef _MSC_VER
-#pragma comment(linker,"/STACK:16777216")
-#endif // #ifdef _MSC_VER
+#include <psapi.h>
 #elif cimg_OS==1
 #include <cerrno>
 #include <sys/resource.h>
 #include <signal.h>
-static struct gmic_increase_stack {
-  gmic_increase_stack() {
-    const rlim_t requested_stack_size = 16777216;
-    struct rlimit rl;
-    const int result = getrlimit(RLIMIT_STACK,&rl);
-    if (!result && rl.rlim_cur<requested_stack_size) {
-      rl.rlim_cur = requested_stack_size;
-      setrlimit(RLIMIT_STACK,&rl);
-    }
-  }
-} _gmic_increase_stack;
 #endif // #if cimg_OS==2
 
 #else // #ifdef gmic_build
@@ -133,6 +124,39 @@ namespace cimg_library {
 const char _dollar = 23, _lbrace = 24, _rbrace = 25, _comma = 26, _dquote = 28, _arobace = 29,
   _newline = 30;
 
+// Ellipsize a string.
+inline char *gmic_ellipsize(char *const s, const unsigned int l=80,
+                            const bool is_ending=true) { // Work in-place.
+  if (l<5) return gmic_ellipsize(s,5);
+  const unsigned int ls = (unsigned int)std::strlen(s);
+  if (ls<=l) return s;
+  if (is_ending) std::strcpy(s + l - 5,"(...)");
+  else {
+    const unsigned int ll = (l - 5)/2 + 1 - (l%2), lr = l - ll - 5;
+    std::strcpy(s + ll,"(...)");
+    std::memmove(s + ll + 5,s + ls - lr,lr);
+  }
+  s[l] = 0;
+  return s;
+}
+inline char *gmic_ellipsize(const char *const s, char *const res, const unsigned int l=80,
+                            const bool is_ending=true) { // Return a new string.
+  if (l<5) return gmic_ellipsize(s,res,5);
+  const unsigned int ls = (unsigned int)std::strlen(s);
+  if (ls<=l) { std::strcpy(res,s); return res; }
+  if (is_ending) {
+    std::strncpy(res,s,l - 5);
+    std::strcpy(res + l -5,"(...)");
+  } else {
+    const unsigned int ll = (l - 5)/2 + 1 - (l%2), lr = l - ll - 5;
+    std::strncpy(res,s,ll);
+    std::strcpy(res + ll,"(...)");
+    std::strncpy(res + ll + 5,s + ls - lr,lr);
+  }
+  res[l] = 0;
+  return res;
+}
+
 // Replace special characters in a string.
 inline char *gmic_strreplace(char *const str) {
   for (char *s = str ; *s; ++s) {
@@ -144,6 +168,18 @@ inline char *gmic_strreplace(char *const str) {
   return str;
 }
 
+// Compute the basename of a filename.
+inline const char* gmic_basename(const char *const str)  {
+  if (!str) return str;
+  const unsigned int l = (unsigned int)std::strlen(str);
+  if (*str=='[' && (str[l - 1]==']' || str[l - 1]=='.')) return str;
+  const char *p = 0, *np = str;
+  while (np>=str && (p=np)) np = std::strchr(np,'/') + 1;
+  np = p;
+  while (np>=str && (p=np)) np = std::strchr(np,'\\') + 1;
+  return p;
+}
+
 // Define the G'MIC exception class.
 //----------------------------------
 struct gmic_exception {
@@ -153,11 +189,11 @@ struct gmic_exception {
 
   gmic_exception(const char *const command, const char *const message) {
     if (command) {
-      _command_help.assign(std::strlen(command)+1,1,1,1);
+      _command_help.assign((unsigned int)std::strlen(command) + 1,1,1,1);
       std::strcpy(_command_help._data,command);
     }
     if (message) {
-      _message.assign(std::strlen(message)+1,1,1,1);
+      _message.assign((unsigned int)std::strlen(message) + 1,1,1,1);
       std::strcpy(_message._data,message);
     }
   }
@@ -182,21 +218,21 @@ struct gmic {
   gmic(const char *const commands_line,
        const char *const custom_commands=0,
        const bool include_default_commands=true,
-       float *const p_progress=0, int *const p_is_cancel=0);
+       float *const p_progress=0, bool *const p_is_cancel=0);
 
   template<typename T>
   gmic(const char *const commands_line,
        gmic_list<T>& images, gmic_list<char>& images_names,
        const char *const custom_commands=0,
        const bool include_default_commands=true,
-       float *const p_progress=0, int *const p_is_cancel=0);
+       float *const p_progress=0, bool *const p_is_cancel=0);
 
   ~gmic();
 
   // Methods to call interpreter on an already constructed gmic instance.
   gmic& run(const char *const commands_line,
-            float *const p_progress=0, int *const p_is_cancel=0) {
-    gmic_list<float> images;
+            float *const p_progress=0, bool *const p_is_cancel=0) {
+    gmic_list<gmic_pixel_type> images;
     gmic_list<char> images_names;
     return run(commands_line,images,images_names,
                p_progress,p_is_cancel);
@@ -205,7 +241,7 @@ struct gmic {
   template<typename T>
   gmic& run(const char *const commands_line,
             gmic_list<T> &images, gmic_list<char> &images_names,
-            float *const p_progress=0, int *const p_is_cancel=0) {
+            float *const p_progress=0, bool *const p_is_cancel=0) {
     starting_commands_line = commands_line;
     is_debug = false;
     return _run(commands_line_to_CImgList(commands_line),
@@ -221,16 +257,18 @@ struct gmic {
   void _gmic(const char *const commands_line,
              gmic_list<T>& images, gmic_list<char>& images_names,
              const char *const custom_commands, const bool include_default_commands,
-             float *const p_progress, int *const p_is_cancel);
+             float *const p_progress, bool *const p_is_cancel);
+
+  static const gmic_image<char>& get_default_commands();
 
   gmic& set_variable(const char *const variable_name, const char *const variable_content);
 
   gmic& add_commands(const char *const data_commands, const char *const commands_file=0);
   gmic& add_commands(std::FILE *const file, const char *const filename=0);
 
-  gmic_image<char> scope2string() const;
-  gmic_image<char> scope2string(const gmic_image<unsigned int>& scope_selection) const;
-  gmic_image<char> scope2string(const gmic_image<unsigned int>* scope_selection) const;
+  gmic_image<char> scope2string(const bool is_debug=false) const;
+  gmic_image<char> scope2string(const gmic_image<unsigned int>& scope_selection, const bool is_debug=false) const;
+  gmic_image<char> scope2string(const gmic_image<unsigned int>* scope_selection, const bool is_debug=false) const;
 
   gmic_image<unsigned int> selection2cimg(const char *const string, const unsigned int indice_max,
                                           const gmic_list<char>& names,
@@ -239,7 +277,7 @@ struct gmic {
 
   gmic_image<char> selection2string(const gmic_image<unsigned int>& selection,
                                     const gmic_list<char>& images_names,
-                                    const bool display_selection) const;
+                                    const unsigned int display_selection) const;
 
   gmic_list<char> commands_line_to_CImgList(const char *const commands_line);
 
@@ -251,7 +289,7 @@ struct gmic {
   gmic_image<char> substitute_item(const char *const source,
                                    gmic_list<T>& images, gmic_list<char>& images_names,
                                    gmic_list<T>& parent_images, gmic_list<char>& parent_images_names,
-				   unsigned int variables_sizes[256]);
+				   const unsigned int *const variables_sizes);
   template<typename T>
   gmic& print(const gmic_list<T>& list, const gmic_image<unsigned int> *const scope_selection,
 	      const char *format, ...);
@@ -302,19 +340,20 @@ struct gmic {
   template<typename T>
   gmic& _run(const gmic_list<char>& commands_line,
              gmic_list<T> &images, gmic_list<char> &images_names,
-             float *const p_progress=0, int *const p_is_cancel=0);
+             float *const p_progress, bool *const p_is_cancel);
 
   template<typename T>
   gmic& _run(const gmic_list<char>& commands_line, unsigned int& position,
              gmic_list<T>& images, gmic_list<char>&images_names,
              gmic_list<T>& parent_images, gmic_list<char>& parent_images_names,
-             unsigned int variables_sizes[256],
-             bool *const is_noargs=0);
+             const unsigned int *const variables_sizes,
+             bool *const is_noargs);
 
   // Internal environment variables of the interpreter.
 #if cimg_display!=0
-  gmic_display instant_window[10];
+  gmic_display display_window[10];
 #endif // #if cimg_display!=0
+  static gmic_image<char> default_commands;
   gmic_list<char> *const commands, *const commands_names, *const commands_has_arguments,
     *const _variables, *const _variables_names, **const variables, **const variables_names,
     commands_files, scope;
@@ -323,10 +362,10 @@ struct gmic {
   gmic_image<char> status;
   float focale3d, light3d_x, light3d_y, light3d_z, specular_lightness3d, specular_shininess3d,
     _progress, *progress;
-  bool is_released, is_debug, is_start, is_return, is_quit, is_double3d, is_default_type,
-    is_debug_infos, check_elif;
+  bool is_released, is_debug, is_start, is_return, is_quit, is_double3d,
+    is_debug_info, check_elif;
   int verbosity, render3d, renderd3d;
-  volatile int _is_cancel, *is_cancel;
+  volatile bool _is_cancel, *is_cancel, is_cancel_thread;
   unsigned int nb_carriages, debug_filename, debug_line, cimg_exception_mode;
   unsigned long reference_time;
   const char *starting_commands_line;

@@ -21,7 +21,7 @@
  * modify and/ or redistribute the software under the terms of the CeCILL
  * license as circulated by CEA, CNRS and INRIA at the following URL
  * "http://www.cecill.info". See also the directory "Licence" which comes
- * with this source code for the full text of the CeCILL licence.
+ * with this source code for the full text of the CeCILL license.
  *
  * As a counterpart to the access to the source code and  rights to copy,
  * modify and redistribute granted by the license, users are provided only
@@ -45,7 +45,7 @@
  */
 #include "FilterThread.h"
 #include "ImageConverter.h"
-#include "WebcamGrabber.h"
+#include "WebcamSource.h"
 #include <QApplication>
 #include <QColor>
 #include <QFont>
@@ -53,32 +53,41 @@
 #include <QMutex>
 #include <QPainter>
 #include <QImage>
+#include <QTime>
+#include <QSemaphore>
 #include <iostream>
 using namespace cimg_library;
 
-FilterThread::FilterThread( WebcamGrabber & webcam,
+FilterThread::FilterThread(ImageSource & imageSource,
                            const QString & command,
                            QImage * outputImage,
                            QMutex * imageMutex,
                            PreviewMode previewMode,
-                           int frameSkip )
-   : _webcam( webcam ),
-     _outputImage( outputImage ),
-     _imageMutex( imageMutex ),
-     _previewMode( previewMode ),
-     _frameSkip( frameSkip ),
-     _continue( true ),
-     _xMouse( -1 ),
-     _yMouse( -1 ),
-     _buttonsMouse( 0 ),
-     _gmic_images(),
-     _gmic("-v - ")
+                           int frameSkip,
+                           int fps,
+                           QSemaphore * blockingSemaphore )
+  : _imageSource( imageSource ),
+    _arguments(new QString("")),
+    _commandUpdated(true),
+    _outputImage( outputImage ),
+    _imageMutex( imageMutex ),
+    _blockingSemaphore( blockingSemaphore ),
+    _previewMode( previewMode ),
+    _frameSkip( frameSkip ),
+    _continue( true ),
+    _xMouse( -1 ),
+    _yMouse( -1 ),
+    _buttonsMouse( 0 ),
+    _gmic_images(),
+    _gmic(0)
 {
    setCommand(command);
+   setFPS(fps);
 }
 
 FilterThread::~FilterThread()
 {
+  delete _gmic;
 }
 
 void
@@ -90,116 +99,166 @@ FilterThread::setMousePosition( int x, int y, int buttons )
 }
 
 void
+FilterThread::setArguments(const QString & str)
+{
+  _arguments.lock();
+  _arguments.object() = str;
+  _arguments.unlock();
+}
+
+void
 FilterThread::setPreviewMode( PreviewMode pm )
 {
-   _previewMode = pm;
+  _previewMode = pm;
 }
 
 void
 FilterThread::setFrameSkip( int n )
 {
-   _frameSkip = n;
+  _frameSkip = n;
+}
+
+void
+FilterThread::setFPS(int fps)
+{
+  _fps = fps;
+  _frameInterval = 0;
+  if ( fps > 0 ) _frameInterval = 1000/fps;
 }
 
 void
 FilterThread::stop()
 {
-   _continue = false;
+  _continue = false;
+  _fps = 1;
+  _frameInterval = 0;
 }
 
 void
 FilterThread::run()
 {
-   int n;
-   while ( _continue ) {
-      // Skip some frames and grab an image from the webcam
-      n = _frameSkip + 1;
-      while ( n-- ) {
-         _webcam.capture();
+  QTime timeMeasure;
+  unsigned int lastCommandDuration = 0;
+  timeMeasure.start();
+  int n;
+  while ( _continue ) {
+    // Delay (minus last command duration)
+    if ( _frameInterval && lastCommandDuration < _frameInterval )
+      msleep(_frameInterval-lastCommandDuration);
+    // Skip some frames and grab an image from the webcam
+    n = _frameSkip + 1;
+    while ( n-- ) {
+      _imageSource.capture();
+    }
+    // Abort if no image is provided by the source
+    if ( ! _imageSource.image() ) {
+      emit endOfCapture();
+      return;
+    }
+    if ( !_gmic_images )
+      _gmic_images.assign(1);
+    if ( !_gmic_images[0].is_sameXYZC(_imageSource.width(),_imageSource.height(),1,3) )
+      _gmic_images[0].assign(_imageSource.width(),_imageSource.height(),1,3);
+
+    ImageConverter::convert( _imageSource.image(), _gmic_images[0] );
+
+    // Call the G'MIC interpreter.
+    try {
+      timeMeasure.restart();
+
+      if ( _commandUpdated ) {
+         delete _gmic;
+         QString c = QString("foo: -skip $\"*\" ") + _command;
+         _gmic = new gmic( "", c.toLatin1().constData() );
+         _commandUpdated = false;
       }
-      if ( !_gmic_images )
-	 _gmic_images.assign(1);
-      if ( !_gmic_images[0].is_sameXYZC(_webcam.width(),_webcam.height(),1,3) )
-	 _gmic_images[0].assign(_webcam.width(),_webcam.height(),1,3);
 
-      ImageConverter::convert( _webcam.image(), _gmic_images[0] );
+      _gmic->run("-v -");
+      QString c;
+      c += QString("_x=") + QString("%1").arg( _xMouse );
+      c += QString(" _y=") + QString("%1").arg( _yMouse );
+      c += QString(" _b=") + QString("%1").arg( _buttonsMouse );
+      QString call;
+      _arguments.lock();
+      if ( _arguments.object().isEmpty() )
+        call = QString(" -foo 0");
+      else
+        call = QString(" -foo %1").arg(_arguments.object());
+      _arguments.unlock();
+      c += call;
 
-      // Call the G'MIC interpreter.
+     // QSHOW( call );
+
+      _gmic->run( c.toLatin1().constData(),_gmic_images,_gmic_images_names );
+      lastCommandDuration = timeMeasure.elapsed();
+
+      switch ( _previewMode ) {
+      case Full:
+        if (_gmic_images && _gmic_images[0]) {
+          _imageMutex->lock();
+          QSize size( _gmic_images[0].width(), _gmic_images[0].height() );
+          if ( _outputImage->size() != size ) {
+            *_outputImage = QImage( size, QImage::Format_RGB888 );
+          }
+          _imageMutex->unlock();
+          ImageConverter::convert( _gmic_images[0], _outputImage );
+        }
+        break;
+      case Original: {
+        _imageMutex->lock();
+        QSize size( _imageSource.width(), _imageSource.height() );
+        if ( _outputImage->size() != size ) {
+          *_outputImage = QImage( size, QImage::Format_RGB888 );
+        }
+        _imageMutex->unlock();
+        ImageConverter::convert( _imageSource.image(), _outputImage );
+      }
+        break;
+      case LeftHalf:
+        ImageConverter::merge( _imageSource.image(),_gmic_images[0], _outputImage,
+            _imageMutex, ImageConverter::MergeLeft );
+        break;
+      case TopHalf:
+        ImageConverter::merge( _imageSource.image(), _gmic_images[0], _outputImage,
+            _imageMutex, ImageConverter::MergeTop );
+        break;
+      case BottomHalf:
+        ImageConverter::merge( _imageSource.image(), _gmic_images[0], _outputImage,
+            _imageMutex, ImageConverter::MergeBottom );
+        break;
+      case RightHalf:
+        ImageConverter::merge( _imageSource.image(), _gmic_images[0], _outputImage,
+            _imageMutex, ImageConverter::MergeRight );
+        break;
+      default:
+        _outputImage->fill( QColor(255,255,255).rgb() );
+        break;
+      }
+
+    } catch (gmic_exception &e) {
+      CImg<unsigned char> src( reinterpret_cast<unsigned char*>(_imageSource.image()->imageData),
+                               3, _imageSource.width(), _imageSource.height(), 1, true );
+      _gmic_images = src.get_permute_axes("yzcx");
+      QString errorCommand = QString("-gimp_error_preview \"%1\"").arg(e.what());
       try {
-	 QString c( _command );
-	 QString strX = QString("%1").arg( _xMouse );
-	 QString strY = QString("%1").arg( _yMouse );
-	 QString strB = QString("%1").arg( _buttonsMouse );
-	 c.replace( "@x", strX )
-	    .replace( "@y", strY )
-	    .replace( "@b", strB );
-	 c.replace( "@{!,x}", strX )
-	    .replace( "@{!,y}", strY )
-	    .replace( "@{!,b}", strB );
-	 _gmic.run( c.toAscii().constData(),
-                    _gmic_images,
-                    _gmic_images_names);
-
-	 switch ( _previewMode ) {
-	 case Full:
-	    if (_gmic_images && _gmic_images[0]) {
-	       _imageMutex->lock();
-	       QSize size( _gmic_images[0].width(), _gmic_images[0].height() );
-	       if ( _outputImage->size() != size ) {
-		  *_outputImage = QImage( size, QImage::Format_RGB888 );
-	       }
-	       _imageMutex->unlock();
-	       ImageConverter::convert( _gmic_images[0], _outputImage );
-	    }
-	    break;
-	 case Camera: {
-	    _imageMutex->lock();
-	    QSize size( _webcam.width(), _webcam.height() );
-	    if ( _outputImage->size() != size ) {
-	       *_outputImage = QImage( size, QImage::Format_RGB888 );
-	    }
-	    _imageMutex->unlock();
-	    ImageConverter::convert( _webcam.image(), _outputImage );
-	 }
-	    break;
-	 case LeftHalf:
-	    ImageConverter::merge( _webcam.image(), _gmic_images[0], _outputImage,
-				   _imageMutex, ImageConverter::MergeLeft );
-	    break;
-	 case TopHalf:
-	    ImageConverter::merge( _webcam.image(), _gmic_images[0], _outputImage,
-				   _imageMutex, ImageConverter::MergeTop );
-	    break;
-	 case BottomHalf:
-	    ImageConverter::merge( _webcam.image(), _gmic_images[0], _outputImage,
-				   _imageMutex, ImageConverter::MergeBottom );
-	    break;
-	 case RightHalf:
-	    ImageConverter::merge( _webcam.image(), _gmic_images[0], _outputImage,
-				   _imageMutex, ImageConverter::MergeRight );
-	    break;
-	 default:
-	    _outputImage->fill( QColor(255,255,255).rgb() );
-	    break;
-	 }
-
+        _gmic->run(errorCommand.toLatin1().constData(),_gmic_images,_gmic_images_names);
       } catch (gmic_exception &e) {
-	 const unsigned char col1[] = { 0,255,0 }, col2[] = { 0,0,0 };
-	 CImg<unsigned char> src( reinterpret_cast<unsigned char*>(_webcam.image()->imageData),
-				  3, _webcam.width(), _webcam.height(), 1, true );
-	 _gmic_images = src.get_permute_axes("yzcx")
-	    .channel(0).resize(-100,-100,1,3).draw_text(10,10,"Syntax Error",col1,col2,0.5,57);
-	 std::cerr << e.what() << std::endl;
-	 QSize size( _webcam.image()->width, _webcam.image()->height );
-	 if ( _outputImage->size() != size ) {
-	    _imageMutex->lock();
-	    *_outputImage = QImage( size, QImage::Format_RGB888 );
-	    _imageMutex->unlock();
-	 }
-	 ImageConverter::convert( _gmic_images[0], _outputImage );
+        const unsigned char color1[] = { 0,255,0 }, color2[] = { 0,0,0 };
+        _gmic_images = src.get_permute_axes("yzcx").channel(0).resize(-100,-100,1,3).draw_text(10,10,"Syntax Error",color1,color2,0.5,57);
       }
-      emit imageAvailable();
-   }
+      std::cerr << e.what() << std::endl;
+      QSize size( _imageSource.image()->width, _imageSource.image()->height );
+      if ( _outputImage->size() != size ) {
+        _imageMutex->lock();
+        *_outputImage = QImage( size, QImage::Format_RGB888 );
+        _imageMutex->unlock();
+      }
+      ImageConverter::convert( _gmic_images[0], _outputImage );
+    }
+    emit imageAvailable();
+    if ( !_fps && _blockingSemaphore )
+      _blockingSemaphore->acquire(_blockingSemaphore->available()+1);
+  }
 }
 
 /*
@@ -209,8 +268,10 @@ FilterThread::run()
 void
 FilterThread::setCommand( const QString & command )
 {
-   QByteArray str = command.toAscii();
-   str.replace( 10, ' ' );
-   str.replace( 13, ' ' );
-   _command = str.constData();
+  QByteArray str = command.toLatin1();
+  _command = str.constData();
+  _command.replace( "@{!,x}", "$_x" )
+        .replace( "@{!,y}", "$_y" )
+        .replace( "@{!,b}", "$_b" );
+  _commandUpdated = true;
 }

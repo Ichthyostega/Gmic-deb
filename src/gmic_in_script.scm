@@ -3,7 +3,7 @@
 ;;                 ( Scheme script for GIMP )
 ;;
 ;;   Description : Show how to call G'MIC commands from a GIMP script.
-;;                 ( http://gmic.sourceforge.net )
+;;                 ( http://gmic.eu )
 ;;
 ;;   Copyright   : David Tschumperle
 ;;                 ( http://tschumperle.users.greyc.fr/ )
