@@ -1,3 +1,13 @@
+gmic (1.6.2.0-1) unstable; urgency=medium
+
+  * [418ea338] Merge tag 'upstream/1.6.2.0'
+    Upstream version 1.6.2.0
+  * [7044920b] Refreshing patches.
+  * [1fde2913] Add libcv/libhighgui-dev as dependency.
+  * [6fd0cdcb] Add libcurl-dev
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 19 Apr 2015 14:08:46 +0200
+
 gmic (1.6.0.1-1) unstable; urgency=medium
 
   * [43756de5] Merge tag 'upstream/1.6.0.1'
