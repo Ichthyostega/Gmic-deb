@@ -13,7 +13,9 @@ Build-Depends: debhelper (>= 8.1.3),
  libopencv-imgproc-dev,
  libopenexr-dev,
  libqt4-dev,
- libilmbase-dev
+ libilmbase-dev,
+ libcv-dev,
+ libhighgui-dev
 Standards-Version: 3.9.4
 Homepage: http://gmic.sourceforge.net/
 Vcs-Git: git://anonscm.debian.org/collab-maint/gmic.git
