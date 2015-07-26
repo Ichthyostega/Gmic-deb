@@ -1,4 +1,4 @@
-/** -*- mode: c++ ; c-basic-offset: 3 -*-
+/** -*- mode: c++ ; c-basic-offset: 2 -*-
  * @file   CommandParamsWidget.cpp
  * @author Sebastien Fourey
  * @date   Nov 2014
@@ -80,7 +80,9 @@ CommandParamsWidget::build(QDomNode presetNode)
     AbstractParameter * parameter = AbstractParameter::createFromNode( child, this );
     if ( parameter ) {
       _presetParameters.push_back(parameter);
-      parameter->addTo(this,row++);
+      if ( parameter->isVisible() ) {
+        parameter->addTo(this,row++);
+      }
       connect(parameter,SIGNAL(valueChanged()),
               this,SLOT(updateValueString()));
     }

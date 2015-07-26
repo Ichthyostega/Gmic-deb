@@ -1,4 +1,4 @@
-/** -*- mode: c++ ; c-basic-offset: 3 -*-
+/** -*- mode: c++ ; c-basic-offset: 2 -*-
  * @file   ImageSource.cpp
  * @author Sebastien Fourey
  * @date   Oct 2014
@@ -97,4 +97,10 @@ int
 ImageSource::height() const
 {
   return _height;
+}
+
+QSize
+ImageSource::size() const
+{
+  return QSize(_width,_height);
 }

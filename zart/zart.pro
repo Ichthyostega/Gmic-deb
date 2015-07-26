@@ -83,9 +83,13 @@ system(pkg-config opencv --libs > /dev/null 2>&1) {
 # LIBS += -lX11 ../src/libgmic.a `pkg-config opencv --libs` -lfftw3 -lfftw3_threads
  OPENCVLIBS = $$system(pkg-config opencv --libs)
  OPENCVLIBS = $$replace( OPENCVLIBS, -lcvaux, )
- LIBS += -lX11 ../src/libgmic.a $$OPENCVLIBS -lfftw3 -lfftw3_threads -lz -Dcimg_use_openmp -fopenmp
+# LIBS += -lX11 ../src/libgmic.a $$OPENCVLIBS -lfftw3 -lfftw3_threads -lz -Dcimg_use_openmp -fopenmp
+LIBS += -lX11 ../src/libgmic.a $$OPENCVLIBS -lfftw3 -lfftw3_threads -lz -ljpeg -lpng -ltiff -lX11 -lcurl
+!macx {
+LIBS += -Dcimg_use_openmp -fopenmp
+}
 } else {
-  LIBS += -lX11 ../src/libgmic.a -lopencv_core -lopencv_highgui -lfftw3 -lfftw3_threads -lz -lopencv_imgproc -lopencv_objdetect -Dcimg_use_openmp -fopenmp
+  LIBS += -lX11 ../src/libgmic.a -lopencv_core -lopencv_highgui -lfftw3 -lfftw3_threads -lz -ljpeg -lpng -ltiff -lX11 -lcurl -lopencv_imgproc -lopencv_objdetect -Dcimg_use_openmp -fopenmp
 # LIBS += -lX11 ../src/libgmic.a -lcxcore -lcv -lml -lhighgui -lfftw3 -lfftw3_threads
 }
 

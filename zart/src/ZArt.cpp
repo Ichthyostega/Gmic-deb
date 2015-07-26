@@ -1,4 +1,4 @@
-/** -*- mode: c++ ; c-basic-offset: 3 -*-
+/** -*- mode: c++ ; c-basic-offset: 2 -*-
  * @file   ZArt.cpp
  * @author Sebastien Fourey
  * @date   July 2010
@@ -47,9 +47,11 @@
 using namespace std;
 #include <QApplication>
 #include <QMessageBox>
+#include <QSplashScreen>
 #include "WebcamSource.h"
 #include "Common.h"
 #include "MainWindow.h"
+#include "gmic.h"
 
 #ifdef _IS_UNIX_
 #include <signal.h>
@@ -67,25 +69,37 @@ int main( int argc, char *argv[] )
   signal(SIGQUIT,onSigQuit);
   signal(SIGINT,onSigQuit);
 #endif
-   QApplication app( argc, argv );
-   app.setWindowIcon( QIcon(":images/gmic_hat.png") );
-   QCoreApplication::setOrganizationName("GREYC");
-   QCoreApplication::setOrganizationDomain("greyc.fr");
-   QCoreApplication::setApplicationName("ZArt");
+  QApplication app( argc, argv );
+  app.setWindowIcon( QIcon(":images/gmic_hat.png") );
+  QCoreApplication::setOrganizationName("GREYC");
+  QCoreApplication::setOrganizationDomain("greyc.fr");
+  QCoreApplication::setApplicationName("ZArt");
 
-   QStringList args = app.arguments();
-   if ( args.size() == 2 && ( args[1] == "-h" || args[1] == "--help") ) {
-      cout << "Usage:" << endl
-           << "       " << QFileInfo(argv[0]).baseName().toLatin1().constData()
-            << " [options]" << endl
-            << "  " << "Options: " << endl
-            << "      --help | -h : print this help." << endl
-            << "      --cam N     : disable camera detection and force selection"
-            << "                    camera with index N." << endl
-            << endl;
-      exit(EXIT_FAILURE);
-   }
-   MainWindow mainWindow;
-   mainWindow.show();
-   return app.exec();
+  QStringList args = app.arguments();
+  QStringList::iterator it = args.begin();
+  while (it != args.end()) {
+     if ( it->startsWith("-h") || it->startsWith("--help") ) {
+        cout << "Usage:" << endl
+             << "       "
+             << QFileInfo(argv[0]).baseName().toLatin1().constData()
+              << " [options]" << endl
+              << "  " << "Options: " << endl
+              << "      --help | -h   : print this help." << endl
+              << endl;
+        exit(EXIT_SUCCESS);
+     }
+    ++it;
+  }
+  QSplashScreen splashScreen(QPixmap(":/images/splash.png"));
+  splashScreen.show();
+  app.processEvents();
+  WebcamSource::retrieveWebcamResolutions(WebcamSource::getWebcamList(),
+					  &splashScreen);
+  if ( ! gmic::init_rc() ) {
+    cerr << "[ZArt] Warning: Could not create resources directory.\n";
+  }
+  MainWindow mainWindow;
+  mainWindow.show();
+  splashScreen.finish(&mainWindow);
+  return app.exec();
 }

@@ -21,7 +21,6 @@ _gmic_def()
 	      -camera --camera\
 	      -m --m\
 	      -command --command\
-	      -cupid --cupid\
 	      -cursor --cursor\
 	      -d --d\
 	      -display --display\
@@ -54,7 +53,6 @@ _gmic_def()
 	      -function1d --function1d\
 	      -gmicky --gmicky\
 	      -gmicky_wilber --gmicky_wilber\
-	      -heart --heart\
 	      -i --i\
 	      -input --input\
 	      -input_gpl --input_gpl\
@@ -77,6 +75,12 @@ _gmic_def()
 	      -roddy --roddy\
 	      -select --select\
 	      -serialize --serialize\
+	      -shape_heart --shape_heart\
+	      -shape_circle --shape_circle\
+	      -shape_cupid --shape_cupid\
+	      -shape_diamond --shape_diamond\
+	      -shape_polygon --shape_polygon\
+	      -shape_star --shape_star\
 	      -sh --sh\
 	      -shared --shared\
 	      -srand --srand\
@@ -193,6 +197,7 @@ _gmic_def()
 	      -mix_channels --mix_channels\
 	      -negative --negative\
 	      -noise --noise\
+	      -normlp --normlp\
 	      -norm --norm\
 	      -n --n\
 	      -normalize --normalize\
@@ -358,7 +363,6 @@ _gmic_def()
 	      -blur_xyz --blur_xyz\
 	      -blur_y --blur_y\
 	      -blur_z --blur_z\
-	      -bokeh --bokeh\
 	      -boxfilter --boxfilter\
 	      -compose_freq --compose_freq\
 	      -convolve --convolve\
@@ -561,6 +565,7 @@ _gmic_def()
 	      -imagesphere3d --imagesphere3d\
 	      -isoline3d --isoline3d\
 	      -isosurface3d --isosurface3d\
+	      -label3d --label3d\
 	      -label_points3d --label_points3d\
 	      -lathe3d --lathe3d\
 	      -l3d --l3d\
@@ -588,6 +593,7 @@ _gmic_def()
 	      -projections3d --projections3d\
 	      -pyramid3d --pyramid3d\
 	      -quadrangle3d --quadrangle3d\
+	      -random3d --random3d\
 	      -rv3d --rv3d\
 	      -reverse3d --reverse3d\
 	      -r3d --r3d\
@@ -677,8 +683,10 @@ _gmic_def()
 	      -img2ascii --img2ascii\
 	      -imagegrid --imagegrid\
 	      -imagegrid_hexagonal --imagegrid_hexagonal\
+	      -imagegrid_triangular --imagegrid_triangular\
 	      -linearize_tiles --linearize_tiles\
 	      -map_sprites --map_sprites\
+	      -pack --pack\
 	      -puzzle --puzzle\
 	      -quadratize_tiles --quadratize_tiles\
 	      -rotate_tiles --rotate_tiles\
@@ -687,7 +695,6 @@ _gmic_def()
 	      -tunnel --tunnel\
 	      -boxfitting --boxfitting\
 	      -cartoon --cartoon\
-	      -circlism --circlism\
 	      -color_ellipses --color_ellipses\
 	      -cubism --cubism\
 	      -draw_whirl --draw_whirl\
@@ -712,7 +719,6 @@ _gmic_def()
 	      -poster_hope --poster_hope\
 	      -rodilius --rodilius\
 	      -stained_glass --stained_glass\
-	      -star --star\
 	      -stars --stars\
 	      -sketchbw --sketchbw\
 	      -sponge --sponge\
@@ -792,6 +798,7 @@ _gmic_def()
 	      -pink_wshed --pink_wshed\
 	      -alert --alert\
 	      -arg --arg\
+	      -arg2var --arg2var\
 	      -at --at\
 	      -autocrop_coords --autocrop_coords\
 	      -average_color --average_color\
@@ -807,12 +814,13 @@ _gmic_def()
 	      -file_mv --file_mv\
 	      -file_rand --file_rand\
 	      -file_rm --file_rm\
-	      -file_slash --file_slash\
 	      -filename --filename\
+	      -files --files\
 	      -fitratio_wh --fitratio_wh\
 	      -fitscreen --fitscreen\
 	      -fps --fps\
 	      -gcd --gcd\
+	      -head --head\
 	      -hex --hex\
 	      -hex2dec --hex2dec\
 	      -hex2str --hex2str\
@@ -821,8 +829,8 @@ _gmic_def()
 	      -img82hex --img82hex\
 	      -hex2img8 --hex2img8\
 	      -is_3d --is_3d\
-	      -is_percent --is_percent\
 	      -is_image_arg --is_image_arg\
+	      -is_percent --is_percent\
 	      -is_windows --is_windows\
 	      -mad --mad\
 	      -max_w --max_w\
@@ -847,7 +855,8 @@ _gmic_def()
 	      -padint --padint\
 	      -path_gimp --path_gimp\
 	      -path_tmp --path_tmp\
-	      -path_user --path_user\
+	      -path_prc --path_prc\
+	      -path_rc --path_rc\
 	      -quote --quote\
 	      -region_feature --region_feature\
 	      -reset --reset\
@@ -878,6 +887,7 @@ _gmic_def()
 	      -x_histogram --x_histogram\
 	      -x_hough --x_hough\
 	      -x_jawbreaker --x_jawbreaker\
+	      -x_landscape --x_landscape\
 	      -x_life --x_life\
 	      -x_light --x_light\
 	      -x_mandelbrot --x_mandelbrot\
@@ -910,7 +920,6 @@ _gmic_def()
 	      camera\
 	      m\
 	      command\
-	      cupid\
 	      cursor\
 	      d\
 	      display\
@@ -943,7 +952,6 @@ _gmic_def()
 	      function1d\
 	      gmicky\
 	      gmicky_wilber\
-	      heart\
 	      i\
 	      input\
 	      input_gpl\
@@ -966,6 +974,12 @@ _gmic_def()
 	      roddy\
 	      select\
 	      serialize\
+	      shape_heart\
+	      shape_circle\
+	      shape_cupid\
+	      shape_diamond\
+	      shape_polygon\
+	      shape_star\
 	      sh\
 	      shared\
 	      srand\
@@ -1082,6 +1096,7 @@ _gmic_def()
 	      mix_channels\
 	      negative\
 	      noise\
+	      normlp\
 	      norm\
 	      n\
 	      normalize\
@@ -1247,7 +1262,6 @@ _gmic_def()
 	      blur_xyz\
 	      blur_y\
 	      blur_z\
-	      bokeh\
 	      boxfilter\
 	      compose_freq\
 	      convolve\
@@ -1450,6 +1464,7 @@ _gmic_def()
 	      imagesphere3d\
 	      isoline3d\
 	      isosurface3d\
+	      label3d\
 	      label_points3d\
 	      lathe3d\
 	      l3d\
@@ -1477,6 +1492,7 @@ _gmic_def()
 	      projections3d\
 	      pyramid3d\
 	      quadrangle3d\
+	      random3d\
 	      rv3d\
 	      reverse3d\
 	      r3d\
@@ -1566,8 +1582,10 @@ _gmic_def()
 	      img2ascii\
 	      imagegrid\
 	      imagegrid_hexagonal\
+	      imagegrid_triangular\
 	      linearize_tiles\
 	      map_sprites\
+	      pack\
 	      puzzle\
 	      quadratize_tiles\
 	      rotate_tiles\
@@ -1576,7 +1594,6 @@ _gmic_def()
 	      tunnel\
 	      boxfitting\
 	      cartoon\
-	      circlism\
 	      color_ellipses\
 	      cubism\
 	      draw_whirl\
@@ -1601,7 +1618,6 @@ _gmic_def()
 	      poster_hope\
 	      rodilius\
 	      stained_glass\
-	      star\
 	      stars\
 	      sketchbw\
 	      sponge\
@@ -1681,6 +1697,7 @@ _gmic_def()
 	      pink_wshed\
 	      alert\
 	      arg\
+	      arg2var\
 	      at\
 	      autocrop_coords\
 	      average_color\
@@ -1696,12 +1713,13 @@ _gmic_def()
 	      file_mv\
 	      file_rand\
 	      file_rm\
-	      file_slash\
 	      filename\
+	      files\
 	      fitratio_wh\
 	      fitscreen\
 	      fps\
 	      gcd\
+	      head\
 	      hex\
 	      hex2dec\
 	      hex2str\
@@ -1710,8 +1728,8 @@ _gmic_def()
 	      img82hex\
 	      hex2img8\
 	      is_3d\
-	      is_percent\
 	      is_image_arg\
+	      is_percent\
 	      is_windows\
 	      mad\
 	      max_w\
@@ -1736,7 +1754,8 @@ _gmic_def()
 	      padint\
 	      path_gimp\
 	      path_tmp\
-	      path_user\
+	      path_prc\
+	      path_rc\
 	      quote\
 	      region_feature\
 	      reset\
@@ -1767,6 +1786,7 @@ _gmic_def()
 	      x_histogram\
 	      x_hough\
 	      x_jawbreaker\
+	      x_landscape\
 	      x_life\
 	      x_light\
 	      x_mandelbrot\
@@ -1798,10 +1818,6 @@ _gmic_def()
 		;;
 		"-camera" | "--camera")
 		COMPREPLY=( $(compgen -W "_camera_index>=0,_nb_frames>0,_skip_frames>=0,_capture_width>=0,_capture_height>=0 >") )
-		return 0
-		;;
-		"-cupid" | "--cupid")
-		COMPREPLY=( $(compgen -W "_size>0 >") )
 		return 0
 		;;
 		"-cursor" | "--cursor")
@@ -1864,10 +1880,6 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "0<=smoothness<=1,x0>=0,y0,x1>=0,y1,...,xn>=0,yn >") )
 		return 0
 		;;
-		"-heart" | "--heart")
-		COMPREPLY=( $(compgen -W "_width>0,_height>0 >") )
-		return 0
-		;;
 		"-input_gpl" | "--input_gpl")
 		COMPREPLY=( $(compgen -W "filename >") )
 		return 0
@@ -1904,6 +1916,30 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "_datatype,_is_compressed={0|1},_store_names={0|1} >") )
 		return 0
 		;;
+		"-shape_heart" | "--shape_heart")
+		COMPREPLY=( $(compgen -W "_size>=0 >") )
+		return 0
+		;;
+		"-shape_circle" | "--shape_circle")
+		COMPREPLY=( $(compgen -W "_size>=0 >") )
+		return 0
+		;;
+		"-shape_cupid" | "--shape_cupid")
+		COMPREPLY=( $(compgen -W "_size>=0 >") )
+		return 0
+		;;
+		"-shape_diamond" | "--shape_diamond")
+		COMPREPLY=( $(compgen -W "_size>=0 >") )
+		return 0
+		;;
+		"-shape_polygon" | "--shape_polygon")
+		COMPREPLY=( $(compgen -W "_size>=0,_nb_vertices>=3,_angle >") )
+		return 0
+		;;
+		"-shape_star" | "--shape_star")
+		COMPREPLY=( $(compgen -W "_size>=0,_nb_branches>0,0<=_thickness<=1 >") )
+		return 0
+		;;
 		"-shared" | "--shared")
 		COMPREPLY=( $(compgen -W "x0[%],x1[%],y[%],z[%],v[%] y0[%],y1[%],z[%],v[%] z0[%],z1[%],v[%] v0[%],v1[%] (noarg)") )
 		return 0
@@ -1933,7 +1969,7 @@ _gmic_def()
 		return 0
 		;;
 		"-warn" | "--warn")
-		COMPREPLY=( $(compgen -W "message >") )
+		COMPREPLY=( $(compgen -W "_force_visible={0|1},_message >") )
 		return 0
 		;;
 		"-window" | "--window")
@@ -2118,6 +2154,10 @@ _gmic_def()
 		;;
 		"-noise" | "--noise")
 		COMPREPLY=( $(compgen -W "std_variation>=0[%],_noise_type >") )
+		return 0
+		;;
+		"-normlp" | "--normlp")
+		COMPREPLY=( $(compgen -W "p>=0 >") )
 		return 0
 		;;
 		"-normalize" | "--normalize")
@@ -2446,10 +2486,6 @@ _gmic_def()
 		;;
 		"-blur_z" | "--blur_z")
 		COMPREPLY=( $(compgen -W "amplitude[%]>=0,_boundary={0=dirichlet|1=neumann} >") )
-		return 0
-		;;
-		"-bokeh" | "--bokeh")
-		COMPREPLY=( $(compgen -W "_amplitude>=0,_smoothness>=0,0<=_density<=100,_bokeh_size>0,0<=_bokeh_outline_size<=100,_bokeh_outline_amplitude>=0,_bokeh_smoothness>=0 >") )
 		return 0
 		;;
 		"-boxfilter" | "--boxfilter")
@@ -2829,7 +2865,7 @@ _gmic_def()
 		return 0
 		;;
 		"-axes" | "--axes")
-		COMPREPLY=( $(compgen -W "x0,x1,y0,y1,_font_height>=0,_opacity,_pattern,_color1,.. >") )
+		COMPREPLY=( $(compgen -W "x0,x1,y0,y1,_font_height>=0,_opacity,_pattern,_color1,... >") )
 		return 0
 		;;
 		"-ball" | "--ball")
@@ -3076,6 +3112,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "isovalue[%] 'formula',value,_x0,_y0,_z0,_x1,_y1,_z1,_size_x>0[%],_size_y>0[%],_size_z>0[%]") )
 		return 0
 		;;
+		"-label3d" | "--label3d")
+		COMPREPLY=( $(compgen -W ""text",font_height>=0,_opacity,_color1,... >") )
+		return 0
+		;;
 		"-label_points3d" | "--label_points3d")
 		COMPREPLY=( $(compgen -W "_label_size>0,_opacity >") )
 		return 0
@@ -3148,6 +3188,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3 >") )
 		return 0
 		;;
+		"-random3d" | "--random3d")
+		COMPREPLY=( $(compgen -W "nb_points>=0 >") )
+		return 0
+		;;
 		"-rotate3d" | "--rotate3d")
 		COMPREPLY=( $(compgen -W "u,v,w,angle >") )
 		return 0
@@ -3190,6 +3234,10 @@ _gmic_def()
 		;;
 		"-split3d" | "--split3d")
 		COMPREPLY=( $(compgen -W "_keep_shared_data={0|1} >") )
+		return 0
+		;;
+		"-sprites3d" | "--sprites3d")
+		COMPREPLY=( $(compgen -W "[sprite],_sprite_has_alpha_channel={0|1} >") )
 		return 0
 		;;
 		"-star3d" | "--star3d")
@@ -3285,7 +3333,7 @@ _gmic_def()
 		return 0
 		;;
 		"-repeat" | "--repeat")
-		COMPREPLY=( $(compgen -W "nb_iterations >") )
+		COMPREPLY=( $(compgen -W "nb_iterations,_variable_name >") )
 		return 0
 		;;
 		"-rprogress" | "--rprogress")
@@ -3369,7 +3417,11 @@ _gmic_def()
 		return 0
 		;;
 		"-imagegrid_hexagonal" | "--imagegrid_hexagonal")
-		COMPREPLY=( $(compgen -W "_resolution_y>0,1<=_outline<=0,_is_antialiasing={0|1} >") )
+		COMPREPLY=( $(compgen -W "_resolution>0,0<=_outline<=1 >") )
+		return 0
+		;;
+		"-imagegrid_triangular" | "--imagegrid_triangular")
+		COMPREPLY=( $(compgen -W "pattern_width>=1,_pattern_height>=1,_pattern_type,0<=_outline_opacity<=1,_outline_color1,... >") )
 		return 0
 		;;
 		"-linearize_tiles" | "--linearize_tiles")
@@ -3378,6 +3430,10 @@ _gmic_def()
 		;;
 		"-map_sprites" | "--map_sprites")
 		COMPREPLY=( $(compgen -W "_nb_sprites>=1,_allow_rotation={0=none|1=90deg.|2=180deg.} >") )
+		return 0
+		;;
+		"-pack" | "--pack")
+		COMPREPLY=( $(compgen -W "is_ratio_constraint={0|1},_sort_criterion >") )
 		return 0
 		;;
 		"-puzzle" | "--puzzle")
@@ -3410,10 +3466,6 @@ _gmic_def()
 		;;
 		"-cartoon" | "--cartoon")
 		COMPREPLY=( $(compgen -W "_smoothness,_sharpening,_threshold>=0,_thickness>=0,_color>=0,quantization>0 >") )
-		return 0
-		;;
-		"-circlism" | "--circlism")
-		COMPREPLY=( $(compgen -W "_radius_min>0,_radius_max>0,_smoothness[%]>=0,_radius_linearity>=0,_location_linearity>=0,_shape={0=squares|1=diamonds|2=circle} >") )
 		return 0
 		;;
 		"-color_ellipses" | "--color_ellipses")
@@ -3506,10 +3558,6 @@ _gmic_def()
 		;;
 		"-stained_glass" | "--stained_glass")
 		COMPREPLY=( $(compgen -W "_edges[%]>=0,shading>=0,is_thin_separators={0|1} >") )
-		return 0
-		;;
-		"-star" | "--star")
-		COMPREPLY=( $(compgen -W "_width>0,_height>0,_nb_branches>0,0<=_thickness<=1 >") )
 		return 0
 		;;
 		"-stars" | "--stars")
@@ -3721,7 +3769,7 @@ _gmic_def()
 		return 0
 		;;
 		"-apply_files" | "--apply_files")
-		COMPREPLY=( $(compgen -W ""command",list_of_filenames,_output_prefix,_output_extension,_view_window={0|1} >") )
+		COMPREPLY=( $(compgen -W ""command","filename_pattern",_output_prefix,_output_extension,_view_window={0|1} >") )
 		return 0
 		;;
 		"-apply_video" | "--apply_video")
@@ -3733,11 +3781,11 @@ _gmic_def()
 		return 0
 		;;
 		"-files2video" | "--files2video")
-		COMPREPLY=( $(compgen -W "list_of_filenames,_output_filename,_fps>0,_codec >") )
+		COMPREPLY=( $(compgen -W ""filename_pattern",_output_filename,_fps>0,_codec >") )
 		return 0
 		;;
 		"-morph" | "--morph")
-		COMPREPLY=( $(compgen -W "nb_frames>0,_smoothness>=0,_precision>0 >") )
+		COMPREPLY=( $(compgen -W "nb_frames>0,_smoothness>=0,_precision>=0 >") )
 		return 0
 		;;
 		"-register_nonrigid" | "--register_nonrigid")
@@ -3813,7 +3861,11 @@ _gmic_def()
 		return 0
 		;;
 		"-arg" | "--arg")
-		COMPREPLY=( $(compgen -W "n,_arg1,...,_argN >") )
+		COMPREPLY=( $(compgen -W "n>=1,_arg1,...,_argN >") )
+		return 0
+		;;
+		"-arg2var" | "--arg2var")
+		COMPREPLY=( $(compgen -W "variable_name,argument_1,...,argument_N >") )
 		return 0
 		;;
 		"-at" | "--at")
@@ -3872,6 +3924,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "filename,_number1,_number2,...,_numberN >") )
 		return 0
 		;;
+		"-files" | "--files")
+		COMPREPLY=( $(compgen -W "_mode,path >") )
+		return 0
+		;;
 		"-fitratio_wh" | "--fitratio_wh")
 		COMPREPLY=( $(compgen -W "min_width,min_height,ratio_wh >") )
 		return 0
@@ -3882,6 +3938,10 @@ _gmic_def()
 		;;
 		"-gcd" | "--gcd")
 		COMPREPLY=( $(compgen -W "a,b >") )
+		return 0
+		;;
+		"-head" | "--head")
+		COMPREPLY=( $(compgen -W "length>=0 >") )
 		return 0
 		;;
 		"-hex" | "--hex")
@@ -3900,11 +3960,11 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "_line_separator >") )
 		return 0
 		;;
-		"-is_percent" | "--is_percent")
+		"-is_image_arg" | "--is_image_arg")
 		COMPREPLY=( $(compgen -W "string >") )
 		return 0
 		;;
-		"-is_image_arg" | "--is_image_arg")
+		"-is_percent" | "--is_percent")
 		COMPREPLY=( $(compgen -W "string >") )
 		return 0
 		;;
