@@ -1,3 +1,11 @@
+gmic (1.6.5.1-1) unstable; urgency=medium
+
+  * [2dd1114] Merge tag 'upstream/1.6.5.1'
+    Upstream version 1.6.5.1
+  * [e0668cb] Refreshing patches.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 26 Jul 2015 23:33:04 +0200
+
 gmic (1.6.2.0-1) unstable; urgency=medium
 
   * [418ea338] Merge tag 'upstream/1.6.2.0'
