@@ -1,4 +1,4 @@
-/** -*- mode: c++ ; c-basic-offset: 3 -*-
+/** -*- mode: c++ ; c-basic-offset: 2 -*-
  * @file   View2DWidget.h
  * @author Sebastien Fourey
  * @date   July 2010
@@ -59,6 +59,7 @@ class ImageView : public QWidget {
   
   inline QImage & image();
   inline QMutex & imageMutex();
+  void setImageSize(int width, int height);
 
  public slots:
 

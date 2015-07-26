@@ -1,4 +1,4 @@
-/** -*- mode: c++ ; c-basic-offset: 3 -*-
+/** -*- mode: c++ ; c-basic-offset: 2 -*-
  * @file   WebcamGrabber.h
  * @author Sebastien Fourey
  * @date   July 2010
@@ -55,29 +55,35 @@
 #include <cv.h>
 #include <highgui.h>
 #endif
+#include <QVector>
 #include <QList>
+#include <QSize>
 #include "ImageSource.h"
 
+class QSplashScreen;
+class QStatusBar;
+
 class WebcamSource : public ImageSource {
-
 public:
-
-   WebcamSource();
-
-   ~WebcamSource();
-
-   int cameraIndex();
-
-   static QList<int> getWebcamList();
-
-   void capture();
-
-   void setCameraIndex( int i );
-
+  WebcamSource();
+  ~WebcamSource();
+  int cameraIndex();
+  void capture();
+  void setCameraIndex( int i );
+  void stop();
+  void start();
+  QSize captureSize();
+  void setCaptureSize(int width, int height);
+  void setCaptureSize(const QSize & size);
+  static QList<int> getWebcamList();
+  static void retrieveWebcamResolutions(const QList<int> & camList, QSplashScreen * splashScreen = 0, QStatusBar * statusBar = 0);
+  static const QList<QSize> & webcamResolutions(int index);
+  static void clearSavedSettings();
 private:
-
-   CvCapture *_capture;
-   int _cameraIndex;
+  CvCapture *_capture;
+  int _cameraIndex;
+  QSize _captureSize;
+  static QVector< QList<QSize> > _webcamResolutions;
 };
 
 #endif

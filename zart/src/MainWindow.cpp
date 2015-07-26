@@ -1,4 +1,4 @@
-/** -*- mode: c++ ; c-basic-offset: 3 -*-
+/** -*- mode: c++ ; c-basic-offset: 2 -*-
  * @file   MainWindow.cpp
  * @author Sebastien Fourey
  * @date   July 2010
@@ -69,6 +69,7 @@
 #include <QtXml>
 #include <QToolTip>
 #include <QGridLayout>
+#include <QMessageBox>
 
 #include "Common.h"
 #include "DialogAbout.h"
@@ -81,15 +82,22 @@
 #include "TreeWidgetPresetItem.h"
 #include "FullScreenWidget.h"
 
+#if QT_VERSION >= 0x050201
+#define CURRENTDATA( CBOX ) ( CBOX -> currentData() )
+#else
+#define CURRENTDATA( CBOX ) ( CBOX -> itemData( CBOX -> currentIndex() ) )
+#endif
+
 MainWindow::MainWindow( QWidget * parent )
   : QMainWindow( parent ),
     _filterThread(0),
+    _source( Webcam ),
+    _currentSource( &_webcam ),
     _currentDir( "." ),
-    _presetsCount(0),
-    _zeroFPS( false )
+    _zeroFPS( false ),
+    _presetsCount(0)
 {
   setupUi(this);
-  setWindowTitle( QString("ZArt %1 (Webcam source)").arg((ZART_VERSION)) );
 
   delete _frameImageView->layout();
   _frameImageView->setLayout(new QGridLayout);
@@ -141,64 +149,42 @@ MainWindow::MainWindow( QWidget * parent )
                                              QIcon(":/images/zoom-original.png") ));
   _tbZoomFit->setIcon( QIcon::fromTheme("zoom-fit-best",
                                         QIcon(":/images/zoom-fit-best.png") ));
+  _tbCamResolutionsRefresh->setIcon( QIcon::fromTheme("view-refresh" ) );
 #else
   _tbZoomOriginal->setIcon( QIcon(":/images/zoom-original.png") );
   _tbZoomFit->setIcon( QIcon(":/images/zoom-fit-best.png") );
 #endif
 
+  connect(_tbCamResolutionsRefresh,SIGNAL(clicked(bool)),
+          this,SLOT(onRefreshCameraResolutions()));
+
+
 
   // Find available cameras, and setup the default one
   QList<int> cameras = WebcamSource::getWebcamList();
-  if ( cameras.size() == 1 ) {
-    _comboWebcam->setEnabled(false);
-  }
-  if ( cameras.size() >= 1 ) {
-    // Populate webcam choice combo
-    QList<int>::iterator it = cameras.begin();
-    while (it != cameras.end()) {
-      _comboWebcam->addItem( QString("Webcam %1").arg(*it),
-                             QVariant(*it) );
-      ++it;
-    }
-    _webcam.setCameraIndex( cameras[0] );
-    connect(_comboWebcam,SIGNAL(currentIndexChanged(int)),
-            this, SLOT(onWebcamComboChanged(int)));
-  }
+  initGUIFromCameraList(cameras);
 
-
-  QSize cameraSize( _webcam.width(), _webcam.height() );
-  if ( ! _webcam.width() ) {
+  QSize cameraSize = CURRENTDATA(_comboCamResolution).toSize();
+  if ( ! cameraSize.isValid() ) {
     _imageView->resize( QSize(640,480) );
   } else {
     _imageView->resize( cameraSize );
   }
-  _frameImageView->resize( QSize(640,480) );
-
-  // Network manager
-  _networkManager = new QNetworkAccessManager(this);
-  connect( _networkManager, SIGNAL(finished(QNetworkReply*)),
-           this, SLOT(networkReplyFinished(QNetworkReply*)) );
+  _frameImageView->resize( _imageView->size() );
 
   // Options menu
   menu = menuBar()->addMenu( "&Options" );
 
-  action = new QAction("Show right panel",menu);
+  action = menu->addAction("Show right panel",this,SLOT(onRightPanel(bool)),QKeySequence("Ctrl+F"));
   action->setCheckable(true);
   action->setChecked(settings.value("showRightPanel",true).toBool());
-  action->setShortcut(QKeySequence("Ctrl+F"));
-  connect( action, SIGNAL(triggered(bool)),
-           this, SLOT(onRightPanel(bool)));
-  menu->addAction(action);
 
-  action = new QAction( "&Full screen", menu );
-  action->setShortcut( QKeySequence( Qt::Key_F5 ) );
+  action = menu->addAction("&Full screen",this,SLOT( enterFullScreenMode() ), QKeySequence( Qt::Key_F5 ) );
   action->setShortcutContext( Qt::ApplicationShortcut );
-  connect( action, SIGNAL( triggered() ),
-           this, SLOT( enterFullScreenMode() ) );
-  menu->addAction( action );
 
   menu->addSeparator();
-
+  action = menu->addAction("Detect &cameras", this,SLOT(onDetectCameras()) );
+  menu->addSeparator();
 
   // Presets
   QString presetsConfig = settings.value("Presets",QString("Built-in")).toString();
@@ -215,58 +201,29 @@ MainWindow::MainWindow( QWidget * parent )
   menu->addAction( _builtInPresetsAction );
   _builtInPresetsAction->setChecked(true); // Default to Built-in presets
 
-  // Online
-  _onlinePresetsAction = new QAction( "&Online presets", menu );
-  _onlinePresetsAction->setCheckable( true );
-  connect( _onlinePresetsAction, SIGNAL( toggled(bool ) ),
-           this, SLOT( onUseOnlinePresets(bool ) ) );
-  menu->addAction( _onlinePresetsAction );
-  group->addAction( _onlinePresetsAction );
-  if ( presetsConfig == "Online" ) {
-    _onlinePresetsAction->setChecked(true);
-  }
-
   // File
-  action = new QAction( "&Presets file...", menu );
+  action = menu->addAction("&Presets file...",this,SLOT( setPresetsFile() ));
   action->setCheckable( true );
   group->addAction( action );
-  menu->addAction( action );
   QString filename = settings.value("PresetsFile",QString()).toString();
   if ( presetsConfig == "File" && !filename.isEmpty() ) {
     setPresetsFile(filename);
     action->setChecked(true);
   }
-  connect( action, SIGNAL( triggered() ),
-           this, SLOT( setPresetsFile() ) );
 
   // Refresh
   menu->addSeparator();
 
-  action = new QAction("&Reload presets",menu);
-  action->setShortcut(QKeySequence("Ctrl+R"));
+  action = menu->addAction("&Reload presets",this,SLOT(onReloadPresets()),QKeySequence("Ctrl+R"));
   action->setShortcutContext(Qt::ApplicationShortcut);
-  connect(action,SIGNAL(triggered()),
-          this,SLOT(onReloadPresets()));
-  menu->addAction(action);
 
   // Help menu
   menu = menuBar()->addMenu( "&Help" );
 
-  action = new QAction( "&Visit G'MIC website", this );
+  action = menu->addAction("&Visit G'MIC website", this, SLOT( visitGMIC() ) );
   action->setIcon( QIcon(":/images/gmic_hat.png") );
-  connect( action, SIGNAL( triggered() ),
-           this, SLOT( visitGMIC() ) );
-  menu->addAction( action );
-
-  action = new QAction( "&License...", this );
-  connect( action, SIGNAL( triggered() ),
-           this, SLOT( license() ) );
-  menu->addAction( action );
-
-  action = new QAction( "&About...", this );
-  connect( action, SIGNAL( triggered() ),
-           this, SLOT( about() ) );
-  menu->addAction( action );
+  action = menu->addAction("&License...", this, SLOT(license()) );
+  action = menu->addAction("&About...", this, SLOT(about()));
 
   _imageView->QWidget::resize( _webcam.width(), _webcam.height() );
 
@@ -292,10 +249,14 @@ MainWindow::MainWindow( QWidget * parent )
   _cbPreviewMode->setItemIcon(3,QIcon::fromTheme("go-down"));
   _cbPreviewMode->setItemIcon(4,QIcon::fromTheme("go-next"));
   _cbPreviewMode->setItemIcon(5,QIcon::fromTheme("go-home"));
-#endif
+  _tbCamera->setIcon(QIcon::fromTheme("camera-photo",QIcon(":/images/camera.png")));
+#else
+  _tbCamera->setIcon(QIcon(":images/camera.png");
+    #endif
 
-  connect( _cbPreviewMode, SIGNAL(activated(int)),
-           this, SLOT(onPreviewModeChanged(int)));
+
+      connect( _cbPreviewMode, SIGNAL(activated(int)),
+               this, SLOT(onPreviewModeChanged(int)));
 
   connect( _tbZoomOriginal, SIGNAL( clicked() ),
            _imageView, SLOT( zoomOriginal() ) );
@@ -350,37 +311,7 @@ MainWindow::MainWindow( QWidget * parent )
   connect( _cbVideoFileLoop, SIGNAL(toggled(bool)),
            this, SLOT(onVideoFileLoop(bool)));
 
-  if ( cameras.size() ) {
-    _comboSource->addItem("Webcam",QVariant(Webcam));
-    _source = Webcam;
-    _currentSource = &_webcam;
-    _tabParams->setCurrentIndex(0);
-  } else {
-    _source = StillImage;
-    _currentSource = &_stillImage;
-    _tabParams->setCurrentIndex(1);
-  }
-
-  _comboSource->addItem("Image",QVariant(StillImage));
-  _comboSource->addItem("Video file",QVariant(Video));
-  connect(_comboSource,SIGNAL(currentIndexChanged(int)),
-          this,SLOT(onComboSourceChanged(int)));
-
-#if QT_VERSION >= 0x040600
-  if ( cameras.size()) {
-    _comboSource->setItemIcon(0,QIcon::fromTheme("camera-web"));
-    _comboSource->setItemIcon(1,QIcon::fromTheme("image-x-generic"));
-    _comboSource->setItemIcon(2,QIcon::fromTheme("video-x-generic"));
-  } else {
-    _comboSource->setItemIcon(0,QIcon::fromTheme("image-x-generic"));
-    _comboSource->setItemIcon(1,QIcon::fromTheme("video-x-generic"));
-  }
-  _tbCamera->setIcon(QIcon::fromTheme("camera-photo",QIcon(":/images/zoom-original.png")));
-#else
-  _tbCamera->setIcon(QIcon(":images/camera.png");
-    #endif
-
-      _webcamParamsWidget->setVisible( _source == Webcam );
+  _webcamParamsWidget->setVisible( _source == Webcam );
   _imageParamsWidget->setVisible( _source == StillImage );
   _videoParamsWidget->setVisible( _source == Video );
 
@@ -407,10 +338,6 @@ MainWindow::MainWindow( QWidget * parent )
   _startStopAction->setShortcutContext(Qt::ApplicationShortcut);
   _startStopAction->setCheckable(true);
 
-  // TODO
-  //  connect( sc, SIGNAL(activated()),
-  //           _tbPlay, SLOT(click()) );
-
   _tbPlay->setDefaultAction(_startStopAction);
   changePlayButtonAppearence(false);
   connect( _fullScreenWidget,SIGNAL(spaceBarPressed()),
@@ -418,7 +345,7 @@ MainWindow::MainWindow( QWidget * parent )
   connect( _startStopAction, SIGNAL(toggled(bool)),
            this, SLOT(changePlayButtonAppearence(bool)));
   connect( _startStopAction, SIGNAL(toggled(bool)),
-           this, SLOT(onButtonPlay(bool)));
+           this, SLOT(onPlayAction(bool)));
 
   connect(_commandParamsWidget,SIGNAL(valueChanged()),
           this,SLOT(onCommandParametersChanged()));
@@ -427,12 +354,26 @@ MainWindow::MainWindow( QWidget * parent )
 
   if ( ! settings.value("showRightPanel",true).toBool() )
     _rightPanel->hide();
+
+  if ( _comboWebcam->count() ) {
+    _webcam.setCameraIndex( CURRENTDATA(_comboWebcam).toInt());
+    // Update actual source capture size
+    _webcam.start();
+    _webcam.stop();
+  }
+  updateWindowTitle();
 }
 
 MainWindow::~MainWindow()
 {
+  QSettings settings;
+  for ( int i = 0; i < _cameraDefaultResolutionsIndexes.size(); ++i ) {
+    settings.setValue(QString("WebcamSource/DefaultResolutionCam%1").arg(i),
+                      WebcamSource::webcamResolutions(i).at(_cameraDefaultResolutionsIndexes[i]));
+  }
   if ( _filterThread ) {
     _filterThread->stop();
+    _filterThreadSemaphore.release();
     _filterThread->wait();
     delete _filterThread;
   }
@@ -494,7 +435,6 @@ MainWindow::license()
   delete d;
 }
 
-// TODO : remove  (ambiguous)
 QString
 MainWindow::getPreset( const QString & name )
 {
@@ -577,16 +517,13 @@ MainWindow::play()
 }
 
 void
-MainWindow::stop(bool restart)
+MainWindow::stop()
 {
   if ( _filterThread ) {
     _filterThread->stop();
     _filterThreadSemaphore.release();
     _filterThread->wait();
     _filterThread = 0;
-  }
-  if ( restart ) {
-    play();
   }
 }
 
@@ -622,13 +559,15 @@ void MainWindow::enterFullScreenMode()
   }
   _displayMode = FullScreen;
   bool running = _filterThread && _filterThread->isRunning();
-  stop(false);
+  stop();
   _commandParamsWidget->saveValuesInDOM();
   _fullScreenWidget->imageView()->image() = _imageView->image();
   _fullScreenWidget->imageView()->zoomFitBest();
   _fullScreenWidget->commandParamsWidget()->build(_currentPresetNode);
   _fullScreenWidget->showFullScreen();
-  if ( running ) play();
+  if ( running ) {
+    play();
+  }
 }
 
 void
@@ -637,18 +576,24 @@ MainWindow::leaveFullScreenMode()
   _fullScreenWidget->close();
   _displayMode = InWindow;
   bool running = _filterThread && _filterThread->isRunning();
-  stop(false);
+  stop();
   _fullScreenWidget->commandParamsWidget()->saveValuesInDOM();
   _commandParamsWidget->build(_currentPresetNode);
-  if ( running ) play();
+  if ( running ) {
+    play();
+  }
 }
 
 void
-MainWindow::onButtonPlay(bool on)
+MainWindow::onPlayAction(bool on)
 {
   if ( !on && _filterThread ) {
-    stop(false);
+    stop();
+    if ( _source == Webcam ) {
+      _webcam.stop();
+    }
     changePlayButtonAppearence(false);
+    return;
   }
   if ( on && !_filterThread ){
     if ( (_source == Video && _videoFile.filename().isEmpty()) ||
@@ -656,9 +601,13 @@ MainWindow::onButtonPlay(bool on)
       QMessageBox::information(this,"Information","No input file.\nPlease select one first.");
       _startStopAction->setChecked(false);
     } else {
+      if ( _source == Webcam ) {
+        _webcam.start();
+      }
       play();
       changePlayButtonAppearence(true);
     }
+    return;
   }
 }
 
@@ -666,7 +615,9 @@ void
 MainWindow::onComboSourceChanged(int i)
 {
   bool running = _filterThread && _filterThread->isRunning();
-  if ( running ) stop(false);
+  if ( running ) {
+    stop();
+  }
   _source = static_cast<Source>(_comboSource->itemData(i).toInt());
   switch (_source) {
   case Webcam:
@@ -674,9 +625,11 @@ MainWindow::onComboSourceChanged(int i)
     break;
   case StillImage:
     _currentSource = &_stillImage;
+    _webcam.stop();
     break;
   case Video:
     _currentSource = &_videoFile;
+    _webcam.stop();
     break;
   }
   _webcamParamsWidget->setVisible( _source == Webcam );
@@ -687,10 +640,14 @@ MainWindow::onComboSourceChanged(int i)
     onOpenImageFile();
   if ( _source == Video && _videoFile.filename().isEmpty() )
     onOpenVideoFile();
-  if ( running )
+  if ( running ) {
+    if ( _source == Webcam ) {
+      _webcam.start();
+    }
     play();
-  else
+  } else {
     showOneSourceImage();
+  }
 }
 
 void
@@ -698,12 +655,12 @@ MainWindow::onOpenImageFile()
 {
   QString filename;
   filename = QFileDialog::getOpenFileName(this,
-                                          "Open file",
+                                          "Select an image file",
                                           _stillImage.filePath().isEmpty()?_videoFile.filePath():_stillImage.filePath(),
                                           "Image files (*.bmp *.gif *.jpg *.png *.pbm *.pgm *.ppm *.xbm *.xpm *.svg)");
   if (filename.isEmpty()) return;
   if ( _source == StillImage && _filterThread ) {
-    stop(false);
+    stop();
     if (_stillImage.loadImage(filename) ) {
       updateWindowTitle();
     }
@@ -720,12 +677,12 @@ void
 MainWindow::onOpenVideoFile()
 {
   QString filename;
-  filename = QFileDialog::getOpenFileName(this,"Open file",
+  filename = QFileDialog::getOpenFileName(this,"Select a video file",
                                           _videoFile.filePath().isEmpty()?_stillImage.filePath():_videoFile.filePath(),
                                           "Video files (*.avi *.mpg)");
   if (filename.isEmpty()) return;
   if ( _source == Video && _filterThread ) {
-    stop(false);
+    stop();
     if (_videoFile.loadVideoFile(filename) ) {
       updateWindowTitle();
       play();
@@ -744,7 +701,10 @@ MainWindow::updateWindowTitle()
   QString name;
   switch (_source) {
   case Webcam:
-    setWindowTitle( QString("ZArt %1 (Webcam)").arg((ZART_VERSION)) );
+    setWindowTitle( QString("ZArt %1 (Webcam %2x%3)")
+                    .arg((ZART_VERSION))
+                    .arg(_currentSource->width())
+                    .arg(_currentSource->height()));
     break;
   case StillImage:
     name = QFileInfo(_stillImage.filename()).fileName();
@@ -752,9 +712,11 @@ MainWindow::updateWindowTitle()
       setWindowTitle( QString("ZArt %1 (No input file)")
                       .arg((ZART_VERSION)) );
     else
-      setWindowTitle( QString("ZArt %1 (%2)")
+      setWindowTitle( QString("ZArt %1 (%2 %3x%4)")
                       .arg((ZART_VERSION))
-                      .arg(name) );
+                      .arg(name)
+                      .arg(_currentSource->width())
+                      .arg(_currentSource->height()) );
     break;
   case Video:
     name = QFileInfo(_videoFile.filename()).fileName();
@@ -762,9 +724,11 @@ MainWindow::updateWindowTitle()
       setWindowTitle( QString("ZArt %1 (No input file)")
                       .arg((ZART_VERSION)) );
     else
-      setWindowTitle( QString("ZArt %1 (%2)")
+      setWindowTitle( QString("ZArt %1 (%2 %3x%4)")
                       .arg((ZART_VERSION))
-                      .arg(name) );
+                      .arg(name)
+                      .arg(_currentSource->width())
+                      .arg(_currentSource->height()) );
     break;
   }
 }
@@ -813,7 +777,8 @@ void
 MainWindow::commandModified()
 {
   if ( _filterThread && _filterThread->isRunning() ) {
-    stop(true);
+    stop();
+    play();
   }
 }
 
@@ -858,16 +823,18 @@ MainWindow::setWebcamSkipFrames(int i)
 {
   _sliderWebcamSkipFrames->setToolTip(QString("%1").arg(i));
   QToolTip::showText(_sliderWebcamSkipFrames->mapToGlobal(QPoint(0,0)),QString("%1").arg(i),_sliderWebcamSkipFrames);
-  if ( _filterThread )
+  if ( _filterThread ) {
     _filterThread->setFrameSkip( i );
+  }
 }
 
 void MainWindow::setVideoSkipFrames(int i)
 {
   _sliderVideoSkipFrames->setToolTip(QString("%1").arg(i));
   QToolTip::showText(_sliderVideoSkipFrames->mapToGlobal(QPoint(0,0)),QString("%1").arg(i),_sliderVideoSkipFrames);
-  if ( _filterThread )
+  if ( _filterThread ) {
     _filterThread->setFrameSkip( i );
+  }
 }
 
 void
@@ -878,7 +845,9 @@ MainWindow::setImageFPS(int fps)
   if ( _filterThread ) {
     _filterThread->setFPS(fps);
   }
-  if ( _source == StillImage && _zeroFPS ) _filterThreadSemaphore.release();
+  if ( _source == StillImage && _zeroFPS ) {
+    _filterThreadSemaphore.release();
+  }
   _zeroFPS = !fps;
 }
 
@@ -887,8 +856,9 @@ MainWindow::setVideoFPS(int fps)
 {
   _sliderVideoFPS->setToolTip(QString("%1 fps").arg(fps));
   QToolTip::showText(_sliderVideoFPS->mapToGlobal(QPoint(0,0)),QString("%1 fps").arg(fps),_sliderVideoFPS);
-  if ( _filterThread )
+  if ( _filterThread ) {
     _filterThread->setFPS(fps);
+  }
 }
 
 void
@@ -896,40 +866,37 @@ MainWindow::onWebcamComboChanged( int index )
 {
   index = _comboWebcam->itemData(index).toInt();
   if ( _source == Webcam && _filterThread && _filterThread->isRunning() ) {
-    stop(false);
+    stop();
+    _webcam.stop();
+    updateCameraResolutionCombo();
+    _webcam.setCaptureSize(CURRENTDATA(_comboCamResolution).toSize());
     _webcam.setCameraIndex( index );
+    _webcam.start();
     play();
   } else {
+    updateCameraResolutionCombo();
+    _webcam.setCaptureSize(CURRENTDATA(_comboCamResolution).toSize());
     _webcam.setCameraIndex( index );
   }
 }
 
 void
-MainWindow::onUseOnlinePresets( bool on )
+MainWindow::onWebcamResolutionComboChanged( int i )
 {
-  if ( on ) {
-    QNetworkRequest request( QUrl("https://foureys.users.greyc.fr/ZArt/zart_presets.xml" ) );
-    _networkManager->get( request );
+  int currentCam = _comboWebcam->currentIndex();
+  _cameraDefaultResolutionsIndexes[currentCam] = i;
+  QSize resolution = CURRENTDATA(_comboCamResolution).toSize();
+  if ( _source == Webcam && _filterThread && _filterThread->isRunning() ) {
+    stop();
+    _webcam.setCaptureSize(resolution);
+    play();
+  } else {
+    _webcam.setCaptureSize(resolution);
+    // Update actual source capture size
+    _webcam.start();
+    _webcam.stop();
   }
-}
-
-void
-MainWindow::networkReplyFinished( QNetworkReply* reply )
-{
-  if ( reply->error() != QNetworkReply::NoError ) {
-    QMessageBox::critical( this,
-                           "Network Error",
-                           "Could not retrieve the preset file from"
-                           " the Web. Maybe a problem with your network"
-                           " connection." );
-    _builtInPresetsAction->setChecked( true );
-    QSettings().setValue( "Presets", "Built-in" );
-    return;
-  }
-  QSettings().setValue( "Presets", "Online" );
-  QString error;
-  _presets.setContent( reply, false, &error );
-  setPresets(_presets.elementsByTagName("document").at(0).toElement());
+  updateWindowTitle();
 }
 
 void
@@ -1023,10 +990,6 @@ MainWindow::onUseBuiltinPresets(bool on)
 void
 MainWindow::onReloadPresets()
 {
-  if ( _onlinePresetsAction->isChecked() ) {
-    onUseOnlinePresets(true);
-    return;
-  }
   if ( _builtInPresetsAction->isChecked() ) {
     onUseBuiltinPresets(true);
     return;
@@ -1072,4 +1035,101 @@ MainWindow::onRightPanel( bool on )
     QSettings().setValue("showRightPanel",false);
     return;
   }
+}
+
+void
+MainWindow::updateCameraResolutionCombo()
+{
+  disconnect(_comboCamResolution,SIGNAL(currentIndexChanged(int)), this, 0);
+  int index = _comboWebcam->currentIndex();
+  _comboCamResolution->clear();
+  const QList<QSize> & resolutions = WebcamSource::webcamResolutions(index);
+  QList<QSize>::const_iterator it = resolutions.begin();
+  while ( it != resolutions.end() ) {
+    _comboCamResolution->addItem(QString("%1 x %2").arg(it->width()).arg(it->height()),*it);
+    ++it;
+  }
+  _comboCamResolution->setCurrentIndex(_cameraDefaultResolutionsIndexes[index]);
+  connect(_comboCamResolution,SIGNAL(currentIndexChanged(int)),
+          this,SLOT(onWebcamResolutionComboChanged(int)));
+}
+
+void
+MainWindow::onRefreshCameraResolutions()
+{
+  WebcamSource::clearSavedSettings();
+  onDetectCameras();
+}
+
+void
+MainWindow::onDetectCameras()
+{
+  if ( _source == Webcam && _filterThread ) {
+    _webcam.stop();
+    stop();
+  }
+  centralWidget()->setEnabled(false);
+  statusBar()->showMessage("Updating camera resolutions list...");
+  menuBar()->setEnabled(false);
+  QList<int> camList = WebcamSource::getWebcamList();
+  WebcamSource::retrieveWebcamResolutions(camList,0,statusBar());
+  initGUIFromCameraList(camList);
+  statusBar()->showMessage(QString());
+  centralWidget()->setEnabled(true);
+  menuBar()->setEnabled(true);
+}
+
+void
+MainWindow::initGUIFromCameraList(const QList<int> & camList)
+{
+  disconnect(_comboWebcam,SIGNAL(currentIndexChanged(int)),this, 0);
+  disconnect( _comboSource, SIGNAL(currentIndexChanged(int)),this, 0);
+
+  QSettings settings;
+
+  _comboSource->clear();
+  _comboWebcam->clear();
+
+  if ( camList.size() == 0 ) {
+    _tabParams->setCurrentIndex(1);
+    _comboSource->addItem("Image",QVariant(StillImage));
+    _comboSource->addItem("Video file",QVariant(Video));
+#if QT_VERSION >= 0x040600
+    _comboSource->setItemIcon(0,QIcon::fromTheme("image-x-generic"));
+    _comboSource->setItemIcon(1,QIcon::fromTheme("video-x-generic"));
+#endif
+    if ( _source == Webcam ) {
+      _source = StillImage;
+      _currentSource = &_stillImage;
+    }
+
+  } else {
+    _tabParams->setCurrentIndex(0);
+    _comboSource->addItem("Webcam",QVariant(Webcam));
+    _comboSource->addItem("Image",QVariant(StillImage));
+    _comboSource->addItem("Video file",QVariant(Video));
+#if QT_VERSION >= 0x040600
+    _comboSource->setItemIcon(0,QIcon::fromTheme("camera-web"));
+    _comboSource->setItemIcon(1,QIcon::fromTheme("image-x-generic"));
+    _comboSource->setItemIcon(2,QIcon::fromTheme("video-x-generic"));
+#endif
+    _comboWebcam->setEnabled(camList.size() > 1);
+    _cameraDefaultResolutionsIndexes.clear();
+    for ( int iCam = 0; iCam < camList.size(); ++iCam ) {
+      _comboWebcam->addItem( QString("Webcam %1").arg(camList[iCam]),QVariant(camList[iCam]) );
+      QSize size = settings.value(QString("WebcamSource/DefaultResolutionCam%1").arg(iCam),QSize()).toSize();
+      if ( size.isValid() && WebcamSource::webcamResolutions(iCam).contains(size) ) {
+        _cameraDefaultResolutionsIndexes.push_back(WebcamSource::webcamResolutions(iCam).indexOf(size));
+      } else {
+        _cameraDefaultResolutionsIndexes.push_back(WebcamSource::webcamResolutions(iCam).size()-1);
+      }
+    }
+    _comboWebcam->setCurrentIndex(0);
+    connect(_comboWebcam,SIGNAL(currentIndexChanged(int)),
+            this, SLOT(onWebcamComboChanged(int)));
+    onWebcamComboChanged(0);
+  }
+  connect( _comboSource, SIGNAL(currentIndexChanged(int)),
+           this, SLOT(onComboSourceChanged(int)));
+  onComboSourceChanged(0);
 }

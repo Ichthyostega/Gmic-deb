@@ -45,13 +45,15 @@
     g++ -o gmic_use_lib gmic_use_lib.cpp -lgmic -lfftw3
 */
 
-/* Uncomment the two lines below if you want to use the CImg library along with the G'MIC library.
+/*
+  Uncomment the two lines below if you want to use the CImg library along with the G'MIC library.
  */
 //#include "CImg.h"
 //using namespace cimg_library;
 
-#include <cmath>
 #include "gmic.h"
+#include <cstdio>
+#include <cmath>
 
 int main() {
 
@@ -63,18 +65,18 @@ int main() {
   gmic_list<char> images_names;                       // List of images names. Can be left empty if no names.
   images.assign(5);                                   // Assign list to contain 5 images.
   for (unsigned int i = 0; i<images._width; ++i) {
-    gmic_image<float>& img = images._data[i];
+    gmic_image<float>& img = images[i];
     img.assign(256,256,1,3);                          // Assign i-th image with size 256x256x1x3 (2d color image).
 
     std::fprintf(stderr,"    Input image %u =  %ux%ux%ux%u, buffer : %p\n",i,
-                 images._data[i]._width,
-                 images._data[i]._height,
-                 images._data[i]._depth,
-                 images._data[i]._spectrum,
-                 images._data[i]._data);
+                 img._width,
+                 img._height,
+                 img._depth,
+                 img._spectrum,
+                 img._data);
 
     // Fill each image buffer with sinus values (with different frequencies).
-    float *ptr = img._data;
+    float *ptr = img;
     for (unsigned int c = 0; c<img._spectrum; ++c)
       for (unsigned int y = 0; y<img._height; ++y)
         for (unsigned int x = 0; x<img._width; ++x)
@@ -121,11 +123,11 @@ int main() {
   std::fprintf(stderr,"\n- 4th step : Returned %u output images.\n",images._width);
   for (unsigned int i = 0; i<images._width; ++i) {
     std::fprintf(stderr,"   Output image %u = %ux%ux%ux%u, buffer : %p\n",i,
-                 images._data[i]._width,
-                 images._data[i]._height,
-                 images._data[i]._depth,
-                 images._data[i]._spectrum,
-                 images._data[i]._data);
+                 images[i]._width,
+                 images[i]._height,
+                 images[i]._depth,
+                 images[i]._spectrum,
+                 images[i]._data);
   }
 
   // Fourth step : Free image resources.

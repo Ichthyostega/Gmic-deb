@@ -1,4 +1,4 @@
-/** -*- mode: c++ ; c-basic-offset: 3 -*-
+/** -*- mode: c++ ; c-basic-offset: 2 -*-
  * @file   ConstParameter.cpp
  * @author Sebastien Fourey
  * @date   Nov 2014
@@ -58,15 +58,21 @@ ConstParameter::~ConstParameter()
 {
 }
 
+bool
+ConstParameter::isVisible() const
+{
+  return false;
+}
+
 void
-ConstParameter::addTo(QWidget * , int )
+ConstParameter::addTo(QWidget *, int)
 {
 }
 
 QString
 ConstParameter::textValue() const
 {
-  return QString("\"%1\"").arg(_value);
+  return QString("%1").arg(_value);
 }
 
 void
