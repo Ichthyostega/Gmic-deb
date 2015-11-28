@@ -37,6 +37,7 @@ override_dh_compress:
 	dh_compress -X.shtml -X.rss -X.js -X.ppm
 
 override_dh_auto_build:
+	export NOSTRIP=1 ;\
 	export MANDATORY_LDFLAGS="-Wl,--as-needed" ;\
 		export MANDATORY_CFLAGS="$(GMIC_CFLAGS) -I. -I/usr/include/libavcodec/ -I/usr/include/libavformat/ -I/usr/include/libswscale/" ;\
 		dh_auto_build --sourcedirectory=src
