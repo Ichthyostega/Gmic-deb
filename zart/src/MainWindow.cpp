@@ -240,23 +240,27 @@ MainWindow::MainWindow( QWidget * parent )
   _cbPreviewMode->addItem("Left",FilterThread::LeftHalf);
   _cbPreviewMode->addItem("Bottom",FilterThread::BottomHalf);
   _cbPreviewMode->addItem("Right",FilterThread::RightHalf);
+  _cbPreviewMode->addItem("Duplicate horizontal",FilterThread::DuplicateHorizontal);
+  _cbPreviewMode->addItem("Duplicate vertical",FilterThread::DuplicateVertical);
   _cbPreviewMode->addItem("Original",FilterThread::Original);
 
-#if QT_VERSION >= 0x040600
+#if ( QT_VERSION >= 0x040600 )
   _cbPreviewMode->setItemIcon(0,QIcon::fromTheme("view-fullscreen"));
   _cbPreviewMode->setItemIcon(1,QIcon::fromTheme("go-up"));
   _cbPreviewMode->setItemIcon(2,QIcon::fromTheme("go-previous"));
   _cbPreviewMode->setItemIcon(3,QIcon::fromTheme("go-down"));
   _cbPreviewMode->setItemIcon(4,QIcon::fromTheme("go-next"));
-  _cbPreviewMode->setItemIcon(5,QIcon::fromTheme("go-home"));
+  _cbPreviewMode->setItemIcon(5,QIcon::fromTheme("edit-copy"));
+  _cbPreviewMode->setItemIcon(6,QIcon::fromTheme("edit-copy"));
+  _cbPreviewMode->setItemIcon(7,QIcon::fromTheme("go-home"));
   _tbCamera->setIcon(QIcon::fromTheme("camera-photo",QIcon(":/images/camera.png")));
 #else
   _tbCamera->setIcon(QIcon(":images/camera.png");
-    #endif
+#endif
 
 
-      connect( _cbPreviewMode, SIGNAL(activated(int)),
-               this, SLOT(onPreviewModeChanged(int)));
+  connect( _cbPreviewMode, SIGNAL(activated(int)),
+           this, SLOT(onPreviewModeChanged(int)));
 
   connect( _tbZoomOriginal, SIGNAL( clicked() ),
            _imageView, SLOT( zoomOriginal() ) );
@@ -599,6 +603,7 @@ MainWindow::onPlayAction(bool on)
     if ( (_source == Video && _videoFile.filename().isEmpty()) ||
          (_source == StillImage && _stillImage.filename().isEmpty() ) ) {
       QMessageBox::information(this,"Information","No input file.\nPlease select one first.");
+      _tabParams->setCurrentIndex(0);
       _startStopAction->setChecked(false);
     } else {
       if ( _source == Webcam ) {
@@ -614,6 +619,7 @@ MainWindow::onPlayAction(bool on)
 void
 MainWindow::onComboSourceChanged(int i)
 {
+  static bool firstRun = true;
   bool running = _filterThread && _filterThread->isRunning();
   if ( running ) {
     stop();
@@ -636,8 +642,10 @@ MainWindow::onComboSourceChanged(int i)
   _imageParamsWidget->setVisible( _source == StillImage);
   _videoParamsWidget->setVisible( _source == Video );
   updateWindowTitle();
-  if ( _source == StillImage && _stillImage.filename().isEmpty() )
+  if ( _source == StillImage && _stillImage.filename().isEmpty() &&
+       ( ! firstRun || WebcamSource::getCachedWebcamList().size() ) ) {
     onOpenImageFile();
+  }
   if ( _source == Video && _videoFile.filename().isEmpty() )
     onOpenVideoFile();
   if ( running ) {
@@ -648,6 +656,7 @@ MainWindow::onComboSourceChanged(int i)
   } else {
     showOneSourceImage();
   }
+  firstRun = false;
 }
 
 void
@@ -658,7 +667,9 @@ MainWindow::onOpenImageFile()
                                           "Select an image file",
                                           _stillImage.filePath().isEmpty()?_videoFile.filePath():_stillImage.filePath(),
                                           "Image files (*.bmp *.gif *.jpg *.png *.pbm *.pgm *.ppm *.xbm *.xpm *.svg)");
-  if (filename.isEmpty()) return;
+  if (filename.isEmpty()) {
+    return;
+  }
   if ( _source == StillImage && _filterThread ) {
     stop();
     if (_stillImage.loadImage(filename) ) {
@@ -1091,7 +1102,7 @@ MainWindow::initGUIFromCameraList(const QList<int> & camList)
   _comboWebcam->clear();
 
   if ( camList.size() == 0 ) {
-    _tabParams->setCurrentIndex(1);
+    _tabParams->setCurrentIndex(0);
     _comboSource->addItem("Image",QVariant(StillImage));
     _comboSource->addItem("Video file",QVariant(Video));
 #if QT_VERSION >= 0x040600

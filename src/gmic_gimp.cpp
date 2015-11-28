@@ -44,10 +44,8 @@
 //--------------------------------
 #define cimg_display_type 0
 #include "gmic.h"
-#include "gmic_def.h"
-#if !defined(__MACOSX__) && !defined(__APPLE__)
+#include "gmic_stdlib.h"
 #include <pthread.h>
-#endif
 #include <locale>
 #include <gtk/gtk.h>
 #include <libgimp/gimp.h>
@@ -58,6 +56,23 @@
 // Define default pixel type.
 #ifndef gmic_pixel_type
 #define gmic_pixel_type float
+#endif
+#define __s_gmic_pixel_type(s) #s
+#define _s_gmic_pixel_type(s) __s_gmic_pixel_type(s)
+#define s_gmic_pixel_type _s_gmic_pixel_type(gmic_pixel_type)
+
+// Manage different versions of the GIMP API.
+#if GIMP_MINOR_VERSION<=6
+#define _gimp_item_is_valid gimp_drawable_is_valid
+#define _gimp_image_get_item_position gimp_image_get_layer_position
+#else
+#define _gimp_item_is_valid gimp_item_is_valid
+#define _gimp_image_get_item_position gimp_image_get_item_position
+#endif
+#if GIMP_MINOR_VERSION<=8
+#define _gimp_item_get_visible gimp_drawable_get_visible
+#else
+#define _gimp_item_get_visible gimp_item_get_visible
 #endif
 
 using namespace cimg_library;
@@ -73,6 +88,7 @@ CImgList<char> gmic_faves;                     // The list of favorites filters 
 CImgList<double> gmic_preview_factors;         // The list of default preview factors for each filter.
 CImgList<unsigned int> gmic_button_parameters; // The list of button parameters for the current filter.
 CImg<gmic_pixel_type> computed_preview;        // The last computed preview image.
+CImg<unsigned char> latest_preview_buffer;     // The latest content of the preview buffer.
 CImg<char> gmic_additional_commands;           // The buffer of additional G'MIC command implementations.
 bool _create_dialog_gui;                       // Return value for 'create_gui_dialog()' (set by events handlers).
 bool is_block_preview = false;                 // Flag to block preview, when double-clicking on the filter tree.
@@ -83,24 +99,27 @@ double preview_image_factor = 0;               // If alternative preview image u
 unsigned int indice_faves = 0;                 // The starting index of favorite filters.
 unsigned int nb_available_filters = 0;         // The number of available filters (non-testing).
 std::FILE *logfile = 0;                        // The log file if any.
+void *p_spt = 0;                               // A pointer to the current running G'MIC thread if any (or 0).
 GimpRunMode run_mode;                          // Run-mode used to call the plug-in.
 GtkTreeStore *tree_view_store = 0;             // The list of the filters as a GtkTreeView model.
-GimpDrawable *drawable_preview = 0;            // The drawable used by the preview window.
 GtkWidget *dialog_window = 0;                  // The plug-in dialog window.
 GtkWidget *left_pane = 0;                      // The left pane, containing the preview window.
 GtkWidget *gui_preview = 0;                    // The preview window.
+GtkWidget *gui_preview_warning = 0;            // Warning label displaying for unaccurate preview.
 GtkWidget *relabel_hbox = 0;                   // The entire widget to relabel filter.
 GtkWidget *relabel_entry = 0;                  // The text entry to relabel filter.
 GtkWidget *tree_view = 0;                      // The filter treeview.
 GtkWidget *tree_mode_stock = 0;                // A temporary stock button for the expand/collapse button.
 GtkWidget *tree_mode_button = 0;               // Expand/Collapse button for the treeview.
 GtkWidget *refresh_stock = 0;                  // A temporary stock button for the refresh button.
+GtkWidget *reset_zoom_stock = 0;               // A temporary stock button for the reset zoom button.
 GtkWidget *fave_stock = 0;                     // A temporary stock button for the fave button.
 GtkWidget *delete_stock = 0;                   // A temporary stock button for the fave button 2.
 GtkWidget *fave_add_button = 0;                // Fave button.
 GtkWidget *fave_delete_button = 0;             // Fave delete button.
 GtkWidget *right_frame = 0;                    // The right frame containing the filter parameters.
 GtkWidget *right_pane = 0;                     // The right scrolled window, containing the right frame.
+GtkWidget *markup2ascii = 0;                   // Used to convert markup to ascii strings.
 GimpPDBStatusType status = GIMP_PDB_SUCCESS;   // The plug-in return status.
 const char *s_blendmode[] = { "alpha","dissolve","behind","multiply","screen","overlay","difference",
                               "add","subtract","darken","lighten","hue","saturation","color","value",
@@ -374,32 +393,26 @@ void get_output_layer_props(const char *const s, GimpLayerModeEffects &blendmode
   }
 }
 
-// Test if a drawable is valid.
-//------------------------------
-bool gmic_drawable_is_valid(const GimpDrawable *const drawable) {
-#if GIMP_MINOR_VERSION<=6
-  return gimp_drawable_is_valid(drawable->drawable_id);
-#else
-  return gimp_item_is_valid(drawable->drawable_id);
-#endif
-}
-
 // Translate string into the current locale.
 //------------------------------------------
 #define _t(source,dest) if (!std::strcmp(source,s)) { static const char *const ns = dest; return ns; }
 const char *t(const char *const s) {
 
-  // Catalan translation
+  // Catalan translation.
   if (!std::strcmp(get_locale(),"ca")) {
     if (!s) {
       static const char *const ns = "No ha estat possible establir una connexi&#243; a Internet !\n\n"
         "No es possible arribar a aquestes fonts de filtres :\n";
       return ns;
     }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>Av\303\255s:</b> Previsualitzaci\303\263 pot ser inexacta\n"
+       "(factor de zoom s'ha modificat)</span>");
     _t("G'MIC for GIMP","G'MIC per al GIMP");
     _t("<i>Select a filter...</i>","<i>Selecciona un filtre...</i>");
     _t("<i>No parameters to set...</i>","<i>Sense par\303\240metres...</i>");
-    _t("<b> Input / Output : </b>","<b> Entrades / Sortides : </b>");
+    _t("<b> Input / Output </b>","<b> Entrades / Sortides </b>");
     _t("Input layers...","Capes d'entrada...");
     _t("None","Cap");
     _t("Active (default)","Actiu (predet.)");
@@ -439,22 +452,32 @@ const char *t(const char *const s) {
     _t("Small","Petita");
     _t("Normal","Normal");
     _t("Large","Gran");
-    _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
+    _t(" Available filters (%u)"," Filtres disponibles (%u)");
     _t("Update","Actualitzaci\303\263");
     _t("Rename","Canviar");
+    _t("Add filter to faves","Afegir filtre a favorits");
+    _t("Remove filter from faves","Remogui el filtre de favorits");
+    _t("Update filters","filtres Actualitzar");
+    _t("Enable Internet updates","Habilitar actualitzacions d'Internet");
+    _t("Expand/collapse","Expand/collapse");
+    _t("Reset zoom","Restablir zoom");
   }
 
-  // Dutch translation
+  // Dutch translation.
   else if (!std::strcmp(get_locale(),"nl")) {
     if (!s) {
       static const char *const ns = "Geen internet-update mogelijk !\n\n"
         "Kan deze filters bronnen te bereiken :\n";
       return ns;
     }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>Waarschuwing:</b> Voorbeeld mogelijk niet correct\n"
+       "(zoomratio veranderd)﻿</span>");
     _t("G'MIC for GIMP","G'MIC voor GIMP");
     _t("<i>Select a filter...</i>","<i>Kies een filter...</i>");
     _t("<i>No parameters to set...</i>","<i>Geen parameters nodig...</i>");
-    _t("<b> Input / Output : </b>","<b> Input / Output : </b>");
+    _t("<b> Input / Output </b>","<b> Input / Output </b>");
     _t("Input layers...","Input lagen...");
     _t("None","Geen");
     _t("Active (default)","Actieve laag (standaard)");
@@ -494,21 +517,32 @@ const char *t(const char *const s) {
     _t("Small","Klein");
     _t("Normal","Normale");
     _t("Large","Groot");
-    _t(" Available filters (%u) :"," Beschikbare filters (%u) :");
+    _t(" Available filters (%u)"," Beschikbare filters (%u)");
+    _t("Update","Actualitzaci\303\263");
     _t("Rename","Hernoemen");
+    _t("Add filter to faves","Filter toevoegen aan favorieten");
+    _t("Remove filter from faves","Verwijder filter uit favorieten");
+    _t("Update filters","Update filters");
+    _t("Enable Internet updates","Enable Internet updates");
+    _t("Expand/collapse","Expand/collapse");
+    _t("Reset zoom","Reset zoom");
   }
 
-  // French translation
+  // French translation.
   else if (!std::strcmp(get_locale(),"fr")) {
     if (!s) {
       static const char *const ns = "Mise &#224; jour depuis Internet incompl&#232;te !\n\n"
         "Acc&#232;s impossible aux sources de filtres :\n";
       return ns;
     }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>Avertissement:</b> L'aper\303\247u est probablement inexact\n"
+       "(le facteur de zoom a \303\251t\303\251 modifi\303\251)</span>");
     _t("G'MIC for GIMP","G'MIC pour GIMP");
     _t("<i>Select a filter...</i>","<i>Choisissez un filtre...</i>");
     _t("<i>No parameters to set...</i>","<i>Pas de param&#232;tres...</i>");
-    _t("<b> Input / Output : </b>","<b> Entr&#233;es / Sorties : </b>");
+    _t("<b> Input / Output </b>","<b> Entr&#233;es / Sorties </b>");
     _t("Input layers...","Calques d'entr\303\251e...");
     _t("None","Aucun");
     _t("Active (default)","Actif (d\303\251faut)");
@@ -548,7 +582,7 @@ const char *t(const char *const s) {
     _t("Small","Petit");
     _t("Normal","Normal");
     _t("Large","Grand");
-    _t(" Available filters (%u) :"," Filtres disponibles (%u) :");
+    _t(" Available filters (%u)"," Filtres disponibles (%u)");
     _t("Update","Actualiser");
     _t("Rename","Renommer");
     _t("Add filter to faves","Ajouter le filtre aux favoris");
@@ -556,19 +590,24 @@ const char *t(const char *const s) {
     _t("Update filters","Actualiser les filtres");
     _t("Enable Internet updates","Autoriser les mises \303\240 jour Internet");
     _t("Expand/collapse","D\303\251plier/Replier");
+    _t("Reset zoom","R\303\251initialize le zoom");
   }
 
-  // German translation
+  // German translation.
   else if (!std::strcmp(get_locale(),"de")) {
     if (!s) {
       static const char *const ns = "Kein Internet-Update m\303\266glich !\n\n"
         "Kann diese Filter Quellen erreichen :\n";
       return ns;
     }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>Warnung:</b> Vorschau kann ungenau sein\n"
+       "(Vergr\303\266\303\237erung wurde ver\303\244ndert)﻿</span>");
     _t("G'MIC for GIMP","G'MIC f\303\274r GIMP");
     _t("<i>Select a filter...</i>","<i>W\303\244hlen Sie einen Filter...</i>");
     _t("<i>No parameters to set...</i>","<i>Keine w\303\244hlbaren Parameter...</i>");
-    _t("<b> Input / Output : </b>","<b> Eingabe / Ausgabe : </b>");
+    _t("<b> Input / Output </b>","<b> Eingabe / Ausgabe </b>");
     _t("Input layers...","Eingabeebenen...");
     _t("None","Keine");
     _t("Active (default)","Aktive (Standard)");
@@ -608,26 +647,32 @@ const char *t(const char *const s) {
     _t("Small","Klein");
     _t("Normal","Normal");
     _t("Large","Gross");
-    _t(" Available filters (%u) :"," Verf\303\274gbare Filter (%u) :");
+    _t(" Available filters (%u)"," Verf\303\274gbare Filter (%u)");
+    _t("Update","Update");
     _t("Rename","Umbenennen");
     _t("Add filter to faves","Filter zu Favoriten hinzuf\303\274gen");
     _t("Remove filter from faves","Filter aus Favoriten entfernen");
     _t("Update filters","Filter updaten");
     _t("Enable Internet updates","Internet-Updates aktivieren");
     _t("Expand/collapse","Ein-/Ausklappen﻿");
+    _t("Reset zoom","Reset Zoom");
   }
 
-  // Italian translation
+  // Italian translation.
   else if (!std::strcmp(get_locale(),"it")) {
     if (!s) {
       static const char *const ns = "Impossibile aggiornare da Internet !\n\n"
         "Impossibile raggiungere queste fonti filtri :\n";
       return ns;
     }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>Attenzione:</b> L'anteprima pu\303\262 essere inaccurata\n"
+       "(il fattore di zoom \303\250 stato modificato)</span>");
     _t("G'MIC for GIMP","G'MIC per GIMP");
     _t("<i>Select a filter...</i>","<i>Sciegliete un Filtro...</i>");
     _t("<i>No parameters to set...</i>","<i>Filtro senza Parametri...</i>");
-    _t("<b> Input / Output : </b>","<b> Input / Output : </b>");
+    _t("<b> Input / Output </b>","<b> Input / Output </b>");
     _t("Input layers...","Input da Layers...");
     _t("None","Nessuno");
     _t("Active (default)","Layer Attivo (default)");
@@ -638,7 +683,7 @@ const char *t(const char *const s) {
     _t("All invisibles","Tutti gli invisibili");
     _t("All visibles (decr.)","Tutti i visibili (dal fondo)");
     _t("All invisibles (decr.)","Tutti gli invisibili (dal fondo)");
-    _t("All (decr.)","Tutti");
+    _t("All (decr.)","Tutti (dal fondo)");
     _t("Output mode...","Tipo di output...");
     _t("In place (default)","Applica al Layer attivo (default) ");
     _t("New layer(s)","Nuovo(i) Layer(s)");
@@ -667,16 +712,126 @@ const char *t(const char *const s) {
     _t("Small","Piccolo");
     _t("Normal","Normale");
     _t("Large","Grande");
-    _t(" Available filters (%u) :"," Filtri disponibili (%u) :");
+    _t(" Available filters (%u)"," Filtri disponibili (%u)");
     _t("Update","Aggiornare");
+    _t("Rename","Rinominare");
     _t("Add filter to faves","Aggiungi filtro ai favoriti");
     _t("Remove filter from faves","Rimuovi filtro dai favoriti");
     _t("Update filters","Aggiorna filtri");
     _t("Enable Internet updates","Abilita aggiornamenti Internet");
     _t("Expand/collapse","Espandi/comprimi");
+    _t("Reset zoom","Reimpostare lo zoom");
   }
 
-  // Polish translation
+  // Japanese translation.
+  else if (!std::strcmp(get_locale(),"ja")) {
+    if (!s) {
+      static const char *const ns = "\xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xBF\xE3\x83\xBC\xE3\x83\x8D\xE3\x83\x83\xE3\x83"
+        "\x88\xE7\xB5\x8C\xE7\x94\xB1\xE3\x81\xA7\xE3\x81\xAE\xE6\x9B\xB4\xE6\x96\xB0\xE3\x81\xAB\xE5\xA4\xB1\xE6\x95"
+        "\x97\xE3\x81\x97\xE3\x81\x9F\xE3\x83\x95\xE3\x82\xA3\xE3\x83\xAB\xE3\x82\xBF\xE3\x81\x8C\xE3\x81\x82\xE3\x82"
+        "\x8A\xE3\x81\xBE\xE3\x81\x99\xEF\xBC\x81\n\n"
+        "\xE4\xBB\xA5\xE4\xB8\x8B\xE3\x81\xAE\xE3\x83\x95\xE3\x82\xA3\xE3\x83\xAB\xE3\x82\xBF\xE3\x81\xAE\xE9\x85\x8D"
+        "\xE5\xB8\x83\xE5\x85\x83\xE3\x81\xAB\xE3\x82\xA2\xE3\x82\xAF\xE3\x82\xBB\xE3\x82\xB9\xE3\x81\xA7\xE3\x81\x8D"
+        "\xE3\x81\xBE\xE3\x81\x9B\xE3\x82\x93\xE3\x81\xA7\xE3\x81\x97\xE3\x81\x9F\xE3\x80\x82\n";
+      return ns;
+    }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>\xE8\xAD\xA6\xE5\x91\x8A:</b> \xE3\x83\x97\xE3\x83\xAC\xE3\x83\x93\xE3\x83\xA5"
+       "\xE3\x83\xBC\xE3\x81\xAF\xE5\xAE\x9F\xE9\x9A\x9B\xE3\x81\xAE\xE5\xAE\x9F\xE8\xA1\x8C\xE7\xB5\x90\xE6\x9E\x9C"
+       "\xE3\x81\xA8\xE7\x95\xB0\xE3\x81\xAA\xE3\x82\x8B\xE5\xA0\xB4\xE5\x90\x88\xE3\x81\x8C\xE3\x81\x82\xE3\x82\x8A"
+       "\xE3\x81\xBE\xE3\x81\x99\n"
+       "(\xE6\x8B\xA1\xE5\xA4\xA7\xE7\x8E\x87\xE3\x81\x8C\xE5\xA4\x89\xE6\x9B\xB4\xE3\x81\x95\xE3\x82\x8C\xE3\x81\xBE"
+       "\xE3\x81\x97\xE3\x81\x9F)</span>");
+    _t("G'MIC for GIMP","G'MIC for GIMP");
+    _t("<i>Select a filter...</i>","<i>\xE3\x83\x95\xE3\x82\xA3\xE3\x83\xAB\xE3\x82\xBF\xE3\x82\x92\xE9\x81\xB8\xE6\x8A"
+       "\x9E\xE3\x81\x97\xE3\x81\xA6\xE3\x81\x8F\xE3\x81\xA0\xE3\x81\x95\xE3\x81\x84...</i>");
+    _t("<i>No parameters to set...</i>","<i>\xE8\xA8\xAD\xE5\xAE\x9A\xE3\x81\x99\xE3\x82\x8B\xE3\x83\x91\xE3\x83\xA9"
+       "\xE3\x83\xA1\xE3\x83\xBC\xE3\x82\xBF\xE3\x81\x8C\xE3\x81\x82\xE3\x82\x8A\xE3\x81\xBE\xE3\x81\x9B\xE3\x82\x93"
+       "...</i>");
+    _t("<b> Input / Output </b>","<b> \xE5\x85\xA5\xE5\x8A\x9B\x2F\xE5\x87\xBA\xE5\x8A\x9B </b>");
+    _t("Input layers...","\xE5\x85\xA5\xE5\x8A\x9B\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC...");
+    _t("None","\xE3\x81\xAA\xE3\x81\x97");
+    _t("Active (default)","\xE3\x82\xA2\xE3\x82\xAF\xE3\x83\x86\xE3\x82\xA3\xE3\x83\x96\xE3\x81\xAA\xE3\x83\xAC\xE3\x82"
+       "\xA4\xE3\x83\xA4\xE3\x83\xBC (\xE3\x83\x87\xE3\x83\x95\xE3\x82\xA9\xE3\x83\xAB\xE3\x83\x88)");
+    _t("All","\xE3\x81\x99\xE3\x81\xB9\xE3\x81\xA6");
+    _t("Active & below","\xE3\x82\xA2\xE3\x82\xAF\xE3\x83\x86\xE3\x82\xA3\xE3\x83\x96 & \xE4\xB8\x80\xE3\x81\xA4\xE4"
+       "\xB8\x8A\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC");
+    _t("Active & above","\xE3\x82\xA2\xE3\x82\xAF\xE3\x83\x86\xE3\x82\xA3\xE3\x83\x96 & \xE4\xB8\x80\xE3\x81\xA4\xE4"
+       "\xB8\x8B\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC");
+    _t("All visibles","\xE3\x81\x99\xE3\x81\xB9\xE3\x81\xA6\xE3\x81\xAE\xE5\x8F\xAF\xE8\xA6\x96\xE3\x83\xAC\xE3\x82"
+       "\xA4\xE3\x83\xA4\xE3\x83\xBC");
+    _t("All invisibles","\xE3\x81\x99\xE3\x81\xB9\xE3\x81\xA6\xE3\x81\xAE\xE4\xB8\x8D\xE5\x8F\xAF\xE8\xA6\x96\xE3\x83"
+       "\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC");
+    _t("All visibles (decr.)","\xE3\x81\x99\xE3\x81\xB9\xE3\x81\xA6\xE3\x81\xAE\xE5\x8F\xAF\xE8\xA6\x96\xE3\x83\xAC\xE3"
+       "\x82\xA4\xE3\x83\xA4\xE3\x83\xBC (\xE9\x80\x86\xE9\xA0\x86)");
+    _t("All invisibles (decr.)","\xE3\x81\x99\xE3\x81\xB9\xE3\x81\xA6\xE3\x81\xAE\xE4\xB8\x8D\xE5\x8F\xAF\xE8\xA6\x96"
+       "\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC (\xE9\x80\x86\xE9\xA0\x86)");
+    _t("All (decr.)","\xE3\x81\x99\xE3\x81\xB9\xE3\x81\xA6 (\xE9\x80\x86\xE9\xA0\x86)");
+    _t("Output mode...","\xE5\x87\xBA\xE5\x8A\x9B\xE3\x83\xA2\xE3\x83\xBC\xE3\x83\x89...");
+    _t("In place (default)","\xE7\x8F\xBE\xE5\x9C\xA8\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC "
+       "(\xE3\x83\x87\xE3\x83\x95\xE3\x82\xA9\xE3\x83\xAB\xE3\x83\x88)");
+    _t("New layer(s)","\xE6\x96\xB0\xE8\xA6\x8F\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC");
+    _t("New active layer(s)","\xE3\x82\xA2\xE3\x82\xAF\xE3\x83\x86\xE3\x82\xA3\xE3\x83\x96\xE3\x81\xAA\xE6\x96\xB0\xE8"
+       "\xA6\x8F\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC");
+    _t("New image","\xE6\x96\xB0\xE8\xA6\x8F\xE7\x94\xBB\xE5\x83\x8F");
+    _t("Preview mode...","\xE3\x83\x97\xE3\x83\xAC\xE3\x83\x93\xE3\x83\xA5\xE3\x83\xBC\xE3\x83\xA2\xE3\x83\xBC\xE3\x83"
+       "\x89...");
+    _t("1st output (default)","1 \xE6\x9E\x9A\xE7\x9B\xAE\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC"
+       "\xE3\x81\xAB\xE9\x81\xA9\xE7\x94\xA8 (\xE3\x83\x87\xE3\x83\x95\xE3\x82\xA9\xE3\x83\xAB\xE3\x83\x88)");
+    _t("2nd output","2 \xE6\x9E\x9A\xE7\x9B\xAE\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC\xE3\x81\xAB"
+       "\xE9\x81\xA9\xE7\x94\xA8");
+    _t("3rd output","3 \xE6\x9E\x9A\xE7\x9B\xAE\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC\xE3\x81\xAB"
+       "\xE9\x81\xA9\xE7\x94\xA8");
+    _t("4th output","4 \xE6\x9E\x9A\xE7\x9B\xAE\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC\xE3\x81\xAB"
+       "\xE9\x81\xA9\xE7\x94\xA8");
+    _t("1st -> 2nd","1 ~ 2 \xE6\x9E\x9A\xE7\x9B\xAE\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC\xE3\x81"
+       "\xAB\xE9\x81\xA9\xE7\x94\xA8");
+    _t("1st -> 3rd","1 ~ 3 \xE6\x9E\x9A\xE7\x9B\xAE\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC\xE3\x81"
+       "\xAB\xE9\x81\xA9\xE7\x94\xA8");
+    _t("1st -> 4th","1 ~ 4 \xE6\x9E\x9A\xE7\x9B\xAE\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC\xE3\x81"
+       "\xAB\xE9\x81\xA9\xE7\x94\xA8");
+    _t("All outputs","\xE3\x81\x99\xE3\x81\xB9\xE3\x81\xA6\xE3\x81\xAE\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC"
+       "\xE3\x81\xAB\xE9\x81\xA9\xE7\x94\xA8");
+    _t("Output messages...","\xE5\x87\xBA\xE5\x8A\x9B\xE3\x83\xA1\xE3\x83\x83\xE3\x82\xBB\xE3\x83\xBC\xE3\x82\xB8...");
+    _t("Quiet (default)","\xE3\x81\xAA\xE3\x81\x97 (\xE3\x83\x87\xE3\x83\x95\xE3\x82\xA9\xE3\x83\xAB\xE3\x83\x88)");
+    _t("Verbose (layer name)","\xE6\x83\x85\xE5\xA0\xB1\xE3\x82\x92\xE5\x87\xBA\xE5\x8A\x9B "
+       "(\xE3\x83\xAC\xE3\x82\xA4\xE3\x83\xA4\xE3\x83\xBC\xE5\x90\x8D)");
+    _t("Verbose (console)","\xE6\x83\x85\xE5\xA0\xB1\xE3\x82\x92\xE5\x87\xBA\xE5\x8A\x9B "
+       "(\xE3\x82\xB3\xE3\x83\xB3\xE3\x82\xBD\xE3\x83\xBC\xE3\x83\xAB)");
+    _t("Verbose (logfile)","\xE6\x83\x85\xE5\xA0\xB1\xE3\x82\x92\xE5\x87\xBA\xE5\x8A\x9B "
+       "(\xE3\x83\xAD\xE3\x82\xB0\xE3\x83\x95\xE3\x82\xA1\xE3\x82\xA4\xE3\x83\xAB)");
+    _t("Very verbose (console)","\xE8\xA9\xB3\xE7\xB4\xB0\xE3\x81\xAA\xE6\x83\x85\xE5\xA0\xB1\xE3\x82\x92\xE5\x87\xBA"
+       "\xE5\x8A\x9B (\xE3\x82\xB3\xE3\x83\xB3\xE3\x82\xBD\xE3\x83\xBC\xE3\x83\xAB)");
+    _t("Very verbose (logfile)","\xE8\xA9\xB3\xE7\xB4\xB0\xE3\x81\xAA\xE6\x83\x85\xE5\xA0\xB1\xE3\x82\x92\xE5\x87\xBA"
+       "\xE5\x8A\x9B (\xE3\x83\xAD\xE3\x82\xB0\xE3\x83\x95\xE3\x82\xA1\xE3\x82\xA4\xE3\x83\xAB)");
+    _t("Debug mode (console)","\xE3\x83\x87\xE3\x83\x90\xE3\x83\x83\xE3\x82\xB0\xE3\x83\xA2\xE3\x83\xBC\xE3\x83\x89 "
+       "(\xE3\x82\xB3\xE3\x83\xB3\xE3\x82\xBD\xE3\x83\xBC\xE3\x83\xAB)");
+    _t("Debug mode (logfile)","\xE3\x83\x87\xE3\x83\x90\xE3\x83\x83\xE3\x82\xB0\xE3\x83\xA2\xE3\x83\xBC\xE3\x83\x89 "
+       "(\xE3\x83\xAD\xE3\x82\xB0\xE3\x83\x95\xE3\x82\xA1\xE3\x82\xA4\xE3\x83\xAB)");
+    _t("Preview size...","\xE3\x83\x97\xE3\x83\xAC\xE3\x83\x93\xE3\x83\xA5\xE3\x83\xBC\xE3\x82\xB5\xE3\x82\xA4\xE3\x82"
+       "\xBA...");
+    _t("Tiny","\xE6\xA5\xB5\xE5\xB0\x8F");
+    _t("Small","\xE5\xB0\x8F");
+    _t("Normal","\xE6\x99\xAE\xE9\x80\x9A");
+    _t("Large","\xE5\xA4\xA7");
+    _t(" Available filters (%u)"," \xE5\x88\xA9\xE7\x94\xA8\xE5\x8F\xAF\xE8\x83\xBD\xE3\x81\xAA\xE3\x83\x95\xE3\x82\xA3"
+       "\xE3\x83\xAB\xE3\x82\xBF (%u)");
+    _t("Update","\xE6\x9B\xB4\xE6\x96\xB0");
+    _t("Rename","\xE5\x90\x8D\xE5\x89\x8D\xE3\x82\x92\xE5\xA4\x89\xE6\x9B\xB4");
+    _t("Add filter to faves","\xE3\x83\x95\xE3\x82\xA3\xE3\x83\xAB\xE3\x82\xBF\xE3\x82\x92\xE3\x81\x8A\xE6\xB0\x97\xE3"
+       "\x81\xAB\xE5\x85\xA5\xE3\x82\x8A\xE3\x81\xAB\xE8\xBF\xBD\xE5\x8A\xA0");
+    _t("Remove filter from faves","\xE3\x83\x95\xE3\x82\xA3\xE3\x83\xAB\xE3\x82\xBF\xE3\x82\x92\xE3\x81\x8A\xE6\xB0\x97"
+       "\xE3\x81\xAB\xE5\x85\xA5\xE3\x82\x8A\xE3\x81\x8B\xE3\x82\x89\xE5\x89\x8A\xE9\x99\xA4");
+    _t("Update filters","\xE3\x83\x95\xE3\x82\xA3\xE3\x83\xAB\xE3\x82\xBF\xE3\x82\x92\xE6\x9B\xB4\xE6\x96\xB0");
+    _t("Enable Internet updates","\xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xBF\xE3\x83\xBC\xE3\x83\x8D\xE3\x83\x83\xE3\x83\x88"
+       "\xE7\xB5\x8C\xE7\x94\xB1\xE3\x81\xA7\xE3\x81\xAE\xE6\x9B\xB4\xE6\x96\xB0\xE3\x82\x92\xE6\x9C\x89\xE5\x8A\xB9"
+       "\xE5\x8C\x96");
+    _t("Expand/collapse","\xE5\xB1\x95\xE9\x96\x8B\x2F\xE6\x8A\x98\xE3\x82\x8A\xE3\x81\x9F\xE3\x81\x9F\xE3\x82\x80");
+    _t("Reset zoom","\xE3\x82\xBA\xE3\x83\xBC\xE3\x83\xA0\xE3\x82\x92\xE3\x83\xAA\xE3\x82\xBB\xE3\x83\x83\xE3\x83\x88");
+  }
+
+  // Polish translation.
   else if (!std::strcmp(get_locale(),"pl")) {
     if (!s) {
       static const char *const ns = "Aktualizacja filtr\303\263w przez internet (cz\304\231\305\233ciowo) nie "
@@ -684,10 +839,15 @@ const char *t(const char *const s) {
         "Brak dost\304\231pu do tych \305\272r\303\263de\305\202 filtr\303\263w :\n";
       return ns;
     }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>Uwaga:</b> Podgl\304\205d mo\305\274e si\304\231 r\303\263\305\274ni\304\207 od "
+       "efektu ko\305\204cowego\n"
+       "ze wzgl\304\231du na zmian\304\231 przybli\305\274enia</span>");
     _t("G'MIC for GIMP","G'MIC dla GIMP");
     _t("<i>Select a filter...</i>","<i>Wybierz filtr...</i>");
     _t("<i>No parameters to set...</i>","<i>Brak parametr\304\205w do ustawienia...</i>");
-    _t("<b> Input / Output : </b>","<b> Wej\305\233cie / Wyj\305\233cie : </b>");
+    _t("<b> Input / Output </b>","<b> Wej\305\233cie / Wyj\305\233cie </b>");
     _t("Input layers...","Warstwy wej\305\233cia...");
     _t("None","Brak");
     _t("Active (default)","Aktywna (domy\305\233lnie)");
@@ -727,22 +887,33 @@ const char *t(const char *const s) {
     _t("Small","Mala");
     _t("Normal","Normalne");
     _t("Large","Duza");
-    _t(" Available filters (%u) :"," Dost\304\231pne filtry (%u) :");
+    _t(" Available filters (%u)"," Dost\304\231pne filtry (%u)");
     _t("Update","Uaktualnij");
     _t("Rename","Zmiana nazwy");
+    _t("Add filter to faves","Dodaj filtr do ulubionych");
+    _t("Remove filter from faves","Usun filtr z Ulubionych");
+    _t("Update filters","Filtry aktualizacji");
+    _t("Enable Internet updates","Wlacz aktualizacje internetowe");
+    _t("Expand/collapse","Rozwin/Zwin");
+    _t("Reset zoom","Zresetowa\304\207 zoomu");
   }
 
-  // Portuguese translation
+  // Portuguese translation.
   else if (!std::strcmp(get_locale(),"pt")) {
     if (!s) {
       static const char *const ns = "A atualiza\303\247\303\243o pela internet falhou !\n\n"
         "Incapaz de chegar a essas fontes de filtros :\n";
       return ns;
     }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>Aten\303\247\303\243o:</b> a pr\303\251-visualiza\303\247\303\243o pode "
+       "estar incorreta\n"
+       "(o fator amplia\303\247\303\243o foi modificado)</span>");
     _t("G'MIC for GIMP","G'MIC para o GIMP");
     _t("<i>Select a filter...</i>","<i>Escolha um filtro</i>");
     _t("<i>No parameters to set...</i>","<i>Sem par\303\242metros para configurar...</i>");
-    _t("<b> Input / Output : </b>","<b> Entrada / Saida : </b>");
+    _t("<b> Input / Output </b>","<b> Entrada / Saida </b>");
     _t("Input layers...","Camadas de Entrada...");
     _t("None","Nenhuma");
     _t("Active (default)","Ativo (Padr\303\243o)");
@@ -782,22 +953,32 @@ const char *t(const char *const s) {
     _t("Small","Pequeno");
     _t("Normal","Normal");
     _t("Large","Grande");
-    _t(" Available filters (%u) :"," Filtros dispon\303\255veis (%u) :");
+    _t(" Available filters (%u)"," Filtros dispon\303\255veis (%u)");
     _t("Update","Atualizar");
     _t("Rename","Renomear");
+    _t("Add filter to faves","Adicionar a favoritos filtro");
+    _t("Remove filter from faves","Remover filtro de favoritos");
+    _t("Update filters","Filtros de atualizacao");
+    _t("Enable Internet updates","Ativar atualizacoes Internet");
+    _t("Expand/collapse","Expandir/recolher");
+    _t("Reset zoom","Redefinir zoom");
   }
 
-  // Serbian translation
+  // Serbian translation.
   else if (!std::strcmp(get_locale(),"sr")) {
     if (!s) {
       static const char *const ns = "A\305\276uriranje filtera sa interneta (delimi\304\215no) neuspe\305\241no !\n\n"
         "Nije mogu\304\207e dospeti do izvorne lokacije ovih filtera :\n";
       return ns;
     }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>Upozorenje :</b> Pregled mo\305\276e biti neta\304\215na\n"
+       "( zum faktor je modifikovan )</span>");
     _t("G'MIC for GIMP","G'MIC za GIMP");
     _t("<i>Select a filter...</i>","<i>Izaberite filter...</i>");
     _t("<i>No parameters to set...</i>","<i>Nema parametara za pode\305\241avanje...</i>");
-    _t("<b> Input / Output : </b>","<b> Ulazni podaci / Rezultati : </b>");
+    _t("<b> Input / Output </b>","<b> Ulazni podaci / Rezultati </b>");
     _t("Input layers...","Ulazni slojevi...");
     _t("None","Nijedan");
     _t("Active (default)","Aktivan (podrazumevana opcija)");
@@ -837,21 +1018,32 @@ const char *t(const char *const s) {
     _t("Small","Mali");
     _t("Normal","Normalno");
     _t("Large","Veliki");
-    _t(" Available filters (%u) :"," Raspolo\305\276ivi filteri (%u) :");
+    _t(" Available filters (%u)"," Raspolo\305\276ivi filteri (%u)");
+    _t("Update","Azuriranje");
     _t("Rename","Preimenovati");
+    _t("Add filter to faves","Dodaj filter to faves");
+    _t("Remove filter from faves","Izvadite filter iz faves");
+    _t("Update filters","Update filteri");
+    _t("Enable Internet updates","Omoguci Internet ispravke");
+    _t("Expand/collapse","Razvij/skupi");
+    _t("Reset zoom","Reset zum");
   }
 
-  // Spanish translation (Castillan)
+  // Spanish translation (Castillan).
   else if (!std::strcmp(get_locale(),"es")) {
     if (!s) {
       static const char *const ns = "No es posible establecer conexión a Internet !\n\n"
         "No es posible acceder a estas fuentes de filtros :\n";
       return ns;
     }
+    _t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+       "(zoom factor has been modified)</span>",
+       "\n<span color=\"#AA0000\"><b>Advertencia:</b> La vista previa puede ser inexacta\n"
+       "(el factor de zoom ha sido modificado)</span>");
     _t("G'MIC for GIMP","G'MIC para GIMP");
     _t("<i>Select a filter...</i>","<i>Selecciona un filtro...</i>");
     _t("<i>No parameters to set...</i>","<i>Sin par\303\241metros...</i>");
-    _t("<b> Input / Output : </b>","<b> Entrada / Salida : </b>");
+    _t("<b> Input / Output </b>","<b> Entrada / Salida </b>");
     _t("Input layers...","Capas de entrada...");
     _t("None","Ninguna");
     _t("Active (default)","Activa (predet.)");
@@ -891,21 +1083,21 @@ const char *t(const char *const s) {
     _t("Small","Pequena");
     _t("Normal","Normal");
     _t("Large","Grande");
-    _t(" Available filters (%u) :"," Filtros disponibles (%u) :");
+    _t(" Available filters (%u)"," Filtros disponibles (%u)");
     _t("Update","Actualitzaci\303\263n");
     _t("Rename","Renombrar");
-    _t("Update","Aggiornare");
     _t("Add filter to faves","A\303\261ade filtro a favoritos");
     _t("Remove filter from faves","Remueve filtro de favoritos");
     _t("Update filters","Actualiza filtros");
     _t("Enable Internet updates","Permite actualizaciones de Internet");
     _t("Expand/collapse","Expande/Colapsa");
+    _t("Reset zoom","Restablecer zoom");
   }
 
-  // English translation (default)
+  // English translation (default).
   if (!s) {
     static const char *const ns = "Filters update from Internet (partially) failed !\n\n"
-      "Unable to reach these filters sources :\n";
+      "Unable to reach these filters sources:\n";
     return ns;
   }
   return s;
@@ -975,7 +1167,7 @@ void flush_tree_view(GtkWidget *const tree_view) {
   gtk_tree_view_remove_column(GTK_TREE_VIEW(tree_view),gtk_tree_view_get_column(GTK_TREE_VIEW(tree_view),0));
   GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
   CImg<char> tree_view_title(64);
-  cimg_snprintf(tree_view_title,tree_view_title.width(),t(" Available filters (%u) :"),nb_available_filters);
+  cimg_snprintf(tree_view_title,tree_view_title.width(),t(" Available filters (%u)"),nb_available_filters);
   GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(tree_view_title,renderer,"markup",1,NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view),column);
 }
@@ -1013,7 +1205,7 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
   gmic_preview_commands.assign(1);
   gmic_preview_factors.assign(1);
   gmic_arguments.assign(1);
-  if (try_net_update && !is_silent) gimp_progress_init(" G'MIC : Update filters...");
+  if (try_net_update && !is_silent) gimp_progress_init(" G'MIC: Update filters...");
 
   // Get filter definition files from external web servers.
   CImg<char> filename(1024);
@@ -1027,7 +1219,7 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
     const char *const s_basename = gmic::basename(sources[l]);
     CImg<char> _s_basename = CImg<char>::string(s_basename);
     cimg::strwindows_reserved(_s_basename);
-    if (!is_silent) gimp_progress_set_text_printf(" G'MIC : Update filters '%s'...",s_basename);
+    if (!is_silent) gimp_progress_set_text_printf(" G'MIC: Update filters '%s'...",s_basename);
     cimg_snprintf(filename,filename.width(),"%s%s",
                   gmic::path_rc(),_s_basename.data());
 
@@ -1075,7 +1267,7 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
     if (!is_silent) gimp_progress_pulse();
     std::remove(filename_tmp);
   }
-  if (!is_silent) gimp_progress_set_text(" G'MIC : Update filters...");
+  if (!is_silent) gimp_progress_set_text(" G'MIC: Update filters...");
 
   // Read local source files.
   CImgList<char> _gmic_additional_commands;
@@ -1084,13 +1276,13 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
     const char *s_basename = gmic::basename(sources[l]);
     CImg<char> _s_basename = CImg<char>::string(s_basename);
     cimg::strwindows_reserved(_s_basename);
-    const bool is_parent = sources(l,0)=='.' && sources(l,1)=='.' && (sources(l,2)=='/' || sources(l,2)=='\\');
-    if (is_parent) // Local file has to be in parent folder.
-      cimg_snprintf(filename,filename.width(),"%s%s",
-                    gmic::path_rc(0,true),_s_basename.data());
-    else
+    if (!cimg::strncasecmp(sources[l],"http://",7) ||
+        !cimg::strncasecmp(sources[l],"https://",8)) // Network file should have been copied in resources folder.
       cimg_snprintf(filename,filename.width(),"%s%s",
                     gmic::path_rc(),_s_basename.data());
+    else // Local file, try to locate it at its hard-coded path.
+      cimg_snprintf(filename,filename.width(),"%s",
+                    sources[l].data());
     const unsigned int omode = cimg::exception_mode();
     try {
       CImg<char> com;
@@ -1128,7 +1320,7 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
   }
 
   if (!is_default_update) { // Add hardcoded default filters if no updates of the default commands.
-    _gmic_additional_commands.insert(gmic::get_default_commands());
+    _gmic_additional_commands.insert(gmic::uncompress_stdlib());
     CImg<char>::string("\n#@gimp ________\n",false).unroll('y').move_to(_gmic_additional_commands);
   }
   CImg<char>::vector(0).move_to(_gmic_additional_commands);
@@ -1201,7 +1393,6 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
               }
 
             // Detect if filter is in 'Testing/' (won't be counted in number of filters).
-            GtkWidget *const markup2ascii = gtk_label_new(0);
             gtk_label_set_markup(GTK_LABEL(markup2ascii),nentry);
             const char *_nentry = gtk_label_get_text(GTK_LABEL(markup2ascii));
             is_testing = !std::strcmp(_nentry,"Testing");
@@ -1220,7 +1411,6 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
                 if (*_nentry) order|=(unsigned char)cimg::uncase(*(_nentry++));
               }
             }
-            gtk_widget_destroy(markup2ascii);
           }
           ++level;
         }
@@ -1238,27 +1428,30 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
           if (err>=3) { // Filter has a specified preview command.
             cimg::strpare(preview_command,' ',false,true);
             char *const preview_mode = std::strchr(preview_command,'(');
+            bool is_accurate_when_zoomed = false;
             double factor = 1;
             char sep = 0;
-            if (preview_mode && cimg_sscanf(preview_mode + 1,"%lf%c",&factor,&sep)==2 && factor>=0 && sep==')')
+            if (preview_mode &&
+                ((cimg_sscanf(preview_mode + 1,"%lf)%c",&factor,&sep)==2 && sep=='+') ||
+                 (cimg_sscanf(preview_mode + 1,"%lf%c",&factor,&sep)==2 && sep==')')) &&
+                factor>=0) {
               *preview_mode = 0;
-            else factor = -1;
+              is_accurate_when_zoomed = sep=='+';
+            } else factor = -1;
             CImg<char>::string(preview_command).move_to(gmic_preview_commands);
-            CImg<double>::vector(factor).move_to(gmic_preview_factors);
+            CImg<double>::vector(factor,(double)is_accurate_when_zoomed).move_to(gmic_preview_factors);
           } else {
             CImg<char>::string("_none_").move_to(gmic_preview_commands);
-            CImg<double>::vector(-1).move_to(gmic_preview_factors);
+            CImg<double>::vector(-1,1).move_to(gmic_preview_factors);
           }
           gtk_tree_store_append(tree_view_store,&iter,level?&parent[level - 1]:0);
           gtk_tree_store_set(tree_view_store,&iter,0,gmic_entries.size() - 1,1,nentry,
                              2,tree_view_sort_str(nentry),-1);
           if (!level) {
-            GtkWidget *const markup2ascii = gtk_label_new(0);
             gtk_label_set_markup(GTK_LABEL(markup2ascii),nentry);
             const char *_nentry = gtk_label_get_text(GTK_LABEL(markup2ascii));
             unsigned int order = 0;
             for (unsigned int i = 0; i<3; ++i) { order<<=8; if (*_nentry) order|=cimg::uncase(*(_nentry++)); }
-            gtk_widget_destroy(markup2ascii);
           }
           if (!is_testing) ++nb_available_filters;  // Count only non-testing filters.
         }
@@ -1311,8 +1504,8 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
           CImg<char>::string(label).move_to(gmic_entries);
           CImg<char>::string("_none_").move_to(gmic_commands);
           CImg<char>::string("_none_").move_to(gmic_preview_commands);
-          std::sprintf(line,"note = note{\"<span foreground=\"red\"><b>Warning : </b></span>This fave links to an "
-                       "unreferenced entry/set of G'MIC commands :\n\n"
+          cimg_sprintf(line,"note = note{\"<span foreground=\"red\"><b>Warning: </b></span>This fave links to an "
+                       "unreferenced entry/set of G'MIC commands:\n\n"
                        "   - '<span foreground=\"purple\">%s</span>' as the entry name (%s%s%s%s%s).\n\n"
                        "   - '<span foreground=\"purple\">%s</span>' as the command to compute the filter "
                        "(%s%s%s%s%s).\n\n"
@@ -1339,7 +1532,7 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
                        preview_found>=0?"</i>":"");
 
           CImg<char>::string(line).move_to(gmic_arguments);
-          CImg<double>::vector(0).move_to(gmic_preview_factors);
+          CImg<double>::vector(0,0).move_to(gmic_preview_factors);
           set_filter_nbparams(gmic_entries.size() - 1,0);
         } else { // Entry found.
           CImg<char>::string(label).move_to(gmic_entries);
@@ -1363,7 +1556,7 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
                            2,tree_view_sort_str(label),-1);
       } else if (get_verbosity_mode()>1)
         std::fprintf(cimg::output(),
-                     "\n[gmic_gimp]./update/ Malformed line %u in fave file '%s' : '%s'.\n",
+                     "\n[gmic_gimp]./update/ Malformed line %u in fave file '%s': '%s'.\n",
                      line_nb,filename_gmic_faves.data(),line.data());
     }
     std::fclose(file_gmic_faves);
@@ -1419,12 +1612,12 @@ void convert_image2uchar(CImg<T>& img) {
   }
 }
 
-// Calibrate any image to fit the number of required channels (GRAY,GRAYA, RGB or RGBA).
+// Calibrate any image to fit the required number of channels (GRAY,GRAYA, RGB or RGBA).
 //---------------------------------------------------------------------------------------
 template<typename T>
-void calibrate_image(CImg<T>& img, const unsigned int channels, const bool is_preview) {
-  if (!img || !channels) return;
-  switch (channels) {
+void calibrate_image(CImg<T>& img, const unsigned int spectrum, const bool is_preview) {
+  if (!img || !spectrum) return;
+  switch (spectrum) {
 
   case 1 : // To GRAY
     switch (img.spectrum()) {
@@ -1573,14 +1766,14 @@ CImg<int> get_input_layers(CImgList<T>& images) {
   case 5 : case 7 : { // Input all visible image layers
     CImgList<int> visible_layers;
     for (int i = 0; i<nb_layers; ++i)
-      if (gimp_drawable_get_visible(layers[i])) CImg<int>::vector(layers[i]).move_to(visible_layers);
+      if (_gimp_item_get_visible(layers[i])) CImg<int>::vector(layers[i]).move_to(visible_layers);
     input_layers = visible_layers>'y';
     if (input_mode==7) input_layers.mirror('y');
   } break;
   default : { // Input all invisible image layers
     CImgList<int> invisible_layers;
     for (int i = 0; i<nb_layers; ++i)
-      if (!gimp_drawable_get_visible(layers[i])) CImg<int>::vector(layers[i]).move_to(invisible_layers);
+      if (!_gimp_item_get_visible(layers[i])) CImg<int>::vector(layers[i]).move_to(invisible_layers);
     input_layers = invisible_layers>'y';
     if (input_mode==8) input_layers.mirror('y');
   } break;
@@ -1588,28 +1781,30 @@ CImg<int> get_input_layers(CImgList<T>& images) {
 
   // Read input image data into a CImgList<T>.
   images.assign(input_layers.height());
-  GimpPixelRgn region;
-  gint x1, y1, x2, y2;
+  gint rgn_x, rgn_y, rgn_width, rgn_height;
   cimglist_for(images,l) {
+    if (!_gimp_item_is_valid(input_layers[l])) continue;
+    gimp_drawable_mask_intersect(input_layers[l],&rgn_x,&rgn_y,&rgn_width,&rgn_height);
+    const int spectrum = (gimp_drawable_is_rgb(input_layers[l])?3:1) +
+      (gimp_drawable_has_alpha(input_layers[l])?1:0);
+#if GIMP_MINOR_VERSION<=8
     GimpDrawable *drawable = gimp_drawable_get(input_layers[l]);
-    if (!gmic_drawable_is_valid(drawable)) continue;
-    gimp_drawable_mask_bounds(drawable->drawable_id,&x1,&y1,&x2,&y2);
-    const int channels = drawable->bpp;
-    gimp_pixel_rgn_init(&region,drawable,x1,y1,x2 - x1,y2 - y1,false,false);
-    guchar *const row = g_new(guchar,(x2 - x1)*channels), *ptrs = 0;
-    CImg<T> img(x2 - x1,y2 - y1,1,channels);
-    switch (channels) {
+    GimpPixelRgn region;
+    gimp_pixel_rgn_init(&region,drawable,rgn_x,rgn_y,rgn_width,rgn_height,false,false);
+    guchar *const row = g_new(guchar,rgn_width*spectrum), *ptrs = 0;
+    CImg<T> img(rgn_width,rgn_height,1,spectrum);
+    switch (spectrum) {
     case 1 : {
       T *ptr_r = img.data(0,0,0,0);
       cimg_forY(img,y) {
-        gimp_pixel_rgn_get_row(&region,ptrs=row,x1,y1 + y,img.width());
+        gimp_pixel_rgn_get_row(&region,ptrs=row,rgn_x,rgn_y + y,rgn_width);
         cimg_forX(img,x) *(ptr_r++) = (T)*(ptrs++);
       }
     } break;
     case 2 : {
       T *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1);
       cimg_forY(img,y) {
-        gimp_pixel_rgn_get_row(&region,ptrs=row,x1,y1 + y,img.width());
+        gimp_pixel_rgn_get_row(&region,ptrs=row,rgn_x,rgn_y + y,rgn_width);
         cimg_forX(img,x) {
           *(ptr_r++) = (T)*(ptrs++);
           *(ptr_g++) = (T)*(ptrs++);
@@ -1619,7 +1814,7 @@ CImg<int> get_input_layers(CImgList<T>& images) {
     case 3 : {
       T *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1), *ptr_b = img.data(0,0,0,2);
       cimg_forY(img,y) {
-        gimp_pixel_rgn_get_row(&region,ptrs=row,x1,y1 + y,img.width());
+        gimp_pixel_rgn_get_row(&region,ptrs=row,rgn_x,rgn_y + y,rgn_width);
         cimg_forX(img,x) {
           *(ptr_r++) = (T)*(ptrs++);
           *(ptr_g++) = (T)*(ptrs++);
@@ -1631,7 +1826,7 @@ CImg<int> get_input_layers(CImgList<T>& images) {
       T *ptr_r = img.data(0,0,0,0), *ptr_g = img.data(0,0,0,1),
         *ptr_b = img.data(0,0,0,2), *ptr_a = img.data(0,0,0,3);
       cimg_forY(img,y) {
-        gimp_pixel_rgn_get_row(&region,ptrs=row,x1,y1 + y,img.width());
+        gimp_pixel_rgn_get_row(&region,ptrs=row,rgn_x,rgn_y + y,rgn_width);
         cimg_forX(img,x) {
           *(ptr_r++) = (T)*(ptrs++);
           *(ptr_g++) = (T)*(ptrs++);
@@ -1643,8 +1838,20 @@ CImg<int> get_input_layers(CImgList<T>& images) {
     }
     g_free(row);
     gimp_drawable_detach(drawable);
+#else
+    GeglRectangle rect;
+    gegl_rectangle_set(&rect,rgn_x,rgn_y,rgn_width,rgn_height);
+    GeglBuffer *buffer = gimp_drawable_get_buffer(input_layers[l]);
+    const char *const format = spectrum==1?"Y' " s_gmic_pixel_type:spectrum==2?"Y'A " s_gmic_pixel_type:
+      spectrum==3?"R'G'B' " s_gmic_pixel_type:"R'G'B'A " s_gmic_pixel_type;
+    CImg<float> img(spectrum,rgn_width,rgn_height);
+    gegl_buffer_get(buffer,&rect,1,babl_format(format),img.data(),0,GEGL_ABYSS_NONE);
+    (img*=255).permute_axes("yzcx");
+    g_object_unref(buffer);
+#endif
     img.move_to(images[l]);
   }
+
   return input_layers;
 }
 
@@ -1670,7 +1877,7 @@ const char* get_commands_line(const bool is_preview) {
       lres[1].back() = ' ';
       for (unsigned int p = 0; p<nbparams; ++p) {
         const char *ss = get_filter_parameter(filter,p);
-        const unsigned int l = std::strlen(ss);
+        const unsigned int l = (unsigned int)std::strlen(ss);
         CImg<char> nparam(l + 1);
         *nparam = 0;
         char *sd = nparam.data();
@@ -1698,16 +1905,88 @@ void set_preview_factor() {
       if (!factor) { // Compute factor so that 1:1 preview of the image is displayed.
         int _pw = 0, _ph = 0;
         gimp_preview_get_size(GIMP_PREVIEW(gui_preview),&_pw,&_ph);
+#if GIMP_MINOR_VERSION<=8
         const float
           pw = (float)_pw,
           ph = (float)_ph,
-          dw = (float)drawable_preview->width,
-          dh = (float)drawable_preview->height;
+          dw = (float)gimp_zoom_preview_get_drawable(GIMP_ZOOM_PREVIEW(gui_preview))->width,
+          dh = (float)gimp_zoom_preview_get_drawable(GIMP_ZOOM_PREVIEW(gui_preview))->height;
+#else
+        const int preview_drawable_id = gimp_zoom_preview_get_drawable_id(GIMP_ZOOM_PREVIEW(gui_preview));
+        const float
+          pw = (float)_pw,
+          ph = (float)_ph,
+          dw = (float)gimp_drawable_width(preview_drawable_id),
+          dh = (float)gimp_drawable_height(preview_drawable_id);
+#endif
         factor = std::sqrt((dw*dw + dh*dh)/(pw*pw + ph*ph));
       }
       gimp_zoom_model_zoom(gimp_zoom_preview_get_model(GIMP_ZOOM_PREVIEW(gui_preview)),GIMP_ZOOM_TO,factor);
     }
   }
+}
+
+// Process image data with the G'MIC interpreter.
+//-----------------------------------------------
+
+// This structure stores the arguments required by the processing thread.
+struct st_process_thread {
+  CImgList<gmic_pixel_type> images;
+  CImgList<char> images_names;
+  CImg<char> env, error_message, status;
+  bool is_thread, is_preview;
+  unsigned int verbosity_mode;
+  const char *commands_line;
+  float progress;
+  bool is_abort;
+  pthread_mutex_t is_running, wait_lock;
+  pthread_cond_t wait_cond;
+  pthread_t thread;
+  void set_env() { // Must be called from main thread to avoid crash when doing 'gimp_get_data()'.
+    env.assign(256);
+    cimg_snprintf(env,env.width(),
+                  "-v - _input_layers=%u _output_mode=%u _output_messages=%u _preview_mode=%u _preview_size=%u",
+                  get_input_mode(),get_output_mode(),get_verbosity_mode(),get_preview_mode(),get_preview_size());
+  }
+};
+
+// Thread that runs the G'MIC interpreter.
+void *process_thread(void *arg) {
+  st_process_thread &spt = *(st_process_thread*)arg;
+  if (spt.is_thread) {
+    pthread_mutex_lock(&spt.is_running);
+    pthread_mutex_lock(&spt.wait_lock);
+    pthread_cond_signal(&spt.wait_cond);
+    pthread_mutex_unlock(&spt.wait_lock);
+  }
+  try {
+    if (spt.verbosity_mode>1) {
+      CImg<char> cl = CImg<char>::string(spt.commands_line);
+      std::fprintf(cimg::output(),
+                   "\n[gmic_gimp]./%s/ %s\n",
+                   spt.is_preview?"preview":"apply",
+                   cl.data());
+      std::fflush(cimg::output());
+    }
+    gmic gmic_instance(spt.env,gmic_additional_commands,true);
+    gmic_instance.run(spt.commands_line,spt.images,spt.images_names,&spt.progress,&spt.is_abort);
+    gmic_instance.status.move_to(spt.status);
+  } catch (gmic_exception &e) {
+    spt.images.assign();
+    spt.images_names.assign();
+    CImg<char>::string(e.what()).move_to(spt.error_message);
+    if (spt.verbosity_mode>1) {
+      std::fprintf(cimg::output(),
+                   "\n[gmic_gimp]./error/ %s\n",
+                   spt.error_message.data());
+      std::fflush(cimg::output());
+    }
+  }
+  if (spt.is_thread) {
+    pthread_mutex_unlock(&spt.is_running);
+    pthread_exit(0);
+  }
+  return 0;
 }
 
 // Handle GUI event functions.
@@ -1716,15 +1995,37 @@ void create_parameters_gui(const bool);
 void process_image(const char *const, const bool is_apply);
 void process_preview();
 
+void on_preview_button_changed(GtkToggleButton *const toggle_button) {
+  cimg::mutex(25);
+  if (p_spt) { st_process_thread &spt = *(st_process_thread*)p_spt; spt.is_abort = true; }
+  cimg::mutex(25,0);
+  if (!gtk_toggle_button_get_active(toggle_button)) gtk_widget_hide(gui_preview_warning);
+}
+
+void on_dialog_reset_zoom_button_clicked(GtkCheckButton *const) {
+  set_preview_factor();
+}
+
 // Secure function for invalidate preview.
 void _gimp_preview_invalidate() {
+  cimg::mutex(25);
+  if (p_spt) { st_process_thread &spt = *(st_process_thread*)p_spt; spt.is_abort = true; }
+  cimg::mutex(25,0);
   const int active_layer_id = gimp_image_get_active_layer(image_id);
   if (gimp_layer_get_edit_mask(active_layer_id))
     gimp_layer_set_edit_mask(active_layer_id,(gboolean)0);
 
   computed_preview.assign();
-  if (GIMP_IS_PREVIEW(gui_preview) && gmic_drawable_is_valid(drawable_preview))
-    gimp_preview_invalidate(GIMP_PREVIEW(gui_preview));
+
+#if GIMP_MINOR_VERSION<=8
+  const bool is_valid_preview_drawable = gui_preview && GIMP_IS_PREVIEW(gui_preview) &&
+    _gimp_item_is_valid(gimp_zoom_preview_get_drawable(GIMP_ZOOM_PREVIEW(gui_preview))->drawable_id);
+#else
+  const bool is_valid_preview_drawable = gui_preview && GIMP_IS_PREVIEW(gui_preview) &&
+    gimp_item_is_valid(gimp_zoom_preview_get_drawable_id(GIMP_ZOOM_PREVIEW(gui_preview)));
+#endif
+
+  if (is_valid_preview_drawable) gimp_preview_invalidate(GIMP_PREVIEW(gui_preview));
   else {
     if (GTK_IS_WIDGET(gui_preview)) gtk_widget_destroy(gui_preview);
     const int w = gimp_image_width(image_id), h = gimp_image_height(image_id);
@@ -1741,8 +2042,36 @@ void _gimp_preview_invalidate() {
       gimp_image_scale(preview_image_id,pw,ph);
       gimp_context_set_interpolation(mode);
     }
-    drawable_preview = gimp_drawable_get(gimp_image_get_active_drawable(preview_image_id?preview_image_id:image_id));
-    gui_preview = gimp_zoom_preview_new(drawable_preview);
+
+#if GIMP_MINOR_VERSION<=8
+    GimpDrawable *const preview_drawable =
+      gimp_drawable_get(gimp_image_get_active_drawable(preview_image_id?preview_image_id:image_id));
+    gui_preview = gimp_zoom_preview_new(preview_drawable);
+#else
+    const int preview_drawable_id = gimp_image_get_active_drawable(preview_image_id?preview_image_id:image_id);
+    gui_preview = gimp_zoom_preview_new_from_drawable_id(preview_drawable_id);
+#endif
+
+    GtkWidget *controls = gimp_preview_get_controls(GIMP_PREVIEW(gui_preview));
+    GList *const children1 = ((GtkBox*)controls)->children;
+    GtkBoxChild *const child1 = (GtkBoxChild*)children1->data;
+    GtkWidget *const preview_button = child1->widget;
+    g_signal_connect(preview_button,"toggled",G_CALLBACK(on_preview_button_changed),0);
+
+    // Add 'reset zoom' button.
+    GList *const children2 = children1->next;
+    GtkBoxChild *const child2 = (GtkBoxChild*)children2->data;
+    GtkWidget
+      *const zoom_buttons = child2->widget,
+      *const reset_zoom_button = gtk_button_new();
+    reset_zoom_stock = gtk_button_new_from_stock(GTK_STOCK_REFRESH);
+    GtkWidget *const reset_zoom_image = gtk_button_get_image(GTK_BUTTON(reset_zoom_stock));
+    gtk_button_set_image(GTK_BUTTON(reset_zoom_button),reset_zoom_image);
+    gtk_widget_show(reset_zoom_button);
+    gtk_box_pack_start(GTK_BOX(zoom_buttons),reset_zoom_button,false,false,0);
+    gtk_widget_set_tooltip_text(reset_zoom_button,t("Reset zoom"));
+    g_signal_connect(reset_zoom_button,"clicked",G_CALLBACK(on_dialog_reset_zoom_button_clicked),0);
+
     gtk_widget_show(gui_preview);
     gtk_box_pack_end(GTK_BOX(left_pane),gui_preview,true,true,0);
     g_signal_connect(gui_preview,"invalidated",G_CALLBACK(process_preview),0);
@@ -1752,7 +2081,7 @@ void _gimp_preview_invalidate() {
 // Resize preview widget.
 void resize_preview(const unsigned int size=2) {
   CImg<char> tmp(256);
-  std::sprintf(tmp,
+  cimg_sprintf(tmp,
                "style \"gimp-large-preview\"\n"
                "{\n"
                "  GimpPreview::size = %u\n"
@@ -1986,6 +2315,9 @@ void on_dialog_reset_clicked() {
 }
 
 void on_dialog_cancel_clicked() {
+  cimg::mutex(25);
+  if (p_spt) { st_process_thread &spt = *(st_process_thread*)p_spt; spt.is_abort = true; }
+  cimg::mutex(25,0);
   reset_button_parameters();
   _create_dialog_gui = false;
   gtk_main_quit();
@@ -2042,7 +2374,7 @@ void on_dialog_add_fave_clicked(GtkWidget *const tree_view) {
       cimglist_for(gmic_faves,l) {
         std::fprintf(file,"%s\n",gmic_faves[l].data());
         if (!std::strcmp(label,gmic_entries[indice_faves + l].data()))
-          std::sprintf(label,"%s (%u)",basename.data(),++ind);
+          cimg_sprintf(label,"%s (%u)",basename.data(),++ind);
       }
       CImg<char> entry = gmic_entries[filter];
       for (char *p = std::strchr(label,'}'); p; p = std::strchr(p,'}')) *p = _rbrace;  // Convert '}' if necessary.
@@ -2179,6 +2511,7 @@ void on_filter_selected(GtkWidget *const tree_view) {
     set_current_filter(filter);
     create_parameters_gui(false);
     _create_dialog_gui = true;
+    latest_preview_buffer.assign();
     _gimp_preview_invalidate();
   }
 }
@@ -2241,74 +2574,11 @@ void on_filter_doubleclicked(GtkWidget *const tree_view) {
     }
   } else if (filter>=indice_faves) { // Rename fave filter.
     is_block_preview = true;
-    GtkWidget *const markup2ascii = gtk_label_new(0);
     gtk_label_set_markup(GTK_LABEL(markup2ascii),gmic_entries[filter].data());
     gtk_entry_set_text(GTK_ENTRY(relabel_entry),gtk_label_get_text(GTK_LABEL(markup2ascii)));
-    gtk_widget_destroy(markup2ascii);
     gtk_widget_show(relabel_hbox);
     gtk_widget_grab_focus(relabel_entry);
   }
-}
-
-// Process image data with the G'MIC interpreter.
-//-----------------------------------------------
-
-// This structure stores the arguments required by the processing thread.
-struct st_process_thread {
-  CImgList<gmic_pixel_type> images;
-  CImgList<char> images_names;
-  CImg<char> error_message, status;
-  bool is_thread, is_preview;
-  unsigned int verbosity_mode;
-  const char *commands_line;
-  float progress;
-#if !defined(__MACOSX__) && !defined(__APPLE__)
-  pthread_mutex_t is_running, wait_lock;
-  pthread_cond_t wait_cond;
-  pthread_t thread;
-#endif
-};
-
-// Thread that runs the G'MIC interpreter.
-void *process_thread(void *arg) {
-  st_process_thread &spt = *(st_process_thread*)arg;
-#if !defined(__MACOSX__) && !defined(__APPLE__)
-  if (spt.is_thread) {
-    pthread_mutex_lock(&spt.is_running);
-    pthread_mutex_lock(&spt.wait_lock);
-    pthread_cond_signal(&spt.wait_cond);
-    pthread_mutex_unlock(&spt.wait_lock);
-  }
-#endif
-  try {
-    if (spt.verbosity_mode>1) {
-      CImg<char> cl = CImg<char>::string(spt.commands_line);
-      std::fprintf(cimg::output(),
-                   "\n[gmic_gimp]./%s/ %s\n",
-                   spt.is_preview?"preview":"apply",
-                   cl.data());
-      std::fflush(cimg::output());
-    }
-    gmic gmic_instance(spt.commands_line,spt.images,spt.images_names,gmic_additional_commands,true,&spt.progress);
-    gmic_instance.status.move_to(spt.status);
-  } catch (gmic_exception &e) {
-    spt.images.assign();
-    spt.images_names.assign();
-    CImg<char>::string(e.what()).move_to(spt.error_message);
-    if (spt.verbosity_mode>1) {
-      std::fprintf(cimg::output(),
-                   "\n[gmic_gimp]./error/ %s\n",
-                   spt.error_message.data());
-      std::fflush(cimg::output());
-    }
-  }
-#if !defined(__MACOSX__) && !defined(__APPLE__)
-  if (spt.is_thread) {
-    pthread_mutex_unlock(&spt.is_running);
-    pthread_exit(0);
-  }
-#endif
-  return 0;
 }
 
 // Process the selected image/layers.
@@ -2329,23 +2599,21 @@ void process_image(const char *const commands_line, const bool is_apply) {
   CImg<char> new_label(256), progress_label;
   *new_label = 0;
   if (run_mode!=GIMP_RUN_NONINTERACTIVE) {
-    GtkWidget *const markup2ascii = gtk_label_new(0);
     gtk_label_set_markup(GTK_LABEL(markup2ascii),gmic_entries[filter].data());
     CImg<char>::string(gtk_label_get_text(GTK_LABEL(markup2ascii))).move_to(progress_label);
-    gimp_progress_init_printf(" G'MIC : %s...",progress_label.data());
+    gimp_progress_init_printf(" G'MIC: %s...",progress_label.data());
     const char *const cl = _commands_line +
       (!std::strncmp(_commands_line,"-v -99 ",7)?7:
        !std::strncmp(_commands_line,"-v 0 ",5)?5:
        !std::strncmp(_commands_line,"-debug ",7)?7:0);
-    cimg_snprintf(new_label,new_label.width(),"[G'MIC] %s : %s",gtk_label_get_text(GTK_LABEL(markup2ascii)),cl);
-    gmic::ellipsize(new_label,240,false);
-    gtk_widget_destroy(markup2ascii);
+    cimg_snprintf(new_label,new_label.width(),"[G'MIC] %s: %s",gtk_label_get_text(GTK_LABEL(markup2ascii)),cl);
+    cimg::strellipsize(new_label,240,false);
   } else {
-    cimg_snprintf(new_label,new_label.width(),"G'MIC : %s...",_commands_line);
-    gmic::ellipsize(new_label,240,false);
+    cimg_snprintf(new_label,new_label.width(),"G'MIC: %s...",_commands_line);
+    cimg::strellipsize(new_label,240,false);
     gimp_progress_init_printf("%s",new_label.data());
-    cimg_snprintf(new_label,new_label.width(),"[G'MIC] : %s",_commands_line);
-    gmic::ellipsize(new_label,240,false);
+    cimg_snprintf(new_label,new_label.width(),"[G'MIC]: %s",_commands_line);
+    cimg::strellipsize(new_label,240,false);
   }
 
   // Get input layers for the chosen filter.
@@ -2355,6 +2623,7 @@ void process_image(const char *const commands_line, const bool is_apply) {
   spt.verbosity_mode = get_verbosity_mode();
   spt.images_names.assign();
   spt.progress = -1;
+  spt.set_env();
 
   const CImg<int> layers = get_input_layers(spt.images);
   CImg<int> layer_dimensions(spt.images.size(),4);
@@ -2395,62 +2664,73 @@ void process_image(const char *const commands_line, const bool is_apply) {
   cimglist_for(gmic_button_parameters,l) set_filter_parameter(filter,gmic_button_parameters(l,0),"0");
 
   // Create processing thread and wait for its completion.
+  bool is_abort = spt.is_abort = false;
   if (run_mode!=GIMP_RUN_NONINTERACTIVE) {
-#if !defined(__MACOSX__) && !defined(__APPLE__)
     const unsigned long time0 = cimg::time();
+    cimg::mutex(25); p_spt = (void*)&spt; cimg::mutex(25,0);
     spt.is_thread = true;
     pthread_mutex_init(&spt.is_running,0);
     pthread_mutex_init(&spt.wait_lock,0);
     pthread_cond_init(&spt.wait_cond,0);
     pthread_mutex_lock(&spt.wait_lock);
-    pthread_create(&(spt.thread),0,process_thread,(void*)&spt);
+
+#if defined(__MACOSX__) || defined(__APPLE__)
+    cimg::unused(time0);
+    const unsigned long stacksize = 8*1024*1024;
+    pthread_attr_t thread_attr;
+    if (!pthread_attr_init(&thread_attr) && !pthread_attr_setstacksize(&thread_attr,stacksize))
+      pthread_create(&spt.thread,&thread_attr,process_thread,(void*)&spt);
+    else
+#endif // #if defined(__MACOSX__) || defined(__APPLE__)
+      pthread_create(&spt.thread,0,process_thread,(void*)&spt);
+
     pthread_cond_wait(&spt.wait_cond,&spt.wait_lock);  // Wait for the thread to lock the mutex.
     pthread_mutex_unlock(&spt.wait_lock);
     pthread_mutex_destroy(&spt.wait_lock);
 
     unsigned int i = 0, used_memory = 0;
+    cimg::unused(i,used_memory);
     while (pthread_mutex_trylock(&spt.is_running)) {
       if (spt.progress>=0) gimp_progress_update(cimg::min(1.0,spt.progress/100.0));
       else gimp_progress_pulse();
       cimg::wait(333);
 
+#if !defined(__MACOSX__) && !defined(__APPLE__)
       if (!(i%10)) { // Update memory usage.
         used_memory = 0;
 #if cimg_OS==2
         PROCESS_MEMORY_COUNTERS pmc;
         if (GetProcessMemoryInfo(GetCurrentProcess(),&pmc,sizeof(pmc)))
           used_memory = (unsigned long)(pmc.WorkingSetSize/1024/1024);
-#elif cimg_OS==1
+#elif cimg_OS==1 // #if cimg_OS==2
         CImg<char> st; st.load_raw("/proc/self/status",512); st.back() = 0;
         const char *const s = std::strstr(st,"VmRSS:");
         if (s && cimg_sscanf(s + 7,"%u",&used_memory)==1) used_memory/=1024;
-#endif
+#endif // #if cimg_OS==2
       }
 
       if (!(i%3)) {
         const unsigned long t = (cimg::time() - time0)/1000;
         if (used_memory)
-          gimp_progress_set_text_printf(" G'MIC : %s... [%lu second%s, %u Mb]",
+          gimp_progress_set_text_printf(" G'MIC: %s... [%lu second%s, %u Mb]",
                                         progress_label.data(),
                                         t,t!=1?"s":"",
                                         used_memory);
         else
-          gimp_progress_set_text_printf(" G'MIC : %s... [%lu second%s]",
+          gimp_progress_set_text_printf(" G'MIC: %s... [%lu second%s]",
                                         progress_label.data(),
                                         t,t!=1?"s":"");
       }
       ++i;
+#endif // #if !defined(__MACOSX__) && !defined(__APPLE__)
     }
 
     gimp_progress_update(1.0);
     pthread_join(spt.thread,0);
     pthread_mutex_unlock(&spt.is_running);
     pthread_mutex_destroy(&spt.is_running);
-#else
-    gimp_progress_update(0.5);
-    process_thread(&spt);
-    gimp_progress_update(1.0);
-#endif
+    is_abort = spt.is_abort;
+    cimg::mutex(25); p_spt = (void*)0; cimg::mutex(25,0);
   } else {
     spt.is_thread = false;
     process_thread(&spt);
@@ -2466,20 +2746,20 @@ void process_image(const char *const commands_line, const bool is_apply) {
       gtk_dialog_run(GTK_DIALOG(message));
       gtk_widget_destroy(message);
     } else {
-      std::fprintf(cimg::output(),"\n[gmic_gimp]./error/ When running command '%s', this error occured :\n%s\n",
+      std::fprintf(cimg::output(),"\n[gmic_gimp]./error/ When running command '%s', this error occured:\n%s\n",
                    _commands_line,spt.error_message.data());
       std::fflush(cimg::output());
     }
     status = GIMP_PDB_CALLING_ERROR;
-  } else {
+  } else if (!is_abort) {
 
     // Get output layers dimensions and check if input/output layers have compatible dimensions.
-    unsigned int max_width = 0, max_height = 0, max_channels = 0;
+    unsigned int max_width = 0, max_height = 0, max_spectrum = 0;
     cimglist_for(spt.images,l) {
       if (spt.images[l].is_empty()) { spt.images.remove(l--); continue; }          // Discard possible empty images.
       if (spt.images[l]._width>max_width) max_width = spt.images[l]._width;
       if (spt.images[l]._height>max_height) max_height = spt.images[l]._height;
-      if (spt.images[l]._spectrum>max_channels) max_channels = spt.images[l]._spectrum;
+      if (spt.images[l]._spectrum>max_spectrum) max_spectrum = spt.images[l]._spectrum;
     }
     bool is_compatible_dimensions = (spt.images.size()==layers._height);
     for (unsigned int p = 0; p<spt.images.size() && is_compatible_dimensions; ++p) {
@@ -2495,13 +2775,13 @@ void process_image(const char *const commands_line, const bool is_apply) {
 
     // Transfer the output layers back into GIMP.
     GimpLayerModeEffects layer_blendmode = GIMP_NORMAL_MODE;
-    gint x1, y1, x2, y2, layer_posx = 0, layer_posy = 0;
+    gint layer_posx = 0, layer_posy = 0;
     double layer_opacity = 100;
-    GimpPixelRgn region;
     CImg<char> layer_name;
 
     switch (output_mode) {
     case 0 : { // Output in 'Replace' mode.
+      gint rgn_x, rgn_y, rgn_width, rgn_height;
       gimp_image_undo_group_start(image_id);
       if (is_compatible_dimensions) cimglist_for(spt.images,p) { // Direct replacement of the layer data.
           layer_blendmode = gimp_layer_get_mode(layers[p]);
@@ -2511,86 +2791,110 @@ void process_image(const char *const commands_line, const bool is_apply) {
           get_output_layer_props(spt.images_names[p],layer_blendmode,layer_opacity,layer_posx,layer_posy,layer_name);
           CImg<gmic_pixel_type> &img = spt.images[p];
           calibrate_image(img,layer_dimensions(p,3),false);
+          gimp_drawable_mask_intersect(layers[p],&rgn_x,&rgn_y,&rgn_width,&rgn_height);
+
+#if GIMP_MINOR_VERSION<=8
           GimpDrawable *drawable = gimp_drawable_get(layers[p]);
-          gimp_drawable_mask_bounds(drawable->drawable_id,&x1,&y1,&x2,&y2);
-          gimp_pixel_rgn_init(&region,drawable,x1,y1,x2 - x1,y2 - y1,true,true);
+          GimpPixelRgn region;
+          gimp_pixel_rgn_init(&region,drawable,rgn_x,rgn_y,rgn_width,rgn_height,true,true);
           convert_image2uchar(img);
-          gimp_pixel_rgn_set_rect(&region,(guchar*)img.data(),x1,y1,x2 - x1,y2 - y1);
+          gimp_pixel_rgn_set_rect(&region,(guchar*)img.data(),rgn_x,rgn_y,rgn_width,rgn_height);
+          gimp_drawable_flush(drawable);
+          gimp_drawable_merge_shadow(layers[p],true);
+          gimp_drawable_update(layers[p],rgn_x,rgn_y,rgn_width,rgn_height);
+          gimp_drawable_detach(drawable);
+#else
+          GeglRectangle rect;
+          gegl_rectangle_set(&rect,rgn_x,rgn_y,rgn_width,rgn_height);
+          GeglBuffer *buffer = gimp_drawable_get_shadow_buffer(layers[p]);
+          const char *const format = img.spectrum()==1?"Y' float":img.spectrum()==2?"Y'A float":
+            img.spectrum()==3?"R'G'B' float":"R'G'B'A float";
+          (img/=255).permute_axes("cxyz");
+          gegl_buffer_set(buffer,&rect,0,babl_format(format),img.data(),0);
+          g_object_unref(buffer);
+          gimp_drawable_merge_shadow(layers[p],true);
+          gimp_drawable_update(layers[p],0,0,img.width(),img.height());
+#endif
           img.assign();
           gimp_layer_set_mode(layers[p],layer_blendmode);
           gimp_layer_set_opacity(layers[p],layer_opacity);
           gimp_layer_set_offsets(layers[p],layer_posx,layer_posy);
           if (verbosity_mode==1) gimp_item_set_name(layers[p],new_label);
           else if (layer_name) gimp_item_set_name(layers[p],layer_name);
-          gimp_drawable_flush(drawable);
-          gimp_drawable_merge_shadow(drawable->drawable_id,true);
-          gimp_drawable_update(drawable->drawable_id,x1,y1,x2 - x1,y2 - y1);
-          gimp_drawable_detach(drawable);
-        } else { // Indirect replacement : create new layers.
+        } else { // Indirect replacement: create new layers.
           gimp_selection_none(image_id);
+          const int layer_pos = _gimp_image_get_item_position(image_id,layers[0]);
+          max_width = max_height = 0;
+          cimglist_for(spt.images,p) {
+            layer_posx = layer_posy = 0;
+            if (p<layers.height()) {
+              layer_blendmode = gimp_layer_get_mode(layers[p]);
+              layer_opacity = gimp_layer_get_opacity(layers[p]);
+              if (!is_selection) gimp_drawable_offsets(layers[p],&layer_posx,&layer_posy);
+              CImg<char>::string(gimp_item_get_name(layers[p])).move_to(layer_name);
+              gimp_image_remove_layer(image_id,layers[p]);
+            } else {
+              layer_blendmode = GIMP_NORMAL_MODE;
+              layer_opacity = 100;
+              layer_name.assign();
+            }
+            get_output_layer_props(spt.images_names[p],layer_blendmode,layer_opacity,layer_posx,layer_posy,layer_name);
+            if (layer_posx + spt.images[p]._width>max_width) max_width = layer_posx + spt.images[p]._width;
+            if (layer_posy + spt.images[p]._height>max_height) max_height = layer_posy + spt.images[p]._height;
+
+            CImg<gmic_pixel_type> &img = spt.images[p];
+            if (gimp_image_base_type(image_id)==GIMP_GRAY) calibrate_image(img,(img.spectrum()==1 ||
+                                                                                img.spectrum()==3)?1:2,false);
+            else calibrate_image(img,(img.spectrum()==1 || img.spectrum()==3)?3:4,false);
+            gint layer_id = gimp_layer_new(image_id,new_label,img.width(),img.height(),
+                                           img.spectrum()==1?GIMP_GRAY_IMAGE:
+                                           img.spectrum()==2?GIMP_GRAYA_IMAGE:
+                                           img.spectrum()==3?GIMP_RGB_IMAGE:GIMP_RGBA_IMAGE,
+                                           layer_opacity,layer_blendmode);
+            gimp_layer_set_offsets(layer_id,layer_posx,layer_posy);
+            if (verbosity_mode==1) gimp_item_set_name(layer_id,new_label);
+            else if (layer_name) gimp_item_set_name(layer_id,layer_name);
 #if GIMP_MINOR_VERSION<=6
-        const int layer_pos = gimp_image_get_layer_position(image_id,layers[0]);
+            gimp_image_add_layer(image_id,layer_id,layer_pos + p);
 #else
-        const int layer_pos = gimp_image_get_item_position(image_id,layers[0]);
+            gimp_image_insert_layer(image_id,layer_id,-1,layer_pos + p);
 #endif
-        max_width = max_height = 0;
-        cimglist_for(spt.images,p) {
-          layer_posx = layer_posy = 0;
-          if (p<layers.height()) {
-            layer_blendmode = gimp_layer_get_mode(layers[p]);
-            layer_opacity = gimp_layer_get_opacity(layers[p]);
-            if (!is_selection) gimp_drawable_offsets(layers[p],&layer_posx,&layer_posy);
-            CImg<char>::string(gimp_item_get_name(layers[p])).move_to(layer_name);
-            gimp_image_remove_layer(image_id,layers[p]);
-          } else {
-            layer_blendmode = GIMP_NORMAL_MODE;
-            layer_opacity = 100;
-            layer_name.assign();
+
+#if GIMP_MINOR_VERSION<=8
+            GimpDrawable *drawable = gimp_drawable_get(layer_id);
+            GimpPixelRgn region;
+            gimp_pixel_rgn_init(&region,drawable,0,0,drawable->width,drawable->height,true,true);
+            convert_image2uchar(img);
+            gimp_pixel_rgn_set_rect(&region,(guchar*)img.data(),0,0,img.width(),img.height());
+            gimp_drawable_flush(drawable);
+            gimp_drawable_merge_shadow(layer_id,true);
+            gimp_drawable_update(layer_id,0,0,drawable->width,drawable->height);
+            gimp_drawable_detach(drawable);
+#else
+            GeglBuffer *buffer = gimp_drawable_get_shadow_buffer(layer_id);
+            const char *const format = img.spectrum()==1?"Y' float":img.spectrum()==2?"Y'A float":
+              img.spectrum()==3?"R'G'B' float":"R'G'B'A float";
+            (img/=255).permute_axes("cxyz");
+            gegl_buffer_set(buffer,NULL,0,babl_format(format),img.data(),0);
+            g_object_unref(buffer);
+            gimp_drawable_merge_shadow(layer_id,true);
+            gimp_drawable_update(layer_id,0,0,img.width(),img.height());
+#endif
+            img.assign();
           }
-          get_output_layer_props(spt.images_names[p],layer_blendmode,layer_opacity,layer_posx,layer_posy,layer_name);
-          if (layer_posx + spt.images[p]._width>max_width) max_width = layer_posx + spt.images[p]._width;
-          if (layer_posy + spt.images[p]._height>max_height) max_height = layer_posy + spt.images[p]._height;
 
-          CImg<gmic_pixel_type> &img = spt.images[p];
-          if (gimp_image_base_type(image_id)==GIMP_GRAY) calibrate_image(img,(img.spectrum()==1 ||
-                                                                              img.spectrum()==3)?1:2,false);
-          else calibrate_image(img,(img.spectrum()==1 || img.spectrum()==3)?3:4,false);
-          gint layer_id = gimp_layer_new(image_id,new_label,img.width(),img.height(),
-                                         img.spectrum()==1?GIMP_GRAY_IMAGE:
-                                         img.spectrum()==2?GIMP_GRAYA_IMAGE:
-                                         img.spectrum()==3?GIMP_RGB_IMAGE:GIMP_RGBA_IMAGE,
-                                         layer_opacity,layer_blendmode);
-          gimp_layer_set_offsets(layer_id,layer_posx,layer_posy);
-          if (verbosity_mode==1) gimp_item_set_name(layer_id,new_label);
-          else if (layer_name) gimp_item_set_name(layer_id,layer_name);
-#if GIMP_MINOR_VERSION<=6
-          gimp_image_add_layer(image_id,layer_id,layer_pos + p);
-#else
-          gimp_image_insert_layer(image_id,layer_id,-1,layer_pos + p);
-#endif
-          GimpDrawable *drawable = gimp_drawable_get(layer_id);
-          gimp_pixel_rgn_init(&region,drawable,0,0,drawable->width,drawable->height,true,true);
-          convert_image2uchar(img);
-          gimp_pixel_rgn_set_rect(&region,(guchar*)img.data(),0,0,img.width(),img.height());
-          img.assign();
-          gimp_drawable_flush(drawable);
-          gimp_drawable_merge_shadow(drawable->drawable_id,true);
-          gimp_drawable_update(drawable->drawable_id,0,0,drawable->width,drawable->height);
-          gimp_drawable_detach(drawable);
-        }
-
-        for (unsigned int p = spt.images._width; p<layers._height; ++p) gimp_image_remove_layer(image_id,layers[p]);
-        if (image_nb_layers==layers.height()) gimp_image_resize(image_id,max_width,max_height,0,0);
-        else gimp_image_resize(image_id,cimg::max(image_width,max_width),cimg::max(image_height,max_height),0,0);
+          for (unsigned int p = spt.images._width; p<layers._height; ++p) gimp_image_remove_layer(image_id,layers[p]);
+          if (image_nb_layers==layers.height()) gimp_image_resize(image_id,max_width,max_height,0,0);
+          else gimp_image_resize(image_id,cimg::max(image_width,max_width),cimg::max(image_height,max_height),0,0);
 
       }
       gimp_image_undo_group_end(image_id);
     } break;
 
-    case 1 : case 2 : { // Output in 'New layer(s)' mode.
+    case 1 : case 2 : { // Output in 'New [active] layer(s)' mode.
       gimp_image_undo_group_start(image_id);
       const gint active_layer_id = gimp_image_get_active_layer(image_id);
-      gint layer_id = 0;
+      gint top_layer_id = 0, layer_id = 0;
       max_width = max_height = 0;
       cimglist_for(spt.images,p) {
         layer_blendmode = GIMP_NORMAL_MODE;
@@ -2614,6 +2918,7 @@ void process_image(const char *const commands_line, const bool is_apply) {
                                   img.spectrum()==2?GIMP_GRAYA_IMAGE:
                                   img.spectrum()==3?GIMP_RGB_IMAGE:GIMP_RGBA_IMAGE,
                                   layer_opacity,layer_blendmode);
+        if (!p) top_layer_id = layer_id;
         gimp_layer_set_offsets(layer_id,layer_posx,layer_posy);
         if (verbosity_mode==1) gimp_item_set_name(layer_id,new_label);
         else if (layer_name) gimp_item_set_name(layer_id,layer_name);
@@ -2622,25 +2927,50 @@ void process_image(const char *const commands_line, const bool is_apply) {
 #else
         gimp_image_insert_layer(image_id,layer_id,-1,p);
 #endif
+
+#if GIMP_MINOR_VERSION<=8
         GimpDrawable *drawable = gimp_drawable_get(layer_id);
+        GimpPixelRgn region;
         gimp_pixel_rgn_init(&region,drawable,0,0,drawable->width,drawable->height,true,true);
         convert_image2uchar(img);
         gimp_pixel_rgn_set_rect(&region,(guchar*)img.data(),0,0,img.width(),img.height());
-        img.assign();
         gimp_drawable_flush(drawable);
-        gimp_drawable_merge_shadow(drawable->drawable_id,true);
-        gimp_drawable_update(drawable->drawable_id,0,0,drawable->width,drawable->height);
+        gimp_drawable_merge_shadow(layer_id,true);
+        gimp_drawable_update(layer_id,0,0,drawable->width,drawable->height);
         gimp_drawable_detach(drawable);
+#else
+        GeglBuffer *buffer = gimp_drawable_get_shadow_buffer(layer_id);
+        const char *const format = img.spectrum()==1?"Y' float":img.spectrum()==2?"Y'A float":
+          img.spectrum()==3?"R'G'B' float":"R'G'B'A float";
+        (img/=255).permute_axes("cxyz");
+        gegl_buffer_set(buffer,NULL,0,babl_format(format),img.data(),0);
+        g_object_unref(buffer);
+        gimp_drawable_merge_shadow(layer_id,true);
+        gimp_drawable_update(layer_id,0,0,img.width(),img.height());
+#endif
+        img.assign();
       }
       gimp_image_resize(image_id,cimg::max(image_width,max_width),cimg::max(image_height,max_height),0,0);
       if (output_mode==1) gimp_image_set_active_layer(image_id,active_layer_id);
-      else gtk_widget_destroy(gui_preview);  // Will force the preview to refresh on the new active layer.
+      else { // Destroy preview widget will force the preview to get the new active layer as base image.
+        gimp_image_set_active_layer(image_id,top_layer_id);
+        if (is_apply) {
+          if (gui_preview && GTK_IS_WIDGET(gui_preview)) gtk_widget_destroy(gui_preview);
+          gui_preview = 0;
+        }
+      }
       gimp_image_undo_group_end(image_id);
     } break;
 
     default : { // Output in 'New image' mode.
       if (spt.images.size()) {
-        const int nimage_id = gimp_image_new(max_width,max_height,max_channels<=2?GIMP_GRAY:GIMP_RGB);
+
+#if GIMP_MINOR_VERSION<=8
+        const int nimage_id = gimp_image_new(max_width,max_height,max_spectrum<=2?GIMP_GRAY:GIMP_RGB);
+#else
+        const int nimage_id = gimp_image_new_with_precision(max_width,max_height,max_spectrum<=2?GIMP_GRAY:GIMP_RGB,
+          gimp_image_get_precision(image_id));
+#endif
         const gint active_layer_id = gimp_image_get_active_layer(image_id);
         gimp_image_undo_group_start(nimage_id);
         cimglist_for(spt.images,p) {
@@ -2669,16 +2999,28 @@ void process_image(const char *const commands_line, const bool is_apply) {
 #else
           gimp_image_insert_layer(nimage_id,layer_id,-1,p);
 #endif
+
+#if GIMP_MINOR_VERSION<=8
           GimpDrawable *drawable = gimp_drawable_get(layer_id);
-          GimpPixelRgn dest_region;
-          gimp_pixel_rgn_init(&dest_region,drawable,0,0,drawable->width,drawable->height,true,true);
+          GimpPixelRgn region;
+          gimp_pixel_rgn_init(&region,drawable,0,0,drawable->width,drawable->height,true,true);
           convert_image2uchar(img);
-          gimp_pixel_rgn_set_rect(&dest_region,(guchar*)img.data(),0,0,img.width(),img.height());
-          img.assign();
+          gimp_pixel_rgn_set_rect(&region,(guchar*)img.data(),0,0,img.width(),img.height());
           gimp_drawable_flush(drawable);
-          gimp_drawable_merge_shadow(drawable->drawable_id,true);
-          gimp_drawable_update(drawable->drawable_id,0,0,drawable->width,drawable->height);
+          gimp_drawable_merge_shadow(layer_id,true);
+          gimp_drawable_update(layer_id,0,0,drawable->width,drawable->height);
           gimp_drawable_detach(drawable);
+#else
+          GeglBuffer *buffer = gimp_drawable_get_shadow_buffer(layer_id);
+          const char *const format = img.spectrum()==1?"Y' float":img.spectrum()==2?"Y'A float":
+            img.spectrum()==3?"R'G'B' float":"R'G'B'A float";
+          (img/=255).permute_axes("cxyz");
+          gegl_buffer_set(buffer,NULL,0,babl_format(format),img.data(),0);
+          g_object_unref(buffer);
+          gimp_drawable_merge_shadow(layer_id,true);
+          gimp_drawable_update(layer_id,0,0,img.width(),img.height());
+#endif
+          img.assign();
         }
         gimp_display_new(nimage_id);
         gimp_image_undo_group_end(nimage_id);
@@ -2730,7 +3072,11 @@ void process_preview() {
   guchar *const ptr0 = gimp_zoom_preview_get_source(GIMP_ZOOM_PREVIEW(gui_preview),&wp,&hp,&sp);
   const double factor = gimp_zoom_preview_get_factor(GIMP_ZOOM_PREVIEW(gui_preview));
   gimp_preview_get_position(GIMP_PREVIEW(gui_preview),&xp,&yp);
-  if (xp!=_xp || _yp!=yp || _factor!=factor) { _xp = xp; _yp = yp; _factor = factor; computed_preview.assign(); }
+  if (xp!=_xp || _yp!=yp || _factor!=factor) {
+    _xp = xp; _yp = yp; _factor = factor;
+    computed_preview.assign();
+    latest_preview_buffer.assign();
+  }
 
   if (!computed_preview) {
 
@@ -2741,6 +3087,7 @@ void process_preview() {
     spt.commands_line = commands_line;
     spt.verbosity_mode = get_verbosity_mode();
     spt.progress = -1;
+    spt.set_env();
 
     CImg<char> layer_name(256);
     const unsigned int input_mode = get_input_mode();
@@ -2750,11 +3097,11 @@ void process_preview() {
       if (!preview_image_id &&
           (input_mode==1 ||
            (input_mode==2 && nb_layers==1) ||
-           (input_mode==3 && nb_layers==1 && gimp_drawable_get_visible(*layers)) ||
-           (input_mode==4 && nb_layers==1 && !gimp_drawable_get_visible(*layers)) ||
+           (input_mode==3 && nb_layers==1 && _gimp_item_get_visible(*layers)) ||
+           (input_mode==4 && nb_layers==1 && !_gimp_item_get_visible(*layers)) ||
            (input_mode==5 && nb_layers==1))) {
 
-        // Single input layer : get the default thumbnail provided by GIMP.
+        // Single input layer: get the default thumbnail provided by GIMP.
         spt.images.assign(1);
         spt.images_names.assign(1);
 
@@ -2818,7 +3165,7 @@ void process_preview() {
         CImg<char>::string(layer_name).move_to(spt.images_names[0]);
       } else {
 
-        // Multiple input layers : compute a 'hand-made' set of thumbnails.
+        // Multiple input layers: compute a 'hand-made' set of thumbnails.
         CImgList<unsigned char> images_uchar;
         const CImg<int> layers = get_input_layers(images_uchar);
         if (images_uchar) {
@@ -2864,9 +3211,45 @@ void process_preview() {
 
     // Run G'MIC.
     CImg<unsigned char> original_preview;
+    CImg<char> progress_label;
     if (spt.images) original_preview = spt.images[0];
     else original_preview.assign(wp,hp,1,4,0);
-    process_thread(&spt);
+
+    bool is_abort = spt.is_abort = false;
+    cimg::mutex(25); p_spt = (void*)&spt; cimg::mutex(25,0);
+    spt.is_thread = true;
+    pthread_mutex_init(&spt.is_running,0);
+    pthread_mutex_init(&spt.wait_lock,0);
+    pthread_cond_init(&spt.wait_cond,0);
+    pthread_mutex_lock(&spt.wait_lock);
+
+#if defined(__MACOSX__) || defined(__APPLE__)
+    const unsigned long stacksize = 8*1024*1024;
+    pthread_attr_t thread_attr;
+    if (!pthread_attr_init(&thread_attr) && !pthread_attr_setstacksize(&thread_attr,stacksize))
+      // Reserve enough stack size for the new thread.
+      pthread_create(&spt.thread,&thread_attr,process_thread,(void*)&spt);
+    else
+#endif // #if defined(__MACOSX__) || defined(__APPLE__)
+      pthread_create(&spt.thread,0,process_thread,(void*)&spt);
+
+    pthread_cond_wait(&spt.wait_cond,&spt.wait_lock); // Wait for the thread to lock the mutex.
+    pthread_mutex_unlock(&spt.wait_lock);
+    pthread_mutex_destroy(&spt.wait_lock);
+    if (latest_preview_buffer.width()==wp && latest_preview_buffer.height()==hp && // Avoid preview flickering effect.
+        latest_preview_buffer.spectrum()==sp)
+      gimp_preview_draw_buffer(GIMP_PREVIEW(gui_preview),latest_preview_buffer.data(),wp*sp);
+    while (pthread_mutex_trylock(&spt.is_running)) { // Loop that allows to get a responsive interface.
+      while (gtk_events_pending()) { gtk_main_iteration(); }
+      cimg::wait(333);
+    }
+
+    pthread_join(spt.thread,0);
+    pthread_mutex_unlock(&spt.is_running);
+    pthread_mutex_destroy(&spt.is_running);
+    is_abort = spt.is_abort;
+    cimg::mutex(25); p_spt = (void*)0; cimg::mutex(25,0);
+    if (is_abort) return;
 
     // Manage possible errors.
     if (spt.error_message) {
@@ -2971,8 +3354,37 @@ void process_preview() {
     }
   }
 
+  // Display warning message about preview inaccuracy, if needed.
+  double default_factor = gmic_preview_factors(filter,0);
+  if (!default_factor) {
+    int _pw = 0, _ph = 0;
+    gimp_preview_get_size(GIMP_PREVIEW(gui_preview),&_pw,&_ph);
+
+#if GIMP_MINOR_VERSION<=8
+    const float
+      pw = (float)_pw,
+      ph = (float)_ph,
+      dw = (float)gimp_zoom_preview_get_drawable(GIMP_ZOOM_PREVIEW(gui_preview))->width,
+      dh = (float)gimp_zoom_preview_get_drawable(GIMP_ZOOM_PREVIEW(gui_preview))->height;
+#else
+    const int preview_drawable_id = gimp_zoom_preview_get_drawable_id(GIMP_ZOOM_PREVIEW(gui_preview));
+    const float
+      pw = (float)_pw,
+      ph = (float)_ph,
+      dw = (float)gimp_drawable_width(preview_drawable_id),
+      dh = (float)gimp_drawable_height(preview_drawable_id);
+#endif
+    default_factor = std::sqrt((dw*dw + dh*dh)/(pw*pw + ph*ph));
+  }
+  const bool is_accurate_when_zoomed = gmic_preview_factors(filter,1);
+  if (default_factor<0 || is_accurate_when_zoomed || cimg::abs(factor-default_factor)<0.1)
+    gtk_widget_hide(gui_preview_warning);
+  else gtk_widget_show(gui_preview_warning);
+
+  // Update rendered image in preview widget.
   std::memcpy(ptr0,computed_preview.data(),wp*hp*sp*sizeof(unsigned char));
   gimp_preview_draw_buffer(GIMP_PREVIEW(gui_preview),ptr0,wp*sp);
+  latest_preview_buffer.assign(ptr0,wp,hp,1,sp);
   g_free(ptr0);
   if (update_parameters) {
     const bool pstate = gimp_preview_get_update(GIMP_PREVIEW(gui_preview));
@@ -3006,7 +3418,7 @@ void create_parameters_gui(const bool reset_params) {
     gtk_frame_set_label(GTK_FRAME(right_frame),NULL);
   } else { // Filter selected -> Build the table for setting the parameters.
     CImg<char> s_label(256);
-    cimg_snprintf(s_label,s_label.width(),"<b>  %s :  </b>",gmic_entries[filter].data());
+    cimg_snprintf(s_label,s_label.width(),"<b>  %s  </b>",gmic_entries[filter].data());
     GtkWidget *const frame_title = gtk_label_new(NULL);
     gtk_widget_show(frame_title);
     gtk_label_set_markup(GTK_LABEL(frame_title),s_label);
@@ -3030,6 +3442,7 @@ void create_parameters_gui(const bool reset_params) {
       } else break;
     }
 
+    unsigned int current_table_line = 0;
     if (!nb_arguments) { // Filter requires no parameters -> 1x1 table with default message.
       table = gtk_table_new(1,1,false);
       gtk_widget_show(table);
@@ -3053,7 +3466,7 @@ void create_parameters_gui(const bool reset_params) {
 
       // Parse arguments list and add recognized one to the table.
       if (event_infos) delete[] event_infos; event_infos = new void*[2*nb_arguments];
-      unsigned int current_argument = 0, current_table_line = 0;
+      unsigned int current_argument = 0;
       const bool is_fave = filter>=indice_faves;
       for (const char *argument = gmic_arguments[filter].data(); *argument; ) {
         int err = cimg_sscanf(argument,"%255[^=]=%31[ a-zA-Z_](%65535[^)]",
@@ -3068,6 +3481,8 @@ void create_parameters_gui(const bool reset_params) {
           cimg::strpare(argument_name,' ',false,true);
           cimg::strpare(argument_name,'\"',true);
           cimg::strunescape(argument_name);
+          gtk_label_set_markup(GTK_LABEL(markup2ascii),argument_name);
+          cimg_snprintf(argument_name,argument_name.width(),"%s",gtk_label_get_text(GTK_LABEL(markup2ascii)));
           cimg::strpare(_argument_type,' ',false,true);
           cimg::strpare(argument_arg,' ',false,true);
 
@@ -3202,6 +3617,9 @@ void create_parameters_gui(const bool reset_params) {
               if ((err = cimg_sscanf(entries,"%1023[^,]%c",s_entry.data(),&end))>0) {
                 entries += std::strlen(s_entry) + (err==2?1:0);
                 cimg::strpare(s_entry,' ',false,true); cimg::strpare(s_entry,'\"',true);
+                cimg::strunescape(s_entry);
+                gtk_label_set_markup(GTK_LABEL(markup2ascii),s_entry);
+                cimg_snprintf(s_entry,s_entry.width(),"%s",gtk_label_get_text(GTK_LABEL(markup2ascii)));
                 gtk_combo_box_append_text(GTK_COMBO_BOX(combobox),s_entry);
               } else break;
             }
@@ -3266,8 +3684,10 @@ void create_parameters_gui(const bool reset_params) {
               else if (!is_fave) cimg::strunescape(value);
               cimg::strpare(value,' ',false,true);
               cimg::strpare(value,'\"',true);
-              for (char *p = value; *p; ++p) if (*p==_dquote) *p='\"';
-              gtk_text_buffer_set_text(buffer,value,-1);
+              gtk_label_set_markup(GTK_LABEL(markup2ascii),value);
+              cimg_snprintf(argument_arg,argument_arg.width(),"%s",gtk_label_get_text(GTK_LABEL(markup2ascii)));
+              for (char *p = argument_arg; *p; ++p) if (*p==_dquote) *p='\"';
+              gtk_text_buffer_set_text(buffer,argument_arg,-1);
 
               gtk_table_attach(GTK_TABLE(table),frame,0,3,(int)current_table_line,(int)current_table_line + 1,
                                (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
@@ -3290,13 +3710,18 @@ void create_parameters_gui(const bool reset_params) {
               gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
               GtkWidget *const entry = gtk_entry_new_with_max_length(1023);
               gtk_widget_show(entry);
+
               char *value = (line_number!=0 || sep!=',')?argument_arg:(std::strchr(argument_arg,',') + 1);
               if (is_fave) value = argument_fave;
               if (!reset_params && *argument_value) value = argument_value;
+              else if (!is_fave) cimg::strunescape(value);
               cimg::strpare(value,' ',false,true);
               cimg::strpare(value,'\"',true);
+              gtk_label_set_markup(GTK_LABEL(markup2ascii),value);
+              cimg_snprintf(argument_arg,argument_arg.width(),"%s",gtk_label_get_text(GTK_LABEL(markup2ascii)));
+
               for (char *p = value; *p; ++p) if (*p==_dquote) *p='\"';
-              gtk_entry_set_text(GTK_ENTRY(entry),value);
+              gtk_entry_set_text(GTK_ENTRY(entry),argument_arg);
               gtk_table_attach(GTK_TABLE(table),entry,1,2,(int)current_table_line,(int)current_table_line + 1,
                                (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
               GtkWidget *const button = gtk_button_new_with_label(t("Update"));
@@ -3337,7 +3762,10 @@ void create_parameters_gui(const bool reset_params) {
             char *value = argument_arg;
             if (is_fave) value = argument_fave;
             if (!reset_params && *argument_value) value = argument_value;
-            cimg::strpare(value,' ',false,true); cimg::strpare(value,'\"',true);
+            cimg::strpare(value,' ',false,true);
+            cimg::strpare(value,'\"',true);
+            gtk_label_set_markup(GTK_LABEL(markup2ascii),value);
+            cimg_snprintf(argument_arg,argument_arg.width(),"%s",gtk_label_get_text(GTK_LABEL(markup2ascii)));
             gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(file_chooser),value);
             gtk_table_attach(GTK_TABLE(table),file_chooser,1,3,(int)current_table_line,(int)current_table_line + 1,
                              (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
@@ -3429,11 +3857,11 @@ void create_parameters_gui(const bool reset_params) {
             case 0 : if (cimg_sscanf(argument_arg,"%1023[^,],%1023s",label.data(),url.data())==1)
                 std::strcpy(url,label); break;
             }
-            cimg::strpare(label,' ',false,true);
-            cimg::strpare(label,'\"',true);
+            cimg::strpare(label,' ',false,true); cimg::strpare(label,'\"',true);
             cimg::strunescape(label);
-            cimg::strpare(url,' ',false,true);
-            cimg::strpare(url,'\"',true);
+            gtk_label_set_markup(GTK_LABEL(markup2ascii),label);
+            cimg_snprintf(label,label.width(),"%s",gtk_label_get_text(GTK_LABEL(markup2ascii)));
+            cimg::strpare(url,' ',false,true); cimg::strpare(url,'\"',true);
             GtkWidget *const link = gtk_link_button_new_with_label(url,label);
             gtk_widget_show(link);
             gtk_button_set_alignment(GTK_BUTTON(link),alignment,0.5);
@@ -3463,6 +3891,14 @@ void create_parameters_gui(const bool reset_params) {
       }
       set_filter_nbparams(filter,current_argument);
     }
+
+    // Add preview warning message (initially hidden).
+    gui_preview_warning = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(gui_preview_warning),
+                         t("\n<span color=\"#AA0000\"><b>Warning:</b> Preview may be inaccurate\n"
+                           "(zoom factor has been modified)</span>"));
+    gtk_table_attach(GTK_TABLE(table),gui_preview_warning,0,3,(int)current_table_line,(int)current_table_line + 1,
+                     (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),GTK_SHRINK,0,0);
   }
 
   gtk_container_add(GTK_CONTAINER(right_frame),table);
@@ -3495,15 +3931,15 @@ bool create_dialog_gui() {
   // Create main dialog window with buttons.
   CImg<char> dialog_title(64);
 #ifdef gmic_prerelease
-  cimg_snprintf(dialog_title,dialog_title.width(),"%s %d.%d.%d.%d [pre-release #%s] - %s %u bits",
+  cimg_snprintf(dialog_title,dialog_title.width(),"%s %d.%d.%d [pre-release #%s] - %s %u bits",
                 t("G'MIC for GIMP"),
-                gmic_version/1000,(gmic_version/100)%10,(gmic_version/10)%10,gmic_version%10,
+                gmic_version/100,(gmic_version/10)%10,gmic_version%10,
                 gmic_prerelease, cimg::stros(),
                 sizeof(void*)==8?64:32);
 #else
-  cimg_snprintf(dialog_title,dialog_title.width(),"%s %d.%d.%d.%d - %s %u bits",
+  cimg_snprintf(dialog_title,dialog_title.width(),"%s %d.%d.%d - %s %u bits",
                 t("G'MIC for GIMP"),
-                gmic_version/1000,(gmic_version/100)%10,(gmic_version/10)%10,gmic_version%10,
+                gmic_version/100,(gmic_version/10)%10,gmic_version%10,
                 cimg::stros(),
                 sizeof(void*)==8?64:32);
 #endif
@@ -3566,7 +4002,7 @@ bool create_dialog_gui() {
 
   GtkWidget *const frame_title = gtk_label_new(NULL);
   gtk_widget_show(frame_title);
-  gtk_label_set_markup(GTK_LABEL(frame_title),t("<b> Input / Output : </b>"));
+  gtk_label_set_markup(GTK_LABEL(frame_title),t("<b> Input / Output </b>"));
   gtk_frame_set_label_widget(GTK_FRAME(left_frame),frame_title);
 
   GtkWidget *const left_table = gtk_table_new(5,1,false);
@@ -3649,8 +4085,6 @@ bool create_dialog_gui() {
   gtk_combo_box_set_active(GTK_COMBO_BOX(preview_size_combobox),get_preview_size(false));
   gtk_table_attach_defaults(GTK_TABLE(left_table),preview_size_combobox,0,1,4,5);
   g_signal_connect(preview_size_combobox,"changed",G_CALLBACK(on_dialog_preview_size_changed),0);
-
-  drawable_preview = gimp_drawable_get(gimp_image_get_active_drawable(image_id));
   gui_preview = 0;
   _gimp_preview_invalidate();
   g_signal_connect(dialog_window,"size-request",G_CALLBACK(on_dialog_resized),0);
@@ -3687,14 +4121,6 @@ bool create_dialog_gui() {
 
   tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(tree_view_store));
   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(tree_view),true);
-#if GTK_CHECK_VERSION(2,18,0)
-  gtk_widget_set_can_focus(tree_view,false);
-#else
-  GValue val = {0, {{0}, {0}}};
-  g_value_init(&val,G_TYPE_BOOLEAN);
-  g_value_set_boolean(&val,FALSE);
-  g_object_set_property(G_OBJECT(tree_view),"can-focus",&val);
-#endif
   gtk_widget_show(tree_view);
   gtk_container_add(GTK_CONTAINER(scrolled_window),tree_view);
 
@@ -3759,6 +4185,7 @@ bool create_dialog_gui() {
 
   // Show dialog window and wait for user response.
   create_parameters_gui(false);
+  gtk_widget_grab_focus(tree_view);
   gtk_main();
 
   // Destroy dialog box widget and free resources.
@@ -3777,6 +4204,12 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
               gint *nreturn_vals, GimpParam **return_vals) {
 
   // Init plug-in variables.
+#if GIMP_MINOR_VERSION>8
+  gegl_init(NULL,NULL);
+  gimp_plugin_enable_precision();
+#endif
+  markup2ascii = gtk_label_new(0);
+
   static GimpParam return_values[1];
   *return_vals  = return_values;
   *nreturn_vals = 1;
@@ -3793,7 +4226,12 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
   if (ps) resize_preview(get_preview_size(true));
   else { // Try to guess best preview size.
     unsigned int h = 0;
-    try { h = CImgDisplay::screen_height(); } catch (...) {}
+    try {
+      const unsigned int cimg_exception_mode = cimg::exception_mode();
+      cimg::exception_mode(0);
+      h = CImgDisplay::screen_height();
+      cimg::exception_mode(cimg_exception_mode);
+    } catch (...) { h = 800; }
     const unsigned int bps = h>=1024?4:h>=800?3:0;
     if (bps) { set_preview_size(bps); resize_preview(get_preview_size(true)); }
   }
@@ -3810,7 +4248,9 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
 
   try {
     image_id = param[1].data.d_drawable;
+#if GIMP_MINOR_VERSION<=8
     gimp_tile_cache_ntiles(2*(gimp_image_width(image_id)/gimp_tile_width() + 1));
+#endif
 
     // Check for run mode.
     switch (run_mode) {
@@ -3828,13 +4268,16 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
       if (try_network_update) {
         HANDLE lockfile = CreateFileA(str,GENERIC_READ,0,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
         if (lockfile!=INVALID_HANDLE_VALUE) {
-          SYSTEMTIME file_time, current_time;
-          FILETIME ft;
-          if (GetFileTime(lockfile,0,0,&ft) && FileTimeToSystemTime(&ft,&file_time)) {
-            GetSystemTime(&current_time);
-            if (file_time.wDay>=current_time.wDay &&
-                file_time.wMonth>=current_time.wMonth &&
-                file_time.wYear>=current_time.wYear) try_network_update = false;
+          FILETIME file_time, current_time;
+          SYSTEMTIME st;
+          GetSystemTime(&st);
+          if (GetFileTime(lockfile,0,0,&file_time) && SystemTimeToFileTime(&st,&current_time)) {
+            ULARGE_INTEGER _if, _is;
+            _if.LowPart = file_time.dwLowDateTime;
+            _if.HighPart = file_time.dwHighDateTime;
+            _is.LowPart = current_time.dwLowDateTime;
+            _is.HighPart = current_time.dwHighDateTime;
+            if ((_is.QuadPart - _if.QuadPart)/10000000<7*24*60*60) try_network_update = false;
             CloseHandle(lockfile);
           }
         }
@@ -3845,7 +4288,7 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
         const unsigned long
           file_time = (unsigned long)st_buf.st_mtime,
           current_time = (unsigned long)std::time(0);
-        if (current_time - file_time<=24*60*60) try_network_update = false;
+        if (current_time - file_time<7*24*60*60) try_network_update = false;
       }
 #endif
       if (try_network_update) {
@@ -3857,6 +4300,9 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
 
       // Display dialog window.
       if (create_dialog_gui()) {
+        cimg::mutex(25);
+        if (p_spt) { st_process_thread &spt = *(st_process_thread*)p_spt; spt.is_abort = true; }
+        cimg::mutex(25,0);
         process_image(0,false);
         const char *const commands_line = get_commands_line(false);
         if (commands_line) { // Remember command line for the next use of the filter.
@@ -3901,6 +4347,7 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
     status = GIMP_PDB_CALLING_ERROR;
   }
 
+  gtk_widget_destroy(markup2ascii);
   if (preview_image_id) gimp_image_delete(preview_image_id);
   if (logfile) std::fclose(logfile);
   return_values[0].data.d_status = status;

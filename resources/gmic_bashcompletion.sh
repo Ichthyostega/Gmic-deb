@@ -7,7 +7,7 @@
 # This file should be copied/renamed in '/etc/bash_completion.d/gmic'. 
 # 
  
-_gmic_def() 
+_gmic_stdlib() 
 { 
 	local cur prev opts coms 
 	COMPREPLY=() 
@@ -55,6 +55,8 @@ _gmic_def()
 	      -gmicky_wilber --gmicky_wilber\
 	      -i --i\
 	      -input --input\
+	      -ig --ig\
+	      -input_glob --input_glob\
 	      -input_gpl --input_gpl\
 	      -o --o\
 	      -output --output\
@@ -129,6 +131,7 @@ _gmic_def()
 	      -cosh --cosh\
 	      -/ --/\
 	      -div --div\
+	      -div_complex --div_complex\
 	      -== --==\
 	      -eq --eq\
 	      -exp --exp\
@@ -154,6 +157,7 @@ _gmic_def()
 	      -* --*\
 	      -mul --mul\
 	      -mul_channels --mul_channels\
+	      -mul_complex --mul_complex\
 	      -!= --!=\
 	      -neq --neq\
 	      -| --|\
@@ -289,6 +293,7 @@ _gmic_def()
 	      -to_rgb --to_rgb\
 	      -to_rgba --to_rgba\
 	      -transfer_colors --transfer_colors\
+	      -transfer_rgb --transfer_rgb\
 	      -xyz2rgb --xyz2rgb\
 	      -xyz82rgb --xyz82rgb\
 	      -ycbcr2rgb --ycbcr2rgb\
@@ -436,6 +441,7 @@ _gmic_def()
 	      -split_details --split_details\
 	      -structuretensors --structuretensors\
 	      -syntexturize --syntexturize\
+	      -syntexturize_patch --syntexturize_patch\
 	      -tv_flow --tv_flow\
 	      -unsharp --unsharp\
 	      -unsharp_octave --unsharp_octave\
@@ -466,6 +472,7 @@ _gmic_def()
 	      -minimal_path --minimal_path\
 	      -mse --mse\
 	      -patches --patches\
+	      -patchmatch --patchmatch\
 	      -plot2value --plot2value\
 	      -pointcloud --pointcloud\
 	      -psnr --psnr\
@@ -664,6 +671,8 @@ _gmic_def()
 	      -skip --skip\
 	      -u --u\
 	      -status --status\
+	      -_u --_u\
+	      -_status --_status\
 	      -while --while\
 	      -array --array\
 	      -array_fade --array_fade\
@@ -811,6 +820,7 @@ _gmic_def()
 	      -dec2hex --dec2hex\
 	      -dec2oct --dec2oct\
 	      -fact --fact\
+	      -fibonacci --fibonacci\
 	      -file_mv --file_mv\
 	      -file_rand --file_rand\
 	      -file_rm --file_rm\
@@ -855,7 +865,6 @@ _gmic_def()
 	      -padint --padint\
 	      -path_gimp --path_gimp\
 	      -path_tmp --path_tmp\
-	      -path_prc --path_prc\
 	      -path_rc --path_rc\
 	      -quote --quote\
 	      -region_feature --region_feature\
@@ -867,6 +876,7 @@ _gmic_def()
 	      -stresc --stresc\
 	      -strcat --strcat\
 	      -strcmp --strcmp\
+	      -strcontains --strcontains\
 	      -strlen --strlen\
 	      -strreplace --strreplace\
 	      -struncase --struncase\
@@ -954,6 +964,8 @@ _gmic_def()
 	      gmicky_wilber\
 	      i\
 	      input\
+	      ig\
+	      input_glob\
 	      input_gpl\
 	      o\
 	      output\
@@ -1028,6 +1040,7 @@ _gmic_def()
 	      cosh\
 	      /\
 	      div\
+	      div_complex\
 	      ==\
 	      eq\
 	      exp\
@@ -1053,6 +1066,7 @@ _gmic_def()
 	      *\
 	      mul\
 	      mul_channels\
+	      mul_complex\
 	      !=\
 	      neq\
 	      |\
@@ -1188,6 +1202,7 @@ _gmic_def()
 	      to_rgb\
 	      to_rgba\
 	      transfer_colors\
+	      transfer_rgb\
 	      xyz2rgb\
 	      xyz82rgb\
 	      ycbcr2rgb\
@@ -1335,6 +1350,7 @@ _gmic_def()
 	      split_details\
 	      structuretensors\
 	      syntexturize\
+	      syntexturize_patch\
 	      tv_flow\
 	      unsharp\
 	      unsharp_octave\
@@ -1365,6 +1381,7 @@ _gmic_def()
 	      minimal_path\
 	      mse\
 	      patches\
+	      patchmatch\
 	      plot2value\
 	      pointcloud\
 	      psnr\
@@ -1563,6 +1580,8 @@ _gmic_def()
 	      skip\
 	      u\
 	      status\
+	      _u\
+	      _status\
 	      while\
 	      array\
 	      array_fade\
@@ -1710,6 +1729,7 @@ _gmic_def()
 	      dec2hex\
 	      dec2oct\
 	      fact\
+	      fibonacci\
 	      file_mv\
 	      file_rand\
 	      file_rm\
@@ -1754,7 +1774,6 @@ _gmic_def()
 	      padint\
 	      path_gimp\
 	      path_tmp\
-	      path_prc\
 	      path_rc\
 	      quote\
 	      region_feature\
@@ -1766,6 +1785,7 @@ _gmic_def()
 	      stresc\
 	      strcat\
 	      strcmp\
+	      strcontains\
 	      strlen\
 	      strreplace\
 	      struncase\
@@ -1825,11 +1845,11 @@ _gmic_def()
 		return 0
 		;;
 		"-display" | "--display")
-		COMPREPLY=( $(compgen -W "_X,_Y,_Z >") )
+		COMPREPLY=( $(compgen -W "_X,_Y,_Z,_exit_on_anykey={0|1} >") )
 		return 0
 		;;
 		"-display3d" | "--display3d")
-		COMPREPLY=( $(compgen -W "_[background_image] >") )
+		COMPREPLY=( $(compgen -W "_[background_image],_exit_on_anykey={0|1} _exit_on_anykey={0|1}") )
 		return 0
 		;;
 		"-display_array" | "--display_array")
@@ -1880,6 +1900,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "0<=smoothness<=1,x0>=0,y0,x1>=0,y1,...,xn>=0,yn >") )
 		return 0
 		;;
+		"-input_glob" | "--input_glob")
+		COMPREPLY=( $(compgen -W "pattern >") )
+		return 0
+		;;
 		"-input_gpl" | "--input_gpl")
 		COMPREPLY=( $(compgen -W "filename >") )
 		return 0
@@ -1905,11 +1929,11 @@ _gmic_def()
 		return 0
 		;;
 		"-plot" | "--plot")
-		COMPREPLY=( $(compgen -W "_plot_type,_vertex_type,_xmin,_xmax,_ymin,_ymax 'formula',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax") )
+		COMPREPLY=( $(compgen -W "_plot_type,_vertex_type,_xmin,_xmax,_ymin,_ymax,_exit_on_anykey={0|1} 'formula',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax,_exit_on_anykey={0|1}") )
 		return 0
 		;;
 		"-select" | "--select")
-		COMPREPLY=( $(compgen -W "feature_type,_X,_Y,_Z >") )
+		COMPREPLY=( $(compgen -W "feature_type,_X,_Y,_Z,_exit_on_anykey={0|1} >") )
 		return 0
 		;;
 		"-serialize" | "--serialize")
@@ -1941,7 +1965,7 @@ _gmic_def()
 		return 0
 		;;
 		"-shared" | "--shared")
-		COMPREPLY=( $(compgen -W "x0[%],x1[%],y[%],z[%],v[%] y0[%],y1[%],z[%],v[%] z0[%],z1[%],v[%] v0[%],v1[%] (noarg)") )
+		COMPREPLY=( $(compgen -W "x0[%],x1[%],y[%],z[%],v[%] y0[%],y1[%],z[%],v[%] z0[%],z1[%],v[%] v0[%],v1[%] v0[%] (noarg)") )
 		return 0
 		;;
 		"-srand" | "--srand")
@@ -2016,6 +2040,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
 		;;
+		"-div_complex" | "--div_complex")
+		COMPREPLY=( $(compgen -W "[divider_real,divider_imag],_epsilon>=0 >") )
+		return 0
+		;;
 		"-eq" | "--eq")
 		COMPREPLY=( $(compgen -W "value[%] [image] 'formula' (noarg)") )
 		return 0
@@ -2062,6 +2090,10 @@ _gmic_def()
 		;;
 		"-mul_channels" | "--mul_channels")
 		COMPREPLY=( $(compgen -W "value1,_value2,...,_valueN >") )
+		return 0
+		;;
+		"-mul_complex" | "--mul_complex")
+		COMPREPLY=( $(compgen -W "[multiplier_real,multiplier_imag] >") )
 		return 0
 		;;
 		"-neq" | "--neq")
@@ -2270,6 +2302,10 @@ _gmic_def()
 		;;
 		"-transfer_colors" | "--transfer_colors")
 		COMPREPLY=( $(compgen -W "[reference_image],_transfer_brightness={0|1} >") )
+		return 0
+		;;
+		"-transfer_rgb" | "--transfer_rgb")
+		COMPREPLY=( $(compgen -W "[target],_gamma>=0,_regularization>=0,_luminosity_constraints>=0,_rgb_resolution>=0,_is_constraints={0|1} >") )
 		return 0
 		;;
 		"-append" | "--append")
@@ -2736,6 +2772,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "_width[%]>0,_height[%]>0 >") )
 		return 0
 		;;
+		"-syntexturize_patch" | "--syntexturize_patch")
+		COMPREPLY=( $(compgen -W "_width[%]>0,_height[%]>0,_nb_scales>=0,_patch_size>0,_blending_size>=0,_precision>=0 >") )
+		return 0
+		;;
 		"-tv_flow" | "--tv_flow")
 		COMPREPLY=( $(compgen -W "_nb_iter>=0,_dt,_sequence_flag={0|1} >") )
 		return 0
@@ -2777,7 +2817,7 @@ _gmic_def()
 		return 0
 		;;
 		"-displacement" | "--displacement")
-		COMPREPLY=( $(compgen -W "[source_image],_smoothness,_precision>=0,_nb_scales>=0,iteration_max>=0,is_backward={0|1},_[constraints] >") )
+		COMPREPLY=( $(compgen -W "[source_image],_smoothness,_precision>=0,_nb_scales>=0,_iteration_max>=0,is_backward={0|1},_[guide] >") )
 		return 0
 		;;
 		"-distance" | "--distance")
@@ -2830,6 +2870,10 @@ _gmic_def()
 		;;
 		"-patches" | "--patches")
 		COMPREPLY=( $(compgen -W "patch_width>0,patch_height>0,patch_depth>0,x0,y0,z0,_x1,_y1,_z1,...,_xN,_yN,_zN >") )
+		return 0
+		;;
+		"-patchmatch" | "--patchmatch")
+		COMPREPLY=( $(compgen -W "[patch_image],patch_width>=1,_patch_height>=1,patch_depth>=1,nb_iterations>=0,nb_randoms>=0,_output_score={0|1},_[guide] >") )
 		return 0
 		;;
 		"-pointcloud" | "--pointcloud")
@@ -2985,7 +3029,7 @@ _gmic_def()
 		return 0
 		;;
 		"-triangle_shade" | "--triangle_shade")
-		COMPREPLY=( $(compgen -W "x0,y0,x1,y0,x2,y2,R0,G0,B0,...,R1,G1,B1,...,R2,G2,B2,.... >") )
+		COMPREPLY=( $(compgen -W "x0,y0,x1,y1,x2,y2,R0,G0,B0,...,R1,G1,B1,...,R2,G2,B2,.... >") )
 		return 0
 		;;
 		"-truchet" | "--truchet")
@@ -3345,7 +3389,11 @@ _gmic_def()
 		return 0
 		;;
 		"-status" | "--status")
-		COMPREPLY=( $(compgen -W "value >") )
+		COMPREPLY=( $(compgen -W "status_string >") )
+		return 0
+		;;
+		"-_status" | "--_status")
+		COMPREPLY=( $(compgen -W "status_string >") )
 		return 0
 		;;
 		"-while" | "--while")
@@ -3597,7 +3645,7 @@ _gmic_def()
 		return 0
 		;;
 		"-euclidean2polar" | "--euclidean2polar")
-		COMPREPLY=( $(compgen -W "_center_x[%],_center_y[%],_n>0,_boundary={0=dirichlet|1=neumann|2=periodic} >") )
+		COMPREPLY=( $(compgen -W "_center_x[%],_center_y[%],_stretch_factor>0,_boundary={0=dirichlet|1=neumann|2=periodic} >") )
 		return 0
 		;;
 		"-deform" | "--deform")
@@ -3621,7 +3669,7 @@ _gmic_def()
 		return 0
 		;;
 		"-polar2euclidean" | "--polar2euclidean")
-		COMPREPLY=( $(compgen -W "_center_x[%],_center_y[%],_n>0,_boundary={0=dirichlet|1=neumann|2=periodic} >") )
+		COMPREPLY=( $(compgen -W "_center_x[%],_center_y[%],_stretch_factor>0,_boundary={0=dirichlet|1=neumann|2=periodic} >") )
 		return 0
 		;;
 		"-raindrops" | "--raindrops")
@@ -3912,6 +3960,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "value >") )
 		return 0
 		;;
+		"-fibonacci" | "--fibonacci")
+		COMPREPLY=( $(compgen -W "N>=0 >") )
+		return 0
+		;;
 		"-file_mv" | "--file_mv")
 		COMPREPLY=( $(compgen -W "filename_src,filename_dest >") )
 		return 0
@@ -4012,6 +4064,10 @@ _gmic_def()
 		COMPREPLY=( $(compgen -W "string1,string2 >") )
 		return 0
 		;;
+		"-strcontains" | "--strcontains")
+		COMPREPLY=( $(compgen -W "string1,string2 >") )
+		return 0
+		;;
 		"-strlen" | "--strlen")
 		COMPREPLY=( $(compgen -W "string1 >") )
 		return 0
@@ -4022,6 +4078,10 @@ _gmic_def()
 		;;
 		"-struncase" | "--struncase")
 		COMPREPLY=( $(compgen -W "string >") )
+		return 0
+		;;
+		"-strver" | "--strver")
+		COMPREPLY=( $(compgen -W "_version >") )
 		return 0
 		;;
 		"-demo" | "--demo")
@@ -4077,11 +4137,11 @@ _gmic_def()
 		return 0
 		;;
 		"-d" | "--d")
-		COMPREPLY=( $(compgen -W "_X,_Y,_Z >") )
+		COMPREPLY=( $(compgen -W "_X,_Y,_Z,_exit_on_anykey={0|1} >") )
 		return 0
 		;;
 		"-d3d" | "--d3d")
-		COMPREPLY=( $(compgen -W "_[background_image] >") )
+		COMPREPLY=( $(compgen -W "_[background_image],_exit_on_anykey={0|1} _exit_on_anykey={0|1}") )
 		return 0
 		;;
 		"-da" | "--da")
@@ -4125,7 +4185,7 @@ _gmic_def()
 		return 0
 		;;
 		"-sh" | "--sh")
-		COMPREPLY=( $(compgen -W "x0[%],x1[%],y[%],z[%],v[%] y0[%],y1[%],z[%],v[%] z0[%],z1[%],v[%] v0[%],v1[%] (noarg)") )
+		COMPREPLY=( $(compgen -W "x0[%],x1[%],y[%],z[%],v[%] y0[%],y1[%],z[%],v[%] z0[%],z1[%],v[%] v0[%],v1[%] v0[%] (noarg)") )
 		return 0
 		;;
 		"-v" | "--v")
@@ -4397,7 +4457,11 @@ _gmic_def()
 		return 0
 		;;
 		"-u" | "--u")
-		COMPREPLY=( $(compgen -W "value >") )
+		COMPREPLY=( $(compgen -W "status_string >") )
+		return 0
+		;;
+		"-_u" | "--_u")
+		COMPREPLY=( $(compgen -W "status_string >") )
 		return 0
 		;;
 		"-frame" | "--frame")
@@ -4413,4 +4477,4 @@ _gmic_def()
 	fi 
  
 } 
- complete -F _gmic_def -o filenames gmic
+ complete -F _gmic_stdlib -o filenames gmic
