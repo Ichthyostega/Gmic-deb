@@ -46,6 +46,9 @@ override_dh_auto_build:
 override_dh_install:
 	chmod 755 debian/libgmic*.install
 	dh_install --fail-missing
+	# FIX CImg.h file name to avoid problems with cimg-dev
+	sed -i 's,CImg.h,gmic_CImg.h,g' debian/libgmic-dev/usr/include/gmic.h
+	mv debian/libgmic-dev/usr/include/CImg.h debian/libgmic-dev/usr/include/gmic_CImg.h
 
 .PHONY: override_dh_auto_test override_dh_compress override_dh_auto_build override_dh_install
 
