@@ -1,11 +1,11 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -110,7 +110,7 @@ ifeq ($(notdir $(CC)),g++)
- ifeq ($(OS),Darwin)
- OPT_CFLAGS = -O2 -mtune=generic
- else
--OPT_CFLAGS = -O2 -fno-ipa-sra -mtune=generic
-+OPT_CFLAGS = -fno-ipa-sra
- endif
+@@ -119,7 +119,7 @@ DEBUG_CFLAGS = -ansi -pedantic -Dcimg_ve
+ 
+ # Flags to enable optimizations.
+ ifeq ($(notdir $(CC)),g++)
+-OPT_CFLAGS = -O2 -mtune=generic
++OPT_CFLAGS = -O2 
  else
  ifeq ($(notdir $(CC)),icpc)
+ OPT_CFLAGS = -fast
