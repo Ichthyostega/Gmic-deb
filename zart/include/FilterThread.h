@@ -49,9 +49,9 @@
 
 #include <QThread>
 #include "Common.h"
+#include "gmic.h"
 #include "CImg.h"
 #include "CriticalRef.h"
-#include "gmic.h"
 class ImageSource;
 class QMutex;
 class QImage;
@@ -61,7 +61,7 @@ class FilterThread : public QThread {
   Q_OBJECT
 public:
 
-  enum PreviewMode { Full, TopHalf, LeftHalf, BottomHalf, RightHalf, Original };
+  enum PreviewMode { Full, TopHalf, LeftHalf, BottomHalf, RightHalf, DuplicateVertical, DuplicateHorizontal, Original };
 
   FilterThread( ImageSource & webcam,
                 const QString & command,
