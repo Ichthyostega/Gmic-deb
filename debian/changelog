@@ -1,10 +1,29 @@
-gmic (1.6.5.1-1) unstable; urgency=medium
+gmic (1.6.7-1) unstable; urgency=medium
 
   * [2dd1114] Merge tag 'upstream/1.6.5.1'
     Upstream version 1.6.5.1
+    Closes: #794877
   * [e0668cb] Refreshing patches.
+  * [87212e9] Updating changelog.
+  * [aa8ea31] Using libcurl4-openssl-dev.
+  * [7d0fb49] Updating watch file.
+  * [8788de5] Merge tag 'upstream/1.6.7'
+    Upstream version 1.6.7
+  * [b603da3] refreshing patches.
+  * [9d0aea8] Use upstream NOSTRIP option.
+  * [e1a3182] Install CImg.h as gmic_CImg.h.
+    As discussed with upstream we ship gmic's CImg.h as
+    gmic_CImg.h as it is usually a pre-release / unfinished
+    version, compared to the one released and shipped in
+    the cimg-dev package. People who want to use gmic's
+    features and link with libglib need the version gmic
+    was built with - and building gmic with the released
+    version is not possible. (Closes: #801162)
+  * [56301b3] Use libopencv-dev instead of hand-picked OpenCV packages.
+  * [8b8009f] Fix dh_install for zart.
 
- -- Bernd Zeimetz <bzed@debian.org>  Sun, 26 Jul 2015 23:33:04 +0200
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sat, 28 Nov 2015 18:22:49 +0100
 
 gmic (1.6.2.0-1) unstable; urgency=medium
 
