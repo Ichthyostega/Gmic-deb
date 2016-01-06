@@ -3,11 +3,11 @@
 @@ -461,8 +461,9 @@ ifneq ($(OS),Darwin)
  	mkdir -p $(DESTDIR)$(USR)/share
  	mkdir -p $(DESTDIR)$(USR)/$(LIB)
- 	cp -f libgmic.so $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.7
-+	ln -fs libgmic.so.1.6.7 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6
- 	ln -fs libgmic.so.1.6.7 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1
+ 	cp -f libgmic.so $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.8
++	ln -fs libgmic.so.1.6.8 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6
+ 	ln -fs libgmic.so.1.6.8 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1
 -	ln -fs libgmic.so.1 $(DESTDIR)$(USR)/$(LIB)/libgmic.so
-+	ln -fs libgmic.so.1.6.7 $(DESTDIR)$(USR)/$(LIB)/libgmic.so
++	ln -fs libgmic.so.1.6.8 $(DESTDIR)$(USR)/$(LIB)/libgmic.so
  	cp -f ../zart/zart $(DESTDIR)$(USR)/$(BIN)/
  endif
  	mkdir -p $(DESTDIR)$(USR)/share/man/
