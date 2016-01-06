@@ -274,6 +274,8 @@ _gmic_stdlib()
 	      -rgb2srgb --rgb2srgb\
 	      -rgb2xyz --rgb2xyz\
 	      -rgb2xyz8 --rgb2xyz8\
+	      -rgb2yiq --rgb2yiq\
+	      -rgb2yiq8 --rgb2yiq8\
 	      -rgb2ycbcr --rgb2ycbcr\
 	      -rgb2yuv --rgb2yuv\
 	      -rgb2yuv8 --rgb2yuv8\
@@ -297,6 +299,8 @@ _gmic_stdlib()
 	      -xyz2rgb --xyz2rgb\
 	      -xyz82rgb --xyz82rgb\
 	      -ycbcr2rgb --ycbcr2rgb\
+	      -yiq2rgb --yiq2rgb\
+	      -yiq82rgb --yiq82rgb\
 	      -yuv2rgb --yuv2rgb\
 	      -yuv82rgb --yuv82rgb\
 	      -a --a\
@@ -339,6 +343,7 @@ _gmic_stdlib()
 	      -rows --rows\
 	      -scale2x --scale2x\
 	      -scale3x --scale3x\
+	      -scale_dcci2x --scale_dcci2x\
 	      -seamcarve --seamcarve\
 	      -shift --shift\
 	      -shrink_x --shrink_x\
@@ -412,7 +417,10 @@ _gmic_stdlib()
 	      -inn --inn\
 	      -inpaint --inpaint\
 	      -inpaint_flow --inpaint_flow\
+	      -inpaint_gaussian --inpaint_gaussian\
 	      -inpaint_holes --inpaint_holes\
+	      -inpaint_morpho --inpaint_morpho\
+	      -inpaint_patchmatch --inpaint_patchmatch\
 	      -kuwahara --kuwahara\
 	      -laplacian --laplacian\
 	      -lic --lic\
@@ -434,14 +442,11 @@ _gmic_stdlib()
 	      -sharpen --sharpen\
 	      -smooth --smooth\
 	      -split_freq --split_freq\
-	      -solidify --solidify\
-	      -solidify_linear --solidify_linear\
-	      -solidify_watershed --solidify_watershed\
 	      -solve_poisson --solve_poisson\
 	      -split_details --split_details\
 	      -structuretensors --structuretensors\
 	      -syntexturize --syntexturize\
-	      -syntexturize_patch --syntexturize_patch\
+	      -syntexturize_patchmatch --syntexturize_patchmatch\
 	      -tv_flow --tv_flow\
 	      -unsharp --unsharp\
 	      -unsharp_octave --unsharp_octave\
@@ -515,6 +520,7 @@ _gmic_stdlib()
 	      -snowflake --snowflake\
 	      -spiralbw --spiralbw\
 	      -spline --spline\
+	      -tetraedron_shade --tetraedron_shade\
 	      -t --t\
 	      -text --text\
 	      -text_outline --text_outline\
@@ -1183,6 +1189,8 @@ _gmic_stdlib()
 	      rgb2srgb\
 	      rgb2xyz\
 	      rgb2xyz8\
+	      rgb2yiq\
+	      rgb2yiq8\
 	      rgb2ycbcr\
 	      rgb2yuv\
 	      rgb2yuv8\
@@ -1206,6 +1214,8 @@ _gmic_stdlib()
 	      xyz2rgb\
 	      xyz82rgb\
 	      ycbcr2rgb\
+	      yiq2rgb\
+	      yiq82rgb\
 	      yuv2rgb\
 	      yuv82rgb\
 	      a\
@@ -1248,6 +1258,7 @@ _gmic_stdlib()
 	      rows\
 	      scale2x\
 	      scale3x\
+	      scale_dcci2x\
 	      seamcarve\
 	      shift\
 	      shrink_x\
@@ -1321,7 +1332,10 @@ _gmic_stdlib()
 	      inn\
 	      inpaint\
 	      inpaint_flow\
+	      inpaint_gaussian\
 	      inpaint_holes\
+	      inpaint_morpho\
+	      inpaint_patchmatch\
 	      kuwahara\
 	      laplacian\
 	      lic\
@@ -1343,14 +1357,11 @@ _gmic_stdlib()
 	      sharpen\
 	      smooth\
 	      split_freq\
-	      solidify\
-	      solidify_linear\
-	      solidify_watershed\
 	      solve_poisson\
 	      split_details\
 	      structuretensors\
 	      syntexturize\
-	      syntexturize_patch\
+	      syntexturize_patchmatch\
 	      tv_flow\
 	      unsharp\
 	      unsharp_octave\
@@ -1424,6 +1435,7 @@ _gmic_stdlib()
 	      snowflake\
 	      spiralbw\
 	      spline\
+	      tetraedron_shade\
 	      t\
 	      text\
 	      text_outline\
@@ -1845,7 +1857,7 @@ _gmic_stdlib()
 		return 0
 		;;
 		"-display" | "--display")
-		COMPREPLY=( $(compgen -W "_X,_Y,_Z,_exit_on_anykey={0|1} >") )
+		COMPREPLY=( $(compgen -W "_X>=0,_Y>=0,_Z>=0,_exit_on_anykey={0|1} >") )
 		return 0
 		;;
 		"-display3d" | "--display3d")
@@ -2205,7 +2217,7 @@ _gmic_stdlib()
 		return 0
 		;;
 		"-rand" | "--rand")
-		COMPREPLY=( $(compgen -W "{value0[%]|[image0]},{value1[%]|[image1]} [image]") )
+		COMPREPLY=( $(compgen -W "{value0[%]|[image0]},_{value1[%]|[image1]} [image]") )
 		return 0
 		;;
 		"-replace" | "--replace")
@@ -2418,6 +2430,10 @@ _gmic_stdlib()
 		;;
 		"-rows" | "--rows")
 		COMPREPLY=( $(compgen -W "{[image0]|y0[%]},_{[image1]|y1[%]} >") )
+		return 0
+		;;
+		"-scale_dcci2x" | "--scale_dcci2x")
+		COMPREPLY=( $(compgen -W "_edge_threshold>=0,_exponent>0,_extend_1px={0=false|1=true} >") )
 		return 0
 		;;
 		"-seamcarve" | "--seamcarve")
@@ -2669,11 +2685,23 @@ _gmic_stdlib()
 		return 0
 		;;
 		"-inpaint_flow" | "--inpaint_flow")
-		COMPREPLY=( $(compgen -W "_nb_iter1>=0,_nb_iter2>=0,_dt>=0,_alpha,_sigma >") )
+		COMPREPLY=( $(compgen -W "[mask],_nb_global_iter>=0,_nb_local_iter>=0,_dt>0,_alpha>=0,_sigma>=0 >") )
+		return 0
+		;;
+		"-inpaint_gaussian" | "--inpaint_gaussian")
+		COMPREPLY=( $(compgen -W "[mask],_smoothness[%]>=0,_iter_length>0,_iter_smoothness_power>0,_feathering>=0 >") )
 		return 0
 		;;
 		"-inpaint_holes" | "--inpaint_holes")
 		COMPREPLY=( $(compgen -W "maximal_area[%]>=0,_tolerance>=0,_is_high_connectivity={0|1} >") )
+		return 0
+		;;
+		"-inpaint_morpho" | "--inpaint_morpho")
+		COMPREPLY=( $(compgen -W "[mask] >") )
+		return 0
+		;;
+		"-inpaint_patchmatch" | "--inpaint_patchmatch")
+		COMPREPLY=( $(compgen -W "[mask],_nb_scales={0=auto|>0},_patch_size>0,_nb_iterations_per_scale>0,_blend_size>=0,_allow_outer_blending={0|1},_is_already_initialized={0|1} >") )
 		return 0
 		;;
 		"-kuwahara" | "--kuwahara")
@@ -2693,7 +2721,7 @@ _gmic_stdlib()
 		return 0
 		;;
 		"-meancurvature_flow" | "--meancurvature_flow")
-		COMPREPLY=( $(compgen -W "_nb_iter>=0,_dt,_sequence_flag={0|1} >") )
+		COMPREPLY=( $(compgen -W "_nb_iter>=0,_dt,_keep_sequence={0|1} >") )
 		return 0
 		;;
 		"-median" | "--median")
@@ -2752,10 +2780,6 @@ _gmic_stdlib()
 		COMPREPLY=( $(compgen -W "smoothness>0[%] >") )
 		return 0
 		;;
-		"-solidify_linear" | "--solidify_linear")
-		COMPREPLY=( $(compgen -W "_sigma>=1,_dsigma>=1,0<=_precision<=1 >") )
-		return 0
-		;;
 		"-solve_poisson" | "--solve_poisson")
 		COMPREPLY=( $(compgen -W ""laplacian_command",_nb_iterations>=0,_time_step>0,_nb_scales>=0 >") )
 		return 0
@@ -2772,12 +2796,12 @@ _gmic_stdlib()
 		COMPREPLY=( $(compgen -W "_width[%]>0,_height[%]>0 >") )
 		return 0
 		;;
-		"-syntexturize_patch" | "--syntexturize_patch")
+		"-syntexturize_patchmatch" | "--syntexturize_patchmatch")
 		COMPREPLY=( $(compgen -W "_width[%]>0,_height[%]>0,_nb_scales>=0,_patch_size>0,_blending_size>=0,_precision>=0 >") )
 		return 0
 		;;
 		"-tv_flow" | "--tv_flow")
-		COMPREPLY=( $(compgen -W "_nb_iter>=0,_dt,_sequence_flag={0|1} >") )
+		COMPREPLY=( $(compgen -W "_nb_iter>=0,_dt,_keep_sequence={0|1} >") )
 		return 0
 		;;
 		"-unsharp" | "--unsharp")
@@ -2873,7 +2897,7 @@ _gmic_stdlib()
 		return 0
 		;;
 		"-patchmatch" | "--patchmatch")
-		COMPREPLY=( $(compgen -W "[patch_image],patch_width>=1,_patch_height>=1,patch_depth>=1,nb_iterations>=0,nb_randoms>=0,_output_score={0|1},_[guide] >") )
+		COMPREPLY=( $(compgen -W "[patch_image],patch_width>=1,_patch_height>=1,_patch_depth>=1,_nb_iterations>=0,_nb_randoms>=0,_output_score={0|1},_[guide] >") )
 		return 0
 		;;
 		"-pointcloud" | "--pointcloud")
@@ -3018,6 +3042,10 @@ _gmic_stdlib()
 		;;
 		"-spline" | "--spline")
 		COMPREPLY=( $(compgen -W "x0[%],y0[%],u0[%],v0[%],x1[%],y1[%],u1[%],v1[%],_nb_vertices>=2,_opacity,_color1,.. >") )
+		return 0
+		;;
+		"-tetraedron_shade" | "--tetraedron_shade")
+		COMPREPLY=( $(compgen -W "x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,R0,G0,B0,...,R1,G1,B1,...,R2,G2,B2,...,R3,G3,B3,... >") )
 		return 0
 		;;
 		"-text" | "--text")
@@ -4137,7 +4165,7 @@ _gmic_stdlib()
 		return 0
 		;;
 		"-d" | "--d")
-		COMPREPLY=( $(compgen -W "_X,_Y,_Z,_exit_on_anykey={0|1} >") )
+		COMPREPLY=( $(compgen -W "_X>=0,_Y>=0,_Z>=0,_exit_on_anykey={0|1} >") )
 		return 0
 		;;
 		"-d3d" | "--d3d")

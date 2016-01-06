@@ -1,8 +1,8 @@
 /** -*- mode: c++ ; c-basic-offset: 2 -*-
- * @file   StillImageSource.cpp
+ * @file   FullScreenWidget.h
  * @author Sebastien Fourey
- * @date   Oct 2014
- * @brief Definition of the methods of the class StillImageSource
+ * @date   Nov 2015
+ * @brief  Declaration of the class FullScreenWidget
  *
  * This file is part of the ZArt software's source code.
  *
@@ -43,59 +43,37 @@
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL license and that you accept its terms.
  */
-#include "StillImageSource.h"
-#include <QImage>
-#include <QFileInfo>
-#include "ImageConverter.h"
+#ifndef _OUTPUTWINDOW_H_
+#define _OUTPUTWINDOW_H_
 
-StillImageSource::StillImageSource()
-{
-  _filename = "";
-}
+#include "ui_OutputWindow.h"
 
-StillImageSource::~StillImageSource()
-{
-  if ( image() ) {
-    IplImage * iplImage = image();
-    cvReleaseImage(&iplImage);
-  }
-}
+class ImageView;
+class MainWindow;
+class QShowEvent;
+class QFrame;
+class QTreeWidget;
 
-void StillImageSource::capture()
-{
-}
+class OutputWindow: public QWidget, public Ui::OutputWindow {
+  Q_OBJECT
+public:
+  OutputWindow(MainWindow * );
+  ~OutputWindow();
+  ImageView * imageView();
+protected:
+  void showEvent(QShowEvent * event);
+  void keyPressEvent( QKeyEvent * );
+  void closeEvent(QCloseEvent * event);
+public slots:
+  void onCloseClicked();
+  void onShowFullscreen(bool );
+  void onToggleFullScreen();
+signals:
+  void escapePressed();
+  void spaceBarPressed();
+  void aboutToClose();
+private:
+  MainWindow * _mainWindow;
+};
 
-bool StillImageSource::loadImage(QString filename)
-{
-  QImage qimage;
-  QFileInfo info(filename);
-  if ( ! info.isReadable() ) {
-    return false;
-  }
-  if ( ! qimage.load(filename) ) {
-    return false;
-  }
-  QImage rgb = qimage.convertToFormat(QImage::Format_RGB888);
-  _filename = info.fileName();
-  _filePath = info.absolutePath();
-  IplImage * iplImage = image();
-  if ( iplImage )
-    cvReleaseImage(&iplImage);
-  iplImage = 0;
-  ImageConverter::convert(rgb,&iplImage);
-  setImage(iplImage);
-  return true;
-}
-
-const QString &
-StillImageSource::filename() const
-{
-  return _filename;
-}
-
-const QString &
-StillImageSource::filePath() const
-{
-  return _filePath;
-}
-
+#endif

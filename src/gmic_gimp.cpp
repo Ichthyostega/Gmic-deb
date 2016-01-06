@@ -103,9 +103,9 @@ void *p_spt = 0;                               // A pointer to the current runni
 GimpRunMode run_mode;                          // Run-mode used to call the plug-in.
 GtkTreeStore *tree_view_store = 0;             // The list of the filters as a GtkTreeView model.
 GtkWidget *dialog_window = 0;                  // The plug-in dialog window.
-GtkWidget *left_pane = 0;                      // The left pane, containing the preview window.
 GtkWidget *gui_preview = 0;                    // The preview window.
 GtkWidget *gui_preview_warning = 0;            // Warning label displaying for unaccurate preview.
+GtkWidget *gui_preview_align = 0;              // Alignment widget that contains the preview.
 GtkWidget *relabel_hbox = 0;                   // The entire widget to relabel filter.
 GtkWidget *relabel_entry = 0;                  // The text entry to relabel filter.
 GtkWidget *tree_view = 0;                      // The filter treeview.
@@ -175,12 +175,11 @@ void set_filter_parameter(const unsigned int filter, const unsigned int n, const
   gimp_set_data(s_tmp,param,std::strlen(param) + 1);
 }
 
-char *get_filter_parameter(const unsigned int filter, const unsigned int n) {
-  static CImg<char> s_param;
-  CImg<char> s_tmp(48);
+CImg<char> get_filter_parameter(const unsigned int filter, const unsigned int n) {
+  CImg<char> s_param, s_tmp(48);
   cimg_snprintf(s_tmp,s_tmp.width(),"gmic_filter%u_parameter%u",filter,n);
   const unsigned int siz = 1U + gimp_get_data_size(s_tmp);
-  if (s_param._width<siz) s_param.assign(siz);
+  s_param.assign(siz);
   *s_param = 0;
   gimp_get_data(s_tmp,s_param);
   return s_param;
@@ -193,12 +192,11 @@ void set_fave_parameter(const unsigned int filter, const unsigned int n, const c
   gimp_set_data(s_tmp,param,std::strlen(param) + 1);
 }
 
-char *get_fave_parameter(const unsigned int filter, const unsigned int n) {
-  static CImg<char> s_param;
-  CImg<char> s_tmp(48);
+CImg<char> get_fave_parameter(const unsigned int filter, const unsigned int n) {
+  CImg<char> s_param, s_tmp(48);
   cimg_snprintf(s_tmp,s_tmp.width(),"gmic_fave%u_parameter%u",filter,n);
   const unsigned int siz = 1U + gimp_get_data_size(s_tmp);
-  if (s_param._width<siz) s_param.assign(siz);
+  s_param.assign(siz);
   *s_param = 0;
   gimp_get_data(s_tmp,s_param);
   return s_param;
@@ -209,7 +207,7 @@ void reset_filters_parameters() {
   const char *const empty = "";
   for (unsigned int i = 1; i<gmic_entries.size(); ++i)
     for (unsigned int j = 0; ; ++j) {
-      const char *const val = get_filter_parameter(i,j);
+      const CImg<char> val = get_filter_parameter(i,j);
       if (*val) set_filter_parameter(i,j,empty); else break;
     }
 }
@@ -322,8 +320,9 @@ void set_locale() {
   gimp_set_data("gmic_locale",locale,std::strlen(locale) + 1);
 }
 
-const char *get_locale() {
-  static CImg<char> locale(16); *locale = 0;
+CImg<char> get_locale() {
+  CImg<char> locale(16);
+  *locale = 0;
   gimp_get_data("gmic_locale",locale);
   return locale;
 }
@@ -389,19 +388,23 @@ void get_output_layer_props(const char *const s, GimpLayerModeEffects &blendmode
       else if (*ps==')') --level;
       ++ps;
     }
-    if (!level || *(ps - 1)==')') name.assign(S + 5,(unsigned int)(ps - S - 5)).back() = 0;
+    if (!level || *(ps - 1)==')') {
+      name.assign(S + 5,(unsigned int)(ps - S - 5)).back() = 0;
+      cimg_for(name,pn,char) if (*pn==21) *pn = '('; else if (*pn==22) *pn = ')';
+    }
   }
 }
 
 // Translate string into the current locale.
 //------------------------------------------
-#define _t(source,dest) if (!std::strcmp(source,s)) { static const char *const ns = dest; return ns; }
+#define _t(source,dest) if (!std::strcmp(source,s)) { const char *const ns = dest; return ns; }
 const char *t(const char *const s) {
+  const CImg<char> locale = get_locale();
 
   // Catalan translation.
-  if (!std::strcmp(get_locale(),"ca")) {
+  if (!std::strcmp(locale,"ca")) {
     if (!s) {
-      static const char *const ns = "No ha estat possible establir una connexi&#243; a Internet !\n\n"
+      const char *const ns = "No ha estat possible establir una connexi&#243; a Internet !\n\n"
         "No es possible arribar a aquestes fonts de filtres :\n";
       return ns;
     }
@@ -464,9 +467,9 @@ const char *t(const char *const s) {
   }
 
   // Dutch translation.
-  else if (!std::strcmp(get_locale(),"nl")) {
+  else if (!std::strcmp(locale,"nl")) {
     if (!s) {
-      static const char *const ns = "Geen internet-update mogelijk !\n\n"
+      const char *const ns = "Geen internet-update mogelijk !\n\n"
         "Kan deze filters bronnen te bereiken :\n";
       return ns;
     }
@@ -529,9 +532,9 @@ const char *t(const char *const s) {
   }
 
   // French translation.
-  else if (!std::strcmp(get_locale(),"fr")) {
+  else if (!std::strcmp(locale,"fr")) {
     if (!s) {
-      static const char *const ns = "Mise &#224; jour depuis Internet incompl&#232;te !\n\n"
+      const char *const ns = "Mise &#224; jour depuis Internet incompl&#232;te !\n\n"
         "Acc&#232;s impossible aux sources de filtres :\n";
       return ns;
     }
@@ -594,9 +597,9 @@ const char *t(const char *const s) {
   }
 
   // German translation.
-  else if (!std::strcmp(get_locale(),"de")) {
+  else if (!std::strcmp(locale,"de")) {
     if (!s) {
-      static const char *const ns = "Kein Internet-Update m\303\266glich !\n\n"
+      const char *const ns = "Kein Internet-Update m\303\266glich !\n\n"
         "Kann diese Filter Quellen erreichen :\n";
       return ns;
     }
@@ -659,9 +662,9 @@ const char *t(const char *const s) {
   }
 
   // Italian translation.
-  else if (!std::strcmp(get_locale(),"it")) {
+  else if (!std::strcmp(locale,"it")) {
     if (!s) {
-      static const char *const ns = "Impossibile aggiornare da Internet !\n\n"
+      const char *const ns = "Impossibile aggiornare da Internet !\n\n"
         "Impossibile raggiungere queste fonti filtri :\n";
       return ns;
     }
@@ -724,9 +727,9 @@ const char *t(const char *const s) {
   }
 
   // Japanese translation.
-  else if (!std::strcmp(get_locale(),"ja")) {
+  else if (!std::strcmp(locale,"ja")) {
     if (!s) {
-      static const char *const ns = "\xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xBF\xE3\x83\xBC\xE3\x83\x8D\xE3\x83\x83\xE3\x83"
+      const char *const ns = "\xE3\x82\xA4\xE3\x83\xB3\xE3\x82\xBF\xE3\x83\xBC\xE3\x83\x8D\xE3\x83\x83\xE3\x83"
         "\x88\xE7\xB5\x8C\xE7\x94\xB1\xE3\x81\xA7\xE3\x81\xAE\xE6\x9B\xB4\xE6\x96\xB0\xE3\x81\xAB\xE5\xA4\xB1\xE6\x95"
         "\x97\xE3\x81\x97\xE3\x81\x9F\xE3\x83\x95\xE3\x82\xA3\xE3\x83\xAB\xE3\x82\xBF\xE3\x81\x8C\xE3\x81\x82\xE3\x82"
         "\x8A\xE3\x81\xBE\xE3\x81\x99\xEF\xBC\x81\n\n"
@@ -832,9 +835,9 @@ const char *t(const char *const s) {
   }
 
   // Polish translation.
-  else if (!std::strcmp(get_locale(),"pl")) {
+  else if (!std::strcmp(locale,"pl")) {
     if (!s) {
-      static const char *const ns = "Aktualizacja filtr\303\263w przez internet (cz\304\231\305\233ciowo) nie "
+      const char *const ns = "Aktualizacja filtr\303\263w przez internet (cz\304\231\305\233ciowo) nie "
         "powiod\305\202a si\304\231 !\n\n"
         "Brak dost\304\231pu do tych \305\272r\303\263de\305\202 filtr\303\263w :\n";
       return ns;
@@ -899,9 +902,9 @@ const char *t(const char *const s) {
   }
 
   // Portuguese translation.
-  else if (!std::strcmp(get_locale(),"pt")) {
+  else if (!std::strcmp(locale,"pt")) {
     if (!s) {
-      static const char *const ns = "A atualiza\303\247\303\243o pela internet falhou !\n\n"
+      const char *const ns = "A atualiza\303\247\303\243o pela internet falhou !\n\n"
         "Incapaz de chegar a essas fontes de filtros :\n";
       return ns;
     }
@@ -965,9 +968,9 @@ const char *t(const char *const s) {
   }
 
   // Serbian translation.
-  else if (!std::strcmp(get_locale(),"sr")) {
+  else if (!std::strcmp(locale,"sr")) {
     if (!s) {
-      static const char *const ns = "A\305\276uriranje filtera sa interneta (delimi\304\215no) neuspe\305\241no !\n\n"
+      const char *const ns = "A\305\276uriranje filtera sa interneta (delimi\304\215no) neuspe\305\241no !\n\n"
         "Nije mogu\304\207e dospeti do izvorne lokacije ovih filtera :\n";
       return ns;
     }
@@ -1030,9 +1033,9 @@ const char *t(const char *const s) {
   }
 
   // Spanish translation (Castillan).
-  else if (!std::strcmp(get_locale(),"es")) {
+  else if (!std::strcmp(locale,"es")) {
     if (!s) {
-      static const char *const ns = "No es posible establecer conexión a Internet !\n\n"
+      const char *const ns = "No es posible establecer conexión a Internet !\n\n"
         "No es posible acceder a estas fuentes de filtros :\n";
       return ns;
     }
@@ -1096,7 +1099,7 @@ const char *t(const char *const s) {
 
   // English translation (default).
   if (!s) {
-    static const char *const ns = "Filters update from Internet (partially) failed !\n\n"
+    const char *const ns = "Filters update from Internet (partially) failed !\n\n"
       "Unable to reach these filters sources:\n";
     return ns;
   }
@@ -1182,8 +1185,7 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
   CImg<char> command(1024);
   cimg_snprintf(command,command.width(),"%s-gimp_filter_sources",
                 get_verbosity_mode()>5?"-debug ":get_verbosity_mode()>3?"":"-v -99 ");
-  try { gmic(command,_sources,_names,gmic_additional_commands,true); } catch (...) {}
-
+  try { gmic(command,_sources,_names,gmic_additional_commands,true); } catch (...) { }
   CImgList<char> sources;
   _sources.move_to(sources);
   cimglist_for(sources,l) {
@@ -1233,7 +1235,7 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
     const unsigned int omode = cimg::exception_mode();
     cimg::exception_mode() = 0;
     try {
-      cimg::load_network(sources[l],filename_tmp,is_silent?4:60,false);
+      cimg::load_network(sources[l],filename_tmp,is_silent?4:60);
       std::FILE *file = std::fopen(filename_tmp,"rb");
 
       // Eventually, uncompress .cimgz file.
@@ -1290,18 +1292,21 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
       cimg::exception_mode(0);
       if (sources[l].back()==1) { // Overload default, add more checking.
         com.load_raw(filename);
-        if (cimg_sscanf(com," #@gmi%c",&sep)==1 && sep=='c') {
+        const char *_com = com.data(), *const ecom = com.end();
+        while (_com<ecom && *_com<=32) ++_com;
+        if (_com + 6<ecom && !std::strncmp(_com,"#@gmic",6)) {
           is_default_update = true;
           com.move_to(_gmic_additional_commands);
           add_code_separator = true;
-        } else if (cimg_sscanf(com,"1 unsigned_cha%c",&sep)==1 && sep=='r') {
+        } else if (com.data() + 15<ecom && !std::strncmp(com,"1 unsigned_char",15)) {
           CImgList<char>::get_unserialize(com)[0].move_to(_gmic_additional_commands);
           is_default_update = true;
           add_code_separator = true;
         }
       } else {
         com.load_raw(filename);
-        if (cimg_sscanf(com,"1 unsigned_cha%c",&sep)==1 && sep=='r')
+        const char *const ecom = com.end();
+        if (com.data() + 15<ecom && !std::strncmp(com,"1 unsigned_char",15))
           CImgList<char>::get_unserialize(com)[0].move_to(_gmic_additional_commands);
         else com.move_to(_gmic_additional_commands);
         add_code_separator = true;
@@ -1323,6 +1328,15 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
     _gmic_additional_commands.insert(gmic::uncompress_stdlib());
     CImg<char>::string("\n#@gimp ________\n",false).unroll('y').move_to(_gmic_additional_commands);
   }
+
+  cimglist_for(_gmic_additional_commands,l) { // Remove unusual characters.
+    char *_p = _gmic_additional_commands[l];
+    cimg_for(_gmic_additional_commands[l],p,char) if (*p!=13) *(_p++) = (unsigned char)*p<' ' && *p!=10?' ':*p;
+    if (_p<_gmic_additional_commands[l].end())
+      CImg<char>(_gmic_additional_commands[l].data(),1,_p - _gmic_additional_commands[l].data()).
+        move_to(_gmic_additional_commands[l]);
+  }
+
   CImg<char>::vector(0).move_to(_gmic_additional_commands);
   (_gmic_additional_commands>'y').move_to(gmic_additional_commands);
 
@@ -1343,9 +1357,8 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
   }
 
   // Parse filters descriptions for GIMP, and create corresponding sorted treeview_store.
-  CImg<char> line(256*1024), preview_command(256), arguments(65536), entry(256), locale(16);
-  *line = *preview_command = *arguments = *entry = *locale = 0;
-  std::strcpy(locale,get_locale());
+  CImg<char> line(256*1024), preview_command(256), arguments(65536), entry(256), locale = get_locale();
+  *line = *preview_command = *arguments = *entry = 0;
   int level = 0, err = 0;
   bool is_testing = false;
   nb_available_filters = 0;
@@ -1497,8 +1510,8 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
 
         CImg<char>::string(line).move_to(gmic_faves);
         // Get back '}' if necessary.
-        for (char *p = std::strchr(label,_rbrace); p; p = std::strchr(p,_rbrace)) *p = '}';
-        for (char *p = std::strchr(entry,_rbrace); p; p = std::strchr(p,_rbrace)) *p = '}';
+        for (char *p = std::strchr(label,gmic_rbrace); p; p = std::strchr(p,gmic_rbrace)) *p = '}';
+        for (char *p = std::strchr(entry,gmic_rbrace); p; p = std::strchr(p,gmic_rbrace)) *p = '}';
 
         if (filter>=indice_faves) { // Entry not found.
           CImg<char>::string(label).move_to(gmic_entries);
@@ -1543,9 +1556,9 @@ CImgList<char> update_filters(const bool try_net_update, const bool is_silent=fa
           unsigned int nbp = 0;
           for (nbp = 0; cimg_sscanf(_line,"{%65533[^}]%c",arguments.data(),&sep)==2 && sep=='}'; ++nbp) {
             // Get back '}' if necessary.
-            for (char *p = std::strchr(arguments,_rbrace); p; p = std::strchr(p,_rbrace)) *p = '}';
+            for (char *p = std::strchr(arguments,gmic_rbrace); p; p = std::strchr(p,gmic_rbrace)) *p = '}';
             // Get back '\n' if necessary.
-            for (char *p = std::strchr(arguments,_newline); p; p = std::strchr(p,_newline)) *p = '\n';
+            for (char *p = std::strchr(arguments,gmic_newline); p; p = std::strchr(p,gmic_newline)) *p = '\n';
             set_fave_parameter(gmic_entries.size() - 1,nbp,arguments);
             _line+=2 + std::strlen(arguments);
           }
@@ -1635,10 +1648,11 @@ void calibrate_image(CImg<T>& img, const unsigned int spectrum, const bool is_pr
       img.channel(0);
       break;
     case 3 : // from RGB
-      img.RGBtoYCbCr().channel(0);
+      (img.get_shared_channel(0)+=img.get_shared_channel(1)+=img.get_shared_channel(2))/=3;
+      img.channel(0);
       break;
     case 4 : // from RGBA
-      img.get_shared_channels(0,2).RGBtoYCbCr();
+      (img.get_shared_channel(0)+=img.get_shared_channel(1)+=img.get_shared_channel(2))/=3;
       if (is_preview) {
         T *ptr_r = img.data(0,0,0,0), *ptr_a = img.data(0,0,0,3);
         cimg_forXY(img,x,y) {
@@ -1661,10 +1675,11 @@ void calibrate_image(CImg<T>& img, const unsigned int spectrum, const bool is_pr
     case 2: // from GRAYA
       break;
     case 3: // from RGB
-      img.RGBtoYCbCr().channels(0,1).get_shared_channel(1).fill(255);
+      (img.get_shared_channel(0)+=img.get_shared_channel(1)+=img.get_shared_channel(2))/=3;
+      img.channels(0,1).get_shared_channel(1).fill(255);
       break;
     case 4: // from RGBA
-      img.get_shared_channels(0,2).RGBtoYCbCr();
+      (img.get_shared_channel(0)+=img.get_shared_channel(1)+=img.get_shared_channel(2))/=3;
       img.get_shared_channel(1) = img.get_shared_channel(3);
       img.channels(0,1);
       break;
@@ -1857,13 +1872,12 @@ CImg<int> get_input_layers(CImgList<T>& images) {
 
 // Return the G'MIC command line needed to run the selected filter.
 //-----------------------------------------------------------------
-const char* get_commands_line(const bool is_preview) {
+CImg<char> get_command_line(const bool is_preview) {
+  CImg<char> res;
   const unsigned int
     filter = get_current_filter(),
     nbparams = get_filter_nbparams(filter);
-  if (!filter) return 0;
-
-  static CImg<char> res;
+  if (!filter) return res;
   CImgList<char> lres;
   switch (get_verbosity_mode()) {
   case 0: case 1: case 2: case 3: CImg<char>("-v -99 -",8).move_to(lres); break;  // Quiet or Verbose.
@@ -1876,14 +1890,15 @@ const char* get_commands_line(const bool is_preview) {
     if (nbparams) {
       lres[1].back() = ' ';
       for (unsigned int p = 0; p<nbparams; ++p) {
-        const char *ss = get_filter_parameter(filter,p);
+        const CImg<char> _ss = get_filter_parameter(filter,p);
+        const char *ss = _ss;
         const unsigned int l = (unsigned int)std::strlen(ss);
         CImg<char> nparam(l + 1);
         *nparam = 0;
         char *sd = nparam.data();
-        if (l>=2 && ss[0]=='\"' && ss[l - 1]=='\"') { // Replace special characters in a string or a filename.
+        if (l>=2 && *ss=='\"' && ss[l - 1]=='\"') { // Replace special characters in a string or a filename.
           ++ss; *(sd++) = '\"';
-          for (unsigned int i = 1; i<l - 1; ++i, ++ss) { const char c = *ss; *(sd++) = c=='\"'?_dquote:c; }
+          for (unsigned int i = 1; i<l - 1; ++i, ++ss) { const char c = *ss; *(sd++) = c=='\"'?gmic_dquote:c; }
           *(sd++) = '\"'; *(sd++) = 0;
           nparam.move_to(lres);
         } else CImg<char>(ss,l + 1).move_to(lres);
@@ -1892,7 +1907,7 @@ const char* get_commands_line(const bool is_preview) {
     }
     (res=lres>'x').back() = 0;
   }
-  return res.data();
+  return res;
 }
 
 // Set defaut zoom factor for preview of the current filter.
@@ -1936,7 +1951,7 @@ struct st_process_thread {
   CImg<char> env, error_message, status;
   bool is_thread, is_preview;
   unsigned int verbosity_mode;
-  const char *commands_line;
+  const char *command_line;
   float progress;
   bool is_abort;
   pthread_mutex_t is_running, wait_lock;
@@ -1961,7 +1976,7 @@ void *process_thread(void *arg) {
   }
   try {
     if (spt.verbosity_mode>1) {
-      CImg<char> cl = CImg<char>::string(spt.commands_line);
+      CImg<char> cl = CImg<char>::string(spt.command_line);
       std::fprintf(cimg::output(),
                    "\n[gmic_gimp]./%s/ %s\n",
                    spt.is_preview?"preview":"apply",
@@ -1969,7 +1984,7 @@ void *process_thread(void *arg) {
       std::fflush(cimg::output());
     }
     gmic gmic_instance(spt.env,gmic_additional_commands,true);
-    gmic_instance.run(spt.commands_line,spt.images,spt.images_names,&spt.progress,&spt.is_abort);
+    gmic_instance.run(spt.command_line,spt.images,spt.images_names,&spt.progress,&spt.is_abort);
     gmic_instance.status.move_to(spt.status);
   } catch (gmic_exception &e) {
     spt.images.assign();
@@ -2031,10 +2046,13 @@ void _gimp_preview_invalidate() {
     const int w = gimp_image_width(image_id), h = gimp_image_height(image_id);
     if (preview_image_id) gimp_image_delete(preview_image_id);
     preview_image_id = 0; preview_image_factor = 1;
-    const int min_preview_size = (200 + 120*(2 + get_preview_size(true)))/2;
-    if (cimg::max(w,h)<min_preview_size) { // Image too small, prevent preview to be tiny.
+
+    // Pre-compute image thumbnail for preview if image is too small.
+    const int min_preview_size = (200 + 120*get_preview_size(true))*2/3;
+    if (cimg::max(w,h)<min_preview_size) {
       int pw = 0, ph = 0;
-      if (w>=h) ph = cimg::max(1,h*(pw=min_preview_size)/w); else pw = cimg::max(1,w*(ph=min_preview_size)/h);
+      if (w>=h) ph = cimg::max(1,h*(pw=min_preview_size)/w);
+      else pw = cimg::max(1,w*(ph=min_preview_size)/h);
       preview_image_id = gimp_image_duplicate(image_id);
       preview_image_factor = (double)cimg::max(pw,ph)/cimg::max(w,h);
       const GimpInterpolationType mode = gimp_context_get_interpolation();
@@ -2052,7 +2070,7 @@ void _gimp_preview_invalidate() {
     gui_preview = gimp_zoom_preview_new_from_drawable_id(preview_drawable_id);
 #endif
 
-    GtkWidget *controls = gimp_preview_get_controls(GIMP_PREVIEW(gui_preview));
+    GtkWidget *const controls = gimp_preview_get_controls(GIMP_PREVIEW(gui_preview));
     GList *const children1 = ((GtkBox*)controls)->children;
     GtkBoxChild *const child1 = (GtkBoxChild*)children1->data;
     GtkWidget *const preview_button = child1->widget;
@@ -2071,15 +2089,18 @@ void _gimp_preview_invalidate() {
     gtk_box_pack_start(GTK_BOX(zoom_buttons),reset_zoom_button,false,false,0);
     gtk_widget_set_tooltip_text(reset_zoom_button,t("Reset zoom"));
     g_signal_connect(reset_zoom_button,"clicked",G_CALLBACK(on_dialog_reset_zoom_button_clicked),0);
-
     gtk_widget_show(gui_preview);
-    gtk_box_pack_end(GTK_BOX(left_pane),gui_preview,true,true,0);
+    gtk_container_add(GTK_CONTAINER(gui_preview_align),gui_preview);
+    GtkRequisition requisition;
+    gtk_widget_size_request(gui_preview_align,&requisition);
+    gtk_widget_set_size_request(gui_preview_align,
+                                -1,requisition.height<min_preview_size?min_preview_size:-1);
     g_signal_connect(gui_preview,"invalidated",G_CALLBACK(process_preview),0);
   }
 }
 
 // Resize preview widget.
-void resize_preview(const unsigned int size=2) {
+void resize_preview(const unsigned int size) {
   CImg<char> tmp(256);
   cimg_sprintf(tmp,
                "style \"gimp-large-preview\"\n"
@@ -2171,7 +2192,7 @@ void on_text_parameter_changed(const void *const event_infos) {
   CImg<char> s_param;
   if (s_value && *s_value) {
     CImg<char> _s_value = CImg<char>::string(s_value);
-    cimg_for(_s_value,ptr,char) if (*ptr=='\"') *ptr = _dquote;
+    cimg_for(_s_value,ptr,char) if (*ptr=='\"') *ptr = gmic_dquote;
     s_param.assign(_s_value.width() + 2);
     cimg_snprintf(s_param,s_param.width(),"\"%s\"",_s_value.data());
   } else std::strcpy(s_param.assign(3),"\"\"");
@@ -2189,7 +2210,7 @@ void on_multitext_parameter_changed(const void *const event_infos) {
   CImg<char> s_param;
   if (s_value && *s_value) {
     CImg<char> _s_value = CImg<char>::string(s_value);
-    cimg_for(_s_value,ptr,char) if (*ptr=='\"') *ptr = _dquote;
+    cimg_for(_s_value,ptr,char) if (*ptr=='\"') *ptr = gmic_dquote;
     s_param.assign(_s_value.width() + 2);
     cimg_snprintf(s_param,s_param.width(),"\"%s\"",_s_value.data());
   } else std::strcpy(s_param.assign(3),"\"\"");
@@ -2201,9 +2222,8 @@ void on_file_parameter_changed(GtkFileChooser *const file_chooser, const void *c
   reset_button_parameters();
   const char
     *const _s_value = gtk_file_chooser_get_filename(file_chooser),
-    *const s_value = _s_value?_s_value:"",
-    *const _o_value = get_filter_parameter(get_current_filter(),*(int*)event_infos);
-  CImg<char> o_value = CImg<char>::string(_o_value);
+    *const s_value = _s_value?_s_value:"";
+  CImg<char> o_value = get_filter_parameter(get_current_filter(),*(int*)event_infos);
   cimg::strpare(o_value,'\"',true);
   const bool
     is_same_file = !std::strcmp(gmic::basename(s_value),gmic::basename(o_value)),
@@ -2330,11 +2350,11 @@ void on_dialog_apply_clicked() {
   gtk_widget_show(dialog_window);
   _create_dialog_gui = false;
   _gimp_preview_invalidate();
-  const char *const commands_line = get_commands_line(false);
-  if (commands_line) { // Remember command line for the next use of the filter.
+  const CImg<char> command_line = get_command_line(false);
+  if (command_line) { // Remember command line for the next use of the filter.
     CImg<char> s_tmp(48);
-    cimg_snprintf(s_tmp,s_tmp.width(),"gmic_commands_line%u",get_current_filter());
-    gimp_set_data(s_tmp,commands_line,std::strlen(commands_line) + 1);
+    cimg_snprintf(s_tmp,s_tmp.width(),"gmic_command_line%u",get_current_filter());
+    gimp_set_data(s_tmp,command_line,std::strlen(command_line) + 1);
   }
 }
 
@@ -2377,8 +2397,8 @@ void on_dialog_add_fave_clicked(GtkWidget *const tree_view) {
           cimg_sprintf(label,"%s (%u)",basename.data(),++ind);
       }
       CImg<char> entry = gmic_entries[filter];
-      for (char *p = std::strchr(label,'}'); p; p = std::strchr(p,'}')) *p = _rbrace;  // Convert '}' if necessary.
-      for (char *p = std::strchr(entry,'}'); p; p = std::strchr(p,'}')) *p = _rbrace;
+      for (char *p = std::strchr(label,'}'); p; p = std::strchr(p,'}')) *p = gmic_rbrace;  // Convert '}' if necessary.
+      for (char *p = std::strchr(entry,'}'); p; p = std::strchr(p,'}')) *p = gmic_rbrace;
       std::fprintf(file,"{%s}{%s}{%s}{%s}",
                    label.data(),
                    entry.data(),
@@ -2386,11 +2406,12 @@ void on_dialog_add_fave_clicked(GtkWidget *const tree_view) {
                    gmic_preview_commands[filter].data());
       const unsigned int nbp = get_filter_nbparams(filter);
       for (unsigned int n = 0; n<nbp; ++n) {
-        char *const param = get_filter_parameter(filter,n);
+        CImg<char> param = get_filter_parameter(filter,n);
         set_filter_parameter(gmic_entries.size(),n,param);
-        for (char *p = std::strchr(param,'}'); p; p = std::strchr(p,'}')) *p = _rbrace; // Convert '}' if necessary.
-        for (char *p = std::strchr(param,'\n'); p; p = std::strchr(p,'\n')) *p = _newline; // Convert '\n' if necessary.
-        std::fprintf(file,"{%s}",param);
+        for (char *p = std::strchr(param,'}'); p; p = std::strchr(p,'}')) *p = gmic_rbrace; // Convert '}' if necessary.
+        for (char *p = std::strchr(param,'\n'); p; p = std::strchr(p,'\n')) // Convert '\n' if necessary.
+          *p = gmic_newline;
+        std::fprintf(file,"{%s}",param.data());
       }
       std::fputc('\n',file);
       std::fclose(file);
@@ -2535,7 +2556,8 @@ void _on_filter_doubleclicked(GtkWidget *const entry) {
         cimglist_for(gmic_faves,l) if (l!=(int)_filter) std::fprintf(file,"%s\n",gmic_faves[l].data());
         else {
           CImg<char> _label = CImg<char>::string(label);
-          for (char *p = std::strchr(_label,'}'); p; p = std::strchr(p,'}')) *p = _rbrace; // Convert '}' if necessary.
+          for (char *p = std::strchr(_label,'}'); p; p = std::strchr(p,'}')) // Convert '}' if necessary.
+            *p = gmic_rbrace;
           std::fprintf(file,"{%s%s\n",_label.data(),std::strchr(gmic_faves[l].data(),'}'));
         }
         std::fclose(file);
@@ -2583,7 +2605,7 @@ void on_filter_doubleclicked(GtkWidget *const tree_view) {
 
 // Process the selected image/layers.
 //------------------------------------
-void process_image(const char *const commands_line, const bool is_apply) {
+void process_image(const char *const command_line, const bool is_apply) {
   if (!gimp_image_is_valid(image_id)) return;
   const unsigned int
     filter = get_current_filter(),
@@ -2591,10 +2613,10 @@ void process_image(const char *const commands_line, const bool is_apply) {
     output_mode = get_input_mode()==0?cimg::max(1U,_output_mode):_output_mode,
     verbosity_mode = get_verbosity_mode();
 
-  if (!commands_line && !filter) return;
+  if (!command_line && !filter) return;
   bool update_parameters = false;
-  const char *const _commands_line = commands_line?commands_line:get_commands_line(false);
-  if (!_commands_line || std::strstr(_commands_line," -_none_")) return;
+  const CImg<char> _command_line = command_line?CImg<char>::string(command_line):get_command_line(false);
+  if (!_command_line || std::strstr(_command_line," -_none_")) return;
 
   CImg<char> new_label(256), progress_label;
   *new_label = 0;
@@ -2602,24 +2624,24 @@ void process_image(const char *const commands_line, const bool is_apply) {
     gtk_label_set_markup(GTK_LABEL(markup2ascii),gmic_entries[filter].data());
     CImg<char>::string(gtk_label_get_text(GTK_LABEL(markup2ascii))).move_to(progress_label);
     gimp_progress_init_printf(" G'MIC: %s...",progress_label.data());
-    const char *const cl = _commands_line +
-      (!std::strncmp(_commands_line,"-v -99 ",7)?7:
-       !std::strncmp(_commands_line,"-v 0 ",5)?5:
-       !std::strncmp(_commands_line,"-debug ",7)?7:0);
+    const char *const cl = _command_line.data() +
+      (!std::strncmp(_command_line,"-v -99 ",7)?7:
+       !std::strncmp(_command_line,"-v 0 ",5)?5:
+       !std::strncmp(_command_line,"-debug ",7)?7:0);
     cimg_snprintf(new_label,new_label.width(),"[G'MIC] %s: %s",gtk_label_get_text(GTK_LABEL(markup2ascii)),cl);
     cimg::strellipsize(new_label,240,false);
   } else {
-    cimg_snprintf(new_label,new_label.width(),"G'MIC: %s...",_commands_line);
+    cimg_snprintf(new_label,new_label.width(),"G'MIC: %s...",_command_line.data());
     cimg::strellipsize(new_label,240,false);
     gimp_progress_init_printf("%s",new_label.data());
-    cimg_snprintf(new_label,new_label.width(),"[G'MIC]: %s",_commands_line);
+    cimg_snprintf(new_label,new_label.width(),"[G'MIC]: %s",_command_line.data());
     cimg::strellipsize(new_label,240,false);
   }
 
   // Get input layers for the chosen filter.
   st_process_thread spt;
   spt.is_preview = false;
-  spt.commands_line = _commands_line;
+  spt.command_line = _command_line;
   spt.verbosity_mode = get_verbosity_mode();
   spt.images_names.assign();
   spt.progress = -1;
@@ -2644,7 +2666,7 @@ void process_image(const char *const commands_line, const bool is_apply) {
       if (output_mode>=1 && output_mode<=2) { posx = sel_x0; posy = sel_y0; }
     } else gimp_drawable_offsets(layers[p],&posx,&posy);
     CImg<char> _layer_name = CImg<char>::string(gimp_item_get_name(layers[p]));
-    cimg_for(_layer_name,p,char) if (*p=='(') *p = '['; else if (*p==')') *p = ']';
+    cimg_for(_layer_name,pn,char) if (*pn=='(') *pn = 21; else if (*pn==')') *pn = 22;
     cimg_snprintf(layer_name,layer_name.width(),"mode(%s),opacity(%g),pos(%d,%d),name(%s)",
                   s_blendmode[blendmode],opacity,posx,posy,
                   _layer_name.data());
@@ -2747,7 +2769,7 @@ void process_image(const char *const commands_line, const bool is_apply) {
       gtk_widget_destroy(message);
     } else {
       std::fprintf(cimg::output(),"\n[gmic_gimp]./error/ When running command '%s', this error occured:\n%s\n",
-                   _commands_line,spt.error_message.data());
+                   _command_line.data(),spt.error_message.data());
       std::fflush(cimg::output());
     }
     status = GIMP_PDB_CALLING_ERROR;
@@ -2769,8 +2791,7 @@ void process_image(const char *const commands_line, const bool is_apply) {
         dest_is_alpha = (img.spectrum()==2 || img.spectrum()>=4);
       if (dest_is_alpha && !source_is_alpha) { gimp_layer_add_alpha(layers[p]); ++layer_dimensions(p,3); }
       if (img.width()!=layer_dimensions(p,0) ||
-          img.height()!=layer_dimensions(p,1) ||
-          img.spectrum()>layer_dimensions(p,3)) is_compatible_dimensions = false;
+          img.height()!=layer_dimensions(p,1)) is_compatible_dimensions = false;
     }
 
     // Transfer the output layers back into GIMP.
@@ -3030,9 +3051,9 @@ void process_image(const char *const commands_line, const bool is_apply) {
 
     // Update values of parameters if invoked command requests it (using status value).
     const unsigned int l_status = spt.status._width;
-    if (l_status>3 && spt.status[0]==_lbrace && spt.status[l_status - 2]==_rbrace) {
+    if (l_status>3 && spt.status[0]==gmic_lbrace && spt.status[l_status - 2]==gmic_rbrace) {
       spt.status.crop(1,l_status - 3);
-      CImgList<char> return_values = spt.status.get_split(CImg<char>::vector(_rbrace,_lbrace),false,false);
+      CImgList<char> return_values = spt.status.get_split(CImg<char>::vector(gmic_rbrace,gmic_lbrace),false,false);
       if (return_values._width==get_filter_nbparams(filter))
         cimglist_for(return_values,l) {
           gmic::strreplace_fw(return_values[l].resize(1,return_values[l].height() + 1,1,1,0));
@@ -3062,8 +3083,8 @@ void process_preview() {
   if (!gimp_image_is_valid(image_id)) return;
   const unsigned int filter = get_current_filter();
   if (!filter) return;
-  const char *const commands_line = get_commands_line(true);
-  if (!commands_line || std::strstr(commands_line," -_none_")) return;
+  const CImg<char> command_line = get_command_line(true);
+  if (!command_line || std::strstr(command_line," -_none_")) return;
 
   bool update_parameters = false;
   int wp, hp, sp, xp, yp;
@@ -3084,7 +3105,7 @@ void process_preview() {
     st_process_thread spt;
     spt.is_preview = true;
     spt.is_thread = false;
-    spt.commands_line = commands_line;
+    spt.command_line = command_line;
     spt.verbosity_mode = get_verbosity_mode();
     spt.progress = -1;
     spt.set_env();
@@ -3166,6 +3187,11 @@ void process_preview() {
       } else {
 
         // Multiple input layers: compute a 'hand-made' set of thumbnails.
+        if (preview_image_id) {
+          wp = gimp_image_width(preview_image_id);
+          hp = gimp_image_height(preview_image_id);
+        }
+
         CImgList<unsigned char> images_uchar;
         const CImg<int> layers = get_input_layers(images_uchar);
         if (images_uchar) {
@@ -3340,9 +3366,9 @@ void process_preview() {
 
     // Update values of parameters if invoked command requests it (using status value).
     const unsigned int l_status = spt.status._width;
-    if (l_status>3 && spt.status[0]==_lbrace && spt.status[l_status - 2]==_rbrace) {
+    if (l_status>3 && spt.status[0]==gmic_lbrace && spt.status[l_status - 2]==gmic_rbrace) {
       spt.status.crop(1,l_status - 3);
-      CImgList<char> return_values = spt.status.get_split(CImg<char>::vector(_rbrace,_lbrace),false,false);
+      CImgList<char> return_values = spt.status.get_split(CImg<char>::vector(gmic_rbrace,gmic_lbrace),false,false);
       if (return_values._width==get_filter_nbparams(filter))
         cimglist_for(return_values,l) {
           gmic::strreplace_fw(return_values[l].resize(1,return_values[l].height() + 1,1,1,0));
@@ -3488,9 +3514,11 @@ void create_parameters_gui(const bool reset_params) {
 
           const bool is_silent_argument = (*_argument_type=='_');
           char
-            *const argument_type = _argument_type.data() + (is_silent_argument?1:0),
-            *const argument_value = get_filter_parameter(filter,current_argument),
-            *const argument_fave = get_fave_parameter(filter,current_argument);
+            *const argument_type = _argument_type.data() + (is_silent_argument?1:0);
+
+          CImg<char>
+            argument_fave = get_fave_parameter(filter,current_argument),
+            argument_value = get_filter_parameter(filter,current_argument);
 
 #if defined(_WIN64)
           typedef unsigned long long pint;
@@ -3686,7 +3714,7 @@ void create_parameters_gui(const bool reset_params) {
               cimg::strpare(value,'\"',true);
               gtk_label_set_markup(GTK_LABEL(markup2ascii),value);
               cimg_snprintf(argument_arg,argument_arg.width(),"%s",gtk_label_get_text(GTK_LABEL(markup2ascii)));
-              for (char *p = argument_arg; *p; ++p) if (*p==_dquote) *p='\"';
+              for (char *p = argument_arg; *p; ++p) if (*p==gmic_dquote) *p='\"';
               gtk_text_buffer_set_text(buffer,argument_arg,-1);
 
               gtk_table_attach(GTK_TABLE(table),frame,0,3,(int)current_table_line,(int)current_table_line + 1,
@@ -3720,7 +3748,7 @@ void create_parameters_gui(const bool reset_params) {
               gtk_label_set_markup(GTK_LABEL(markup2ascii),value);
               cimg_snprintf(argument_arg,argument_arg.width(),"%s",gtk_label_get_text(GTK_LABEL(markup2ascii)));
 
-              for (char *p = value; *p; ++p) if (*p==_dquote) *p='\"';
+              for (char *p = value; *p; ++p) if (*p==gmic_dquote) *p='\"';
               gtk_entry_set_text(GTK_ENTRY(entry),argument_arg);
               gtk_table_attach(GTK_TABLE(table),entry,1,2,(int)current_table_line,(int)current_table_line + 1,
                                (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),(GtkAttachOptions)0,0,0);
@@ -3904,7 +3932,8 @@ void create_parameters_gui(const bool reset_params) {
   gtk_container_add(GTK_CONTAINER(right_frame),table);
 
   // Take care of the size of the parameter table.
-  GtkRequisition requisition; gtk_widget_size_request(table,&requisition);
+  GtkRequisition requisition;
+  gtk_widget_size_request(table,&requisition);
   gtk_widget_set_size_request(right_pane,cimg::max(450,requisition.width),-1);
   gtk_widget_show(dialog_window);
   set_preview_factor();
@@ -3931,17 +3960,17 @@ bool create_dialog_gui() {
   // Create main dialog window with buttons.
   CImg<char> dialog_title(64);
 #ifdef gmic_prerelease
-  cimg_snprintf(dialog_title,dialog_title.width(),"%s %d.%d.%d [pre-release #%s] - %s %u bits",
+  cimg_snprintf(dialog_title,dialog_title.width(),"%s %d.%d - %s %u bits - %d.%d.%dpre #%s",
                 t("G'MIC for GIMP"),
-                gmic_version/100,(gmic_version/10)%10,gmic_version%10,
-                gmic_prerelease, cimg::stros(),
-                sizeof(void*)==8?64:32);
+                GIMP_MAJOR_VERSION,GIMP_MINOR_VERSION,
+                cimg::stros(),sizeof(void*)==8?64:32,
+                gmic_version/100,(gmic_version/10)%10,gmic_version%10,gmic_prerelease);
 #else
-  cimg_snprintf(dialog_title,dialog_title.width(),"%s %d.%d.%d - %s %u bits",
+  cimg_snprintf(dialog_title,dialog_title.width(),"%s %d.%d - %s %u bits - %d.%d.%d",
                 t("G'MIC for GIMP"),
-                gmic_version/100,(gmic_version/10)%10,gmic_version%10,
-                cimg::stros(),
-                sizeof(void*)==8?64:32);
+                GIMP_MAJOR_VERSION,GIMP_MINOR_VERSION,
+                cimg::stros(),sizeof(void*)==8?64:32,
+                gmic_version/100,(gmic_version/10)%10,gmic_version%10);
 #endif
 
   dialog_window = gimp_dialog_new(dialog_title,"gmic",0,(GtkDialogFlags)0,0,0,NULL);
@@ -3975,7 +4004,7 @@ bool create_dialog_gui() {
   gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog_window)->vbox),dialog_hpaned);
 
   // Create the left pane.
-  left_pane = gtk_vbox_new(false,4);
+  GtkWidget *const left_pane = gtk_vbox_new(false,4);
   gtk_widget_show(left_pane);
   gtk_paned_pack1(GTK_PANED(dialog_hpaned),left_pane,true,false);
 
@@ -4085,6 +4114,11 @@ bool create_dialog_gui() {
   gtk_combo_box_set_active(GTK_COMBO_BOX(preview_size_combobox),get_preview_size(false));
   gtk_table_attach_defaults(GTK_TABLE(left_table),preview_size_combobox,0,1,4,5);
   g_signal_connect(preview_size_combobox,"changed",G_CALLBACK(on_dialog_preview_size_changed),0);
+
+  gui_preview_align = gtk_alignment_new(0.5,0.5,0,0);
+  gtk_widget_show(gui_preview_align);
+  gtk_box_pack_end(GTK_BOX(left_pane),gui_preview_align,true,true,0);
+
   gui_preview = 0;
   _gimp_preview_invalidate();
   g_signal_connect(dialog_window,"size-request",G_CALLBACK(on_dialog_resized),0);
@@ -4159,7 +4193,8 @@ bool create_dialog_gui() {
   GtkTreeViewColumn *const column = gtk_tree_view_column_new();
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view),column);
   flush_tree_view(tree_view);
-  GtkRequisition requisition; gtk_widget_size_request((GtkWidget*)tree_view,&requisition);
+  GtkRequisition requisition;
+  gtk_widget_size_request((GtkWidget*)tree_view,&requisition);
   gtk_widget_set_size_request((GtkWidget*)tree_view,cimg::max(210,requisition.width),-1);
   g_signal_connect(tree_view,"cursor-changed",G_CALLBACK(on_filter_selected),0);
   g_signal_connect(tree_view,"row-activated",G_CALLBACK(on_filter_doubleclicked),0);
@@ -4257,44 +4292,21 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
 
     case GIMP_RUN_INTERACTIVE : {
 
-      // Try updating filters automatically if necessary (every 24h).
+      // Try updating filters automatically if necessary (every week).
       CImg<char> str(std::strlen(gmic::path_rc()) + 32);
       cimg_snprintf(str,str.width(),"%sgimp_update.lock",
                     gmic::path_rc());
       bool try_network_update = true;
       gimp_get_data("gmic_lock_update",&try_network_update);
-
-#if cimg_OS==2
       if (try_network_update) {
-        HANDLE lockfile = CreateFileA(str,GENERIC_READ,0,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
-        if (lockfile!=INVALID_HANDLE_VALUE) {
-          FILETIME file_time, current_time;
-          SYSTEMTIME st;
-          GetSystemTime(&st);
-          if (GetFileTime(lockfile,0,0,&file_time) && SystemTimeToFileTime(&st,&current_time)) {
-            ULARGE_INTEGER _if, _is;
-            _if.LowPart = file_time.dwLowDateTime;
-            _if.HighPart = file_time.dwHighDateTime;
-            _is.LowPart = current_time.dwLowDateTime;
-            _is.HighPart = current_time.dwHighDateTime;
-            if ((_is.QuadPart - _if.QuadPart)/10000000<7*24*60*60) try_network_update = false;
-            CloseHandle(lockfile);
-          }
-        }
+        const int date = cimg::date(2), fdate = cimg::fdate(str,2);
+        if (fdate>=0 && cimg::mod(date - fdate,31)<7) try_network_update = false;
       }
-#else
-      struct stat st_buf;
-      if (!stat(str,&st_buf)) {
-        const unsigned long
-          file_time = (unsigned long)st_buf.st_mtime,
-          current_time = (unsigned long)std::time(0);
-        if (current_time - file_time<7*24*60*60) try_network_update = false;
-      }
-#endif
       if (try_network_update) {
         update_filters(true,true);
         std::FILE *lockfile = std::fopen(str,"wb");
         if (lockfile) std::fclose(lockfile);
+        try_network_update = false;
         gimp_set_data("gmic_lock_update",&try_network_update,sizeof(bool));
       }
 
@@ -4304,11 +4316,11 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
         if (p_spt) { st_process_thread &spt = *(st_process_thread*)p_spt; spt.is_abort = true; }
         cimg::mutex(25,0);
         process_image(0,false);
-        const char *const commands_line = get_commands_line(false);
-        if (commands_line) { // Remember command line for the next use of the filter.
+        const CImg<char> command_line = get_command_line(false);
+        if (command_line) { // Remember command line for the next use of the filter.
           CImg<char> s_tmp(48);
-          cimg_snprintf(s_tmp,s_tmp.width(),"gmic_commands_line%u",get_current_filter());
-          gimp_set_data(s_tmp,commands_line,std::strlen(commands_line) + 1);
+          cimg_snprintf(s_tmp,s_tmp.width(),"gmic_command_line%u",get_current_filter());
+          gimp_set_data(s_tmp,command_line,std::strlen(command_line) + 1);
         }
       }
     } break;
@@ -4317,14 +4329,14 @@ void gmic_run(const gchar *name, gint nparams, const GimpParam *param,
       const unsigned int filter = get_current_filter();
       if (filter) {
         CImg<char> s_tmp(48);
-        cimg_snprintf(s_tmp,s_tmp.width(),"gmic_commands_line%u",filter);
+        cimg_snprintf(s_tmp,s_tmp.width(),"gmic_command_line%u",filter);
         const unsigned int siz = 1U + gimp_get_data_size(s_tmp);
-        CImg<char> commands_line(2*siz); *commands_line = 0;
-        gimp_get_data(s_tmp,commands_line);
-        process_image(commands_line,false);
-        const char *const next_commands_line = get_commands_line(false);
+        CImg<char> command_line(2*siz); *command_line = 0;
+        gimp_get_data(s_tmp,command_line);
+        process_image(command_line,false);
+        const CImg<char> next_command_line = get_command_line(false);
         // Remember command line for the next use of the filter.
-        if (next_commands_line) gimp_set_data(s_tmp,next_commands_line,std::strlen(next_commands_line) + 1);
+        if (next_command_line) gimp_set_data(s_tmp,next_command_line,std::strlen(next_command_line) + 1);
       }
     } break;
 
