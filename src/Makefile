@@ -339,7 +339,7 @@ static:
 debug:
 	$(MAKE) "CFLAGS+=$(STD_CLI_CFLAGS) $(DEBUG_CFLAGS)" "LIBS+=$(STD_CLI_LIBS)" gmic
 
-zart: lib
+zart:
 ifeq ($(OS),Darwin)
 	cd ../zart && qmake zart.pro && $(MAKE) && $(STRIP) zart.app/Contents/MacOS/zart
 else
@@ -370,14 +370,14 @@ gmic: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CC) -o gmic gmic.cpp -Dgmic_main $(CFLAGS) $(LIBS)
 
 gmic_stdlib.h:
-	@echo "> Retrieve G'MIC Standard Library...\r"
+	@echo -n "> Retrieve G'MIC Standard Library..."
 	@$(WGET) gmic_stdlib.h http://gmic.eu/gmic_stdlib.h
 	@touch gmic_stdlib.h
-	@echo ">   ...done!"
+	@echo " done!"
 CImg.h:
-	@echo "> Retrieve CImg Library..."
+	@echo -n "> Retrieve CImg Library..."
 	@if [ -f ../../CImg/CImg.h ]; then if [ ! -f ./CImg.h ]; then ln -s ../../CImg/CImg.h .; fi; else $(WGET) CImg.h https://github.com/dtschump/CImg/blob/master/CImg.h?raw=true; touch CImg.h; fi
-	@echo ">   ...done!"
+	@echo " done!"
 
 # Generate gmic_stdlib.h file (requires 'gmic' to be installed first).
 stdlib:
@@ -460,8 +460,8 @@ install:
 ifneq ($(OS),Darwin)
 	mkdir -p $(DESTDIR)$(USR)/share
 	mkdir -p $(DESTDIR)$(USR)/$(LIB)
-	cp -f libgmic.so $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.7
-	ln -fs libgmic.so.1.6.7 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1
+	cp -f libgmic.so $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.8
+	ln -fs libgmic.so.1.6.8 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1
 	ln -fs libgmic.so.1 $(DESTDIR)$(USR)/$(LIB)/libgmic.so
 	cp -f ../zart/zart $(DESTDIR)$(USR)/$(BIN)/
 endif
@@ -477,7 +477,7 @@ uninstall:
 	rm -f $(DESTDIR)$(USR)/$(BIN)/gmic
 	rm -f $(DESTDIR)$(USR)/$(BIN)/zart
 	rm -f $(DESTDIR)$(USR)/$(INCLUDE)/gmic.h
-	rm -f $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.7
+	rm -f $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.8
 	rm -f $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1
 	rm -f $(DESTDIR)$(USR)/$(LIB)/libgmic.so
 	rm -rf $(DESTDIR)$(USR)/share/doc/gmic/
