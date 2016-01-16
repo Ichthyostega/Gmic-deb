@@ -18,6 +18,8 @@ else
   endif
 endif
 
+GMIC_CFLAGS="-fstack-protector-strong"
+GMICLDFLAGS="-Wl,-z,relro"
 
 %:
 	dh $@ --sourcedirectory=src
@@ -39,7 +41,8 @@ override_dh_compress:
 
 override_dh_auto_build:
 	export NOSTRIP=1 ;\
-	export MANDATORY_LDFLAGS="-Wl,--as-needed" ;\
+	    export MANDATORY_LDFLAGS="-Wl,--as-needed $(GMIC_LDFLAGS)" ;\
+	    export OPT_CFLAGS="$(OPT_CFLAGS)" ;\
 		export MANDATORY_CFLAGS="$(GMIC_CFLAGS) -I. -I/usr/include/libavcodec/ -I/usr/include/libavformat/ -I/usr/include/libswscale/" ;\
 		dh_auto_build --sourcedirectory=src
 
