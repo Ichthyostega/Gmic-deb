@@ -1,3 +1,10 @@
+gmic (1.6.8-2) unstable; urgency=medium
+
+  * [ab64ac5] Fix weird build/linker issues on powerpc.
+    Build with -O1 for now.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sat, 16 Jan 2016 15:10:49 +0100
+
 gmic (1.6.8-1) unstable; urgency=medium
 
   * [08d10e9] Merge tag 'upstream/1.6.8'
