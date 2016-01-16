@@ -4,16 +4,17 @@ BUILDD_MEM := $(shell awk '/^MemTotal:/ {print $$2}' /proc/meminfo)
 BUILDD_MEM_OK := $(strip $(shell test $(BUILDD_MEM) -gt 1800000 && echo yes))
 
 BUILDD_SLOW_ARCH := $(strip $(shell dpkg-architecture -qDEB_BUILD_ARCH_CPU | \
-  									grep -q -E '^(arm|mips|sh4|m68k).*' && echo yes))
+  									grep -q -E '^(arm|mips|sh4|m68k|powerpc).*' && echo yes))
 
+# powerpc moved to slow arch due to weird build failures
 
 ifneq (yes,$(BUILDD_MEM_OK))
-  GMIC_CFLAGS = -O0 -g
+  OPT_CFLAGS = -O0 -g
 else
   ifneq (yes,$(BUILDD_SLOW_ARCH))
-    GMIC_CFLAGS = -O3 -g
+    OPT_CFLAGS = -O3 -g
   else
-    GMIC_CFLAGS = -O1 -g -fno-tree-pre
+    OPT_CFLAGS = -O1 -g -fno-tree-pre
   endif
 endif
 

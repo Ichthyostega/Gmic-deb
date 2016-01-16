@@ -1,11 +1,20 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -119,7 +119,7 @@ DEBUG_CFLAGS = -ansi -pedantic -Dcimg_ve
+@@ -117,17 +117,6 @@ endif
+ # Flags to enable debugging.
+ DEBUG_CFLAGS = -ansi -pedantic -Dcimg_verbosity=3 -g -fsanitize=address # -fsanitize=thread # -fsanitize=undefined #
  
- # Flags to enable optimizations.
- ifeq ($(notdir $(CC)),g++)
+-# Flags to enable optimizations.
+-ifeq ($(notdir $(CC)),g++)
 -OPT_CFLAGS = -O2 -mtune=generic
-+OPT_CFLAGS = -O2 
- else
- ifeq ($(notdir $(CC)),icpc)
- OPT_CFLAGS = -fast
+-else
+-ifeq ($(notdir $(CC)),icpc)
+-OPT_CFLAGS = -fast
+-else
+-OPT_CFLAGS = -O2
+-endif
+-endif
+-
+ # Flags to enable parallel processing.
+ PARALLEL_CFLAGS = -Dgmic_is_parallel
+ ifneq ($(OSTYPE),msys)
