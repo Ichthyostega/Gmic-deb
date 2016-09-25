@@ -18,8 +18,8 @@ else
   endif
 endif
 
-GMIC_CFLAGS="-fstack-protector-strong"
-GMICLDFLAGS="-Wl,-z,relro"
+GMIC_CFLAGS= -fstack-protector-strong
+GMICLDFLAGS= -Wl,-z,relro
 
 %:
 	dh $@ --sourcedirectory=src
