@@ -1,13 +1,11 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -461,8 +461,9 @@ ifneq ($(OS),Darwin)
- 	mkdir -p $(DESTDIR)$(USR)/share
- 	mkdir -p $(DESTDIR)$(USR)/$(LIB)
- 	cp -f libgmic.so $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.8
-+	ln -fs libgmic.so.1.6.8 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6
- 	ln -fs libgmic.so.1.6.8 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1
--	ln -fs libgmic.so.1 $(DESTDIR)$(USR)/$(LIB)/libgmic.so
-+	ln -fs libgmic.so.1.6.8 $(DESTDIR)$(USR)/$(LIB)/libgmic.so
- 	cp -f ../zart/zart $(DESTDIR)$(USR)/$(BIN)/
- endif
- 	mkdir -p $(DESTDIR)$(USR)/share/man/
+@@ -619,7 +619,7 @@ ifneq ($(OS),Darwin)
+ 	  cp -f gmic_libc.h $(DESTDIR)$(USR)/$(INCLUDE)/; \
+ 	  cp -f libcgmic.so $(DESTDIR)$(USR)/$(LIB)/libcgmic.so.1.7.9; \
+           ln -fs libcgmic.so.1.7.9 $(DESTDIR)$(USR)/$(LIB)/libcgmic.so.1 ; \
+-          ln -fs libcgmic.so.1 $(DESTDIR)$(USR)/$(LIB)/libcgmic.so; \
++          ln -fs libcgmic.so.1.7.9 $(DESTDIR)$(USR)/$(LIB)/libcgmic.so; \
+         fi
+ 	@if [ -f ../zart/zart ]; then \
+ 	  cp -f ../zart/zart $(DESTDIR)$(USR)/$(BIN)/; \
