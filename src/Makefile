@@ -7,6 +7,7 @@
 #                 . the G'MIC command line tool (type 'make cli').
 #                 . the G'MIC plug-in for GIMP (type 'make gimp').
 #                 . the G'MIC interpreter, as a C++ library (type 'make lib').
+#                 . the G'MIC C library (type 'make libc' or 'make libcstatic').
 #                 . the ZArt software (type 'make zart').
 #                 . To compile all of them, just type 'make', or 'make all').
 #
@@ -45,20 +46,52 @@
 #  knowledge of the CeCILL license and that you accept its terms.
 #
 
-#----------------------------------
-# Set correct variables and paths.
-#----------------------------------
+#---------------------------
+# Set OS-specific variables.
+#---------------------------
+
+# Try to auto-detect target OS.
 OS := $(shell uname)
-CC = g++
+USR = /usr
+LIB = lib
+BIN = bin
+INCLUDE = include
+SO = .so
+PIC = -fPIC
+EXE =
+WGET = wget --no-check-certificate --quiet -O
+PLUGINDIR = `gimptool-2.0 --gimpplugindir`/plug-ins
+
 ifeq ($(OS),Linux)
 OS = Unix
 endif
+
 ifeq ($(OS),GNU/kFreeBSD)
 OS = Unix
 endif
+
 ifeq ($(OS),GNU)
 OS = Unix
 endif
+
+ifeq ($(OS),FreeBSD)
+OS = Unix
+USR = /usr/local
+endif
+
+ifeq ($(OS),DragonFly)
+OS = Unix
+USR = /usr/local
+endif
+
+ifeq ($(OS),NetBSD)
+OS = Unix
+endif
+
+ifneq (, $(findstring MINGW, $(OS)))
+OS = Windows
+endif
+
 ifeq ($(OS),Darwin)
 PLUGINDIR = ~/Library/Application\ Support/Gimp/plug-ins
 ifeq (,$(wildcard /opt/local))
@@ -66,40 +99,37 @@ USR = /usr/local
 else
 USR = /opt/local
 endif
-WGET = curl -L --silent -o
-else
-PLUGINDIR = `gimptool-2.0 --gimpplugindir`/plug-ins
-USR = /usr
-WGET = wget --quiet -O
+WGET = curl -k -L --silent -o
 endif
-ifeq ($(OSTYPE),msys)
+
+ifeq ($(OS),Windows)
 EXE = .exe
+SO = .dll
+PIC =
 endif
-LIB=lib
-BIN=bin
-INCLUDE=include
+
 ifdef NOSTRIP
-STRIP=echo skip strip
+STRIP = echo skip strip
 else
-STRIP=strip
+STRIP = strip
 endif
 
-#----------------------------------
-# Define flags to customize builds.
-#----------------------------------
+#-------------------------------------------------
+# Define custom flags for each different features.
+#-------------------------------------------------
 
-# Flags to describe a 'prerelease' version.
+# Flags set to describe a 'prerelease' version.
 NO_PRERELEASE_CFLAGS = -Dgmic_prerelease="\\\"`date +%m%d%y`\\\""
 
-# Flags that are mandatory to compile 'gmic'.
-MANDATORY_CFLAGS = -Dgmic_build -Dcimg_use_zlib -I$(USR)/$(INCLUDE) $(PRERELEASE_CFLAGS)
-MANDATORY_LIBS = -lz
+# Minimal set of flags that is mandatory to compile G'MIC.
+MANDATORY_CFLAGS = -Dgmic_build -Dcimg_use_zlib `pkg-config --cflags zlib || echo -I$(USR)/$(INCLUDE)` $(PRERELEASE_CFLAGS)
+MANDATORY_LIBS = `pkg-config --libs zlib || echo -lz`
 ifndef NO_SRIPDLIB
-MANDATORY_CFLAGS += -std=c++11
+MANDATORY_CFLAGS += -std=c++11 -pedantic
 endif
 MANDATORY_LIBS += -L$(USR)/$(LIB)
-ifeq ($(notdir $(CC)),g++)
-MANDATORY_CFLAGS += -Wall -W
+ifeq ($(notdir $(CXX)),g++)
+MANDATORY_CFLAGS += -Wall -Wextra -Wfatal-errors
 MANDATORY_LIBS += -lm
 endif
 ifeq ($(OS),Unix)
@@ -110,63 +140,82 @@ ifndef NO_STDLIB
 MANDATORY_CFLAGS += -stdlib=libc++
 endif
 endif
-ifeq ($(OSTYPE),msys)
-MANDATORY_LIBS = -Wl,--stack,16777216
+ifeq ($(OS),Windows)
+MANDATORY_LIBS += -Wl,--stack,16777216
 endif
 
-# Flags to enable debugging.
-DEBUG_CFLAGS = -ansi -pedantic -Dcimg_verbosity=3 -g -fsanitize=address # -fsanitize=thread # -fsanitize=undefined #
+# Flags to enable software debugging (slow down the code!).
+DEBUG_CFLAGS = -pedantic -Dcimg_verbosity=3 -Dcimg_strict_warnings -g -fsanitize=address # -fsanitize=thread # -fsanitize=undefined # Removed '-ansi' as it (silently) disables c++11.
 
 # Flags to enable optimizations.
-ifeq ($(notdir $(CC)),g++)
-OPT_CFLAGS = -O2 -mtune=generic
+ifeq ($(notdir $(CXX)),g++)
+OPT_CFLAGS = -O3 -mtune=generic # -Ofast -march=native
 else
-ifeq ($(notdir $(CC)),icpc)
+ifeq ($(notdir $(CXX)),icpc)
 OPT_CFLAGS = -fast
 else
-OPT_CFLAGS = -O2
+OPT_CFLAGS = -O3
 endif
 endif
 
 # Flags to enable parallel processing.
 PARALLEL_CFLAGS = -Dgmic_is_parallel
-ifneq ($(OSTYPE),msys)
+ifneq ($(OS),Windows)
 PARALLEL_LIBS = -lpthread
 endif
 
 # Flags to enable extra checking of image buffer pointers.
 ifneq ($(OS),Darwin)
-CHECKIMAGE_CFLAGS = -Dgmic_check_image
+CHECKIMAGE_CFLAGS = # -Dgmic_check_image
 endif
 
-# Flags to enable more cancellation points in CImg library methods.
+# Flags to enable cancellation points in CImg library methods.
 # (may slow down the code a little bit).
-CIMG_ABORT_CFLAGS = -Dcimg_use_abort
+ABORT_CFLAGS = -Dcimg_use_abort
 
-# Flags to enable parallelization using OpenMP.
+# Flags to enable parallelization of image processing algorithms, using OpenMP.
 OPENMP_CFLAGS = -fopenmp -Dcimg_use_openmp
 OPENMP_LIBS = -lgomp
 
 # Flags to enable image display, using X11
 # (keep /usr/ dirname here since X11 is located in /usr/ on Mac too).
 # This requires the presence of the X11 include and library files.
-X11_CFLAGS = -Dcimg_display=1 -Dcimg_appname=\\\"gmic\\\" -I/usr/X11R6/include #-Dcimg_use_xrandr
-X11_LIBS = -L/usr/X11R6/lib -lX11 -lpthread #-lXrandr
-
+ifneq ($(OS),Darwin)
+X11_CFLAGS = -Dcimg_display=1 -Dcimg_appname=\\\"gmic\\\" `pkg-config --cflags x11 || echo -I/usr/X11R6/include` #-Dcimg_use_xrandr
+X11_LIBS = `pkg-config --libs x11 || echo -L/usr/X11R6/lib -lX11` -lpthread #`pkg-config --libs xrandr || echo -lXrandr`
+else
+ifeq (,$(wildcard /usr/X11R6))
+X11_CFLAGS = -Dcimg_display=0 -Dcimg_appname=\\\"gmic\\\" #-Dcimg_use_xrandr
+X11_LIBS = -lpthread #`pkg-config --libs xrandr || echo -lXrandr`
+else
+X11_CFLAGS = -Dcimg_display=1 -Dcimg_appname=\\\"gmic\\\" `pkg-config --cflags x11 || echo -I/usr/X11R6/include` #-Dcimg_use_xrandr
+X11_LIBS = -L/usr/X11R6/lib -lX11 -lpthread #`pkg-config --libs xrandr || echo -lXrandr`
+endif
+endif
 # Flags to enable fast display, using XShm.
 # This requires the presence of the X11 extension include and library files.
-XSHM_CFLAGS = -Dcimg_use_xshm
-XSHM_LIBS = -L$(USR)/X11R6/lib -lXext
+XSHM_CFLAGS = -Dcimg_use_xshm `pkg-config --cflags xcb-shm`
+XSHM_LIBS = `pkg-config --libs xcb-shm || echo -L$(USR)/X11R6/lib -lXext`
 
 # Flags to enable image display, using GDI32.
-# This requires the presence of the GDI32 include and library files.
+# This requires the presence of the GDI32 include and library files (Windows only).
 GDI32_CFLAGS = -Dcimg_display=2 -Dcimg_appname=\\\"gmic\\\"
 GDI32_LIBS = -lgdi32
 
 # Flags to enable native support for PNG image files, using the PNG library.
 # This requires the presence of the libpng include and library files.
+ifneq ($(OS),Darwin)
+PNG_CFLAGS = -Dcimg_use_png `pkg-config --cflags libpng`
+PNG_LIBS = `pkg-config --libs libpng || echo -lpng -lz`
+else
+ifeq (,$(wildcard /tmp/skl))
+PNG_CFLAGS = -Dcimg_use_png `pkg-config --cflags libpng`
+PNG_LIBS = `pkg-config --libs libpng || echo -lpng -lz`
+else
 PNG_CFLAGS = -Dcimg_use_png
 PNG_LIBS = -lpng -lz
+endif
+endif
 
 # Flags to enable native support for JPEG image files, using the JPEG library.
 # This requires the presence of the libjpeg include and library files.
@@ -175,8 +224,8 @@ JPEG_LIBS = -ljpeg
 
 # Flags to enable native support for TIFF image files, using the TIFF library.
 # This requires the presence of the libtiff include and library files.
-TIFF_CFLAGS = -Dcimg_use_tiff
-TIFF_LIBS = -ltiff
+TIFF_CFLAGS = -Dcimg_use_tiff `pkg-config --cflags libtiff-4`
+TIFF_LIBS = `pkg-config --libs libtiff-4 || echo -ltiff`
 
 # Flags to enable native support for MINC2 image files, using the MINC2 library.
 # ( http://en.wikibooks.org/wiki/MINC/Reference/MINC2.0_Users_Guide )
@@ -185,35 +234,30 @@ MINC2_LIBS = -lminc_io -lvolume_io2 -lminc2 -lnetcdf -lhdf5 -lz -L${HOME}/local/
 
 # Flags to enable native support for downloading files from the network.
 # ( http://curl.haxx.se/libcurl/ )
-CURL_CFLAGS = -Dcimg_use_curl
-CURL_LIBS = -lcurl
+CURL_CFLAGS = -Dcimg_use_curl `pkg-config --cflags libcurl`
+CURL_LIBS = `pkg-config --libs libcurl || echo -lcurl`
 
 # Flags to enable native support of webcams and video streaming, using the OpenCV library.
 # This requires the presence of the OpenCV include and library files.
-OPENCV_CFLAGS = -Dcimg_use_opencv  `pkg-config opencv --cflags` -I/usr/include/opencv
-OPENCV_LIBS = `pkg-config opencv --libs` -lopencv_core -lopencv_highgui
+OPENCV_CFLAGS = -Dcimg_use_opencv  `pkg-config opencv --cflags || echo -I/usr/include/opencv` -I/usr/include/opencv
+OPENCV_LIBS = `pkg-config opencv --libs || echo -lopencv_core -lopencv_highgui`
 
 # Flags to enable native support of most classical image file formats, using the GraphicsMagick++ library.
 # This requires the presence of the GraphicsMagick++ include and library files.
-MAGICK_CFLAGS = -Dcimg_use_magick -I$(USR)/$(INCLUDE)/GraphicsMagick
-ifeq ($(OS),Darwin)
-MAGICK_LIBS = -L$(USR)/$(LIB) -lGraphicsMagick++ -lGraphicsMagick -llcms -ltiff -lfreetype -ljpeg -lpng -lbz2 -lxml2 -lz -lm -lltdl
-else
-MAGICK_LIBS = -lGraphicsMagick++
-endif
+MAGICK_CFLAGS = -Dcimg_use_magick `pkg-config --cflags GraphicsMagick++ || echo -I$(USR)/$(INCLUDE)/GraphicsMagick`
+MAGICK_LIBS = `pkg-config --libs GraphicsMagick++ || echo -lGraphicsMagick++`
 
 # Flags to enable native support of EXR file format, using the OpenEXR library/
 # This requires the presence of the OpenEXR include and library files.
-EXR_CFLAGS = -Dcimg_use_openexr -I$(USR)/$(INCLUDE)/OpenEXR
-EXR_LIBS = -lIlmImf -lHalf
+OPENEXR_CFLAGS = -Dcimg_use_openexr -I$(USR)/$(INCLUDE)/OpenEXR
+OPENEXR_LIBS = -lIlmImf -lHalf
 
 # Flags to enable the use of the FFTW3 library.
 # This requires the presence of the FFTW3 include and library files.
-FFTW_CFLAGS = -Dcimg_use_fftw3
-ifeq ($(OSTYPE),msys)
-FFTW_LIBS = -lfftw3
-else
-FFTW_LIBS = -lfftw3 -lfftw3_threads
+FFTW_CFLAGS = -Dcimg_use_fftw3 `pkg-config --cflags fftw3`
+FFTW_LIBS = `pkg-config --libs fftw3 || echo -lfftw3`
+ifneq ($(OS),Windows)
+FFTW_LIBS += -lfftw3_threads
 endif
 
 # Flags to enable the use of the BOARD library.
@@ -227,89 +271,129 @@ BOARD_LIBS = -lboard
 
 # CLI interface: Standard build.
 #-------------------------------
-STD_CLI_CFLAGS = $(MANDATORY_CFLAGS) $(CIMG_ABORT_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(CURL_CFLAGS) $(FFTW_CFLAGS)
-STD_CLI_LIBS = $(MANDATORY_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS) $(CURL_LIBS) $(FFTW_LIBS)
+GMIC_CLI_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
+GMIC_CLI_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
 ifeq ($(OS),Unix) # Unix.
-STD_CLI_CFLAGS += $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) $(X11_CFLAGS) $(EXR_CFLAGS) $(OPENCV_CFLAGS) # $(XSHM_CFLAGS) $(MAGICK_CFLAGS)
-STD_CLI_LIBS += $(PARALLEL_LIBS) $(OPENMP_LIBS) $(X11_LIBS) $(EXR_LIBS) $(OPENCV_LIBS) # $(XSHM_LIBS) # $(MAGICK_LIBS)
+GMIC_CLI_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS) $(OPENEXR_CFLAGS) $(OPENCV_CFLAGS) # $(XSHM_CFLAGS) $(MAGICK_CFLAGS)
+GMIC_CLI_LIBS += $(OPENMP_LIBS) $(X11_LIBS) $(OPENEXR_LIBS) $(OPENCV_LIBS) # $(XSHM_LIBS) # $(MAGICK_LIBS)
 else
 ifeq ($(OS),Darwin) # MacOSX.
-STD_CLI_CFLAGS += $(PARALLEL_CFLAGS) $(X11_CFLAGS) $(EXR_CFLAGS)
-STD_CLI_LIBS += $(PARALLEL_LIBS) $(X11_LIBS) $(EXR_LIBS) $(OPT_LIBS)
+GMIC_CLI_CFLAGS += $(X11_CFLAGS) $(OPENEXR_CFLAGS)
+GMIC_CLI_LIBS += $(X11_LIBS) $(OPENEXR_LIBS) $(OPT_LIBS)
 else # Windows.
-STD_CLI_CFLAGS += $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) $(GDI32_CFLAGS) $(OPENCV_CFLAGS)
-STD_CLI_LIBS += $(PARALLEL_LIBS) $(OPENMP_LIBS) $(GDI32_LIBS) $(OPENCV_LIBS)
+GMIC_CLI_CFLAGS += $(OPENMP_CFLAGS) $(GDI32_CFLAGS) $(OPENCV_CFLAGS)
+GMIC_CLI_LIBS += $(OPENMP_LIBS) $(GDI32_LIBS) $(OPENCV_LIBS)
 endif
 endif
 
 # CLI interface: Static build.
 #-----------------------------
-STATIC_CLI_PATH = $(USR)/${LIB}/x86_64-linux-gnu
-STATIC_CLI_EXTRA =
-STATIC_CLI_CFLAGS = $(MANDATORY_CFLAGS) $(CIMG_ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0
-STATIC_CLI_LIBS = $(PARALLEL_LIBS) \
-	          $(STATIC_CLI_PATH)/libpng.a \
-	          $(STATIC_CLI_PATH)/libjpeg.a \
-                  $(STATIC_CLI_PATH)/libz.a \
-                  $(STATIC_CLI_PATH)/libfftw3.a $(STATIC_CLI_PATH)/libfftw3_threads.a \
-	          $(STATIC_CLI_EXTRA)
+GMIC_STATIC_CLI_PATH = $(USR)/${LIB}/x86_64-linux-gnu
+GMIC_STATIC_CLI_EXTRA =
+GMIC_STATIC_CLI_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) -Dcimg_display=0
+GMIC_STATIC_CLI_LIBS = $(PARALLEL_LIBS) \
+	               $(GMIC_STATIC_CLI_PATH)/libpng.a \
+	               $(GMIC_STATIC_CLI_PATH)/libjpeg.a \
+                       $(GMIC_STATIC_CLI_PATH)/libz.a \
+                       $(GMIC_STATIC_CLI_PATH)/libfftw3.a $(GMIC_STATIC_CLI_PATH)/libfftw3_threads.a \
+	               $(GMIC_STATIC_CLI_EXTRA)
 
-# GIMP interface: Standard build.
-#--------------------------------
-STD_GIMP_CFLAGS = $(MANDATORY_CFLAGS) $(CIMG_ABORT_CFLAGS) $(PNG_CFLAGS) $(CURL_CFLAGS) $(FFTW_CFLAGS) -Dcimg_use_rng
-STD_GIMP_LIBS = $(MANDATORY_LIBS) $(PNG_LIBS) $(CURL_LIBS) $(FFTW_LIBS)
+# GIMP plug-in interface: Standard build.
+#----------------------------------------
+GMIC_GIMP_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) -Dcimg_use_rng
+GMIC_GIMP_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS)
 ifeq ($(OS),Unix) # Unix.
-STD_GIMP_CFLAGS += $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) $(X11_CFLAGS)
-STD_GIMP_LIBS += $(PARALLEL_LIBS) $(OPENMP_LIBS) $(X11_LIBS)
+GMIC_GIMP_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS)
+GMIC_GIMP_LIBS += $(OPENMP_LIBS) $(X11_LIBS)
 else
 ifeq ($(OS),Darwin) # MaxOSX.
-STD_GIMP_CFLAGS += $(PARALLEL_CFLAGS) $(X11_CFLAGS)
-STD_GIMP_LIBS += $(PARALLEL_LIBS) $(X11_LIBS)
+GMIC_GIMP_CFLAGS += $(X11_CFLAGS)
+GMIC_GIMP_LIBS += $(X11_LIBS)
 else # Windows.
-STD_GIMP_CFLAGS += $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) $(GDI32_CFLAGS)
-STD_GIMP_LIBS += -mwindows $(PARALLEL_LIBS) $(OPENMP_LIBS) $(GDI32_LIBS) -lpthread -DPSAPI_VERSION=1 -lpsapi
+GMIC_GIMP_CFLAGS += $(OPENMP_CFLAGS) $(GDI32_CFLAGS)
+GMIC_GIMP_LIBS += -mwindows $(OPENMP_LIBS) $(GDI32_LIBS) -lpthread -DPSAPI_VERSION=1 -lpsapi
 endif
 endif
 
 # Libgmic interface: Standard build.
 #-----------------------------------
-STD_LIB_CFLAGS = $(MANDATORY_CFLAGS) $(CIMG_ABORT_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(CURL_CFLAGS) $(FFTW_CFLAGS)
-STD_LIB_LIBS = $(MANDATORY_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS) $(CURL_LIBS) $(FFTW_LIBS)
+GMIC_LIB_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
+GMIC_LIB_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
 ifeq ($(OS),Unix) # Unix.
-STD_LIB_CFLAGS += $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) $(X11_CFLAGS)
-STD_LIB_LIBS += $(PARALLEL_LIBS) $(OPENMP_LIBS) $(X11_LIBS)
+GMIC_LIB_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS)
+GMIC_LIB_LIBS += $(OPENMP_LIBS) $(X11_LIBS)
 else
 ifeq ($(OS),Darwin) # MacOSX.
-STD_LIB_CFLAGS += $(PARALLEL_CFLAGS) $(X11_CFLAGS)
-STD_LIB_LIBS += $(PARALLEL_LIBS) $(X11_LIBS)
+GMIC_LIB_CFLAGS += $(X11_CFLAGS)
+GMIC_LIB_LIBS += $(X11_LIBS) $(OPT_LIBS)
 else # Windows.
-STD_LIB_CFLAGS += $(PARALLEL_CFLAGS) $(OPENMP_CFLAGS) $(GDI32_CFLAGS)
-STD_LIB_LIBS += $(PARALLEL_LIBS) $(OPENMP_LIBS) $(GDI32_LIBS)
+GMIC_LIB_CFLAGS += $(OPENMP_CFLAGS) $(GDI32_CFLAGS)
+GMIC_LIB_LIBS += $(OPENMP_LIBS) $(GDI32_LIBS)
+endif
+endif
+
+# LibCgmic interface: Standard build.
+#------------------------------------
+GMIC_LIBC_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
+GMIC_LIBC_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
+ifeq ($(OS),Unix) # Unix.
+GMIC_LIBC_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS)
+GMIC_LIBC_LIBS += $(OPENMP_LIBS) $(X11_LIBS)
+else
+ifeq ($(OS),Darwin) # MacOSX.
+GMIC_LIBC_CFLAGS += $(X11_CFLAGS)
+GMIC_LIBC_LIBS += $(X11_LIBS) $(OPT_LIBS)
+else # Windows.
+GMIC_LIBC_CFLAGS += $(OPENMP_CFLAGS) $(GDI32_CFLAGS)
+GMIC_LIBC_LIBS += $(OPENMP_LIBS) $(GDI32_LIBS)
+endif
+endif
+
+# LibCgmic interface: Static build.
+#---------------------------------
+GMIC_LIBC_STATIC_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) # $(CURL_CFLAGS) $(TIFF_CFLAGS)
+ifeq ($(OS),Window)
+GMIC_LIBC_STATIC_LIBS = -Bstatic -lpthread
+endif
+GMIC_LIBC_STATIC_LIBS += $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(FFTW_LIBS) $(PNG_LIBS) $(JPEG_LIBS) # $(CURL_LIBS) $(TIFF_LIBS)
+ifeq ($(OS),Unix) # Unix.
+GMIC_LIBC_STATIC_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS)
+GMIC_LIBC_STATIC_LIBS += $(OPENMP_LIBS) $(X11_LIBS)
+else
+ifeq ($(OS),Darwin) # MacOSX.
+GMIC_LIBC_STATIC_CFLAGS += $(X11_CFLAGS)
+GMIC_LIBC_STATIC_LIBS += $(X11_LIBS) $(OPT_LIBS)
+else # Windows.
+GMIC_LIBC_STATIC_CFLAGS += $(OPENMP_CFLAGS) $(GDI32_CFLAGS)
+GMIC_LIBC_STATIC_LIBS += $(OPENMP_LIBS) $(GDI32_LIBS)
 endif
 endif
 
 # G'MIC Online interface: Standard build.
 #----------------------------------------
-STD_GMICOL_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) -Dcimg_display=0
-STD_GMICOL_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(ZLIB_LIBS) /usr/lib/x86_64-linux-gnu/libfftw3.a /usr/lib/x86_64-linux-gnu/libfftw3_threads.a
+GMICOL_LIB_PATH = /usr/lib/x86_64-linux-gnu/
+GMICOL_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) -Dcimg_display=0
+GMICOL_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(ZLIB_LIBS) $(GMICOL_LIB_PATH)/libfftw3.a $(GMICOL_LIB_PATH)/libfftw3_threads.a
 
 #--------------------------
 # Define Makefile entries.
 #--------------------------
 
 # Main default entries.
+print-%: ; @echo $*=$($*)
+
 all: CImg.h gmic_stdlib.h
 ifeq ($(OS),Unix)
 	@echo "**"
 	@echo "** Start building G'MIC with default Unix configuration."
 	@echo "**"
-	$(MAKE) cli gimp lib zart
+	$(MAKE) cli gimp lib
 else
 ifeq ($(OS),Darwin)
 	@echo "**"
 	@echo "** Start building G'MIC with default MacOSX configuration."
 	@echo "**"
-	$(MAKE) cli gimp lib zart
+	$(MAKE) cli gimp lib
 else
 	@echo "**"
 	@echo "** Start building G'MIC with default Windows configuration."
@@ -319,27 +403,45 @@ endif
 endif
 
 cli:
-	$(MAKE) "CFLAGS+=$(STD_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(STD_CLI_LIBS)" gmic
+	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_CLI_LIBS)" gmic
 	$(STRIP) gmic$(EXE)
 
-gimp:
-	$(MAKE) "CFLAGS+=$(STD_GIMP_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(STD_GIMP_LIBS)" gmic_gimp
+cli_s:
+ifeq ($(OS),Darwin)
+	c++ -o gmic gmic.cpp -Dgmic_main -Dgmic_build -Dcimg_use_zlib -I/opt/local/include  -Dgmic_prerelease=\"011316\" -std=c++11 -stdlib=libc++ -Dcimg_use_abort -Dcimg_use_png -Dcimg_use_jpeg -Dcimg_use_tiff -I/opt/local/include  -Dcimg_use_curl -I/opt/local/include  -Dcimg_use_fftw3 -I/opt/local/include  -Dgmic_is_parallel -Dcimg_display=1 -Dcimg_appname=\"gmic\" -I/opt/local/include -O2 -mmacosx-version-min=10.7 -L/tmp/skl/Gimp.app/Contents/Resources/lib -lpng -lz -ljpeg  -ltiff -lcurl -lfftw3  -lfftw3_threads -lpthread -lHalf -L/usr/X11R6/lib -lX11 -lpthread
+	$(STRIP) gmic
+endif
 
-lib:
-	$(MAKE) "CFLAGS+=$(STD_LIB_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(STD_LIB_LIBS)" libgmic
+debug:
+	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) $(DEBUG_CFLAGS)" "LIBS+=$(GMIC_CLI_LIBS)" gmic
+
+gimp:
+	$(MAKE) "CFLAGS+=$(GMIC_GIMP_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_GIMP_LIBS)" gmic_gimp
 
 gmicol:
-	$(MAKE) "CFLAGS+=$(STD_GMICOL_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(STD_GMICOL_LIBS)" gmic
+	$(MAKE) "CFLAGS+=$(GMICOL_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMICOL_LIBS)" gmic
+	$(STRIP) gmic$(EXE)
+
+lib:
+	$(MAKE) "CFLAGS+=$(GMIC_LIB_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_LIB_LIBS)" libgmic
+
+libc:
+	$(MAKE) "CFLAGS+=$(GMIC_LIBC_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_LIBC_LIBS)" libcgmic
+
+libcstatic:
+	rm -f libgmic.o
+	$(MAKE) "CFLAGS+=$(GMIC_LIBC_STATIC_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_LIBC_STATIC_LIBS)" libcgmicstatic
+
+native:
+	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) -Ofast -march=native" "LIBS+=$(GMIC_CLI_LIBS)" cli gimp
 	$(STRIP) gmic$(EXE)
 
 static:
-	$(MAKE) "CFLAGS+=$(STATIC_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(STATIC_CLI_LIBS)" gmic
+	$(MAKE) "CFLAGS+=$(GMIC_STATIC_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_STATIC_CLI_LIBS)" gmic
 	$(STRIP) gmic$(EXE)
 
-debug:
-	$(MAKE) "CFLAGS+=$(STD_CLI_CFLAGS) $(DEBUG_CFLAGS)" "LIBS+=$(STD_CLI_LIBS)" gmic
-
-zart:
+zart: CImg.h gmic_stdlib.h
+	@if [ ! -d ../zart ]; then ln -fs ../gmic-community/zart ..; fi
 ifeq ($(OS),Darwin)
 	cd ../zart && qmake zart.pro && $(MAKE) && $(STRIP) zart.app/Contents/MacOS/zart
 else
@@ -347,36 +449,95 @@ else
 endif
 
 # Internal rules to build compilation modules.
-libgmic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
-	$(CC) -o libgmic.o -c gmic.cpp -fPIC $(CFLAGS)
 
-libgmic: libgmic.o gmic_use_lib.cpp
+# libgmic
+libgmic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
+	$(CXX) -o libgmic.o -c gmic.cpp $(PIC) $(CFLAGS)
+
+libgmic: libgmic.o use_libgmic.cpp
 	ar rcs libgmic.a libgmic.o
 ifeq ($(OS),Darwin)
-	$(CC) -shared -o libgmic.so libgmic.o $(LIBS)
+	$(CXX) -shared -o libgmic.so libgmic.o $(LIBS)
 else
-	$(CC) -shared -Wl,-soname,libgmic.so.1 -o libgmic.so libgmic.o $(LIBS)
-	$(CC) -o gmic_use_lib gmic_use_lib.cpp -L. -lgmic
+	$(CXX) -shared -Wl,-soname,libgmic.so.1 -o libgmic.so libgmic.o $(LIBS)
+	$(CXX) -o use_libgmic use_libgmic.cpp -L. -lgmic $(LIBS)
 endif
 
+# libgmic
+libcgmic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
+	@if [ ! -f gmic_libc.cpp ]; then ln -fs ../../gmic-community/libcgmic/gmic_libc.cpp .; fi
+	@if [ ! -f gmic_libc.h ]; then ln -fs ../../gmic-community/libcgmic/gmic_libc.h .; fi
+	$(CXX) -o libcgmic.o -c gmic_libc.cpp $(PIC) $(CFLAGS)
+
+libcgmic: libgmic.o libcgmic.o
+	ar rcs libcgmic.a libcgmic.o
+ifeq ($(OS),Darwin)
+	$(CXX) -shared -o libcgmic.so libcgmic.o libgmic.o $(LIBS)
+else
+ifeq ($(OS),Windows)
+	$(CXX) -shared -Wl,-soname,libcgmic.so.1 -o libcgmic$(SO) libcgmic.o libgmic.o -Wl,--output-def,libcgmic.def,--out-implib,libcgmic.a $(LIBS)
+else
+	$(CXX) -shared -Wl,-soname,libcgmic.so.1 -o libcgmic$(SO) libcgmic.o libgmic.o $(LIBS)
+endif
+endif
+	@if [ ! -f use_libcgmic.c ]; then ln -fs ../../gmic-community/libcgmic/use_libcgmic.c .; fi
+	$(CC) -std=c99 -o use_libcgmic use_libcgmic.c -L. -lcgmic
+
+# libcgmicstatic
+libcgmicstatic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
+	@if [ ! -f gmic_libc.cpp ]; then ln -fs ../../gmic-community/libcgmic/gmic_libc.cpp .; fi
+	@if [ ! -f gmic_libc.h ]; then ln -fs ../../gmic-community/libcgmic/gmic_libc.h .; fi
+	$(CXX) -o libcgmicstatic.o -c gmic_libc.cpp $(PIC) $(CFLAGS)
+
+libcgmicstatic: libgmic.o libcgmicstatic.o
+	ar rcs libcgmicstatic.a libcgmicstatic.o
+ifeq ($(OS),Darwin)
+	$(CXX) -shared -static -o libcgmicstatic.so libcgmicstatic.o libgmic.o $(PIC) $(CFLAGS) $(LIBS)
+else
+ifeq ($(OS),Windows)
+	$(CXX) -shared -static -Wl,-soname,libcgmicstatic.so.1 -o libcgmicstatic$(SO) libcgmicstatic.o libgmic.o $(PIC) -Wl,--output-def,libcgmicstatic.def,--out-implib,libcgmicstatic.a $(CFLAGS) $(LIBS)
+else
+	$(CXX) -shared -Wl,-soname,libcgmicstatic.so.1 -o libcgmicstatic$(SO) libcgmicstatic.o libgmic.o $(PIC) $(CFLAGS) $(LIBS)
+endif
+endif
+	@if [ ! -f use_libcgmic.c ]; then ln -fs ../../gmic-community/libcgmic/use_libcgmic.c .; fi
+	$(CC) -std=c99 -o use_libcgmic_static use_libcgmic.c -L. -lcgmicstatic
+
+# gmic_gimp
 gmic_gimp.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
-	$(CC) -o gmic_gimp.o -c gmic.cpp -Dgmic_gimp $(CFLAGS)
+	$(CXX) -o gmic_gimp.o -c gmic.cpp -Dgmic_gimp $(CFLAGS)
 
 gmic_gimp: gmic_gimp.o gmic_gimp.cpp
-	$(CC) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o -Dgmic_gimp `gimptool-2.0$(EXE) --cflags` $(CFLAGS) `gimptool-2.0$(EXE) --libs` $(LIBS)
+ifeq ($(OS),Darwin)
+ifeq (,$(wildcard /tmp/skl))
+	$(CXX) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o -Dgmic_gimp `gimptool-2.0$(EXE) --cflags` `gimptool-2.0$(EXE) --libs` $(CFLAGS) $(LIBS)
+else
+	$(CXX) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o -Dgmic_gimp `gimptool-2.0$(EXE) --cflags` $(subst -L/opt/local,-L/tmp/skl/Gimp.app/Contents/Resources,$(shell gimptool-2.0$(EXE) --libs) $(CFLAGS) $(LIBS))
+endif
+else
+	$(CXX) -o gmic_gimp gmic_gimp.cpp gmic_gimp.o -Dgmic_gimp `gimptool-2.0$(EXE) --cflags` `gimptool-2.0$(EXE) --libs` $(CFLAGS) $(LIBS)
+endif
 	$(STRIP) gmic_gimp$(EXE)
 
+# gmic
 gmic: gmic.cpp gmic.h gmic_stdlib.h CImg.h
-	$(CC) -o gmic gmic.cpp -Dgmic_main $(CFLAGS) $(LIBS)
+	$(CXX) -o gmic gmic.cpp -Dgmic_main $(CFLAGS) $(LIBS)
 
+# header files
 gmic_stdlib.h:
 	@echo -n "> Retrieve G'MIC Standard Library..."
 	@$(WGET) gmic_stdlib.h http://gmic.eu/gmic_stdlib.h
 	@touch gmic_stdlib.h
 	@echo " done!"
+
 CImg.h:
 	@echo -n "> Retrieve CImg Library..."
-	@if [ -f ../../CImg/CImg.h ]; then if [ ! -f ./CImg.h ]; then ln -s ../../CImg/CImg.h .; fi; else $(WGET) CImg.h https://github.com/dtschump/CImg/blob/master/CImg.h?raw=true; touch CImg.h; fi
+	@if [ -f ../../CImg/CImg.h ]; then \
+          if [ ! -f ./CImg.h ]; then ln -s ../../CImg/CImg.h .; fi; \
+        else \
+          $(WGET) CImg.h https://github.com/dtschump/CImg/blob/master/CImg.h?raw=true; \
+          touch CImg.h; \
+        fi
 	@echo " done!"
 
 # Generate gmic_stdlib.h file (requires 'gmic' to be installed first).
@@ -427,10 +588,10 @@ stdlib:
 #\n\
 */\n" > gmic_stdlib.h
 	@echo "#ifndef gmic_gimp" >> gmic_stdlib.h
-	@\gmic gmic_stdlib.gmic raw:gmic_stdlib.gmic,char -compress_gmic 1 -a y -serialize char,1,0 -o -.h,uchar | sed 's/unsigned char/const unsigned char/' | sed 's/unnamed/gmic_stdlib/' >> gmic_stdlib.h
+	@\gmic gmic_stdlib.gmic raw:gmic_stdlib.gmic,char -compress_gmic_cli 1 -a y -serialize char,1,0 -o -.h,uchar | sed 's/unsigned char/const unsigned char/' | sed 's/unnamed/gmic_stdlib/' >> gmic_stdlib.h
 	@echo "#else" >> gmic_stdlib.h
-	@\gmic gmic_stdlib.gmic -update_server \$$_version,0 raw:$(HOME)/.config/gmic/gimp_update\$$_version.gmic,char 1 -a y -serialize char,1,0 -o -.h,uchar | sed 's/unsigned char/const unsigned char/' | sed 's/unnamed/gmic_stdlib/' >> gmic_stdlib.h
-	@\gmic -v - ../html/img/logoGMIC.ppm -permute cxyz -serialize uchar,1,0 -o -.h,uchar | sed 's/unsigned char/const unsigned char/' | sed 's/unnamed/gmic_logo/' >> gmic_stdlib.h
+	@\gmic gmic_stdlib.gmic raw:gmic_stdlib.gmic,char -compress_gmic_gimp 1 -a y -serialize char,1,0 -o -.h,uchar | sed 's/unsigned char/const unsigned char/' | sed 's/unnamed/gmic_stdlib/' >> gmic_stdlib.h
+	@\gmic -v - ../html/img/gimp_logos.png -serialize uchar,1,0 -o -.h,uchar | sed 's/unsigned char/const unsigned char/' | sed 's/unnamed/gmic_logo/' >> gmic_stdlib.h
 	@echo "const unsigned long size_data_gmic_logo = (unsigned long)sizeof(data_gmic_logo);" >> gmic_stdlib.h
 	@echo "#endif" >> gmic_stdlib.h
 	@echo "const unsigned long size_data_gmic_stdlib = (unsigned long)sizeof(data_gmic_stdlib);" >> gmic_stdlib.h
@@ -442,7 +603,7 @@ bashcompletion:
 	@mkdir -p ../resources
 	@\gmic -v - gmic_stdlib.gmic raw:gmic_stdlib.gmic,uchar -document_gmic bash 2> ../resources/gmic_bashcompletion.sh
 
-# Generate man page (requires 'gmic' to be installed first).
+# Generate man page (requires 'gmic' to be installed).
 man:
 	@mkdir -p ../man
 	@\gmic -v - gmic_stdlib.gmic raw:gmic_stdlib.gmic,uchar -__help man 2> ../man/gmic.1
@@ -452,18 +613,28 @@ man:
 install:
 	mkdir -p $(DESTDIR)$(PLUGINDIR)/
 	cp -f gmic_gimp $(DESTDIR)$(PLUGINDIR)/
+	cp -f ../resources/gmic_film_cluts.gmz $(DESTDIR)$(PLUGINDIR)/
 	mkdir -p $(DESTDIR)$(USR)/$(BIN)/
 	cp -f gmic $(DESTDIR)$(USR)/$(BIN)/
 	mkdir -p $(DESTDIR)$(USR)/$(INCLUDE)/
 	cp -f gmic.h $(DESTDIR)$(USR)/$(INCLUDE)/
+	@if [ -f gmic_libc.h ]; then cp -f gmic_libc.h $(DESTDIR)$(USR)/$(INCLUDE)/; fi
 
 ifneq ($(OS),Darwin)
 	mkdir -p $(DESTDIR)$(USR)/share
 	mkdir -p $(DESTDIR)$(USR)/$(LIB)
-	cp -f libgmic.so $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.8
-	ln -fs libgmic.so.1.6.8 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1
+	cp -f libgmic.so $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.7.9
+	ln -fs libgmic.so.1.7.9 $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1
 	ln -fs libgmic.so.1 $(DESTDIR)$(USR)/$(LIB)/libgmic.so
-	cp -f ../zart/zart $(DESTDIR)$(USR)/$(BIN)/
+	@if [ -f libcgmic.so ]; then \
+	  cp -f gmic_libc.h $(DESTDIR)$(USR)/$(INCLUDE)/; \
+	  cp -f libcgmic.so $(DESTDIR)$(USR)/$(LIB)/libcgmic.so.1.7.9; \
+          ln -fs libcgmic.so.1.7.9 $(DESTDIR)$(USR)/$(LIB)/libcgmic.so.1 ; \
+          ln -fs libcgmic.so.1 $(DESTDIR)$(USR)/$(LIB)/libcgmic.so; \
+        fi
+	@if [ -f ../zart/zart ]; then \
+	  cp -f ../zart/zart $(DESTDIR)$(USR)/$(BIN)/; \
+        fi
 endif
 	mkdir -p $(DESTDIR)$(USR)/share/man/
 	mkdir -p $(DESTDIR)$(USR)/share/man/man1/
@@ -477,9 +648,12 @@ uninstall:
 	rm -f $(DESTDIR)$(USR)/$(BIN)/gmic
 	rm -f $(DESTDIR)$(USR)/$(BIN)/zart
 	rm -f $(DESTDIR)$(USR)/$(INCLUDE)/gmic.h
-	rm -f $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.6.8
+	rm -f $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1.7.9
 	rm -f $(DESTDIR)$(USR)/$(LIB)/libgmic.so.1
 	rm -f $(DESTDIR)$(USR)/$(LIB)/libgmic.so
+	rm -f $(DESTDIR)$(USR)/$(LIB)/libcgmic.so.1.7.9
+	rm -f $(DESTDIR)$(USR)/$(LIB)/libcgmic.so.1
+	rm -f $(DESTDIR)$(USR)/$(LIB)/libcgmic$(SO)
 	rm -rf $(DESTDIR)$(USR)/share/doc/gmic/
 	rm -f $(DESTDIR)$(USR)/share/man/man1/gmic.1.gz
 	rm -f $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz
@@ -487,6 +661,10 @@ uninstall:
 distclean: clean
 
 clean:
-	rm -rf gmic*.o gmic$(EXE) gmic_gimp$(EXE) gmic_use_lib$(EXE) libgmic* *~
+	rm -rf gmic$(EXE) gmic_gimp$(EXE) use_libgmic$(EXE) use_libcgmic$(EXE) use_libcgmic_static$(EXE) gmic*.o libgmic* libcgmic* *~
+	@if [ -h ../zart ]; then rm -f ../zart; fi
+	@if [ -h gmic_libc.h ]; then rm -f gmic_libc.h; fi
+	@if [ -h gmic_libc.cpp ]; then rm -f gmic_libc.cpp; fi
+	@if [ -h use_libcgmic.c ]; then rm -f use_libcgmic.c; fi
 
 # End of Makefile.
