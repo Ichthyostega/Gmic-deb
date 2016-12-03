@@ -1,4 +1,4 @@
-gmic (1.7.9-1) unstable; urgency=medium
+gmic (1.7.9+zart-1) unstable; urgency=medium
 
   * [38a82aa] Fix build options
   * [2ccfb41] Merge tag 'upstream/1.7.9'
@@ -6,8 +6,12 @@ gmic (1.7.9-1) unstable; urgency=medium
   * [dbfb447] Refreshing patches
   * [b2ffc73] Support opencv 3.1.
     Thanks to Nobuhiro Iwamatsu (Closes: #841246)
+  * [5d940c9] Updating changelog
+  * [513bdc7] Merge tag 'upstream/1.7.9+zart'
+    Upstream version 1.7.9+zart
+  * [4027a04] Add patch to fix gmic location in zart.pro
 
- -- Bernd Zeimetz <bzed@debian.org>  Fri, 02 Dec 2016 22:51:26 +0100
+ -- Bernd Zeimetz <bzed@debian.org>  Sat, 03 Dec 2016 17:50:28 +0100
 
 gmic (1.6.8-3) unstable; urgency=medium
 
