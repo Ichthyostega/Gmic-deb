@@ -1,2 +1,3 @@
 disable-optimization-in-upstream-makefile
 ldconfig-symlink-referencing-wrong-file
+zart-gmic-location
