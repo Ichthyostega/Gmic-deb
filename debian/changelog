@@ -1,3 +1,12 @@
+gmic (1.7.9+zart-2) unstable; urgency=medium
+
+  * [c754567] Build-depend on bash-completion.
+    Quick fix for FTBFS where /etc/bash_completion.d only exists on a few
+    buildds.
+    Thanks to Adrian Bunk (Closes: #848185)
+
+ -- Bernd Zeimetz <bzed@debian.org>  Thu, 15 Dec 2016 00:51:47 +0100
+
 gmic (1.7.9+zart-1) unstable; urgency=medium
 
   * [38a82aa] Fix build options
