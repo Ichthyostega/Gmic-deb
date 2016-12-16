@@ -1,10 +1,12 @@
 #!/usr/bin/make -f
 
 BUILDD_MEM := $(shell awk '/^MemTotal:/ {print $$2}' /proc/meminfo)
-BUILDD_MEM_OK := $(strip $(shell test $(BUILDD_MEM) -gt 1800000 && echo yes))
+BUILDD_MEM_OK := $(strip $(shell test $(BUILDD_MEM) -gt 2500000 && echo yes))
 
 BUILDD_SLOW_ARCH := $(strip $(shell dpkg-architecture -qDEB_BUILD_ARCH_CPU | \
   									grep -q -E '^(arm|mips|sh4|m68k|powerpc).*' && echo yes))
+BUILDD_MIPS_ARCH := $(strip $(shell dpkg-architecture -qDEB_BUILD_ARCH_CPU | \
+									grep -q 'mips' && echo yes))
 
 # powerpc moved to slow arch due to weird build failures
 
@@ -15,14 +17,17 @@ else
   ifneq (yes,$(BUILDD_SLOW_ARCH))
     OPT_CFLAGS = -O3
   else
-    OPT_CFLAGS = -O1 -fno-tree-pre
+    ifneq (yes,$(BUILDD_MIPS_ARCH))
+       OPT_CFLAGS = -O1 -fno-tree-pre
+	else
+       OPT_CFLAGS = -O0
+    endif
   endif
 endif
 
 export DEB_CFLAGS = $(shell dpkg-buildflags --get CFLAGS | sed 's,-O[0-9],,')
 export DEB_CXXFLAGS = $(shell dpkg-buildflags --get CXXFLAGS | sed 's,-O[0-9],,')
 
-GMIC_CFLAGS= -fstack-protector-strong
 GMICLDFLAGS= -Wl,-z,relro
 
 %:
