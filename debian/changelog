@@ -1,3 +1,9 @@
+gmic (1.7.9+zart-4) unstable; urgency=medium
+
+  * [3dc818a] rise minimal memory, use -O0 on mips.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Fri, 16 Dec 2016 21:00:17 +0100
+
 gmic (1.7.9+zart-3) unstable; urgency=medium
 
   * [86a3cfa] Ensure we disable optimization on slow arches
