@@ -1,3 +1,13 @@
+gmic (2.4.1-1~1.gbp303ef7) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @303ef79594070a10bfa6ecb47bcde52cd87e8386 **
+
+  * [303ef79] Update upstream source from tag 'upstream/2.4.1'
+    Update to upstream version '2.4.1'
+    with Debian dir a03d4170249136feef23de4800ae2d5ff63d87fe
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 04 Nov 2018 19:51:45 +0100
+
 gmic (1.7.9+zart-4) unstable; urgency=medium
 
   * [3dc818a] rise minimal memory, use -O0 on mips.
