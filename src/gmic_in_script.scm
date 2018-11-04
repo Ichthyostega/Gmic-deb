@@ -51,17 +51,17 @@
     (gimp-image-add-layer img copy-layer -1)
 
     ;; Render a 3D mapped cube from the active layer, using G'MIC.
-    (plug-in-gmic 1 img drawable 1
+    (plug-in-gmic-qt 1 img drawable 1 0
                   (string-append
-                   "-v - " ; To have a silent output. Remove it to display errors from the G'MIC interpreter on stderr.
-                   "-gimp_imageobject3d 1,{w},{h},0.5,"
+                   "v - " ; To have a silent output. Remove it to display errors from the G'MIC interpreter on stderr.
+                   "fx_imageobject3d 1,{w},{h},0.5,"
                    (number->string x) ","
                    (number->string y) ","
                    (number->string z) ",45,0,0,-100,0.5,0.7,4"
                    ))
 
     ;; Merge two layers together, using the G'MIC 'edges' mode (this layer mode does not exist by default in GIMP).
-    (plug-in-gmic 1 img drawable 2 "-v - -compose_edges 1")
+    (plug-in-gmic-qt 1 img drawable 2 0 "v - blend_edges 1")
 
     )
 
@@ -77,7 +77,7 @@
                     "Show how to call G'MIC from a GIMP script"
                     "David Tschumperlé"
                     "David Tschumperlé"
-                    "October 2009"
+                    "March 2017"
                     "*"
                     SF-IMAGE		"Image"		0
                     SF-DRAWABLE         "Drawable"      0

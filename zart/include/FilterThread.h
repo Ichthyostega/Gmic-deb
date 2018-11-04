@@ -49,9 +49,8 @@
 
 #include <QThread>
 #include "Common.h"
-#include "gmic.h"
-#include "CImg.h"
 #include "CriticalRef.h"
+#include "gmic.h"
 class ImageSource;
 class QMutex;
 class QImage;
@@ -60,19 +59,20 @@ class QSemaphore;
 class FilterThread : public QThread {
   Q_OBJECT
 public:
+  enum PreviewMode
+  {
+    Full,
+    TopHalf,
+    LeftHalf,
+    BottomHalf,
+    RightHalf,
+    DuplicateVertical,
+    DuplicateHorizontal,
+    Original
+  };
 
-  enum PreviewMode { Full, TopHalf, LeftHalf, BottomHalf, RightHalf, DuplicateVertical, DuplicateHorizontal, Original };
-
-  FilterThread(ImageSource & webcam,
-                const QString & command,
-                QImage * outputImageA,
-                QMutex * imageMutexA,
-                QImage * outputImageB,
-                QMutex * imageMutexB,
-                PreviewMode previewMode,
-                int frameSkip,
-                int fps,
-                QSemaphore * blockingSemaphore);
+  FilterThread(ImageSource & webcam, const QString & command, QImage * outputImageA, QMutex * imageMutexA, QImage * outputImageB, QMutex * imageMutexB, PreviewMode previewMode, int frameSkip, int fps,
+               QSemaphore * blockingSemaphore);
 
   virtual ~FilterThread();
 
@@ -87,6 +87,7 @@ public slots:
   void setFPS(int);
   void setPreviewMode(PreviewMode);
   void stop();
+  void setViewSize(const QSize &);
 
 signals:
 
@@ -94,12 +95,12 @@ signals:
   void endOfCapture();
 
 private:
-
   void setCommand(const QString & command);
 
   ImageSource & _imageSource;
   QString _command;
   CriticalRef<QString> _arguments;
+  CriticalRef<QSize> _viewSize;
   bool _commandUpdated;
   QImage * _outputImageA;
   QMutex * _imageMutexA;

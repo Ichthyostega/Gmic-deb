@@ -46,8 +46,10 @@
 #ifndef _IMAGEVIEW_H_
 #define _IMAGEVIEW_H_
 
-#include <QWidget>
 #include <QMutex>
+#include <QTime>
+#include <QWidget>
+#include "KeypointList.h"
 
 class QPaintEvent;
 
@@ -60,6 +62,9 @@ public:
   inline QMutex & imageMutex();
   void setImageSize(int width, int height);
   void setBackgroundColor(QColor);
+  void setKeypoints(const KeypointList & keypoints);
+  KeypointList keypoints() const;
+  QRect imagePosition();
 
 public slots:
   void zoomOriginal();
@@ -72,7 +77,7 @@ protected:
   void mouseReleaseEvent(QMouseEvent *);
   void mouseDoubleClickEvent(QMouseEvent *);
   void mouseMoveEvent(QMouseEvent *);
-  void resizeEvent (QResizeEvent *);
+  void resizeEvent(QResizeEvent *);
   void keyPressEvent(QKeyEvent *);
   void closeEvent(QCloseEvent *);
 
@@ -83,6 +88,8 @@ signals:
   void aboutToClose();
   void spaceBarPressed();
   void escapePressed();
+  void keypointPositionsChanged();
+  void resized(QSize);
 
 private:
   QMouseEvent mapMousePositionToImage(QMouseEvent * e);
@@ -92,16 +99,23 @@ private:
   double _scaleFactor;
   bool _zoomOriginal;
   QColor _backgroundColor;
+  KeypointList _keypoints;
+  int _movedKeypointIndex;
+  QTime _keypointTimestamp;
+  static int roundedDistance(const QPoint & p1, const QPoint & p2);
+  int keypointUnderMouse(const QPoint & p);
+  void paintKeypoints(QPainter & painter);
+  QPoint keypointToPointInWidget(const KeypointList::Keypoint & kp) const;
+  QPoint keypointToVisiblePointInWidget(const KeypointList::Keypoint & kp) const;
+  QPointF pointInWidgetToKeypointPosition(const QPoint & p) const;
 };
 
-QImage &
-ImageView::image()
+QImage & ImageView::image()
 {
   return _image;
 }
 
-QMutex &
-ImageView::imageMutex()
+QMutex & ImageView::imageMutex()
 {
   return _imageMutex;
 }

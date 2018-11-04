@@ -9,14 +9,22 @@
  #  Copyright   : David Tschumperle
  #                ( http://tschumperle.users.greyc.fr/ )
  #
- #  License     : CeCILL v2.0
- #                ( http://www.cecill.info/licences/Licence_CeCILL_V2-en.html )
+ #  Licenses    : This file is 'dual-licensed', you have to choose one
+ #                of the two licenses below to apply.
  #
- #  This software is governed by the CeCILL  license under French law and
- #  abiding by the rules of distribution of free software.  You can  use,
- #  modify and/ or redistribute the software under the terms of the CeCILL
- #  license as circulated by CEA, CNRS and INRIA at the following URL
- #  "http://www.cecill.info".
+ #                CeCILL-C
+ #                The CeCILL-C license is close to the GNU LGPL.
+ #                ( http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html )
+ #
+ #            or  CeCILL v2.1
+ #                The CeCILL license is compatible with the GNU GPL.
+ #                ( http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html )
+ #
+ #  This software is governed either by the CeCILL or the CeCILL-C license
+ #  under French law and abiding by the rules of distribution of free software.
+ #  You can  use, modify and or redistribute the software under the terms of
+ #  the CeCILL or CeCILL-C licenses as circulated by CEA, CNRS and INRIA
+ #  at the following URL: "http://www.cecill.info".
  #
  #  As a counterpart to the access to the source code and  rights to copy,
  #  modify and redistribute granted by the license, users are provided only
@@ -32,14 +40,13 @@
  #  professionals having in-depth computer knowledge. Users are therefore
  #  encouraged to load and test the software's suitability as regards their
  #  requirements in conditions enabling the security of their systems and/or
- #  data to be ensured and, more generally, to use and operate it in the
+ #  data to be ensured and,  more generally, to use and operate it in the
  #  same conditions as regards security.
  #
  #  The fact that you are presently reading this means that you have had
- #  knowledge of the CeCILL license and that you accept its terms.
+ #  knowledge of the CeCILL and CeCILL-C licenses and that you accept its terms.
  #
 */
-
 /*
     Note : To compile this example, using g++, use :
 
@@ -92,9 +99,9 @@ int main() {
 
     // Here you can call any G'MIC command you want !
     // (here, create a deformed average of the input images, and save it as a BMP file).
-    gmic("-+ -n 0,255 -flower 8 -sharpen 100 -o foo1.bmp",images,images_names);
+    gmic("add normalize 0,255 flower 8 sharpen 100 output foo1.bmp",images,images_names);
 
-  } catch (gmic_exception &e) { // Catch exception, if an error occured in the interpreter.
+  } catch (gmic_exception &e) { // Catch exception, if an error occurred in the interpreter.
     std::fprintf(stderr,"\n- Error encountered when calling G'MIC : '%s'\n",e.what());
     return 0;
   }
@@ -109,12 +116,12 @@ int main() {
 
     // Here, we use the already constructed 'gmic' instance. The same instance can be used
     // several times.
-    gmic_instance.run("-blur 5 -sharpen 1000 -n 0,255 -o foo2.bmp",images,images_names);
+    gmic_instance.run("blur 5 sharpen 1000 normalize 0,255 output foo2.bmp",images,images_names);
     std::fputc('\n',stderr);
-    gmic_instance.run("--resize 50%,50% -to_rgba[-1] -rotate[-1] 30 -drop_shadow[-1] 0,13 "
-                      "-blur_radial[0] 10% -blend alpha -o foo3.bmp",images,images_names);
+    gmic_instance.run("+resize 50%,50% to_rgba[-1] rotate[-1] 30 drop_shadow[-1] 0,13 "
+                      "blur_radial[0] 10% blend alpha output foo3.bmp",images,images_names);
 
-  } catch (gmic_exception &e) { // Catch exception, if an error occured in the interpreter.
+  } catch (gmic_exception &e) { // Catch exception, if an error occurred in the interpreter.
     std::fprintf(stderr,"\n- Error encountered when calling G'MIC : '%s'\n",e.what());
     return 0;
   }

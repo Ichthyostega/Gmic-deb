@@ -46,11 +46,12 @@
 #include <iostream>
 using namespace std;
 #include <QApplication>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QSplashScreen>
-#include "WebcamSource.h"
 #include "Common.h"
 #include "MainWindow.h"
+#include "WebcamSource.h"
 #include "gmic.h"
 
 #ifdef _IS_UNIX_
@@ -63,11 +64,11 @@ void onSigQuit(int)
 }
 #endif
 
-int main(int argc, char *argv[])
+int main(int argc, char * argv[])
 {
 #ifdef _IS_UNIX_
-  signal(SIGQUIT,onSigQuit);
-  signal(SIGINT,onSigQuit);
+  signal(SIGQUIT, onSigQuit);
+  signal(SIGINT, onSigQuit);
 #endif
   QApplication app(argc, argv);
   app.setWindowIcon(QIcon(":images/gmic_hat.png"));
@@ -81,13 +82,12 @@ int main(int argc, char *argv[])
   while (it != args.end()) {
     if (it->startsWith("-h") || it->startsWith("--help")) {
       cout << "Usage:" << endl
-           << "       "
-           << QFileInfo(argv[0]).baseName().toLatin1().constData()
-          << " [options]" << endl
-          << "  " << "Options: " << endl
-          << "      --clear-cams  : Clear webcam cache." << endl
-          << "      --help | -h   : print this help." << endl
-          << endl;
+           << "       " << QFileInfo(argv[0]).baseName().toLatin1().constData() << " [options]" << endl
+           << "  "
+           << "Options: " << endl
+           << "      --clear-cams  : Clear webcam cache." << endl
+           << "      --help | -h   : print this help." << endl
+           << endl;
       exit(EXIT_SUCCESS);
     }
     ++it;
@@ -98,12 +98,25 @@ int main(int argc, char *argv[])
   if (QApplication::arguments().contains("--clear-cams")) {
     WebcamSource::clearSavedSettings();
   }
-  WebcamSource::retrieveWebcamResolutions(WebcamSource::getWebcamList(),
-                                          &splashScreen);
-  if (! gmic::init_rc()) {
+  WebcamSource::retrieveWebcamResolutions(WebcamSource::getWebcamList(), &splashScreen);
+  if (!gmic::init_rc()) {
     cerr << "[ZArt] Warning: Could not create resources directory.\n";
   }
   MainWindow mainWindow;
+  if ((args.size() > 1) && QFileInfo(args.back()).isReadable()) {
+    QStringList imagesExtensions = QString("bmp gif jpg png pbm pgm ppm xbm xpm svg").split(" ");
+    for (const QString & ext : imagesExtensions) {
+      if (args.back().endsWith("." + ext)) {
+        mainWindow.setInputImage(args.back());
+      }
+    }
+    QStringList videoExtensions = QString("avi mpg mpeg").split(" ");
+    for (const QString & ext : imagesExtensions) {
+      if (args.back().endsWith("." + ext)) {
+        mainWindow.setInputVideo(args.back());
+      }
+    }
+  }
   mainWindow.show();
   splashScreen.finish(&mainWindow);
   return app.exec();

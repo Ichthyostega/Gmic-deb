@@ -46,18 +46,19 @@
 #ifndef _COMMANDPARAMSWIDGET_H_
 #define _COMMANDPARAMSWIDGET_H_
 
-#include <QWidget>
-#include <QVector>
 #include <QDomNode>
 #include <QPushButton>
 #include <QStringList>
+#include <QVector>
+#include <QWidget>
+#include "KeypointList.h"
+
 class AbstractParameter;
 class QLabel;
 
 class CommandParamsWidget : public QWidget {
   Q_OBJECT
 public:
-
   CommandParamsWidget(QWidget * parent = 0);
   void build(QDomNode presetNode);
   virtual ~CommandParamsWidget();
@@ -65,17 +66,23 @@ public:
   QStringList valueStringList() const;
   void setValues(const QStringList &);
   void saveValuesInDOM();
+  bool hasKeypoints() const;
+  KeypointList keypoints() const;
+  void setKeypoints(KeypointList list, bool notify);
+
 public slots:
   void updateValueString(bool notify = true);
   void reset();
 signals:
   void valueChanged();
+
 protected:
   void clear();
-  QVector<AbstractParameter*> _presetParameters;
+  QVector<AbstractParameter *> _presetParameters;
   QString _valueString;
   QPushButton * _pbReset;
   QLabel * _labelNoParams;
+  bool _hasKeypoints;
 };
 
 #endif // _COMMANDPARAMSWIDGET_H_

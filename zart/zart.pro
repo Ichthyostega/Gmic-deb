@@ -1,13 +1,47 @@
 TEMPLATE = app
-QT += xml network widgets
+
+QT       += core gui xml network
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+# OPTIONS
+
+!defined(GMIC_DYNAMIC_LINKING,var) { GMIC_DYNAMIC_LINKING = off }
+
+#
+#
+#
+
 CONFIG	+= qt
+
+greaterThan(QT_MAJOR_VERSION, 4): CONFIG += c++11
+!greaterThan(QT_MAJOR_VERSION, 4): QMAKE_CXXFLAGS += --std=c++11
+
 CONFIG	+= warn_on
 QT_CONFIG -= no-pkg-config
 CONFIG += link_pkgconfig
 PKGCONFIG += opencv fftw3 zlib
-LIBS += -lfftw3_threads
+# LIBS += -lfftw3_threads
 DEFINES += cimg_use_fftw3 cimg_use_zlib
-GMIC_PATH = ../../gmic/src/
+
+defined(GMIC_PATH, var) {
+  message("GMIC_PATH is set ("$$GMIC_PATH")")
+}
+!defined(GMIC_PATH, var):exists(../src/gmic.cpp) {
+  message(GMIC_PATH was not set: Found gmic sources in ../src)
+  GMIC_PATH = ../src
+}
+!defined(GMIC_PATH, var):exists(../gmic/src/gmic.cpp) {
+  message(GMIC_PATH was not set: Found gmic sources in ../gmic/src)
+  GMIC_PATH = ../gmic/src
+}
+!defined(GMIC_PATH, var):exists(./gmic/src/gmic.cpp) {
+  message(GMIC_PATH was not set: Found gmic sources in ./gmic/src)
+  GMIC_PATH = ./gmic/src
+}
+defined(GMIC_PATH, var):!exists( $$GMIC_PATH/gmic.cpp ) {
+ error("G'MIC repository was not found ("$$GMIC_PATH")")
+}
+message("G'MIC repository was found ("$$GMIC_PATH")")
 
 unix {
    VERSION = $$system(grep \"define.ZART_VERSION \" include/Common.h | sed -e \"s/.*VERSION //\")
@@ -18,10 +52,13 @@ isEmpty( VERSION ):{
    message( Warning: VERSION was not found in include/Common.h. Set to $$VERSION )
 }
 
-
 # enable OpenMP by default on with g++, except on OS X
 !macx:*g++* {
     CONFIG += openmp
+}
+
+!win32 {
+ LIBS += -lfftw3_threads
 }
 
 # use qmake CONFIG+=openmp ... to force using openmp
@@ -38,10 +75,19 @@ openmp {
 
 # compile our own version of gmic, with the same cimg_* flags as zart
 #LIBS += $$GMIC_PATH/libgmic.a
-SOURCES += $$GMIC_PATH/gmic.cpp
+
+equals(GMIC_DYNAMIC_LINKING, "on" ) {
+  message(Dynamic linking with libgmic)
+  LIBS += $$GMIC_PATH/libgmic.so
+}
+
+equals(GMIC_DYNAMIC_LINKING, "off" ) {
+   SOURCES += $$GMIC_PATH/gmic.cpp
+}
+
 DEFINES += gmic_build gmic_is_parallel cimg_use_abort
 
-INCLUDEPATH += $$PWD $$PWD/include $$PWD/$$GMIC_PATH/
+INCLUDEPATH += $$PWD $$PWD/include $$GMIC_PATH
 
 DEPENDPATH += $$PWD/include
 
@@ -77,6 +123,9 @@ HEADERS	+= $$GMIC_PATH/gmic.h \
     include/TextParameter.h \
     include/LinkParameter.h \
     include/ConstParameter.h \
+    include/PointParameter.h \
+    include/KeypointList.h\
+    include/OverrideCursor.h\
     include/OutputWindow.h
 
 SOURCES	+= \
@@ -107,7 +156,10 @@ SOURCES	+= \
     src/FolderParameter.cpp \
     src/TextParameter.cpp \
     src/LinkParameter.cpp \
+    src/PointParameter.cpp \
     src/ConstParameter.cpp \
+    src/KeypointList.cpp \
+    src/OverrideCursor.cpp \
     src/OutputWindow.cpp
 
 RESOURCES = zart.qrc
@@ -124,14 +176,13 @@ PRE_TARGETDEPS +=
 CONFIG(release, debug|release) {
     message(Release build)
     DEFINES += QT_NO_DEBUG_OUTPUT
-    QMAKE_CXXFLAGS += -ffast-math
 }
 
 CONFIG(debug, debug|release) {
     message(Debug build)
     DEFINES += _ZART_DEBUG_
-    QMAKE_CXXFLAGS_DEBUG += -fsanitize=address -Dcimg_verbosity=3
-    QMAKE_LFLAGS_DEBUG +=  -fsanitize=address
+#    QMAKE_CXXFLAGS_DEBUG += -fsanitize=address -Dcimg_verbosity=3
+#    QMAKE_LFLAGS_DEBUG +=  -fsanitize=address
 }
 
 UI_DIR = .ui
