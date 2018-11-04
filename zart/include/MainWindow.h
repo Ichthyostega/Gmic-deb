@@ -46,22 +46,20 @@
 #ifndef _MAINWINDOW_H_
 #define _MAINWINDOW_H_
 
-#include <QtXml>
-#include <QMainWindow>
-#include <QTimer>
-#include <QTime>
-#include <QLineEdit>
 #include <QDomNode>
-#include <QVector>
-#include "ui_MainWindow.h"
-#include "WebcamSource.h"
-#include "StillImageSource.h"
-#include "VideoFileSource.h"
-#include "FilterThread.h"
+#include <QLineEdit>
+#include <QMainWindow>
 #include <QMutex>
 #include <QSemaphore>
+#include <QTime>
+#include <QTimer>
 #include <QVector>
-
+#include <QtXml>
+#include "FilterThread.h"
+#include "StillImageSource.h"
+#include "VideoFileSource.h"
+#include "WebcamSource.h"
+#include "ui_MainWindow.h"
 
 class QScrollArea;
 class ImageView;
@@ -77,13 +75,24 @@ class OutputWindow;
 class MainWindow : public QMainWindow, public Ui::MainWindow {
   Q_OBJECT
 public:
-
   MainWindow(QWidget * parent = 0);
   ~MainWindow();
   QString getPreset(const QString & name);
 
-  enum Source { Webcam, StillImage, Video };
-  enum DisplayMode { InWindow, FullScreen };
+  enum Source
+  {
+    Webcam,
+    StillImage,
+    Video
+  };
+  enum DisplayMode
+  {
+    InWindow,
+    FullScreen
+  };
+
+  void setInputImage(QString filepath);
+  void setInputVideo(QString filepath);
 
 public slots:
 
@@ -96,6 +105,7 @@ public slots:
   void presetClicked(QTreeWidgetItem * item, int column);
 
   void imageViewMouseEvent(QMouseEvent *);
+  void imageViewResized(QSize);
   void snapshot();
   void about();
   void license();
@@ -134,14 +144,18 @@ public slots:
   void onRenameFave();
 
 protected:
-
   void closeEvent(QCloseEvent *);
 
-private:
+private slots:
+  void onImageViewKeypointsEvent();
+  void outputWindowImageViewResized(QSize size);
+  void onOutputWindowKeypointsEvent();
+  void onFullScreenKeypointsEvent();
+  void fullScreenImageViewResized(QSize size);
 
+private:
   void setPresets(const QDomElement &);
-  void addPresets(const QDomElement &,
-                  TreeWidgetPresetItem * parent);
+  void addPresets(const QDomElement &, TreeWidgetPresetItem * parent);
   void setCurrentPreset(QDomNode node);
   void showOneSourceImage();
   void updateCameraResolutionCombo();
@@ -174,6 +188,7 @@ private:
   bool _zeroFPS;
   int _presetsCount;
   QVector<int> _cameraDefaultResolutionsIndexes;
+  void updateKeypointsInViews();
 };
 
 #endif
