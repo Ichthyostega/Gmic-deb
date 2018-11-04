@@ -2,8 +2,11 @@
 
 override_dh_auto_configure:
 	dh_auto_configure -- -DCMAKE_BUILD_TYPE=Release
+	dh_auto_configure --sourcedirectory=zart
+
 
 %:
 	dh $@
+	dh $@ --sourcedirectory=zart
 
 # vim:ts=4 sw=2 noet
