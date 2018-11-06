@@ -1,4 +1,4 @@
 #!/usr/bin/dh-exec
-debian/tmp/usr/lib/libgmic.so usr/lib/${DEB_HOST_MULTIARCH}/
+debian/tmp/usr/lib/*/libgmic.so usr/lib/${DEB_HOST_MULTIARCH}/
 debian/tmp/usr/include/gmic.h /usr/include
 src/CImg.h /usr/include
