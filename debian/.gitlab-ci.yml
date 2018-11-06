@@ -4,8 +4,7 @@ pages:
   stage: deploy
   artifacts:
     paths:
-      - "*.deb"
-    expire_in: 2 day
+      - public
   script:
     - gitlab-ci-git-buildpackage
     - gitlab-ci-lintian
