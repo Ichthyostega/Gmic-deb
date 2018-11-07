@@ -1,12 +1,41 @@
-gmic (2.4.1-1~1.gbp303ef7) UNRELEASED; urgency=medium
-
-  ** SNAPSHOT build @303ef79594070a10bfa6ecb47bcde52cd87e8386 **
+gmic (2.4.1-1) unstable; urgency=medium
 
   * [303ef79] Update upstream source from tag 'upstream/2.4.1'
     Update to upstream version '2.4.1'
     with Debian dir a03d4170249136feef23de4800ae2d5ff63d87fe
+    - Uses https now, Closes: #907056
+    - URLs are stable now and don't use sourceforge
+      Closes: #798793
+    - New upload Closes: #898003
+  * [4b41660] Add cmake
+  * [496f75a] Use dh only - for cmake.
+  * [8b4b670] snapshot changelog
+  * [bd00bcb] Removing patches, not needed anymore.
+  * [e7c5ea3] Add libgraphicsmagick++1-dev as dependency
+  * [7fdf4c9] try more stuff
+  * [7a028ab] Use -DCMAKE_BUILD_TYPE=Release - None breaks build :(
+  * [82a02ba] Also build zart
+  * [223da88] Add more build stuff to debian/rules
+  * [377beb8] dh misses some features..
+  * [c876dd9] Update compat, remove .fr manpage
+  * [340bee2] zart needs qmake
+  * [e3f7490] Updating git urls
+  * [74cfea8] Add gitlab ci config
+  * [4f58671] cmake installs to multiarch directory
+    fix .install files.
+  * [3b24a37] Use *.deb as artifact.
+  * [d084b43] Revert "Use *.deb as artifact."
+    This reverts commit 3b24a37bdc0a96b17e3089f2a540d1292b0d74ac.
+    ... we use aptly...
+  * [e8d0bdc] Build with qt5 instead of qt4. (Closes: #874889)
+  * [8836ea2] Add qttools5-dev-tools as build-dep
+  * [b253c15] Add qttools5-dev as build-dep
+  * [0afba41] Add qt5-default as build-dep.
+  * [74907be] Use qtchooser.
+  * [f8f15ac] Bump debhelper compat
+  * [7e189e6] There are no autopkgtests.
 
- -- Bernd Zeimetz <bzed@debian.org>  Sun, 04 Nov 2018 19:51:45 +0100
+ -- Bernd Zeimetz <bzed@debian.org>  Wed, 07 Nov 2018 23:15:09 +0100
 
 gmic (1.7.9+zart-4) unstable; urgency=medium
 
