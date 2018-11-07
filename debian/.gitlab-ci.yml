@@ -8,5 +8,4 @@ pages:
   script:
     - gitlab-ci-git-buildpackage
     - gitlab-ci-lintian
-    - gitlab-ci-autopkgtest
     - gitlab-ci-aptly
