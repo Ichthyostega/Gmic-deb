@@ -25,7 +25,9 @@ override_dh_auto_install:
 
 clean:
 	dh $@
-	if [ -f zart/Makefile ]; then cd zart && make distclean; fi
+	# the shipped makefile is evil, it assumes to use qt5 for x86_64-linux-gnu
+	# ignore errors...
+	if [ -f zart/Makefile ]; then cd zart && make distclean || true; fi
 	rm -rf gmic-qt/build
 
 %:
