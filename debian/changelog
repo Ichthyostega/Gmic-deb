@@ -1,3 +1,11 @@
+gmic (2.4.1-2) unstable; urgency=medium
+
+  * [072ba29] Make d/rules clean work on !amd64.
+    The shipped makefile is evil, it assumes to use qt5 for x86_64-linux-gnu
+    So ignore errors...
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sat, 10 Nov 2018 00:16:43 +0100
+
 gmic (2.4.1-1) unstable; urgency=medium
 
   * [303ef79] Update upstream source from tag 'upstream/2.4.1'
