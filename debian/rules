@@ -7,11 +7,13 @@ GMIC_QT_FLAGS = -DCMAKE_BUILD_TYPE=Release -DGMIC_PATH=../src -DENABLE_DYNAMIC_L
 override_dh_auto_configure:
 	dh_auto_configure -Bbuild-gmic -- -DCMAKE_BUILD_TYPE=Release -DBUILD_LIB_STATIC=OFF -DENABLE_DYNAMIC_LINKING=ON
 	dh_auto_configure -Dgmic-qt -Bbuild-gmic-qt -- $(GMIC_QT_FLAGS)
+	dh_auto_configure -Dgmic-qt -Bbuild-gmic-krita -- $(GMIC_QT_FLAGS) -DGMIC_QT_HOST=krita
 	dh_auto_configure -Dzart -Bzart -- GMIC_PATH=../src GMIC_LIB_PATH=../build-gmic GMIC_DYNAMIC_LINKING=on
 
 override_dh_auto_build:
 	dh_auto_build -Bbuild-gmic
 	dh_auto_build -Dgmic-qt -Bbuild-gmic-qt
+	dh_auto_build -Dgmic-qt -Bbuild-gmic-krita
 	dh_auto_build -Dzart -Bzart
 
 override_dh_auto_install:
@@ -23,10 +25,12 @@ override_dh_auto_install:
 	mkdir -p $(CURDIR)/debian/tmp/usr/lib/gimp/2.0/plug-ins
 	cp resources/gmic_film_cluts.gmz $(CURDIR)/debian/tmp/usr/lib/gimp/2.0/plug-ins
 	cp build-gmic-qt/gmic_gimp_qt $(CURDIR)/debian/tmp/usr/lib/gimp/2.0/plug-ins/gmic_gimp
+	cp build-gmic-krita/gmic_krita_qt $(CURDIR)/debian/tmp/usr/bin
 
 override_dh_auto_clean:
 	dh_auto_clean -Bbuild-gmic
 	dh_auto_clean -Dgmic-qt -Bbuild-gmic-qt
+	dh_auto_clean -Dgmic-qt -Bbuild-gmic-krita
 	# the shipped makefile is evil, it assumes to use qt5 for x86_64-linux-gnu
 	# ignore errors...
 	-dh_auto_clean -Dzart -Bzart
