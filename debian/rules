@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
 export QT_SELECT=qt5
+export DEB_LDFLAGS_MAINT_APPEND := -Wl,--as-needed
 GMIC_QT_FLAGS = -DCMAKE_BUILD_TYPE=Release -DGMIC_PATH=../src -DENABLE_DYNAMIC_LINKING=ON -DGMIC_LIB_PATH=../build-gmic
 
 override_dh_auto_configure:
