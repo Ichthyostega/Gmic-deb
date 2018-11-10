@@ -86,7 +86,7 @@ Description: GREYC's Magic for Image Computing - shared library
 Package: libgmic-dev
 Architecture: any
 Section: libdevel
-Depends: ${shlibs:Depends}, ${misc:Depends}, libgmic1 (= ${binary:Version})
+Depends: ${misc:Depends}, libgmic1 (= ${binary:Version})
 Description: GREYC's Magic for Image Computing - development files
  G'MIC is an open and full-featured framework for image processing,
  providing several different user interfaces to
