@@ -26,7 +26,7 @@ Vcs-Browser: https://salsa.debian.org/debian/gmic
 
 Package: gmic
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libgmic1 (= ${binary:Version})
 Suggests: gimp-gmic, gmic-zart
 Multi-Arch: foreign
 Description: GREYC's Magic for Image Computing
@@ -39,7 +39,7 @@ Description: GREYC's Magic for Image Computing
 
 Package: gmic-zart
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libgmic1 (= ${binary:Version})
 Suggests: gmic
 Replaces: gmic (<< 1.5.1.6+dfsg-3~)
 Breaks: gmic (<< 1.5.1.6+dfsg-3~)
@@ -58,7 +58,7 @@ Description: GREYC's Magic for Image Computing - ZArt
 
 Package: gimp-gmic
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, gimp (>= 2.6)
+Depends: ${shlibs:Depends}, ${misc:Depends}, gimp (>= 2.6), libgmic1 (= ${binary:Version})
 Suggests: gmic
 Enhances: gimp
 Multi-Arch: foreign
