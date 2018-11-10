@@ -1,3 +1,4 @@
 usr/lib/*/libgmic.so
 usr/include/gmic.h
 src/CImg.h /usr/include
+usr/lib/cmake/gmic/
