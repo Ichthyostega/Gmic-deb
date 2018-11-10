@@ -4,14 +4,13 @@ export QT_SELECT=qt5
 
 override_dh_auto_configure:
 	dh_auto_configure -- -DCMAKE_BUILD_TYPE=Release
-	mkdir -p build-gmic-qt
-	cd build-gmic-qt && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_SYSCONFDIR=/etc -DCMAKE_INSTALL_LOCALSTATEDIR=/var -DCMAKE_EXPORT_NO_PACKAGE_REGISTRY=ON -DCMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY=ON "-GUnix Makefiles" -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu -DGMIC_PATH=../src ../gmic-qt
-	cd zart && qmake
+	dh_auto_configure -Dgmic-qt -Bbuild-gmic-qt -- -DCMAKE_BUILD_TYPE=Release -DGMIC_PATH=../src
+	dh_auto_configure -Dzart -Bzart
 
 override_dh_auto_build:
 	dh_auto_build
-	cd zart && make
-	cd build-gmic-qt && make
+	dh_auto_build -Dgmic-qt -Bbuild-gmic-qt
+	dh_auto_build -Dzart -Bzart
 
 override_dh_auto_install:
 	dh_auto_install
@@ -23,12 +22,12 @@ override_dh_auto_install:
 	cp resources/gmic_film_cluts.gmz $(CURDIR)/debian/tmp/usr/lib/gimp/2.0/plug-ins
 	cp build-gmic-qt/gmic_gimp_qt $(CURDIR)/debian/tmp/usr/lib/gimp/2.0/plug-ins/gmic_gimp
 
-clean:
-	dh $@
+override_dh_auto_clean:
+	dh_auto_clean
+	dh_auto_clean -Dgmic-qt -Bbuild-gmic-qt
 	# the shipped makefile is evil, it assumes to use qt5 for x86_64-linux-gnu
 	# ignore errors...
-	if [ -f zart/Makefile ]; then cd zart && make distclean || true; fi
-	rm -rf build-gmic-qt
+	-dh_auto_clean -Dzart -Bzart
 
 %:
 	dh $@
