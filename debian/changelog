@@ -1,3 +1,65 @@
+gmic (2.4.1-3) unstable; urgency=medium
+
+  [ Pino Toscano ]
+  * [684a080] Change builddir of gmic-qt to build-gmic-qt.
+    Change the build directory of gmic-qt from a subdirectory of the sources
+    to a top-level directory; this will help debhelper in cleaning the build
+    directory, as it can just wipe it.
+  * [b3bdb48] Use debhelper to build & clean everything.
+    Pass the proper combinations of source & build directories: this has few
+    advantages:
+    - all the proper flags for cmake/qmake are passed, no need to manually
+      take care of them
+    - CFLAGS/CXXFLAGS/etc are handled too
+    - the parallel option of debhelper is respected too
+    Also switch to dh_auto_clean for proper clean handling.
+  * [c6868df] Move common gmic-qt build flags to a variable
+  * [03f988c] Disable static build of libgmic.
+    It is not installed, so do not waste time building it.
+  * [31a1738] Change build directory to build-gmic.
+    Use a fixed name for it, so it will be possible in the future to use
+    artifacts in it in a simpler way.
+  * [3c0b61d] Link all binaries dynamically.
+    Switch the build of all the binaries to dynamically link to libgmic,
+    instead of building their own copies of gmic; this drastically reduces
+    the build time, and avoids different build configurations for the gmic
+    build copies in the binaries.
+    Add a patch for zart so it is possible to specify the right path to the
+    build gmic libraries.
+    As result, tighten the libgmic1 dependencies everywhere.
+  * [536b4d6] Explicitly pass GMIC_PATH for zart
+  * [770685e] Link in as-needed mode.
+    Reduce the overlinking, especially now that all the binaries use the
+    shared gmic library.
+
+  [ Bernd Zeimetz ]
+  * [9484742] Merge branch 'build-improvements' into 'master'
+    Various build improvements
+    See merge request debian/gmic!1
+
+  [ Pino Toscano ]
+  * [d9a8811] Bump cmake build dependency to 3.12.
+    This is what the upstream build system requires, and this version is
+    not in stable.
+  * [11cb24b] Simplify install files.
+    Do not specify the destination in case it is the same as the source.
+  * [700f77e] Stop using dh-exec.
+    There is no more need for environment variables in install files, so
+    stop using dh-exec for some of the install files.
+  * [d2e2a0e] Install the cmake config files of libgmic
+  * [2eae082] Remove ${shlibs:Depends} from libgmic-dev.
+    There are no binaries in libgmic-dev.
+
+  [ Bernd Zeimetz ]
+  * [6220b5d] Merge branch 'various-misc-changes' into 'master'
+    Various misc changes
+    See merge request debian/gmic!2
+  * [c03f25d] Don't install CImg.h.
+    Thanks to Andreas Beckmann (Closes: #913406)
+  * [bbe531a] cmake >= 3.12 is required.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 11 Nov 2018 17:44:45 +0100
+
 gmic (2.4.1-2) unstable; urgency=medium
 
   * [072ba29] Make d/rules clean work on !amd64.
