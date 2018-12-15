@@ -4,13 +4,13 @@
  #                ( C++ header file )
  #
  #  Description : GREYC's Magic for Image Computing - G'MIC API file
- #                ( http://gmic.eu )
+ #                ( https://gmic.eu )
  #
  #  Note        : Include this file in your C++ source code, if you
  #                want to use the G'MIC interpreter in your own program.
  #
  #  Copyright   : David Tschumperle
- #                ( http://tschumperle.users.greyc.fr/ )
+ #                ( https://tschumperle.users.greyc.fr/ )
  #
  #  Licenses    : This file is 'dual-licensed', you have to choose one
  #                of the two licenses below to apply.
@@ -52,7 +52,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 241
+#define gmic_version 242
 
 #ifndef gmic_pixel_type
 #define gmic_pixel_type float
@@ -74,12 +74,12 @@ namespace cimg_library {
 
   // Class 'gmic_image<T>'.
   template<typename T> struct gmic_image {
-    unsigned int _width;       // Number of image columns (dimension along the X-axis).
+    unsigned int _width;       // Number of image columns (dimension along the X-axis)
     unsigned int _height;      // Number of image lines (dimension along the Y-axis)
-    unsigned int _depth;       // Number of image slices (dimension along the Z-axis).
-    unsigned int _spectrum;    // Number of image channels (dimension along the C-axis).
-    bool _is_shared;           // Tells if the data buffer is shared by another structure.
-    T *_data;                  // Pointer to the first pixel value.
+    unsigned int _depth;       // Number of image slices (dimension along the Z-axis)
+    unsigned int _spectrum;    // Number of image channels (dimension along the C-axis)
+    bool _is_shared;           // Tells if the data buffer is shared by another structure
+    T *_data;                  // Pointer to the first pixel value
 
     // Destructor.
     ~gmic_image();
@@ -111,9 +111,9 @@ namespace cimg_library {
 
   // Class 'gmic_list<T>'.
   template<typename T> struct gmic_list {
-    unsigned int _width;           // Number of images in the list.
-    unsigned int _allocated_width; // Allocated items in the list (must be 2^N and >size).
-    gmic_image<T> *_data;          // Pointer to the first image of the list.
+    unsigned int _width;           // Number of images in the list
+    unsigned int _allocated_width; // Allocated items in the list (must be 2^N and >size)
+    gmic_image<T> *_data;          // Pointer to the first image of the list
 
     // Destructor.
     ~gmic_list();

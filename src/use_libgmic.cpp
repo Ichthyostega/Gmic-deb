@@ -69,12 +69,12 @@ int main() {
   //--------------------------------------------
   std::fprintf(stderr,"\n- 1st step : Create input list of images.\n");
 
-  gmic_list<float> images;                            // List of images, will contain all images pixel data.
-  gmic_list<char> images_names;                       // List of images names. Can be left empty if no names.
-  images.assign(5);                                   // Assign list to contain 5 images.
+  gmic_list<float> images;                            // List of images, will contain all images pixel data
+  gmic_list<char> images_names;                       // List of images names. Can be left empty if no names
+  images.assign(5);                                   // Assign list to contain 5 images
   for (unsigned int i = 0; i<images._width; ++i) {
     gmic_image<float>& img = images[i];
-    img.assign(256,256,1,3);                          // Assign i-th image with size 256x256x1x3 (2d color image).
+    img.assign(256,256,1,3);                          // Assign i-th image with size 256x256x1x3 (2d color image)
 
     std::fprintf(stderr,"    Input image %u =  %ux%ux%ux%u, buffer : %p\n",i,
                  img._width,
@@ -101,7 +101,7 @@ int main() {
     // (here, create a deformed average of the input images, and save it as a BMP file).
     gmic("add normalize 0,255 flower 8 sharpen 100 output foo1.bmp",images,images_names);
 
-  } catch (gmic_exception &e) { // Catch exception, if an error occurred in the interpreter.
+  } catch (gmic_exception &e) { // Catch exception, if an error occurred in the interpreter
     std::fprintf(stderr,"\n- Error encountered when calling G'MIC : '%s'\n",e.what());
     return 0;
   }
@@ -110,7 +110,7 @@ int main() {
   //---------------------------------------------------------------------
   std::fprintf(stderr,"\n- 3rd step (alternative) : Call G'MIC interpreter from empty instance.\n");
 
-  gmic gmic_instance;   // Construct first an empty 'gmic' instance.
+  gmic gmic_instance; // Construct first an empty 'gmic' instance
 
   try {
 
@@ -121,7 +121,7 @@ int main() {
     gmic_instance.run("+resize 50%,50% to_rgba[-1] rotate[-1] 30 drop_shadow[-1] 0,13 "
                       "blur_radial[0] 10% blend alpha output foo3.bmp",images,images_names);
 
-  } catch (gmic_exception &e) { // Catch exception, if an error occurred in the interpreter.
+  } catch (gmic_exception &e) { // Catch exception, if an error occurred in the interpreter
     std::fprintf(stderr,"\n- Error encountered when calling G'MIC : '%s'\n",e.what());
     return 0;
   }

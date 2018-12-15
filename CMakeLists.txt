@@ -7,7 +7,7 @@
 #                 - cmake .
 #                 - make
 #
-#                ( http://gmic.eu )
+#                ( https://gmic.eu )
 #
 #  Author      : Sander Knopper
 #                ( https://github.com/saknopper )
@@ -53,7 +53,7 @@
 #  knowledge of the CeCILL and CeCILL-C licenses and that you accept its terms.
 #
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.9)
 cmake_policy(SET CMP0046 OLD)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -238,13 +238,13 @@ endif()
 # CImg.h header
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/CImg.h)
   file(DOWNLOAD https://framagit.org/dtschump/CImg/raw/master/CImg.h ${CMAKE_SOURCE_DIR}/src/CImg.h)
-  file(TOUCH ${CMAKE_SOURCE_DIR}/src/CImg.h)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_SOURCE_DIR}/src/CImg.h)
 endif()
 
 # gmic_stdlib.h header
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/gmic_stdlib.h)
-  file(DOWNLOAD http://gmic.eu/gmic_stdlib.h ${CMAKE_SOURCE_DIR}/src/gmic_stdlib.h)
-  file(TOUCH ${CMAKE_SOURCE_DIR}/src/gmic_stdlib.h)
+  file(DOWNLOAD https://gmic.eu/gmic_stdlib.h ${CMAKE_SOURCE_DIR}/src/gmic_stdlib.h)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_SOURCE_DIR}/src/gmic_stdlib.h)
 endif()
 
 add_custom_target(gmic_extra_headers DEPENDS src/CImg.h src/gmic_stdlib.h)
@@ -380,8 +380,8 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GmicConfig.cmake.in" "@PACKAGE_INIT@\nin
 configure_package_config_file(
   ${CMAKE_CURRENT_BINARY_DIR}/GmicConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/GmicConfig.cmake
-  INSTALL_DESTINATION lib/cmake/gmic
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/gmic
 )
-install(EXPORT GmicTargets DESTINATION lib/cmake/gmic)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/GmicConfig.cmake DESTINATION lib/cmake/gmic)
+install(EXPORT GmicTargets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/gmic)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/GmicConfig.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/gmic)
 feature_summary(WHAT ALL)

@@ -68,7 +68,7 @@ void gmic_segfault_sigaction(int signal, siginfo_t *si, void *arg) {
 #endif
 
 #if cimg_OS==2
-int _CRT_glob = 0; // Disable globbing for msys.
+int _CRT_glob = 0; // Disable globbing for msys
 #endif
 
 // Main entry
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
     } catch (...) { is_invalid_update = true; throw; }
   } catch (...) { commands_update.assign(); }
   if (commands_update && (cimg_sscanf(commands_update," #@gmi%c",&sep)!=1 || sep!='c'))
-    commands_update.assign(); // Discard invalid update file.
+    commands_update.assign(); // Discard invalid update file
 
   // User file (in parent of resources directory).
   const char *const filename_user = gmic::path_user();
@@ -196,23 +196,23 @@ int main(int argc, char **argv) {
     }
 
     cimg::output(stdout);
-    if (is_global_help) { // Global help.
+    if (is_global_help) { // Global help
       try {
         gmic_instance.verbosity = -1;
         gmic_instance.run("v - l help \"\" onfail endl q",images,images_names);
-      } catch (...) { // Fallback in case default version of 'help' has been overloaded.
+      } catch (...) { // Fallback in case default version of 'help' has been overloaded
         images.assign();
         images_names.assign();
         images.insert(gmic::stdlib);
         gmic("v - _host=cli l help \"\" onfail endl q",images,images_names);
       }
-    } else { // Help for a specified command.
+    } else { // Help for a specified command
       CImg<char> tmp_line(1024);
       try {
         cimg_snprintf(tmp_line,tmp_line.width(),"v - l help \"%s\",1 onfail endl q",help_argument);
         gmic_instance.verbosity = -1;
         gmic_instance.run(tmp_line,images,images_names);
-      } catch (...) { // Fallback in case default version of 'help' has been overloaded.
+      } catch (...) { // Fallback in case default version of 'help' has been overloaded
         cimg_snprintf(tmp_line,tmp_line.width(),"v - l help \"%s\",1 onfail endl q",help_argument);
         images.assign();
         images_names.assign();
@@ -228,12 +228,12 @@ int main(int argc, char **argv) {
   commands_user.assign(); commands_update.assign();
 
   CImgList<char> items;
-  if (argc==1) { // When no args have been specified.
+  if (argc==1) { // When no args have been specified
     gmic_instance.verbosity = -1;
     CImg<char>::string("l[] cli_noarg onfail endl").move_to(items);
   } else {
     gmic_instance.verbosity = 0;
-    for (int l = 1; l<argc; ++l) { // Split argv as items.
+    for (int l = 1; l<argc; ++l) { // Split argv as items
       if (std::strchr(argv[l],' ')) {
         CImg<char>::vector('\"').move_to(items);
         CImg<char>(argv[l],(unsigned int)std::strlen(argv[l])).move_to(items);
@@ -249,13 +249,13 @@ int main(int argc, char **argv) {
      !std::strncmp("-verbose ",items[0],9) || !std::strncmp("verbose ",items[0],8));
   items.insert(CImg<char>::string("cli_start ",false),is_first_item_verbose?2:0);
 
-  if (is_invalid_user) { // Display warning message in case of invalid user command file.
+  if (is_invalid_user) { // Display warning message in case of invalid user command file
     CImg<char> tmpstr(1024);
     cimg_snprintf(tmpstr,tmpstr.width(),"warn \"File '%s' is not a valid G'MIC command file.\" ",
                   filename_user);
     items.insert(CImg<char>::string(tmpstr.data(),false),is_first_item_verbose?2:0);
   }
-  if (is_invalid_update) { // Display warning message in case of invalid user command file.
+  if (is_invalid_update) { // Display warning message in case of invalid user command file
     CImg<char> tmpstr(1024);
     cimg_snprintf(tmpstr,tmpstr.width(),"warn \"File '%s' is not a valid G'MIC command file.\" ",
                   filename_update.data());

@@ -39,7 +39,7 @@
 
 FiltersPresenter::FiltersPresenter(QObject * parent) : QObject(parent)
 {
-  _filtersView = 0;
+  _filtersView = nullptr;
 }
 
 FiltersPresenter::~FiltersPresenter()
@@ -64,7 +64,7 @@ void FiltersPresenter::rebuildFilterView()
   rebuildFilterViewWithSelection(QList<QString>());
 }
 
-void FiltersPresenter::rebuildFilterViewWithSelection(QList<QString> keywords)
+void FiltersPresenter::rebuildFilterViewWithSelection(const QList<QString> & keywords)
 {
   _filtersView->clear();
   _filtersView->disableModel();
@@ -109,25 +109,26 @@ void FiltersPresenter::readFaves()
   favesModelReader.loadFaves();
 }
 
-void FiltersPresenter::restoreFaveHashLinksRelease236()
+bool FiltersPresenter::allFavesAreValid() const
 {
-  if (QSettings().value("Faves/RelinkedFrom236", false).toBool()) {
-    return;
+  for (const FavesModel::Fave & fave : _favesModel) {
+    if (!_filtersModel.contains(fave.originalHash())) {
+      return false;
+    }
   }
-  unsigned int unknownFaveCount = 0;
-  FavesModel::const_iterator itFave = _favesModel.cbegin();
-  while (itFave != _favesModel.cend()) {
-    unknownFaveCount += !(_filtersModel.contains(itFave->originalHash()));
-    ++itFave;
-  }
-  if (!unknownFaveCount) {
+  return true;
+}
+
+void FiltersPresenter::restoreFaveHashLinksAfterCaseChange()
+{
+  if (allFavesAreValid()) {
     return;
   }
   FavesModel formerFaveModel = _favesModel;
-  itFave = formerFaveModel.cbegin();
+  FavesModel::const_iterator itFormerFave = formerFaveModel.cbegin();
   bool someFavesHaveBeenRelinked = false;
-  while (itFave != formerFaveModel.cend()) {
-    const FavesModel::Fave & fave = *itFave;
+  while (itFormerFave != formerFaveModel.cend()) {
+    const FavesModel::Fave & fave = *itFormerFave;
     if (!_filtersModel.contains(fave.originalHash())) {
       FiltersModel::const_iterator itFilter = _filtersModel.cbegin();
       while ((itFilter != _filtersModel.cend()) && (itFilter->hash236() != fave.originalHash())) {
@@ -147,12 +148,10 @@ void FiltersPresenter::restoreFaveHashLinksRelease236()
         Logger::log(message);
       }
     }
-    ++itFave;
+    ++itFormerFave;
   }
-
   if (someFavesHaveBeenRelinked) {
     saveFaves();
-    QSettings().setValue("Faves/RelinkedFrom236", true);
   }
 }
 
@@ -168,7 +167,7 @@ void FiltersPresenter::saveFaves()
   favesModelWriter.writeFaves();
 }
 
-void FiltersPresenter::addSelectedFilterAsNewFave(QList<QString> defaultValues, GmicQt::InputOutputState inOutState)
+void FiltersPresenter::addSelectedFilterAsNewFave(const QList<QString> & defaultValues, GmicQt::InputOutputState inOutState)
 {
   if (_currentFilter.hash.isEmpty() || (!_filtersModel.contains(_currentFilter.hash) && !_favesModel.contains(_currentFilter.hash))) {
     return;
@@ -307,11 +306,12 @@ void FiltersPresenter::editSelectedFaveName()
   _filtersView->editSelectedFaveName();
 }
 
-void FiltersPresenter::onFaveRenamed(QString hash, QString newName)
+void FiltersPresenter::onFaveRenamed(const QString & hash, const QString & name)
 {
   Q_ASSERT_X(_favesModel.contains(hash), "onFaveRenamed()", "Hash not found");
   FavesModel::Fave fave = _favesModel.getFaveFromHash(hash);
   _favesModel.removeFave(hash);
+  QString newName = name;
   if (newName.isEmpty()) {
     if (_filtersModel.contains(fave.originalHash())) {
       const FiltersModel::Filter & originalFilter = _filtersModel.getFilterFromHash(fave.originalHash());
@@ -348,13 +348,13 @@ void FiltersPresenter::toggleSelectionMode(bool on)
   }
 }
 
-void FiltersPresenter::onFilterChanged(QString hash)
+void FiltersPresenter::onFilterChanged(const QString & hash)
 {
   setCurrentFilter(hash);
   emit filterSelectionChanged();
 }
 
-void FiltersPresenter::removeFave(QString hash)
+void FiltersPresenter::removeFave(const QString & hash)
 {
   if (hash.isEmpty() || !_favesModel.contains(hash)) {
     return;
@@ -366,7 +366,7 @@ void FiltersPresenter::removeFave(QString hash)
   onFilterChanged(_filtersView->selectedFilterHash());
 }
 
-void FiltersPresenter::setCurrentFilter(QString hash)
+void FiltersPresenter::setCurrentFilter(const QString & hash)
 {
   if (hash.isEmpty()) {
     _currentFilter.clear();

@@ -1750,7 +1750,7 @@ dh :
 
 #@cli display_histogram : _width>=0,_height>=0,_clusters>0,_min_value[%],_max_value[%],_show_axes={ 0 | 1 },_expression.
 #@cli : Render a channel-by-channel histogram.
-#@cli : If selected image has several slices, the rendering is performed for all input slices.
+#@cli : If selected images have several slices, the rendering is performed for all input slices.
 #@cli : 'expression' is a mathematical expression used to transform the histogram data for visualization purpose.
 #@cli : (eq. to 'dh').
 #@cli : if specified 'width' or 'height' is '0', then image size is set to half the screen size.
@@ -1979,7 +1979,7 @@ dq :
   _display_quiver $*
 
 #@cli display_quiver : _size_factor>0,_arrow_size>=0,_color_mode={ 0=monochrome | 1=grayscale | 2=color }
-#@cli : Render selected image of 2D vectors as a field of 2D arrows.
+#@cli : Render selected images of 2D vectors as a field of 2D arrows.
 #@cli : (eq. to 'dq').
 #@cli : Default values: 'size_factor=16', 'arrow_size=1.5' and 'color_mode=1'.
 #@cli : $ image.jpg +luminance gradient[-1] xy rv[-2,-1] *[-2] -1 a[-2,-1] c crop 60,10,90,30 +display_quiver[1] ,
@@ -1992,7 +1992,7 @@ _display_quiver : check "${1=16}>0 && ${2=1.5}>=0 && isint(${3=2}) && $3>=0 && $
   v - repeat $! l[$>]
     +norm. /.. {max(1e-6,iM)} rm. # Normalize vector values.
     {$1*w},{$1*h},1,{"1<<cut($3,0,2)"}
-    f.. "
+    eval.. "
       begin(C = resize([255],s#1,1));
       "${-math_lib}"
       len = norm2(I(x,y));
@@ -2013,13 +2013,12 @@ _display_quiver : check "${1=16}>0 && ${2=1.5}>=0 && isint(${3=2}) && $3>=0 && $
         i1 = arg(k + 1,2,10,6);
         i2 = arg(k + 1,12,12,8);
         polygon(#1,3,X[i0,2],X[i1,2],X[i2,2],1,C);
-      );
-      I"
+      ); I"
     rm..
   endl done v +
 
 #@cli drgba : eq. to 'display_rgba'.
-drgba : skip "${1=none}"
+drgba : skip "${1=none},${2=$1},${3=$1}"
   v - _gmic_s="$?" v +
   _display_rgba ${^0}
   v - if {!${}} noarg fi v +
@@ -2029,12 +2028,12 @@ drgba : skip "${1=none}"
 #@cli : (eq. to 'drgba').
 #@cli : Default values: 'background_RGB_color=undefined' (checkerboard).
 #@cli : $ image.jpg +norm threshold[-1] 40% blur[-1] 3 normalize[-1] 0,255 append c display_rgba
-display_rgba : skip "${1=none}"
+display_rgba : skip "${1=none},${2=$1},${3=$1}"
   v - _gmic_s="$?" v +
   _$0 ${^0}
   v - if {!${}} noarg fi v +
 
-_display_rgba : skip "${1=}"
+_display_rgba : skip "${1=},${2=$1},${3=$1}"
   v - l[] is_rgb={"isval($1)"} onfail is_rgb=0 endl v +
   if $is_rgb e[0--4] "Render RGBA image"$_gmic_s" over RGB background ($*)."
   else e[0--4] "Render RGBA image"$_gmic_s" over a checkerboard background."
@@ -2053,7 +2052,7 @@ dt :
   _display_tensors $*
 
 #@cli display_tensors : _size_factor>0,_ellipse_size>=0,_color_mode={ 0=monochrome | 1=grayscale | 2=color },_outline>=0
-#@cli : Render selected image of tensors as a field of 2D ellipses.
+#@cli : Render selected images of tensors as a field of 2D ellipses.
 #@cli : (eq. to 'dt').
 #@cli : Default values: 'size_factor=16', 'ellipse_size=1.5', 'color_mode=2' and 'outline=2'.
 #@cli : $ image.jpg diffusiontensors 0.1,0.9 resize2dx 32 +display_tensors 64,2
@@ -2300,12 +2299,13 @@ _document_gmic_header_bash : skip $1
 \n# This file has been generated automatically.
 \n# Do not edit!
 \n#
-\n# This file should be copied/renamed in '/etc/bash_completion.d/gmic'.
+\n# This file should be copied/renamed in '/usr/share/bash-completion/completions/gmic'.
 \n#
 \n
 \n_"$_name"()
 \n{
 \n\tlocal cur prev opts coms
+\n\t_init_completion || return
 \n\tCOMPREPLY=()
 \n\tcur=\"${COMP_WORDS[COMP_CWORD]}\"
 \n\tprev=\"${COMP_WORDS[COMP_CWORD-1]}\"
@@ -2354,20 +2354,22 @@ _document_gmic_declaration_bash :
   fi
 
 _document_gmic_footer_bash : skip $1
+
+  str_coms= repeat $_nbcoms str_coms=${str_coms}" "${_coms$>} done
   v +
-  e[] "\topts=\"\\" repeat $_nbopts e[] "\t      "${_opts$>}\\ done e[] "\t     \""
-  e[] "\n\tcoms=\"\\" repeat $_nbcoms e[] "\t      "${_coms$>}\\ done e[] "\t     \""
+  e[] "\tcoms=\""${str_coms}" \""
+  e[] "\topts=$(echo \"\$coms\" | sed \"s: \\([^ ]\\+\\): \\1 -\\1 \\+\\1 --\\1:g\")"
   e[] "\n\tcase \"${prev}\" in"
   repeat $_argcommand  # Regular commands with arguments.
     if {'${_command$>}'!='i'" && "'${_command$>}'!='o'" && "!same('${_command$>}','input',5)" && "!same('${_command$>}','output',6)}
-      e[] "\t\t\""${_command$>}"\" | \"-"${_command$>}"\" | \"--"${_command$>}"\" | \"+"${_command$>}"\")"
-      e[] "\t\tCOMPREPLY=( $(compgen -W \""${_argument$>}"\") )\n\t\treturn 0\n\t\t;;"
+      e[] "\t\t\""${_command$>}"\" | \"-"${_command$>}"\" | \"--"${_command$>}"\" | \"+"${_command$>}"\")\n\t\t    "\
+          "COMPREPLY=( $(compgen -W \""${_argument$>}"\") ); return 0;;"
     fi
   done
   repeat $_shortcut # Shortcut commands (with arguments).
     if {['${_shortcut$>}']!='i'" && "['${_shortcut$>}']!='o'" && "narg(${_argumentlink${_shortcutlink$>}})}
-      e[] "\t\t\""${_shortcut$>}"\" | \"-"${_shortcut$>}"\" | \"--"${_shortcut$>}"\" | \"+"${_shortcut$>}"\")"
-      e[] "\t\tCOMPREPLY=( $(compgen -W \""${_argumentlink${_shortcutlink$>}}"\") )\n\t\treturn 0\n\t\t;;"
+      e[] "\t\t\""${_shortcut$>}"\" | \"-"${_shortcut$>}"\" | \"--"${_shortcut$>}"\" | \"+"${_shortcut$>}"\") "\
+          "COMPREPLY=( $(compgen -W \""${_argumentlink${_shortcutlink$>}}"\") ); return 0;;"
     fi
   done
   e[] "\tesac\n
@@ -2454,7 +2456,7 @@ _document_gmic_declaration_html :
     _shortcutlink$_shortcut={t}
     _shortcutqualifier$_shortcut=$qualifier
     _shortcut+=1
-  else                                         # Declaration of a regular command.
+  else                                     # Declaration of a regular command.
     _command_name={0,t}
     v +
     e[] ${-eoff}${-doff}"<p style=\"margin-left:20px\"><a id=\""{0,t}"\"><font color=\"#005090\">&nbsp;&nbsp;<b>"{0,t}$qualifier"</b>:</font></a>"
@@ -3256,7 +3258,7 @@ _outputx :
 #@cli : $ command "average : pass$""1 add[^-1] [-1] remove[-1] div 2" sample ? +mirror y +average[0] [1]
 
 #@cli plot : _plot_type,_vertex_type,_xmin,_xmax,_ymin,_ymax,_exit_on_anykey={ 0 | 1 } : 'formula',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax,_exit_on_anykey={ 0 | 1 } : (+)
-#@cli : Display selected image or formula in an interactive viewer (use the instant display window [0] if opened).
+#@cli : Display selected images or formula in an interactive viewer (use the instant display window [0] if opened).
 #@cli : 'plot_type' can be { 0=none | 1=lines | 2=splines | 3=bar }.
 #@cli : 'vertex_type' can be { 0=none | 1=points | 2,3=crosses | 4,5=circles | 6,7=squares }.
 #@cli : 'xmin','xmax','ymin','ymax' set the coordinates of the displayed xy-axes.
@@ -3451,8 +3453,8 @@ shape_heart : check "${1=512}>=0"
   ir={round($1)}
   if {!$ir} 0
   else l[]
-      2048,1,1,1,'t=2*pi*x/w;16*sin(t)^3'
-      2048,1,1,1,'t=2*pi*x/w;13*cos(t)-5*cos(2*t)-2*cos(3*t)-cos(4*t)'
+      2048,1,1,1,"t = x*2*pi/w; 16*sin(t)^3"
+      2048,1,1,1,"t = x*2*pi/w; 13*cos(t) - 5*cos(2*t) - 2*cos(3*t) - cos(4*t)"
       a c display_parametric $ir,$ir,1,0,0,0
       flood 50%,50%,0,0,0,1,0 ==. 0
     endl
@@ -3991,7 +3993,7 @@ update_gallery_html : check "isbool(${1=0})"
   commands_colors=gallery_colors,solarize,hsv2rgb,transfer_rgb
   commands_deformations=gallery_deformations,deform,map_sphere,seamcarve,spherize,twirl,warp_perspective,water,wave
   commands_filtering=gallery_filtering,blur_angular,blur_linear,blur_radial,glow,smooth,bilateral,dog,deriche,distance,gradient_norm,normalize_local,sharpen,solidify
-  commands_patterns=gallery_patterns,tsp,chessboard,mandelbrot,maze_mask,plasma,shape_fern,shape_snowflake,sierpinski,syntexturize_patchmatch,truchet,turbulence,watermark_visible,weave
+  commands_patterns=gallery_patterns,tsp,chessboard,mandelbrot,maze_mask,plasma,shape_fern,shape_snowflake,sierpinski,syntexturize_matchpatch,truchet,turbulence,watermark_visible,weave
   commands_3drendering=gallery_3drendering,add3d,distribution3d,elevation3d,gmic3d,imageblocks3d,imagerubik3d,skeleton3d,spherical3d,tensors3d,text3d,torus3d,weird3d
   commands_codesamples=gallery_codesamples
 
@@ -4628,7 +4630,7 @@ update_server :
     replace_str "<i>David Tschumperl&#233;</i>","<i><a href=\""$url"\">David Tschumperl&#233;</a></i>"
     o cimgz:/tmp/update$_version.gmic,uchar
 
-    (240,241)
+    (242)
     repeat {w}
       v={i[$>]}
       _update_server_upload[] ${_path_rc}update$_version.gmic,plain_update$v.gmic
@@ -5532,7 +5534,7 @@ argmin :
 #@cli / : eq. to 'div'. : (+)
 
 #@cli div : value[%] : [image] : 'formula' : (no arg) : (+)
-#@cli : Divide selected image by specified value, image or mathematical expression,
+#@cli : Divide selected images by specified value, image or mathematical expression,
 #@cli : or compute the pointwise quotient of selected images.
 #@cli : (eq. to '/').
 #@cli : $ image.jpg div '1+abs(cos(x/10)*sin(y/10))'
@@ -5703,7 +5705,7 @@ mul_complex :
 #@cli ^ : eq. to 'pow'. : (+)
 
 #@cli pow : value[%] : [image] : 'formula' : (no arg) : (+)
-#@cli : Raise selected image to the power of specified value, image or mathematical
+#@cli : Raise selected images to the power of specified value, image or mathematical
 #@cli : expression, or compute the pointwise sequential powers of selected images.
 #@cli : (eq. to '^').
 #@cli : $ image.jpg div 255 +pow 0.5 mul 255
@@ -6199,12 +6201,15 @@ noise_poissondisk : check "${1=8}>0 && ${2=30}>0"
     r. {[whd,s,1,1,-1]} sort. +,x z. 0,1,100%,100% y. c # sort kernel by distance
     nm[1] dims nm[2] grid nm[3] samples nm[4] active nm[5] prox
     eval ${-math_lib}"
+      begin(
+        dotoff = resize([ 1,w#2,w#2*h#2 ],d#2>1?3:h#2>1?2:1,0);
+      );
       const N = "$dim";
       const radius = "$R";
       const grid_cw = "$cw";
       const max_sample_attempts = $2;
       const value = iM#0 + (im#0==iM#0);
-      mag2(vec) = (sum(sqr(vec)));
+      mag2(vec) = sum(sqr(vec));
       prox = I#5;
       lim = I#1;
 
@@ -6221,18 +6226,18 @@ noise_poissondisk : check "${1=8}>0 && ${2=30}>0"
 
         for (attempts=0, attempts < max_sample_attempts, ++attempts,
 
-          do (S=4*(u(vectorN(1))-0.5); M=mag2(S), M <= 1 || M > 4);
+          do (S = 4*(u(vectorN(1)) - 0.5); M = mag2(S), M <= 1 || M > 4);
 
           X = T + radius * S;             # potential sample from annulus around T
           if (min(X)<0 || min(lim-X)<0, continue()); # check within bounds
 
           # check proximity of surrounding points
           G = int(X/grid_cw);             # grid cell position vector
-          GI = dot(G,[1,w#2,w#2*h#2]);    # grid cell direct buffer index
+          GI = dot(G,dotoff);    # grid cell direct buffer index
 
-          for (K=0;rejected=0, K<size(prox), ++K,
+          for (K = 0; rejected = 0, K<size(prox), ++K,
             V = i[#2,GI+prox[K]];         # sample index from grid to check
-            if (V>0 && mag2(I[#3,V]-X)<sqr(radius), rejected=1;break())
+            if (V>0 && mag2(I[#3,V]-X)<sqr(radius), rejected = 1;break())
           );
 
           if (!rejected,
@@ -6601,12 +6606,12 @@ ac :
   v - _gmic_s="$?" v +
   _apply_channels $"*"
 
-#@cli apply_channels : "command",channels,_value_action={ 0=none | 1=cut | 2=normalize }
+#@cli apply_channels : "command",color_channels,_value_action={ 0=none | 1=cut | 2=normalize }
 #@cli : Apply specified command on the chosen color channel(s) of each selected images.
 #@cli : (eq. to 'ac').\n
-#@cli : Argument 'channels' refers to a colorspace, and can be basically one of { all | rgba | rgb | lrgb | ycbcr | lab | lch | hsv | hsi | hsl | cmy | cmyk | yiq }.
-#@cli : You can also make the processing focus on one particular channel of this colorspace, by setting 'channels' as 'colorspace_channel' (e.g. 'hsv_h' for the hue).
-#@cli : All channel values are considered to be in the [0,255] range.
+#@cli : Argument 'color_channels' refers to a colorspace, and can be basically one of { all | rgba | rgb | lrgb | ycbcr | lab | lch | hsv | hsi | hsl | cmy | cmyk | yiq }.
+#@cli : You can also make the processing focus on a few particular channels of this colorspace, by setting 'color_channels' as 'colorspace_channel' (e.g. 'hsv_h' for the hue).
+#@cli : All channel values are considered to be provided in the [0,255] range.
 #@cli : Default value: 'value_action=0'.
 #@cli : $ image.jpg +apply_channels "equalize blur 2",ycbcr_cbcr
 apply_channels :
@@ -6614,7 +6619,7 @@ apply_channels :
   _$0 $"*"
 
 _apply_channels : check "isint(${3=0}) && $3>=0 && $3<=2"
-  v -
+  v - mode="$2"
   if {isval("$2")} if {isint("$2")}
     mode=${arg\ 1+$2,all,rgba,rgb,rgb_r,rgb_g,rgb_b,rgba_a,\
                      lrgb,lrgb_r,lrgb_g,lrgb_b,\
@@ -6624,8 +6629,8 @@ _apply_channels : check "isint(${3=0}) && $3>=0 && $3<=2"
                      hsv_h,hsv_s,hsv_v,hsi_i,hsl_l,\
                      cmyk_c,cmyk_m,cmyk_y,cmyk_k,\
                      yiq_y,yiq_iq}
-  else mode="$2" fi else mode="$2" fi
-  v + e[^-1] "Apply command '$1' on channel '"$mode"' of image"$_gmic_s"." v -
+  fi fi
+  v + e[^-1] "Apply command '$1' on channels '"$mode"' of image"$_gmic_s"." v -
   ({'$/'}) id={h=0;for(k=0,k<w,((h*=31)+=i[k++])%=1048576)} rm.
   _ac_$mode m _ac_precond$id:$_p m _ac_forward$id:$_f m _ac_backward$id:$_b
   repeat $! l[$>]
@@ -6642,7 +6647,7 @@ _apply_channels : check "isint(${3=0}) && $3>=0 && $3<=2"
   v +
 
 _ac :
-  whs={w},{h},1,{s} ${1--1} k[0] r $whs,0
+  whds={w},{h},{d},{s} ${1--1} k[0] r $whds,0
 
 _ac_all : _p="" _f="" _b="" _s=0,100%
 
@@ -7198,7 +7203,7 @@ replace_color : check "$1>=0 && $2>=0"
   endl done v +
 
 #@cli retinex : _value_offset>0,_colorspace={ hsi | hsv | lab | lrgb | rgb | ycbcr },0<=_min_cut<=100,0<=_max_cut<=100,_sigma_low>0,_sigma_mid>0,_sigma_high>0
-#@cli : Apply multi-scale retinex algorithm on selected image to improve color consistency.
+#@cli : Apply multi-scale retinex algorithm on selected images to improve color consistency.
 #@cli : (as described in the page http://www.ipol.im/pub/art/2014/107/).
 #@cli : Default values: 'offset=1', 'colorspace=hsv', 'min_cut=1', 'max_cut=1', 'sigma_low=15','sigma_mid=80' and 'sigma_high=250'.
 retinex : check "${1=5}>0 && ${3=1}>=0 && $3<=100 && ${4=1}>=0 && $4<=100 && ${5=15}>0 && ${6=80}>0 && ${7=250}>0" skip "${2=hsv}"
@@ -7705,26 +7710,44 @@ to_rgba :
      fi
    endl done v +
 
-#@cli transfer_colors : [reference_image],_transfer_brightness={ 0 | 1 }
-#@cli : Transfer colors of the specified reference image to selected images.
-#@cli : Default value: 'transfer_brightness=0'.
-#@cli : $ image.jpg +rand 0,255 +transfer_colors[0] [1],1
-transfer_colors : skip ${2=0}
-  e[^-1] "Transfer colors of image $1 to image$?."
-  v - pass$1 0 mv. 0 to_rgb[0] to_colormode[^0] {max(3,${-max_s})} c 0,255   # Convert all images to RGB[A]
-  repeat $! l[$>] split_opacity rgb2ycbcr[0] a c endl done                   # Perform RGB[A] to YCbCr[A] conversion.
-  l[0] s c histogram_cumul 256,1,0,255 a c * 255 endl                        # Compute channel-by-channel cumulative histogram of target image.
-  repeat {$!-1} l[0,{$<+1}]
-    if $2 repeat 3 sh[0,1] $> equalize. 256,0,255 index. ..,0,0 rm[-2,-1] done     # Transfer brightness + colors.
-    else repeat 2 sh[0,1] {$>+1} equalize. 256,0,255 index. ..,0,0 rm[-2,-1] done  # Transfer colors only.
-    fi
-  endl done rm[0]
-  repeat $! l[$>] split_opacity ycbcr2rgb[0] a c endl done    # Perform YCbCr[A] to RGB[A] conversion.
-  c 0,255
-  v +
+#@cli transfer_histogram : [reference_image],_nb_levels>0,_color_channels
+#@cli : Transfer histogram of the specified reference image to selected images.
+#@cli : Argument 'color channels' is the same as with command 'apply_channels'.
+#@cli : Default value: 'nb_levels=256' and '_color_channels=all'
+#@cli : $ image.jpg 100,100,1,3,"u([256,200,100])" +transfer_histogram[0] [1]
+transfer_histogram : check ${"is_image_arg $1"}" && ${2=256}>0" skip "${3=0}"
+  v - mode="$3"
+  if {isval("$3")} if {isint("$3")}
+    mode=${arg\ 1+$3,all,rgba,rgb,rgb_r,rgb_g,rgb_b,rgba_a,\
+                     lrgb,lrgb_r,lrgb_g,lrgb_b,\
+                     ycbcr_y,ycbcr_cbcr,ycbcr_cb,ycbcr_cr,ycbcr_cg,\
+                     lab_l,lab_ab,lab_a,lab_b,\
+                     lch_ch,lch_c,lch_h,\
+                     hsv_h,hsv_s,hsv_v,hsi_i,hsl_l,\
+                     cmyk_c,cmyk_m,cmyk_y,cmyk_k,\
+                     yiq_y,yiq_iq}
+  fi fi
+  v + e[^-1] "Transfer histogram of image $1 to image$?, with $2 levels on channels '"$mode"'." v -
+  if {['$mode']!='all'} repeat $! pass$1 # Small geometric hack to be able to use 'apply_channels'.
+      w0,h0,d0,s0={$>,[w,h,d,s]}
+      w1,h1,d1,s1={-1,[w,h,d,s]}
+      to_colormode[$>] {s}
+      a[$>,-1] x
+      ac_arg="+z "$w0",0,0,100%,"{[$h1,$d1]-1}" r.. "$w0,$h0,$d0",100%,0,0 _transfer_histogram $2 rm."
+      apply_channels[$>] {``$ac_arg},$mode,0
+      r[$>] $w0,$h0,$d0,$s0,0
+    done
+  else repeat $! pass$1 _transfer_histogram[$>,-1] $2 done rm.
+  fi
 
-_transfer_colors :  # Check transfer_colors performance.
-  repeat $! l[$>] rgb2ycbcr s c histogram 256,0,255 a c -dg 300,200 endl done
+_transfer_histogram :
+  repeat {min(s#0,s#1)}
+    sh $> im,iM={[min(im#0,im#1),max(iM#0,iM#1)]}
+    equalize.. $1
+    +histogram_cumul. $1,1,$im,$iM *. {$iM-$im} +. $im rm..
+    index.. .,0,0 *.. {($iM-$im)/$1} +.. $im
+    rm[-2,-1]
+  done
 
 #@cli transfer_rgb : [target],_gamma>=0,_regularization>=0,_luminosity_constraints>=0,_rgb_resolution>=0,_is_constraints={ 0 | 1 }
 #@cli : Transfer colors from selected source images to selected reference image (given as argument).
@@ -7735,8 +7758,8 @@ _transfer_colors :  # Check transfer_colors performance.
 #@cli : Default values: 'gamma=0.3','regularization=8', 'luminosity_constraints=0.1', 'rgb_resolution=64' and 'is_constraints=0'.
 #@cli : $ sample pencils,wall +transfer_rgb[0] [1],0,0.01
 transfer_rgb : check "${2=0.3}>=0 && ${3=8}>=0 && ${4=0.15}>=0 && ${5=64}>=0 && isint(${6=0})"
-  sigma=1.5
-
+  e[^-1] "Transfer colors of image $1 to image$?."
+  v - sigma=1.5
   repeat $! pass$1 0 l[$>,-1]
     nm_source={0,b} nm_target={1,b}
     nm[0] source nm[1] target
@@ -7850,7 +7873,7 @@ transfer_rgb : check "${2=0.3}>=0 && ${3=8}>=0 && ${4=0.15}>=0 && ${5=64}>=0 && 
     fi
 
     k[res]
-  endl done
+  endl done v +
 
 # _transfer_rgb : _gamma>=0,_smoothness>=0,_resolution>0
 # Convert selected images into 3D volumetric scalar function for color matching.
@@ -8215,19 +8238,21 @@ expand_z : check "$1>=0 && ${2=1}>=0 && $2<=3"
 #@cli : Default value: 'extract_xyz_coordinates=0'.
 #@cli : $ image.jpg +blur 3 quantize. 4,0 +extract_region[0] [1],0,1,3
 extract_region : check ${"is_image_arg $1"}" && isval(${2=0})"
-  e[^-1] "Extract pixels of image$N for labels (${3--1}) in $1, with"${"arg 1+!!$2,out"}" coordinates."
-  v - $=arg pass$1 mv. 0 repeat {$!-1} l[0,{1+$<}]
-    repeat {$#-2}
-      {1,[1,whd,1,s+($2?3:0)]}
-      f[0] ">begin(k = 0);
-             if (i=="${arg{3+$>}}",
-               if ($2,
-                 I[#-1,k++] = [ I(#1),x,y,z ],
-                 I[#-1,k++] = I(#1));
-             );
-             end(resize(#-1,1,k,1,s#-1,0));
-             i"
-    done
+  if {$#<3} e[0--3] "Extract pixels of image$? for labels [] in image $1, with"${"arg 1+!!$2,out"}" coordinates -> no labels provided, ignoring." return fi
+  e[^-1] "Extract pixels of image$? for labels {${3--1}} in image $1, with"${"arg 1+!!$2,out"}" coordinates."
+  v - pass$1 mv. 0 repeat {$!-1} l[0,{1+$<}]
+    1,16,1,{s+($2?3:0)} if {$#>3} .x{$#-3} fi
+    f[0] ">"${-math_lib}"
+      begin(
+        const N = iM + 1;  # Number of labels
+        R = [ ${3--1} ];   # Requested labels
+        hash = vectorN(0); # Correspondence table
+        for (k = 0, k<size(R), ++k, hash[R[k]] = k + 2);
+      );
+      (ind = hash[i])>0?(
+        $2?dar_insert(#ind,[ I(#1),x,y,z ]):dar_insert(#ind,I(#1));
+      ); i;
+      end(for (k = 2, k<l, ++k, resize(#k,1,dar_size(#k),1,-100,0)))"
     rm[1]
   endl done rm[0] v +
 
@@ -8247,11 +8272,10 @@ extract_region : check ${"is_image_arg $1"}" && isval(${2=0})"
 #@cli : Default values: 'layout_code=X', 'montage_mode=2', output_mode='0' and 'processing_command=""'.
 #@cli : $ image.jpg sample ? +plasma[0] shape_cupid 256 normalize 0,255 frame 3,3,0 frame 10,10,255 to_rgb +montage A +montage[^-1] H1:V0:VH2:1H0:3
 montage : check "isval(${2=2}) && $2>=0 && $2<=3" skip "${1=X}",${3=0},"${4=}"
-  v -
-  if {$2<=1} v + e[0--3] "Create aligned montage from image$?, with layout code '$1' and centering $2."
-  else v + e[0--3] "Create scaled montage from image$?, with layout code '$1' and scale "{$2-2}"."
+  if {$2<=1} e[0--3] "Create aligned montage from image$?, with layout code '$1' and centering $2."
+  else e[0--3] "Create scaled montage from image$?, with layout code '$1' and scale "{$2-2}"."
   fi
-  v -
+  v - to_colormode 0
 
   # Manage automatic layout.
   if {lowercase('"$1"')=='x'} +l
@@ -9012,13 +9036,99 @@ upscale_smart : skip ${2=100%},${3=100%} check "${4=2}>=0 && ${5=0.4}>=0 && $5<=
   endl done v +
 
 #@cli warp : [warping_field],_mode,_interpolation,_boundary_conditions,_nb_frames>0 : (+)
-#@cli : Warp selected image with specified displacement field.
+#@cli : Warp selected images with specified displacement field.
 #@cli : 'mode' can be { 0=backward-absolute | 1=backward-relative | 2=forward-absolute | 3=forward-relative }.
 #@cli : 'interpolation' can be { 0=nearest-neighbor | 1=linear | 2=cubic }.
 #@cli : 'boundary_conditions' can be { 0=dirichlet | 1=neumann | 2=periodic | 3=mirror }.
 #@cli : Default values: 'mode=0', 'interpolation=1', 'boundary_conditions=1' and 'nb_frames=1'.
 #@cli : $ image.jpg 100%,100%,1,2,'X=x/w-0.5;Y=y/h-0.5;R=(X*X+Y*Y)^0.5;A=atan2(Y,X);130*R*if(c==0,cos(4*A),sin(8*A))' warp[-2] [-1],1,1,0 quiver[-1] [-1],10,1,1,1,100
 #@cli : $$
+
+#@cli warp_patch : [warping_field],patch_width>=1,_patch_height>=1,_patch_depth>=1,_std_factor>0,_boundary_conditions.
+#@cli : Patch-warp selected images, with specified 2D or 3D displacement field (in backward-absolute mode).
+#@cli : Argument 'std_factor' sets the std of the gaussian weights for the patch overlap, equal to 'std = std_factor*patch_size'.
+#@cli : 'boundary_conditions' can be { 0=dirichlet | 1=neumann | 2=periodic | 3=mirror }.
+#@cli : Default values: 'std_factor=0.3' and 'boundary_conditions=3'.
+warp_patch : check ${is_image_arg\ $1}" && isint(${2=3}) && $2>=1 && isint(${3=$2}) && $3>=1 && isint(${4=1}) && $4>=1 && isval(${5=0.3}) && $5>0 && isint(${6=3}) && $6>=0 && $6<=3"
+  e[^-1] "Patch-warp image$? with backward-absolute displacement field $1, using $2x$3x$4 patches, std factor $5 and "${"arg 1+$6,dirichlet,neumann,periodic,mirror"}" boundary conditions."
+  v - if {$2<=1} pass$1 warp[^-1] .,0 rm. v + return fi
+  repeat $! pass$1 l[$>,-1]
+    [0],[0],[0],1,1 a[0,-1] c # Add weighting channel
+    100%,100%,100%,{0,s}
+
+    if {1,s>=3} # 3D version
+      eval[1] "*
+        begin(
+          const pw = $2;
+          const ph = $3;
+          const pd = $4;
+          const stdf = $5;
+          const boundary = $6;
+
+          const pw1 = int(pw/2);
+          const pw2 = pw - pw1 - 1;
+          const ph1 = int(ph/2);
+          const ph2 = ph - ph1 - 1;
+          const pd1 = int(pd/2);
+          const pd2 = pd - pd1 - 1;
+          const pwhd = pw*ph*pd;
+
+          # Pre-compute gaussian weights.
+          if (stdf<5,
+            weights = vectorpwhd();
+            offw = 0;
+            for (zw = -pd1, zw<=pd2, ++zw,
+              for (yw = -ph1, yw<=ph2, ++yw,
+                for (xw = -pw1, xw<=pw2, ++xw,
+                  weights[offw++] = exp(-xw^2/(2*(stdf*pw)^2) - yw^2/(2*(stdf*ph)^2) - zw^2/(2*(stdf*pd)^2));
+                );
+              );
+            );
+          );
+        );
+
+        u = i(x,y,z,0);
+        v = i(x,y,z,1);
+        w = i(x,y,z,2);
+        patch = crop(#0,u - pw1, v - ph1,w - pd1,pw,ph,pd,boundary);
+        stdf<5?
+          draw(#2,patch,x - pw1,y - ph1,z - pd1,0,pw,ph,pd,s#0,-1,weights):
+          draw(#2,patch,x - pw1,y - ph1,z - pd1,0,pw,ph,pd,s#0,-1)"
+    else # 2D version
+      eval[1] "*
+        begin(
+          const pw = $2;
+          const ph = $3;
+          const stdf = $5;
+          const boundary = $6;
+
+          const pw1 = int(pw/2);
+          const pw2 = pw - pw1 - 1;
+          const ph1 = int(ph/2);
+          const ph2 = ph - ph1 - 1;
+          const pwh = pw*ph;
+
+          # Pre-compute gaussian weights.
+          if (stdf<5,
+            weights = vectorpwh();
+            offw = 0;
+            for (yw = -ph1, yw<=ph2, ++yw,
+              for (xw = -pw1, xw<=pw2, ++xw,
+                weights[offw++] = exp(-xw^2/(2*(stdf*pw)^2) - yw^2/(2*(stdf*ph)^2));
+              );
+            );
+          );
+        );
+
+        u = i(x,y,z,0);
+        v = i(x,y,z,1);
+        patch = crop(#0,u - pw1, v - ph1,pw,ph,boundary);
+        stdf<5?
+          draw(#2,patch,x - pw1,y - ph1,0,0,pw,ph,1,s#0,-1,weights):
+          draw(#2,patch,x - pw1,y - ph1,0,0,pw,ph,1,s#0,-1)"
+    fi
+    s. c,-{0,s-1} /[-2,-1] k.
+  endl done v +
 
 #---------------------------------
 #
@@ -9394,7 +9504,7 @@ deinterlace : skip ${1=0}
 #@cli : $ image.jpg +denoise 5,5,8
 
 #@cli denoise_haar : _threshold>=0,_nb_scales>=0,_cycle_spinning>0
-#@cli : Denoise selected image using haar-wavelet thresholding with cycle spinning.
+#@cli : Denoise selected images using haar-wavelet thresholding with cycle spinning.
 #@cli : Set 'nb_scales==0' to automatically determine the optimal number of scales.
 #@cli : Default values: 'threshold=1.4', 'nb_scale=0' and 'cycle_spinning=10'.
 #@cli : $ image.jpg noise 20 cut 0,255 +denoise_haar[-1] 0.8
@@ -9459,7 +9569,7 @@ denoise_patchpca : check "${1=1.8} && $1>=0 && isint(${2=7}) && $2>0 && isint(${
       eig = eig(M);
       lambda = sqrt(abs(eig[0,"$N2"]));
 
-      # Determine number of lambdas to keep and project neighboring patchs.
+      # Determine number of lambdas to keep and project neighboring patches.
       for (k = 0, k<size(lambda) && lambda[k]>=$1*"$stdnoise", ++k);
       Qt = eig["$N2","{$N2*$N2}"];
       Q = transp(Qt,"$N2");
@@ -9492,7 +9602,7 @@ denoise_patchpca : check "${1=1.8} && $1>=0 && isint(${2=7}) && $2>0 && isint(${
 #@cli : $ image.jpg +dilate 10
 
 #@cli dilate_circ : _size>=0,_boundary_conditions,_is_normalized={ 0 | 1 }
-#@cli : Apply circular dilation of selected image by specified size.
+#@cli : Apply circular dilation of selected images by specified size.
 #@cli : Default values: 'boundary_conditions=1' and 'is_normalized=0'.
 #@cli : $ image.jpg +dilate_circ 7
 dilate_circ : check $1>=0 skip ${2=1},${3=0}
@@ -9501,7 +9611,7 @@ dilate_circ : check $1>=0 skip ${2=1},${3=0}
   v - shape_circle $1 dilate[^-1] .,$2,$3 rm. v +
 
 #@cli dilate_oct : _size>=0,_boundary_conditions,_is_normalized={ 0 | 1 }
-#@cli : Apply octagonal dilation of selected image by specified size.
+#@cli : Apply octagonal dilation of selected images by specified size.
 #@cli : Default values: 'boundary_conditions=1' and 'is_normalized=0'.
 #@cli : $ image.jpg +dilate_oct 7
 dilate_oct : check $1>=0 skip ${2=1},${3=0}
@@ -9852,6 +9962,44 @@ _ihaar_z : # Inverse haar transform along the z-axis.
   if {d%2} v + error "Command 'ihaar': Invalid image depth="{h}" (is not even)." fi
   s z,2 r 100%,100%,200% (-1/1) r. {-2,w},{-2,h} *[-2,-1] + / {sqrt(2)}
 
+#@cli ilaplacian : { nb_iterations>0 | 0 },_time_step>0,_[initial_estimate]
+#@cli : Invert selected Laplacian images.
+#@cli : If given 'nb_iterations' is '0', inversion is done in Fourier space (single iteration),
+#@cli : otherwise, by applying 'nb_iterations' of a Laplacian-inversion PDE flow (with specified 'time_step').
+#@cli : Note that the resulting inversions are just estimation of possible/approximated solutions.
+#@cli : Default values: 'nb_iterations=0','time_step=10' and '[initial_estimated]=(undefined)'.
+#@cli : $ image.jpg +laplacian +ilaplacian[-1] 0
+ilaplacian : check "${1=0}>=0 && ${2=10}>0" skip "${3=}"
+  v - is_estimate=${"is_image_arg $3"} nb_iter={round($1)}
+  if {!$nb_iter} # Inversion in Fourier space
+    if $is_estimate
+      v + e[0--4] "Invert Laplacian image$? in Fourier space, with initial estimate $3." v -
+      pass$3 1 ia=${-average_colors} rm.
+    else
+      v + e[0--4] "Invert Laplacian image$? in Fourier space." v -
+      ia=0
+    fi
+    repeat $! l[$>]
+      fft 100%,100%,1,1,"2*(cos(x*2*pi/w) + cos(y*2*pi/h)) - 4" =. 1
+      /[-3,-2] . rm.
+      = 0 ifft rm.
+    endl done + 'begin(S=resize([$ia],s,0));S'
+
+  else # Inversion with PDE-flow
+    if $is_estimate
+      v + e[0--4] "Invert Laplacian image$? using $1 iterations of PDE flow, with time step $2 and initial estimate $3." v -
+      repeat $! pass$3 0 l[$>,-1]
+        repeat $1 +laplacian. -. ... *. {$2/max(abs(im),abs(iM))} +[^0] done k.
+      endl done
+    else
+      v + e[0--4] "Invert Laplacian image$? using $1 iterations of PDE flow, with time step $2." v -
+      repeat $! l[$>] +f 0
+        repeat $1 +laplacian. -. ... *. {$2/max(abs(im),abs(iM))} +[^0] done k.
+      endl done
+    fi
+  fi
+  v +
+
 #@cli inn
 #@cli : Compute gradient-directed 2nd derivative of image(s).
 #@cli : $ image.jpg inn
@@ -9883,180 +10031,6 @@ inn :
 #@cli : Default values: 'patch_size=0', 'fast_method=1', 'lookup_size=22', 'lookup_factor=0.5', 'lookup_increment=1', 'blend_size=0', 'blend_threshold=0', 'blend_decay=0.05', 'blend_scales=10' and 'is_blend_outer=1'.
 #@cli : $ image.jpg 100%,100% ellipse 50%,50%,30,30,0,1,255 ellipse 20%,20%,30,10,0,1,255 +inpaint[-2] [-1] remove[-2]
 #@cli : $ image.jpg 100%,100% circle 30%,30%,30,1,255,0,255 circle 70%,70%,50,1,255,0,255 +inpaint[0] [1],5,15,0.5,1,9,0 remove[1]
-
-#@cli inpaint_flow : [mask],_nb_global_iter>=0,_nb_local_iter>=0,_dt>0,_alpha>=0,_sigma>=0
-#@cli : Apply iteration of the inpainting flow on selected images.
-#@cli : Default values: 'nb_global_iter=4', 'nb_global_iter=15', 'dt=10', 'alpha=1' and 'sigma=3'.
-#@cli : $ image.jpg 100%,100% ellipse[-1] 30%,30%,40,30,0,1,255 inpaint_flow[0] [1]
-inpaint_flow : check ${is_image_arg\ $1}" && ${2=10}>=0 && ${3=100}>=0 && ${4=5}>0 && ${5=1}>=0 && ${6=3}>=0"
-  e[^-1] "Apply $2x$3 iterations of the inpainting flow on image$?, with mask $1, time step $4, alpha $5 and sigma $6."
-  v - repeat $! pass$1 0 l[$>,-1]
-    r. [0],[0],[0],1,0 inpaint.. [1]
-    repeat $2
-      progress {100*$>/($2-1)}
-      +diffusiontensors.. 0,1,$5,$6,0 *. .. smooth... .,$3,$4,0 rm.
-    done
-    progress 100
-  endl rm. done v +
-
-#@cli inpaint_holes : maximal_area[%]>=0,_tolerance>=0,_is_high_connectivity={ 0 | 1 }
-#@cli : Inpaint all connected regions having an area less than specified value.
-#@cli : Default values: 'maximal_area=4', 'tolerance=0' and 'is_high_connectivity=0'.
-#@cli : $ image.jpg noise 5%,2 +inpaint_holes 8,40
-inpaint_holes : check "${1=4}>=0 && ${2=0}>=0" skip ${3=0}
-  e[^-1] "Inpaint holes with area less than $1 pixels in image$?, with tolerance $2 and "${arg\ 1+!$3,high,low}" connectivity."
-  v - repeat $! l[$>]
-    100%,100%,100%
-    area={if(${is_percent\ $1},$1*w*h*d,$1)}
-    repeat {0,s} sh[0] $> +area. $2,$3 <=. $1 -|[1,-1] rm. done
-    if {im} k[0] whd={w},{h},{d} r 1,1,1,100%,2 r $whd,100%
-    else inpaint[0] [1],0,{2*!$2+!!$3} k[0] fi
-  endl done v +
-
-#@cli inpaint_morpho : [mask]
-#@cli : Inpaint selected images by specified mask using morphological operators.
-#@cli : $ image.jpg 100%,100% ellipse[-1] 30%,30%,40,30,0,1,255 +inpaint_morpho[0] [1]
-inpaint_morpho : check ${is_image_arg\ $1}
-  e[^-1] "Inpaint image$? by mask $1, using morphological operators."
-  v - repeat $! pass$1 0 l[$>,-1]
-    nm={0,n} im={0,im} iM={0,iM} im1={$im-1} iM1={$iM+1}
-    channels. 0 ==. 0
-    +f[0] $im1 j. [0],0,0,0,0,1,..
-    do
-      +dilate. 3
-      replace.. $im1,$iM1
-      erode.. 3
-      replace.. $iM1,$im1
-      +[-2,-1] /. 2
-      j. ...,0,0,0,0,1,..
-    while {im==$im1}
-    k. nm $nm
-  endl done v +
-
-#@cli inpaint_patchmatch : [mask],_nb_scales={ 0=auto | >0 },_patch_size>0,_nb_iterations_per_scale>0,_blend_size>=0,_allow_outer_blending={ 0 | 1 },_is_already_initialized={ 0 | 1 }
-#@cli : Inpaint selected images by specified binary mask, using a multi-scale patchmatch algorithm.
-#@cli : Default values: 'nb_scales=0', 'patch_size=9', 'nb_iterations_per_scale=10', 'blend_size=5', 'allow_outer_blending=1' and 'is_already_initialized=0'.
-#@cli : $ image.jpg 100%,100% ellipse[-1] 30%,30%,40,30,0,1,255 +inpaint_patchmatch[0] [1]
-inpaint_patchmatch : check ${is_image_arg\ $1}"&& ${2=0}>=0 && isint(${3=9}) && $3>0 && isint(${4=10}) && $4>0 && isint(${5=5}) && $5>=0" skip ${6=1},${7=0}
-  e[^-1] "Inpaint image$? with mask $1, using a multiscale patchmatch algorithm with "${"v - if $2 u \"$2 \" else u auto- fi v +"}\
-          "scales, $3x$3 patches, $4 iterations per scale and blending size $5."
-  v - repeat $! pass$1 0 l[$>,-1]
-
-    # Init variables and images.
-    nm={0,n} nm img,mask
-    nb_scales={max(1,round(if($2,$2,log2(min(w,h)/16)),1,1))}
-    visu_size=${fitscreen[]" "{0,w},{0,h},1,25%,50%}
-    slices[img] 0 r[mask] [img],[img],1,1,0 !=[mask] 0
-    if {!$7} inpaint_diffusion[img] [mask],75% fi # Quick first estimate.
-    im={img,im} -[img] $im
-
-    first_iter=1 iter=0
-    repeat $nb_scales
-      scale={100*(0.5^$<)}
-      v + e[] "> Process scale "{1+$>}"/"$nb_scales" -> "$scale% v -
-      progress {100*$>/max(1,$nb_scales-1)}
-
-      # Compute image and mask at current scales.
-      +r[img,mask] $scale%,$scale%,1,100%,2 nm[-2,-1] scaled_img,scaled_mask
-      >=[scaled_mask] 0.95
-      if {scaled_mask,!iM} rm[scaled_img,scaled_mask] continue fi # Skip scale (if too low).
-      +f[scaled_img] -4096 +j[scaled_img] .,0,0,0,0,1,[scaled_mask] rm.. nm. scaled_reference
-
-      coef={0.5^($nb_scales-$iter)}
-      patch_size={v=round(max(min($3,5),$3*$coef));v+(1-(v%2))}
-      patch_size={min(w,h,$patch_size)}
-      blend_size={v=if($5,round(max(3,$5*$coef)));v+(1-(v%2))}
-      iter+=1
-      ==[scaled_mask] 0
-
-      if $first_iter # First iteration.
-
-        # Estimate initial correspondence map.
-        100%,100%,1,1,x +f. y mv[scaled_mask] $! a[-3--1] c
-        patchmatch[scaled_img] [scaled_reference],$patch_size,$patch_size,1,4,4,0,.
-        rm[scaled_reference,-1]
-        nm. correspondence
-        first_iter=0
-
-      else # Standard iteration.
-
-        # Upscale correspondence map from previous scale.
-        *[correspondence] 2 r[correspondence] 200%,200%,1,2 r[correspondence] [scaled_img],[scaled_img],1,2,0,1
-        100%,100%,1,1,x +f. y a[-2,-1] c
-        f[scaled_mask] "*if(i,1,
-                           upc = i(#"$correspondence",x-1,y,0,0); vpc = i(#"$correspondence",x-1,y,0,1);
-                           ucp = i(#"$correspondence",x,y-1,0,0); vcp = i(#"$correspondence",x,y-1,0,1);
-                           ucc = i(#"$correspondence",x,y,0,0); vcc = i(#"$correspondence",x,y,0,1);
-                           i(#-1,x,y,0,0) = (ucc==upc && vcc==vpc)?upc + 1:ucc;
-                           i(#-1,x,y,0,1) = (ucc==ucp && vcc==vcp)?vcp + 1:vcc;
-                           0)"
-        rm[correspondence] nm. correspondence
-        a[correspondence] [scaled_mask],c
-
-        # Refine correspondence map iteratively with patchmatch.
-        nbs1={max(1,$nb_scales-1)}
-        nb_iter={round(max(1,$4*(($<+1)/$nbs1)^2))}
-
-        repeat $nb_iter
-          _inpaint_patchmatch[scaled_img] [correspondence],[scaled_mask],$blend_size,$6
-          +patchmatch[scaled_img] [scaled_reference],$patch_size,$patch_size,1,4,4,0,[correspondence]
-          j[correspondence] . rm.
-          if {*1} w1[scaled_img] $visu_size,0 fi
-          if {*2} w2[correspondence] $visu_size,1 fi
-        done
-        rm[scaled_img,scaled_mask,scaled_reference] channels[correspondence] 0,1
-      fi
-
-    done
-    progress 100
-
-    # Generate final result.
-    if $correspondence
-      ==[mask] 0
-      _inpaint_patchmatch[img] [correspondence],[mask],$5,$6
-      rm[correspondence]
-    fi
-    +[img] $im
-  endl rm[mask] done v +
-
-# _inpaint_patchmatch : [correspondence_map],[mask],blend_size>0,_allow_outer_blending={ 0 | 1 }
-_inpaint_patchmatch :
-  pass$1 1 pass$2 {!$3" || "!$4}
-  if {!$3}
-    warp[0] [1],0,0,1
-  else
-    if $4 erode. $3 fi
-    f[0] "*begin(
-      boundary = 1;
-      const patch_size = $3;
-      const p2 = int(patch_size/2);
-      const p1 = patch_size - p2 - 1;
-      avg = resize([0],s#0);
-
-      # Pre-compute gaussian kernel for patch blending.
-      wpq = resize([0],patch_size^2);
-      g = 0;
-      for (q = -p1, q<=p2, ++q,
-        for (p = -p1, p<=p2, ++p,
-          wpq[g++] = exp(-(p^2 + q^2)/(2*(0.3*patch_size)^2));
-        );
-      );
-    );
-    if (i#2,I,
-      g = 0;
-      avg = 0;
-      norm = 0;
-      for (q = -p1, q<=p2, ++q,
-        for (p = -p1, p<=p2, ++p,
-          U = I(#1,x + p,y + q);
-          w = wpq[g++];
-          norm+=w;
-          avg+=w*I(#0,U[0,2] - [p,q]);
-        );
-      );
-      avg/norm)"
-  fi
-  k[0]
 
 #@cli inpaint_diffusion : [mask],_nb_scales[%]>=0,_diffusion_type={ 0=isotropic | 1=delaunay-guided | 2=edge-guided | 3=mask-guided },_diffusion_iter>=0
 #@cli : Inpaint selected images by specified mask using a multiscale transport-diffusion algorithm.
@@ -10131,6 +10105,211 @@ inpaint_diffusion : check ${is_image_arg\ $1}" && ${2=75%}>=0 && isint(${3=1}) &
     nm. $nm rv[0,-1] rm.
   endl rm. done v +
 
+#@cli inpaint_flow : [mask],_nb_global_iter>=0,_nb_local_iter>=0,_dt>0,_alpha>=0,_sigma>=0
+#@cli : Apply iteration of the inpainting flow on selected images.
+#@cli : Default values: 'nb_global_iter=4', 'nb_global_iter=15', 'dt=10', 'alpha=1' and 'sigma=3'.
+#@cli : $ image.jpg 100%,100% ellipse[-1] 30%,30%,40,30,0,1,255 inpaint_flow[0] [1]
+inpaint_flow : check ${is_image_arg\ $1}" && ${2=10}>=0 && ${3=100}>=0 && ${4=5}>0 && ${5=1}>=0 && ${6=3}>=0"
+  e[^-1] "Apply $2x$3 iterations of the inpainting flow on image$?, with mask $1, time step $4, alpha $5 and sigma $6."
+  v - repeat $! pass$1 0 l[$>,-1]
+    r. [0],[0],[0],1,0 inpaint.. [1]
+    repeat $2
+      progress {100*$>/($2-1)}
+      +diffusiontensors.. 0,1,$5,$6,0 *. .. smooth... .,$3,$4,0 rm.
+    done
+    progress 100
+  endl rm. done v +
+
+#@cli inpaint_holes : maximal_area[%]>=0,_tolerance>=0,_is_high_connectivity={ 0 | 1 }
+#@cli : Inpaint all connected regions having an area less than specified value.
+#@cli : Default values: 'maximal_area=4', 'tolerance=0' and 'is_high_connectivity=0'.
+#@cli : $ image.jpg noise 5%,2 +inpaint_holes 8,40
+inpaint_holes : check "${1=4}>=0 && ${2=0}>=0" skip ${3=0}
+  e[^-1] "Inpaint holes with area less than $1 pixels in image$?, with tolerance $2 and "${arg\ 1+!$3,high,low}" connectivity."
+  v - repeat $! l[$>]
+    100%,100%,100%
+    area={if(${is_percent\ $1},$1*w*h*d,$1)}
+    repeat {0,s} sh[0] $> +area. $2,$3 <=. $1 -|[1,-1] rm. done
+    if {im} k[0] whd={w},{h},{d} r 1,1,1,100%,2 r $whd,100%
+    else inpaint[0] [1],0,{2*!$2+!!$3} k[0] fi
+  endl done v +
+
+#@cli inpaint_morpho : [mask]
+#@cli : Inpaint selected images by specified mask using morphological operators.
+#@cli : $ image.jpg 100%,100% ellipse[-1] 30%,30%,40,30,0,1,255 +inpaint_morpho[0] [1]
+inpaint_morpho : check ${is_image_arg\ $1}
+  e[^-1] "Inpaint image$? by mask $1, using morphological operators."
+  v - repeat $! pass$1 0 l[$>,-1]
+    nm={0,n} im={0,im} iM={0,iM} im1={$im-1} iM1={$iM+1}
+    channels. 0 ==. 0
+    +f[0] $im1 j. [0],0,0,0,0,1,..
+    do
+      +dilate. 3
+      replace.. $im1,$iM1
+      erode.. 3
+      replace.. $iM1,$im1
+      +[-2,-1] /. 2
+      j. ...,0,0,0,0,1,..
+    while {im==$im1}
+    k. nm $nm
+  endl done v +
+
+#@cli inpaint_matchpatch : [mask],_nb_scales={ 0=auto | >0 },_patch_size>0,_nb_iterations_per_scale>0,_blend_size>=0,_allow_outer_blending={ 0 | 1 },_is_already_initialized={ 0 | 1 }
+#@cli : Inpaint selected images by specified binary mask, using a multi-scale matchpatch algorithm.
+#@cli : Default values: 'nb_scales=0', 'patch_size=9', 'nb_iterations_per_scale=10', 'blend_size=5', 'allow_outer_blending=1' and 'is_already_initialized=0'.
+#@cli : $ image.jpg 100%,100% ellipse[-1] 30%,30%,40,30,0,1,255 +inpaint_matchpatch[0] [1]
+inpaint_matchpatch : check ${is_image_arg\ $1}"&& ${2=0}>=0 && isint(${3=9}) && $3>0 && isint(${4=10}) && $4>0 && isint(${5=5}) && $5>=0" skip ${6=1},${7=0}
+  e[^-1] "Inpaint image$? with mask $1, using a multiscale patch-matching algorithm with "${"v - if $2 u \"$2 \" else u auto- fi v +"}\
+          "scales, $3x$3 patches, $4 iterations per scale and blending size $5."
+  v - repeat $! pass$1 0 l[$>,-1]
+
+    # Init variables and images.
+    nm={0,n} nm img,mask
+    nb_scales={max(1,round(if($2,$2,log2(min(w,h)/16)),1,1))}
+    visu_size=${fitscreen[]" "{0,w},{0,h},1,25%,50%}
+    slices[img] 0 r[mask] [img],[img],1,1,0 !=[mask] 0
+    if {!$7} inpaint_diffusion[img] [mask],75% fi # Quick first estimate.
+    im={img,im} -[img] $im
+
+    first_iter=1 iter=0
+    repeat $nb_scales
+      scale={100*(0.5^$<)}
+      v + e[] "> Process scale "{1+$>}"/"$nb_scales" -> "$scale% v -
+      progress {100*$>/max(1,$nb_scales-1)}
+
+      # Compute image and mask at current scales.
+      +r[img,mask] $scale%,$scale%,1,100%,2 nm[-2,-1] scaled_img,scaled_mask
+      >=[scaled_mask] 0.95
+      if {scaled_mask,!iM} rm[scaled_img,scaled_mask] continue fi # Skip scale (if too low).
+      +f[scaled_img] -4096 +j[scaled_img] .,0,0,0,0,1,[scaled_mask] rm.. nm. scaled_reference
+
+      coef={0.5^($nb_scales-$iter)}
+      patch_size={v=round(max(min($3,5),$3*$coef));v+(1-(v%2))}
+      patch_size={min(w,h,$patch_size)}
+      blend_size={v=if($5,round(max(3,$5*$coef)));v+(1-(v%2))}
+      iter+=1
+      ==[scaled_mask] 0
+
+      if $first_iter # First iteration.
+
+        # Estimate initial correspondence map.
+        100%,100%,1,1,x +f. y mv[scaled_mask] $! a[-3--1] c
+        matchpatch[scaled_img] [scaled_reference],$patch_size,$patch_size,1,4,4,0,0,.
+        rm[scaled_reference,-1]
+        nm. correspondence
+        first_iter=0
+
+      else # Standard iteration.
+
+        # Upscale correspondence map from previous scale.
+        *[correspondence] 2 r[correspondence] 200%,200%,1,2 r[correspondence] [scaled_img],[scaled_img],1,2,0,1
+        100%,100%,1,1,x +f. y a[-2,-1] c
+        f[scaled_mask] "*if(i,1,
+                           upc = i(#"$correspondence",x-1,y,0,0); vpc = i(#"$correspondence",x-1,y,0,1);
+                           ucp = i(#"$correspondence",x,y-1,0,0); vcp = i(#"$correspondence",x,y-1,0,1);
+                           ucc = i(#"$correspondence",x,y,0,0); vcc = i(#"$correspondence",x,y,0,1);
+                           i(#-1,x,y,0,0) = (ucc==upc && vcc==vpc)?upc + 1:ucc;
+                           i(#-1,x,y,0,1) = (ucc==ucp && vcc==vcp)?vcp + 1:vcc;
+                           0)"
+        rm[correspondence] nm. correspondence
+        a[correspondence] [scaled_mask],c
+
+        # Refine correspondence map iteratively with matchpatch.
+        nbs1={max(1,$nb_scales-1)}
+        nb_iter={round(max(1,$4*(($<+1)/$nbs1)^2))}
+
+        repeat $nb_iter
+          _inpaint_matchpatch[scaled_img] [correspondence],[scaled_mask],$blend_size,$6
+          +matchpatch[scaled_img] [scaled_reference],$patch_size,$patch_size,1,4,4,0,0,[correspondence]
+          j[correspondence] . rm.
+          if {*1} w1[scaled_img] $visu_size,0 fi
+          if {*2} w2[correspondence] $visu_size,1 fi
+        done
+        rm[scaled_img,scaled_mask,scaled_reference] channels[correspondence] 0,1
+      fi
+
+    done
+    progress 100
+
+    # Generate final result.
+    if $correspondence
+      ==[mask] 0
+      _inpaint_matchpatch[img] [correspondence],[mask],$5,$6
+      rm[correspondence]
+    fi
+    +[img] $im
+  endl rm[mask] done v +
+
+# _inpaint_matchpatch : [correspondence_map],[mask],blend_size>0,_allow_outer_blending={ 0 | 1 }
+_inpaint_matchpatch :
+  pass$1 1 pass$2 {!$3" || "!$4}
+  if {!$3}
+    warp[0] [1],0,0,1
+  else
+    if $4 erode. $3 fi
+    f[0] "*begin(
+      boundary = 1;
+      const patch_size = $3;
+      const p2 = int(patch_size/2);
+      const p1 = patch_size - p2 - 1;
+      avg = resize([0],s#0);
+
+      # Pre-compute gaussian kernel for patch blending.
+      wpq = resize([0],patch_size^2);
+      g = 0;
+      for (q = -p1, q<=p2, ++q,
+        for (p = -p1, p<=p2, ++p,
+          wpq[g++] = exp(-(p^2 + q^2)/(2*(0.3*patch_size)^2));
+        );
+      );
+    );
+    if (i#2,I,
+      g = 0;
+      avg = 0;
+      norm = 0;
+      for (q = -p1, q<=p2, ++q,
+        for (p = -p1, p<=p2, ++p,
+          U = I(#1,x + p,y + q);
+          w = wpq[g++];
+          norm+=w;
+          avg+=w*I(#0,U[0,2] - [p,q]);
+        );
+      );
+      avg/norm)"
+  fi
+  k[0]
+
+# _inpaint_warping2d : fill-in zero-valued vectors in absolute 2d warping field (works even when 'spectrum>2').
+_inpaint_warping2d :
+  repeat $! l[$>]
+    100%,100%,100%,2,"> begin(const S = s#0; zero0 = vectorS(); zero1 = [0,0]; N = 0); I(#-1)==zero0?zero1:[++N,1]"
+    s. c distance. 1 *. -1
+    watershed.. . rm.
+
+    # Propagate offsets in each distinct voronoi cell.
+    repeat 2
+      f.. ">i?I:( # Forward propagation
+        nP = vectors();
+        const sP = size(nP);
+        r = i(#-1);
+        (P = J(-1,-1))[0] && j(#-1,-1,-1)==r?(nP[0] = ++P[0]; nP[1] = ++P[1]; sP>2?copy(nP[2],P[2],sP-2)):
+        (P = J(0,-1))[0] && j(#-1,0,-1)==r  ?(nP[0] = P[0];   nP[1] = ++P[1]; sP>2?copy(nP[2],P[2],sP-2)):
+        (P = J(1,-1))[0] && j(#-1,1,-1)==r  ?(nP[0] = --P[0]; nP[1] = ++P[1]; sP>2?copy(nP[2],P[2],sP-2)):
+        (P = J(-1,0))[0] && j(#-1,-1,0)==r  ?(nP[0] = ++P[0]; nP[1] = P[1]; sP>2?copy(nP[2],P[2],sP-2));
+        nP)"
+      f.. "<i?I:( # Backward propagation
+        nP = vectors();
+        const sP = size(nP);
+        r = i(#-1);
+        (P = J(1,1))[0] && j(#-1,1,1)==r  ?(nP[0] = --P[0]; nP[1] = --P[1]; sP>2?copy(nP[2],P[2],sP-2)):
+        (P = J(0,1))[0] && j(#-1,0,1)==r  ?(nP[0] = P[0];   nP[1] = --P[1]; sP>2?copy(nP[2],P[2],sP-2)):
+        (P = J(-1,1))[0] && j(#-1,-1,1)==r?(nP[0] = ++P[0]; nP[1] = --P[1]; sP>2?copy(nP[2],P[2],sP-2)):
+        (P = J(1,0))[0] && j(#-1,1,0)==r  ?(nP[0] = --P[0]; nP[1] = P[1]; sP>2?copy(nP[2],P[2],sP-2));
+        nP)"
+    done
+    rm.
+  endl done
+
 #@cli kuwahara : size>0
 #@cli : Apply Kuwahara filter of specified size on selected images.
 #@cli : $ image.jpg +kuwahara 5
@@ -10161,7 +10340,7 @@ kuwahara : check $1>0
 #@cli : Compute Laplacian of selected images.
 #@cli : $ image.jpg laplacian
 laplacian :
-  e[^-1] "Compute Laplacian of image $?."
+  e[^-1] "Compute Laplacian of image$?."
   v - repeat $! l[$>]
     hessian ${arg\ 1+(d==1),xxyyzz,xxyy} +
   endl done v +
@@ -10382,13 +10561,8 @@ periodize_poisson :
   e[^-1] "Periodize image$? using Poisson solver in Fourier space."
   v - repeat $! l[$>]
     s c repeat $! l[$>]
-      mM={[im,iM]} sum={0,is}
-      laplacian fft.
-      if {d==1} 100%,100%,1,1,'-(4-2*cos(2*x*pi/w)-2*cos(2*y*pi/h))' # 2D version.
-      else 100%,100%,100%,1,'-(6-2*cos(2*x*pi/w)-2*cos(2*y*pi/h)-2*cos(2*z*pi/d))' # 3D version.
-      fi
-      =. 1 /[-3,-2] . rm. =.. $sum =. 0
-      ifft rm. c $mM
+      mM={[im,iM]} sum={0,ia}
+      laplacian ilaplacian 0 + $sum c $mM
     endl done a c
   endl done v +
 
@@ -10625,12 +10799,12 @@ syntexturize : check "${1=100%}>0 && ${2=$1}>0"
 
   endl done v +
 
-#@cli syntexturize_patchmatch : _width[%]>0,_height[%]>0,_nb_scales>=0,_patch_size>0,_blending_size>=0,_precision>=0
+#@cli syntexturize_matchpatch : _width[%]>0,_height[%]>0,_nb_scales>=0,_patch_size>0,_blending_size>=0,_precision>=0
 #@cli : Resynthetize 'width'x'height' versions of selected micro-textures using a patch-matching algorithm.
 #@cli : If 'nbscales==0', the number of scales used is estimated from the image size.
 #@cli : Default values: 'width=height=100%', 'nb_scales=0', 'patch_size=7', 'blending_size=5' and 'precision=1'.
-#@cli : $ image.jpg crop 25%,25%,75%,75% syntexturize_patchmatch 512,512
-syntexturize_patchmatch : check "${1=100%}>0 && ${2=$1}>0 && isint(${3=0}) && $3>=0 && isint(${4=7}) && $4>0 && ${5=5}>=0 && ${6=1}>=0"
+#@cli : $ image.jpg crop 25%,25%,75%,75% syntexturize_matchpatch 512,512
+syntexturize_matchpatch : check "${1=100%}>0 && ${2=$1}>0 && isint(${3=0}) && $3>=0 && isint(${4=7}) && $4>0 && ${5=5}>=0 && ${6=1}>=0"
   e[^-1] "Resynthetize $1x$2 version(s) of texture$? using a patch-matching algorithm with "${"v - if $3 u \"$3 \" else u auto- fi v +"}"scales, $4x$4 patches, blending size $5 and precision $6."
   v - repeat $! l[$>]
     nb_scales={round(if($3,$3,log2(min(w,h)/16)),1,1)}
@@ -10675,18 +10849,19 @@ syntexturize_patchmatch : check "${1=100%}>0 && ${2=$1}>0 && isint(${3=0}) && $3
       # Synthesis.
       psize={-2,min(w,h,$4)}
       repeat {1+$6*$<}
-        +_syntexturize_patchmatch.. .,{int(max(3,$5*$scale%))}
-        patchmatch. ...,$psize,$psize,1,4,4,0,.. rm..
+        psynth={int(max(3,$5*$scale%))}
+        +warp_patch.. .,$psynth
+        matchpatch. ...,$psize,$psize,1,4,4,0,0,.. rm..
       done
       rm..
 
     done
-    _syntexturize_patchmatch.. .,$5
+    warp_patch.. .,$5
     rm. r $width,$height,1,100%,0,0,0.5,0.5
   endl done v +
 
-# _syntexturize_patchmatch : [correspondence_map],blend_size>0
-_syntexturize_patchmatch : check ${is_image_arg\ $1}" && isint(${2=3}) && $2>=0"
+# _syntexturize_matchpatch : [correspondence_map],blend_size>0
+_syntexturize_matchpatch : check ${is_image_arg\ $1}" && isint(${2=3}) && $2>=0"
   if {$2<=1} pass$1 warp[^-1] .,0 rm.
   else repeat $! pass$1 l[$>,-1]
     [1],[1],1,[0]
@@ -11197,16 +11372,14 @@ patches : check "isint($1) && $1>0 && isint($2) && $2>0 && isint($3) && $3>0"
   repeat $! l[$<] s y,$H s x,$W k[0-{$N-1}] endl done
   v +
 
-#@cli patchmatch : [patch_image],patch_width>=1,_patch_height>=1,_patch_depth>=1,_nb_iterations>=0,_nb_randoms>=0,_output_score={ 0 | 1 },_[guide] : (+)
+#@cli matchpatch : [patch_image],patch_width>=1,_patch_height>=1,_patch_depth>=1,_nb_iterations>=0,_nb_randoms>=0,_occ_penalization,_output_score={ 0 | 1 },_[guide] : (+)
 #@cli : Estimate correspondence map between selected images and specified patch image, using
-#@cli : the patchmatch algorithm, as described in the paper :
-#@cli : "PatchMatch: A Randomized Correspondence Algorithm for Structural Image Editing", by
-#@cli : Connelly Barnes, Eli Shechtman, Adam Finkelstein, Dan B Goldman(2009).
+#@cli : a patch-matching algorithm.
 #@cli : Each pixel of the returned correspondence map gives the location (p,q) of the closest patch in
-#@cli : the specified patch image. If 'output_score=1', the third channel gives the corresponding
+#@cli : the specified patch image. If 'output_score=1', the third channel also gives the corresponding
 #@cli : matching score for each patch as well.
-#@cli : Default values: 'patch_height=patch_width', 'patch_depth=1', 'nb_iterations=5', 'nb_randoms=5', 'output_score=0' and 'guide=(undefined)'.
-#@cli : $ image.jpg sample ? to_rgb +patchmatch[0] [1],3 +warp[-2] [-1],0
+#@cli : Default values: 'patch_height=patch_width', 'patch_depth=1', 'nb_iterations=5', 'nb_randoms=5', 'occ_penalization=0', 'output_score=0' and 'guide=(undefined)'.
+#@cli : $ image.jpg sample ? to_rgb +matchpatch[0] [1],3 +warp[-2] [-1],0
 
 #@cli plot2value
 #@cli : Retrieve values from selected 2D graph plots.
@@ -11304,56 +11477,58 @@ segment_watershed : check "${1=2}>=0"
   v - repeat $! l[$>]
     min={im}
     + {1+$min} +gradient_norm
-    if {d>1} +f. "if(i<$1 && i<j(1) && i<j(-1) && i<j(0,1) && i<j(0,-1) && i<j(0,0,1) && i<j(0,0,-1),1,0)"
-    else +f. "if(i<$1 && i<j(1) && i<j(-1) && i<j(0,1) && i<j(0,-1),1,0)"
-    fi
+    +f. "i<$1 && i<j(1) && i<j(-1) && i<j(0,1) && i<j(0,-1) && (d<=1?1:i<j(0,0,1) && i<j(0,0,-1))"
     *[-3,-1] *. -1 watershed.. . rm.
     - {1+$min}
   endl done v +
 
-#@cli shape2bump : _resolution>=0,0<=_weight_avg_max_avg<=1,_dilation
+#@cli shape2bump : _resolution>=0,0<=_weight_avg_max_avg<=1,_dilation,_smoothness>=0
 #@cli : Estimate bumpmap from binary shape in selected images.
-#@cli : Default value: 'resolution=256', 'weight_avg_max=0.75' and 'dilation=0'.
-shape2bump : check "isint(${1=256}) && $1>=0 && ${2=0.75}>=0 && $2<=1 && isval(${3=0})"
-  e[^-1] "Estimate bumpmap from binary shape in image$?, using "${"if $1 u \"resolution $1\" else u \"full resolution\" fi"}", avg/max weight $2 and dilation $3."
-  v - repeat $! l[$>]
-    norm > 0
-    siz={[w,h]}
+#@cli : Default value: 'resolution=256', 'weight_avg_max=0.75', 'dilation=0' and 'smoothness=100'.
+shape2bump : check "isint(${1=256}) && $1>=0 && ${2=0.75}>=0 && $2<=1 && isval(${3=0}) && ${4=100}>=0"
+  e[^-1] "Estimate bumpmap from binary shape in image$?, using "${"v - if $1 u \"resolution $1\" else u \"full resolution\" fi v +"}", avg/max weight $2, dilation $3 and smoothness $4."
+  v - repeat $!
+    +l[$>]
+      norm > 0
+      siz={[w,h]}
 
-    # Generate skeleton.
-    distance 0 + $3
-    +f. "const boundary = 1; (i>j(-1)&&i>j(1)) || (i>j(0,-1)&&i>j(0,1)) || (i>j(-1,-1)&&i>j(1,1)) || (i>j(-1,1)&&i>j(1,-1))"
+      # Generate skeleton.
+      distance 0 + $3
+      +f. "const boundary = 1; (i>j(-1)&&i>j(1)) || (i>j(0,-1)&&i>j(0,1)) || (i>j(-1,-1)&&i>j(1,1)) || (i>j(-1,1)&&i>j(1,-1))"
 
-    # Downsize for faster computation.
-    is_resized=0
-    if {$1" && "max(w,h)>$1} rr2d $1,$1,0,2 gt. 0 thinning. 1 *.. {$1/max($siz)} is_resized=1 fi
+      # Downsize for faster computation.
+      is_resized=0
+      if {$1" && "max(w,h)>$1} rr2d $1,$1,0,2 gt. 0 thinning. 1 *.. {$1/max($siz)} is_resized=1 fi
 
-    # Generate z-map.
-    +f. 0 .x2
-    f[1] "*if (i,
-      r = i(#0,x,y);
-      ir = floor(r);
-      r2 = r^2;
-      for (q = -ir, q<=ir, ++q,
-        Y = y + q;
-        for (p = -ir, p<=ir, ++p,
-          X = x + p;
-          dist = norm(p,q);
-          if (dist<r,
-            elev = sqrt(r2 - dist^2);
-            i(#2,X,Y) = max(i(#2,X,Y),elev);
-            if ($2<1, i(#3,X,Y) += elev; ++i(#4,X,Y));
-          );
-        )
-      );
-    ); i"
+      # Generate z-map.
+      +f. 0 .x2
+      f[1] "*if (i,
+        r = i(#0,x,y);
+        ir = floor(r);
+        r2 = r^2;
+        for (q = -ir, q<=ir, ++q,
+          Y = y + q;
+          for (p = -ir, p<=ir, ++p,
+            X = x + p;
+            dist = norm(p,q);
+            if (dist<r,
+              elev = sqrt(r2 - dist^2);
+              i(#2,X,Y) = max(i(#2,X,Y),elev);
+              if ($2<1, i(#3,X,Y) += elev; ++i(#4,X,Y));
+            );
+          )
+        );
+      ); i"
 
-    if {$2<1} M={-3,iM} max. 1 /[-2,-1] n. 0,$M j. ..,0,0,0,0,$2
-    else rm[-2,-1]
-    fi
+      if {$2<1} M={-3,iM} max. 1 /[-2,-1] n. 0,$M j. ..,0,0,0,0,$2
+      else rm[-2,-1]
+      fi
+      k.
+      if $is_resized *. {max([$siz]/[w,h])} r $siz,1,1,5 c 0,100% fi
+    endl
+    if $4 M={iM} (1^0^1) r. [0],[0] !=[0] 0 *. [0] smooth.. .,$4,0.1,0 rm. b. 0.5 n. 0,$M fi # Smooth bumpmap
     k.
-    if $is_resized *. {max([$siz]/[w,h])} r $siz,1,1,5 c 0,100% fi
-  endl done v +
+  done v +
 
 #@cli skeleton : _boundary_conditions={ 0=dirichlet | 1=neumann }
 #@cli : Compute skeleton of binary shapes using distance transform and constrained thinning.
@@ -11597,7 +11772,6 @@ thinning : check "!isval(${1=1}) || ($1>=0 && $1<=1)"
         N = dar_size(#2);
         for (n = 0, n<N, ++n, i(#0,I[#2,n]) = 0);
         i[#2,h(#2)-1] = 0;
-
         ++it;
         _(while), max(is_removed)
       );"
@@ -11854,6 +12028,12 @@ ball : check "${1=64}>0 && ${5=0.8}>=0 && $5<=8 && ${6=1}>=0 && $6<=8 && ${7=1.5
   r $1,$1,1,4,2
   endl v +
 
+# chromeball64x64 : Output a 64x64 GreyA chrome ball sprite.
+# ${1-3} = R,G,B
+chromeball64x64 :
+  base642img[] "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"
+  s. c +apply_gamma.. 0.05 b. 3 n. 0,150 n... 0,1 i[-4] 100%,100%,1,3 fc[-4] ${1-3} *[-4,-3] +[-3,-1] c.. 0,255 a[-2,-1] c
+
 #@cli chessboard : size1>0,_size2>0,_offset1,_offset2,_angle,_opacity,_color1,...,_color2,...
 #@cli : Draw chessboard on selected images.
 #@cli : Default values: 'size2=size1', 'offset1=offset2=0', 'angle=0', 'opacity=1', 'color1=0' and 'color2=255'.
@@ -11928,13 +12108,11 @@ circle : skip ${4=1},${5=0},${6=0}
   fi
   v - ellipse $1,$2,$3,$3,0,${4--1} v +
 
-#@cli close_binary : 0<=_endpoint_rate<=100,_endpoint_connectivity>=0,_spline_distmax>=0,_segment_distmax>=0,0<=_spline_anglemax<=180,_spline_roundness>=0,_area_min>=0,_allow_self_intersection={ 0 | 1 },0<=_hd_detection_rate<=1,0<=_hd_angle<=180,_hd_grouping_dist>=0,0<=_hd_grouping_angle<=180,0<=_hd_grouping_ratio<=1
+#@cli close_binary : 0<=_endpoint_rate<=100,_endpoint_connectivity>=0,_spline_distmax>=0,_segment_distmax>=0,0<=_spline_anglemax<=180,_spline_roundness>=0,_area_min>=0,_allow_self_intersection={ 0 | 1 }
 #@cli : Automatically close open shapes in binary images (defining white strokes on black background).
-#@cli : Parameter names starting with 'hd_' are related to the hatch detection algorithm. Set 'hd_detection_rate>0' to disable this module.
-#@cli : Default values: 'endpoint_rate=85', 'endpoint_connectivity=2', 'spline_distmax=80', 'segment_distmax=20', 'spline_anglemax=90', 'spline_roundness=1','area_min=100', 'allow_self_intersection=1', 'hd_detection_rate=0', 'hd_angle=25', 'hd_grouping_dist=64', 'hd_grouping_angle=5' and 'hd_grouping_ratio=0.2'.
+#@cli : Default values: 'endpoint_rate=75', 'endpoint_connectivity=2', 'spline_distmax=80', 'segment_distmax=20', 'spline_anglemax=90', 'spline_roundness=1','area_min=100', 'allow_self_intersection=1'.
 close_binary :
-  check "${1=85}>=0 && $1<=100 && ${2=2}>=0 && ${3=80}>=0 && ${4=20}>=0 && ${5=90}>=0 && $5<=180 && ${6=1}>=0 && ${7=100}>=0 && isval(${8=1})"
-  check "${9=0}>=0 && $9<=1 && ${10=25}>=0 && $10<=180 && ${11=64}>=0 && ${12=5}>=0 && $12<=180 && ${13=0.2}>=0 && $13<=1"
+  check "${1=75}>=0 && $1<=100 && ${2=2}>=0 && ${3=80}>=0 && ${4=20}>=0 && ${5=90}>=0 && $5<=180 && ${6=1}>=0 && ${7=100}>=0 && isval(${8=1})"
   e[^-1] "Close open shapes in binary image$?, with endpoint rate $1, endpoint connectivity $2, spline max distance $3, segment max distance $4, spline max angle $5, "\
           "spline roundness $6, area min $7 and self intersections "${"arg 1+!$8,allowed,\"not allowed\""}"."
 
@@ -11948,12 +12126,6 @@ close_binary :
   spline_roundness=$6
   area_min=$7                       # in px
   allow_self_intersections={!!$8}   # 0 or 1
-
-  hd_detection_rate=$9              # in [0,1]
-  hd_angle=$10                      # in deg
-  hd_grouping_dist=$11              # in px
-  hd_grouping_angle=$12             # in deg
-  hd_grouping_ratio=$13             # in [0,1]
 
   # Define useful functions to navigate through edgels.
   _edgel_lib="
@@ -12006,13 +12178,13 @@ close_binary :
     # Extract primary edgel normals.
     i[e_normals] 100%,100%,1,4,"
       N = crop(#"$strokes",x - 1,y - 1,0,0,3,3,1,1,1);
-      N[4]?[ N[5]?-1:0, N[7]?-1:90, N[3]?-1:180, N[1]?-1:270 ]:[-1,-1,-1,-1];
+      N[4]?[ N[5]?-2:0, N[7]?-2:90, N[3]?-2:180, N[1]?-2:270 ]:[-2,-2,-2,-2];
     "
 
     # Smooth edgel normals.
     f[e_normals] $_edgel_lib"
       const boundary = 1;
-      if (i<0,-1,
+      i<-1?-2:(
         ppos = npos = pos = [ x,y,c ];
         u = vec(pos);
         for (t = 1, t<=5, ++t,
@@ -12020,17 +12192,16 @@ close_binary :
           npos = next(#"$strokes",npos);
           if (ppos==npos, break());
           w = exp(-t^2/30);
-          u+=w*vec(npos);
           u+=w*vec(ppos);
+          u+=w*vec(npos);
         );
         ang = (atan2(u[1],u[0])*180/pi)%360;
       )"
 
-    # Estimate edgel curvature.
+    # Estimate edgel curvatures.
     +f[e_normals] $_edgel_lib"
       const boundary = 1;
-      kappa = 0;
-      if (i<0,-1,
+      i<-1?-2:(
         pos = [ x,y,c ];
         ppos = previous(#"$strokes",pos);
         npos = next(#"$strokes",pos);
@@ -12038,13 +12209,61 @@ close_binary :
         nu = vec(npos);
         du = (nu - pu)/2;
         cr = cross([vec(pos),0],[du,0]);
-        if (cr[2]>=0, kappa = norm(du));
-      ); kappa"
+        norm(du)*sign(cr[2]);
+      )"
     nm. e_curvatures
 
+    # Smooth edgel curvatures.
+    +f[e_curvatures] $_edgel_lib"
+      const boundary = 1;
+      i<-1?-2:(
+        ppos = npos = pos = [ x,y,c ];
+        val = i; sumw = 1;
+        for (t = 1, t<=5, ++t,
+          ppos = previous(#"$strokes",ppos);
+          npos = next(#"$strokes",npos);
+          if (ppos==npos, break());
+          w = exp(-t^2/30);
+          val+=w*i(ppos[0],ppos[1],0,ppos[2]);
+          val+=w*i(npos[0],npos[1],0,npos[2]);
+          sumw+=2*w;
+        );
+        val/sumw;
+      )"
+    nm. e_smooth_curvatures
+
+    # Estimate stroke radius.
+    +distance[strokes] 0
+    f. "
+      i<1-0.01||i>1+0.01?0:(
+        p = x; q = y; d = 1;
+        for (is_better = 1, is_better && d<32,
+          next_p = p;
+          next_q = q;
+          is_better = 0;
+          pp = p - 1;
+          np = p + 1;
+          pq = q - 1;
+          nq = q + 1;
+          (nd = i(pp,pq))>d?(d = nd; next_p = pp; next_q = pq; is_better = 1);
+          (nd = i(p, pq))>d?(d = nd; next_p = p;  next_q = pq; is_better = 1);
+          (nd = i(np,pq))>d?(d = nd; next_p = np; next_q = pq; is_better = 1);
+          (nd = i(pp,q))>d?(d = nd; next_p = pp; next_q = q; is_better = 1);
+          (nd = i(np,q))>d?(d = nd; next_p = np; next_q = q; is_better = 1);
+          (nd = i(pp,nq))>d?(d = nd; next_p = pp; next_q = nq; is_better = 1);
+          (nd = i(p, nq))>d?(d = nd; next_p = p;  next_q = nq; is_better = 1);
+          (nd = i(np,nq))>d?(d = nd; next_p = np; next_q = nq; is_better = 1);
+          p = next_p;
+          q = next_q;
+        );
+        d)"
+    nm. stroke_radii
+
     # Detect end points.
+    compose_channels[e_smooth_curvatures] max nm[e_smooth_curvatures] smooth_curvatures
     +compose_channels[e_curvatures] max nm. curvatures
-    +>=[curvatures] {$endpoint_threshold%}
+
+    f. "i(#"$smooth_curvatures")>=("$endpoint_threshold"%)/(max(1,i(#"$stroke_radii"))) || i>=max(0.25,"$endpoint_threshold"%)"
     label_fg. 0,1 nm. keypoints
     if {iM>0}
       {iM},1,1,3,-1 nm. keycoords
@@ -12053,23 +12272,16 @@ close_binary :
         if (i,
           j = i - 1;
           old_max = I[#"$keycoords",j];
-          kappa = i(#"$curvatures");
+          kappa = i(#"$smooth_curvatures");
           if (kappa>old_max[2],
             I[#"$keycoords",j] = [ x,y,kappa ];
             i(#"$keypoints",old_max[0],old_max[1]) = 0;
             ret = 1;
           );
         ); ret"
-      channels[keycoords] 0,3 # Channels 2, 3 = number of connexions and normal angle for each keypoint.
+      channels[keycoords] 0,3 # Channels 2,3 = number of connexions and normal angle for each keypoint.
     fi
-    rm[curvatures,keypoints]
-
-    # Remove hatch keypoints if requested.
-    if {narg($keycoords)" && "$hd_detection_rate>0}
-      _close_binary[strokes] $endpoint_threshold,$hd_detection_rate,$hd_angle,$hd_grouping_dist,$hd_grouping_angle,$hd_grouping_ratio
-      f[keycoords] "begin(dis = vectors(-1)); P = (I)[0,2]; i(#"$keydiscard",P)?dis:I";
-      rm[keydiscard] discard[keycoords] -1 r[keycoords] {keycoords,[h/4,1,1,4]},-1
-    fi
+    rm[smooth_curvatures,stroke_radii,keypoints]
 
     # Estimate point normals.
     if {!narg($keycoords)}
@@ -12081,7 +12293,7 @@ close_binary :
         U = [ 0,0 ];
         for (k = 0, k<size(angles), ++k,
           if (angles[k]>=0,
-            w = max(1e-8,i(#"$e_curvatures",P[0],P[1],0,k)^2);
+            w = max(1e-8,i(#"$e_curvatures",P[0],P[1],0,k))^2;
             ang = angles[k]*pi/180;
             U += w*[ cos(ang),sin(ang) ];
           );
@@ -12306,267 +12518,6 @@ close_binary :
     rm[strokes]
     nm[new_strokes] $nm
   endl done v +
-
-# Hatches detection system for the 'close_binary' algorithm.
-# Selected input image must be the binary image of strokes (named 'strokes').
-# Return binary image of keypoints to ignore.
-_close_binary :
-  endpoint_threshold=$1
-  hd_detection_rate={max(0.001,1-$2)}
-  hd_angle=$3
-  hd_grouping_dist=$4
-  hd_grouping_angle=$5
-  hd_grouping_ratio=$6
-
-  # Extract primary edgel normals.
-  i[e_normals] 100%,100%,1,4,"
-    N = crop(#"$strokes",x - 1,y - 1,0,0,3,3,1,1,1);
-    N[4]?[ N[5]?-1:0, N[7]?-1:90, N[3]?-1:180, N[1]?-1:270 ]:[-1,-1,-1,-1];
-  "
-  # Smooth edgel normals.
-  f[e_normals] $_edgel_lib"
-    if (i<0,-1,
-      ppos = npos = pos = [ x,y,c ];
-      u = vec(pos);
-      for (t = 1, t<=5, ++t,
-        ppos = previous(#"$strokes",ppos);
-        npos = next(#"$strokes",npos);
-        if (ppos==npos, break());
-        w = exp(-t^2/30);
-        u+=w*vec(npos);
-        u+=w*vec(ppos);
-      );
-      ang = (atan2(u[1],u[0])*180/pi)%360;
-    )"
-
-  # Estimate edgel curvatures (both positive and negative)
-  +f[e_normals] $_edgel_lib"
-    kappa = 0;
-    if (i<0,-1,
-      pos = [ x,y,c ];
-      ppos = previous(#"$strokes",pos);
-      npos = next(#"$strokes",pos);
-      pu = vec(ppos);
-      nu = vec(npos);
-      du = (nu - pu)/2;
-      cr = cross([vec(pos),0],[du,0]);
-      kappa = sign(cr[2])*norm(du);
-    ); kappa"
-  nm. e_curvatures
-
-  # Compute pointwise high curvature points (both positive and negative).
-  +min[e_curvatures] 0 *. -1
-  max[e_curvatures] 0
-  compose_channels[-2,-1] max
-  nm[-2,-1] pos_curvatures,neg_curvatures
-
-  # Detect positive and negative curvature keypoints.
-  l[pos_curvatures]
-    +>= {$endpoint_threshold%} label_fg. 0,1 iM={iM}
-    if {$iM>0}
-      $iM,1,1,3,-1
-      f.. "> # Keep only a single point on connected regions of high curvatures.
-        ret = 0;
-        if (i,
-          j = i - 1;
-          old_max = I[#2,j];
-          kappa = i(#0);
-          if (kappa>old_max[2],
-            I[#2,j] = [ x,y,kappa ];
-            i(#1,old_max[0],old_max[1]) = 0;
-            ret = i;
-          );
-        ); ret"
-    fi
-    k.
-  endl
-
-  l[neg_curvatures]
-    >= {$endpoint_threshold%}
-    f "N = crop(x-1,y-1,3,3,0); i && sum(N)==2"
-    f "N = crop(x-1,y-1,3,3,0); (i && sum(N)==1) || (i && (N[5] || N[7] || N[8]))"
-    label_fg 0 {iM},1,1,3
-    f.. "begin(off = 0); if(i, I[#-1,off++] = [ x,y,-1]); i"
-    k.
-  endl
-  a[-2,-1] x nm. keycoords
-  i[keypoints] [e_normals],[e_normals]
-  f[keycoords] "P = I; i(#-1,P[0],P[1]) = 1 + x; I"
-
-  # Manage visualization.
-  if {narg($_debug)}
-    i[visu] [strokes]
-    vfact=3
-    r[visu] {$vfact*[w,h]},1,3 n. 0,128
-    $vfact,$vfact,1,1,x+y n. 0.6,0.75
-    line. 0,0,{w-2},0,1,0.5 line. 0,0,0,{h-1},1,0.5
-    line. 1,{h-1},{w-1},{h-1},1,1 line. {w-1},0,{w-1},{h-1},1,1
-    r. ..,0,2 *[-2,-1]
-    f[keycoords] "
-      _I = I;
-       P = int("$vfact"*(_I[0,2]+0.5));
-       col = _I[2]>0?[128,255,0]:[255,64,0];
-       r = "$vfact"/2;
-       ellipse(#"$visu",P,r,r,0,0.5,col);
-       I(#-1,P) = [ 255,255,255 ];
-    I"
-  fi
-
-  # Voting process to detect segments.
-  channels[keycoords] 0,1
-  i[vote] {keycoords,[w,w]},1,2
-
-  f[e_normals] $_edgel_lib"
-    const ang_th = cos("$hd_angle"*pi/180);
-    if (i>=0,
-      breakpoint();
-      pos0 = [ x,y,c ];
-      if (!i(#"$keypoints",pos0[0,2]),
-        N0 = vec(pos0);
-
-        # Forward loop.
-        pos = pos0; Lf = Vf = 0;
-        do (
-          N = vec(pos);
-          if (dot(N,N0)>ang_th, ++Vf);
-          ++Lf;
-          pos = next(#"$strokes",pos);
-          Kf = i(#"$keypoints",pos[0],pos[1]);
-          if (Lf>32 && Vf/Lf<0.75, break()); # Allow considerable speedup
-        _(while), !Kf && pos!=pos0
-        );
-
-        # Backward loop.
-        pos = pos0; Lb = Vb = 0;
-        do (
-          pos = previous(#"$strokes,"pos);
-          Kb = i(#"$keypoints",pos[0],pos[1]);
-          if (!Kb,
-            N = vec(pos);
-            if (dot(N,N0)>ang_th, ++Vb);
-            ++Lb;
-          );
-          if (Lb>32 && Vb/Lb<0.75, break()); # Allow considerable speedup
-        _(while), !Kb && pos!=pos0);
-
-        if (Kf && Kb && Kf!=Kb,
-          --Kf; --Kb;
-          critical(
-            i(#"$vote",Kf,Kb,0,0)+=(Vf + Vb)/(Lf + Lb);
-            ++i(#"$vote",Kf,Kb,0,1);
-          );
-        );
-      );
-    ); i"
-  rm[keypoints]
-
-  l[vote] s c max. 1 / >= $hd_detection_rate endl
-  is={is} if {!$is} k[strokes] i[keydiscard] [strokes],[strokes] return fi
-
-  i[keylines] $is,1,1,2
-  f[vote] "begin(off = 0); if (i,I[#-1,off++] = [x,y]); i"
-  rm[vote]
-
-  # Manage visualization (2).
-  if {narg($_debug)}
-    f[keylines] "> # Draw segments on visu image.
-      _I = I;
-      i0 = _I[0];
-      i1 = _I[1];
-      P0 = I[#"$keycoords",i0];
-      P1 = I[#"$keycoords",i1];
-      (P0+=0.5)*=w#"$visu"/w#"$strokes";
-      (P1+=0.5)*=w#"$visu"/w#"$strokes";
-      polygon(#"$visu",2,P0,P1,0.5,[255,255,255]);
-      I"
-  fi
-
-  # Detect groups of hatches.
-  [keylines],1,1,1,-1 a[keylines,-1] c
-  f[keylines] ">"${-math_lib}"
-    is_proj_in(X,A,B) = ( # Test if projected of point X on (AB) belongs to segment [A,B]
-      pX = proj(X,A,B);
-      dot(pX - A,pX - B)<=0;
-    );
-
-    _I = I;
-    i0 = _I[0];
-    i1 = _I[1];
-    parent = _I[2]<0?x:_I[2];
-
-    P0 = I[#"$keycoords",i0];
-    P1 = I[#"$keycoords",i1];
-    dP = P1 - P0;
-    ndP = norm(dP);
-
-    for (k = x + 1, k<w, ++k,
-      breakpoint();
-      _J = I[k]; j0 = _J[0]; j1 = _J[1]; p = _J[2];
-      Q0 = I[#"$keycoords",j0];
-      Q1 = I[#"$keycoords",j1];
-      dQ = Q1 - Q0;
-      ndQ = norm(dQ);
-
-      dist = dist(P0,P1,Q0,Q1);
-      dot = dot(dP,dQ)/(ndP*ndQ);
-      ang = acos(dist>0?abs(dot):(P0==Q0 || P1==Q1)?dot:-dot)*180/pi; # Manage also connected segments (duplicate point).
-      ratio = min(ndP,ndQ)/max(ndP,ndQ);
-      nb_projs = is_proj_in(P0,Q0,Q1) + is_proj_in(P1,Q0,Q1) + is_proj_in(Q0,P0,P1) + is_proj_in(Q1,P0,P1);
-
-      if (dist<="$hd_grouping_dist" && ang<="$hd_grouping_angle" && ratio>="$hd_grouping_ratio" && nb_projs>=1,
-        if (p<0,  # Had no parents before
-          i(k,0,0,2) = parent;
-        _(else),  # Had a parent before
-          minp = min(parent,p);
-          for (l = 0, l<w, ++l, tp = i(l,0,0,2); if (tp==p || tp==parent, i(l,0,0,2) = minp)); # Reparent segments
-          parent = minp;
-        );
-      );
-    );
-    [ i0,i1,parent ]"
-
-  +channels[keylines] 100% histogram. {w},0,{w-1} a[keylines,-1] c
-
-  # Generate map of removed keypoints.
-  i[keydiscard] [strokes],[strokes]
-  f[keylines] "
-     _I = I;
-     i0 = _I[0];
-     i1 = _I[1];
-     par = _I[2];
-     occ = i(par,0,0,3);
-     if (occ>=3,
-       P0 = I[#"$keycoords",i0];
-       P1 = I[#"$keycoords",i1];
-       i(#"$keydiscard",P0) = 1;
-       i(#"$keydiscard",P1) = 1;
-     );
-     I;"
-
-  # Manage visualization (3).
-  if {narg($_debug)}
-    [keylines],1,1,3 rand. 64,255 round. nm. colormap
-    f[keylines] "
-      _I = I;
-      i0 = _I[0];
-      i1 = _I[1];
-      par = _I[2];
-      occ = i(par,0,0,3);
-      if (occ>=3,
-        P0 = I[#"$keycoords",i0];
-        P1 = I[#"$keycoords",i1];
-        (P0+=0.5)*=w#"$visu"/w#"$strokes";
-        (P1+=0.5)*=w#"$visu"/w#"$strokes";
-        col = I(#"$colormap",par);
-        polygon(#"$visu",2,P0,P1,1,col);
-        polygon(#"$visu",2,P0+[1,0],P1+[1,0],1,col);
-        polygon(#"$visu",2,P0+[0,1],P1+[0,1],1,col);
-        polygon(#"$visu",2,P0+[1,1],P1+[1,1],1,col);
-      ); I"
-    -d
-  fi
-
-  k[strokes,keydiscard]
 
 #@cli ellipse : x[%],y[%],R[%],r[%],_angle,_opacity,_pattern,_color1,... : (+)
 #@cli : Draw specified colored ellipse on selected images.
@@ -14254,8 +14205,8 @@ parametric3d : skip "${1=(2+cos(b))*sin(a)}","${2=(2+cos(b))*cos(a)}","${3=sin(b
 #@cli : Default values: 'patch_size=7', 'M=1000', 'N=3000', 'normalize_input=1', 'normalize_output=0', and 'lambda_xy=0'.
 #@cli : $ image.jpg pca_patch3d 7
 pca_patch3d : check "isint(${1=7}) && $1>0 && isint(${2=1000}) && $2>0 && isint(${3=3000}) && $3>0" skip ${4=1},${5=0},${6=0}
-  e[^-1] "Get 3D patch-pca representation"${arg\ 1+($!>1),s,""}" of image$?, from $2 $1x$1 input patchs, "\
-          "with $3 output patchs, input normalization "${arg\ 1+!$4,enabled,disabled}", output normalization "\
+  e[^-1] "Get 3D patch-pca representation"${arg\ 1+($!>1),s,""}" of image$?, from $2 $1x$1 input patches, "\
+          "with $3 output patches, input normalization "${arg\ 1+!$4,enabled,disabled}", output normalization "\
           ${arg\ 1+!$5,enabled,disabled}" and lambda_xy $6."
   v -
   P1={int($1/2)}       # Backward half-patch size.
@@ -14265,7 +14216,7 @@ pca_patch3d : check "isint(${1=7}) && $1>0 && isint(${2=1000}) && $2>0 && isint(
   repeat $! l[$>] nm={0,n}
     s={s}
 
-    # Pick set of M random located patchs.
+    # Pick set of M random located patches.
     1,$2 rand. 0,{0,w-1} +rand. 0,{0,h-1} +f. 0 a[-3--1] x round. 1 +patches[0] $1,$1,1,{^} y[2--1] a[2--1] x
     z[1] 0,1 transpose[1] *[1] $6 a[1,2] y s[^0] x
 
@@ -14280,7 +14231,7 @@ pca_patch3d : check "isint(${1=7}) && $1>0 && isint(${2=1000}) && $2>0 && isint(
     if $5 sqrt.. /.. {-2,iM} r.. . /. .. fi
     rm..
 
-    # Pick set of N random located patchs.
+    # Pick set of N random located patches.
     repeat $3
       x={round(u({0,w}))}
       y={round(u({0,h}))}
@@ -14947,7 +14898,7 @@ spline3d : check ${13=128}>=2
 
 #@cli sprite3d
 #@cli : Convert selected images as 3D sprites.
-#@cli : Selected image with alpha channels are managed.
+#@cli : Selected images with alpha channels are managed.
 #@cli : $ image.jpg sprite3d
 sprite3d :
   e[^-1] "Convert image$? as 3D sprites."
@@ -15509,7 +15460,7 @@ apply_timeout :
 
 #@cli check3d : _is_full_check={ 0 | 1 } : (+)
 #@cli : Check validity of selected 3D vector objects, and display an error message
-#@cli : if one of the selected image is not a valid 3D vector object.
+#@cli : if one of the selected images is not a valid 3D vector object.
 #@cli : Full 3D object check is slower but more precise.
 #@cli : Default value: 'is_full_check=1'.
 
@@ -15554,10 +15505,10 @@ apply_timeout :
 #@cli : Command selection (if any) stands for displayed call stack subset instead of image indices.
 
 #@cli eval : expression : (+)
-#@cli : Evaluate specified math expression and return its result (in status).
-eval :
-  e[^-1] "Evaluate math expression '$1'."
-  v - u {"$*"} v +
+#@cli : Evaluate specified math expression.
+#@cli : - If no command selection is specified, the expression is evaluated once and its result is set to status.
+#@cli : - If command selection is specified, the evaluation is looped over selected images. Status is not modified.
+#@cli :   (in this latter case, 'eval' is similar to 'fill' without assigning the image values).
 
 #@cli x : eq. to 'exec'. : (+)
 
@@ -15898,10 +15849,10 @@ frame_seamless : check "$1>=0 && isint(${2=7}) && $2>0 && isint(${3=5}) && $3>=0
     if {!$4} r {max(1,w-$1)},{max(1,h-$1)},1,100%,0,0,0.5,0.5 fi
     100%,100%,1,1,-1 r[-2,-1] {w+$1},{h+$1},1,100%,0,0,0.5,0.5 n. 0,1
     shift -$w2,-$h2,0,0,2
-    inpaint_patchmatch.. [1],0,$2,10,$3
+    inpaint_matchpatch.. [1],0,$2,10,$3
     rectangle. $1,$1,{w-1-$1},{h-1-$1}
     shift -$w4,-$h4,0,0,2
-    inpaint_patchmatch.. [1],0,$2,10,$3
+    inpaint_matchpatch.. [1],0,$2,10,$3
     rm.
     shift {$w4+$w2},{$h4+$h2},0,0,2
   endl done v +
@@ -15975,7 +15926,7 @@ img2ascii : skip "${1= !\042#$%&\047()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRS
   endl
   w={-2,w} h={-2,h}
 
-  # Transform selected image to ascii art.
+  # Transform selected images to ascii art.
   repeat {$!-2} l[$>,-2,-1]
     luminance[0] n[0] 0,255
     nw={0,round(w/$w,1,1)}
@@ -16306,7 +16257,7 @@ shift_tiles : check "${2=$1}>=0" skip ${3=20}
 #@cli : Default value: 'N=M', 'relief=50', 'border_thickness=5', 'border_outline=0' and 'remove_tile=0'.
 #@cli : $ image.jpg +taquin 8
 taquin : check "isint($1) && $1>0 & isint(${2=$1}) && $2>0" skip ${3=0},${4=50},${5=5%},${6=0},${7=0},${8=$7},${9=$8},${10=255}
- e[^-1] "Create $1x$2 taquin puzzle from image $?, with relief $4, border thickness $5, border outline $6 and outline color (${7--1})."
+ e[^-1] "Create $1x$2 taquin puzzle from image$?, with relief $4, border thickness $5, border outline $6 and outline color (${7--1})."
  v - repeat $! l[$>] nm={0,n}
    split_tiles $1,$2 r ${-min_wh},100%,100%,0
    100%,100%,1,1,1
@@ -17506,7 +17457,7 @@ spherize : check "${1=50%}>=0 && ${3=0}>=0 && ${6=1}>0 && isint(${8=1}) && $8>=0
   endl done v +
 
 #@cli symmetrize : _x[%],_y[%],_angle,_boundary_conditions={ 0=dirichlet | 1=neumann | 2=periodic | 3=mirror },_is_antisymmetry={ 0 | 1 },_swap_sides={ 0 | 1 }
-#@cli : Symmetrize selected image regarding specified axis.
+#@cli : Symmetrize selected images regarding specified axis.
 #@cli : Default values: 'x=y=50%', 'angle=90', 'boundary_conditions=3', 'is_antisymmetry=0' and 'swap_sides=0'.
 #@cli : $ image.jpg +symmetrize 50%,50%,45 +symmetrize[-1] 50%,50%,-45
 symmetrize : skip ${1=50%},${2=50%},${3=90},${4=3},${5=0},${6=0}
@@ -18127,14 +18078,8 @@ blend_seamless : check "${2=0}>=0 && ${3=100%}>=0" skip ${1=0}
       # Compute divergence (right-hand term of Poisson eq.)
       g[0] x,-1 g[1] y,-1 +
 
-      # Inverse Laplacian.
-      fft[0]
-      100%,100%,1,1,'cos(2*x*pi/w)+cos(2*y*pi/h)' *. 2 -. 4
-      =. 1 /[-3,-2] . rm.
-      =.. 0 =. 0
-      ifft[-2,-1] rm.
-
-      # Renormalize.
+      # Inverse Laplacian and renormalize
+      ilaplacian 0
       +fc. $avg
       +[-2,-1]
       c 0,255
@@ -18243,7 +18188,7 @@ animate : skip ${1=30},${2=0},${3=""},${4=10},${5=1},"${6=}"
         w[$frame] -1,-1,1,0,-1,-1,{$frame,b}.{$frame,x}
       else
         w[$frame] {$scale*[${fitscreen[]\ {$frame,[w,h]}}]},1,0,-1,-1,{$frame,b}.{$frame,x}
-      endif
+      fi
       frame+=$direction
       if $2
         if {$frame==-1} frame=0 direction=1
@@ -19383,7 +19328,7 @@ img2hex :
   u {t} rm. r. $whds,-1 v +
 
 #@cli img2str
-#@cli : Return the content of the latest of the selected image as a special G'MIC input string.
+#@cli : Return the content of the latest of the selected images as a special G'MIC input string.
 img2str :
   v -
   u "("
@@ -19429,7 +19374,7 @@ hex2img8 :
   mv. 0 done v +
 
 #@cli is_3d
-#@cli : Return 1 if all of the selected image are 3D objects, 0 otherwise.
+#@cli : Return 1 if all of the selected images are 3D objects, 0 otherwise.
 is_3d :
   v - u 1 l check3d 1 onfail u 0 endl v +
 
@@ -19491,7 +19436,8 @@ math_lib :
     if (_dar_pos<=_dar_siz,
       _dar_siz>=h(#ind) - 1?resize(#ind,1,_dar_siz*2 + 2,1,s#ind,0);
       for (_dar_c = 0, _dar_c<s#ind, ++_dar_c, copy(i(#ind,_dar_pos + 1,0,0,_dar_c),i(#ind,_dar_pos,0,0,_dar_c),_dar_siz - _dar_pos));
-      copy(i[#ind,_dar_pos],elt,max(1,size(elt)),h(#ind),1);
+      unref(_dar_elt); _dar_elt = elt;
+      copy(i[#ind,_dar_pos],_dar_elt,max(1,size(_dar_elt)),h(#ind),1);
       (dar_size(ind#)) = ++_dar_siz;
     );
   );
@@ -19499,7 +19445,8 @@ math_lib :
   dar_insert(ind,elt) = ( # Inserts new element 'elt' at the end of dynamic array #ind.
     _dar_siz = dar_size(#ind);
     _dar_siz>=h(#ind) - 1?resize(#ind,1,_dar_siz*2 + 2,1,s#ind,0);
-    copy(i[#ind,_dar_siz],elt,max(1,size(elt)),h(#ind),1);
+    unref(_dar_elt); _dar_elt = elt;
+    copy(i[#ind,_dar_siz],_dar_elt,max(1,size(_dar_elt)),h(#ind),1);
     (dar_size(ind#)) = ++_dar_siz;
   );
 
@@ -19986,9 +19933,9 @@ toc :
   e[^-1] "Elapsed time: "${}" s".
 
 #@cli uchar2base64 : _encoding={ 0=base64 | 1=base64url }
-#@cli : Encode the values of the latest of the selected image as a base64-encoded string.
+#@cli : Encode the values of the latest of the selected images as a base64-encoded string.
 #@cli : The string can be decoded using command 'base642uchar'.
-#@cli : Selected image must have values that are integers in [0,255].
+#@cli : Selected images must have values that are integers in [0,255].
 #@cli : Default values: 'encoding=0'.
 uchar2base64 : skip "${1=0}"
   v -
@@ -20125,7 +20072,7 @@ demo : check "isint(${1=2}) && $1>=0 && $1<=2"
   # Generate 3D background object.
   l[]
     n=16
-    ball[] 64,200,100,64 n. 0,230 s. c,-3
+    chromeball64x64[] 200,100,64 n. 0,230 s. c,-3
     rgb2hsv.. r.. 100%,100%,$n,3 f.. "[z*360/d,G,B]" hsv2rgb..
     N={6*$n} P={2*$N-1}
     i[0] ({'CImg3d'}) i[1] ($N,$P) i[2] 3,$N # Header, points
@@ -24433,6 +24380,7 @@ x_waves :
   sh. 8,{7+3*i[6]},0,0 r. 3,{h/3},1,1,-1
   (0,1,0;1,0,1;0,1,0) /. 2
   ball[] 20,200,255,128,1,0.7,3.5
+
   0 $w,$w .
   l3d {$w/2},-200,-1000 sl3d 0.4 ss3d 0.8 f3d 500 time0=$|
   do
@@ -24613,7 +24561,7 @@ gui_merge_layers :
 
 _gui_merge_layers :
   u {`"
-    str = ['"{n}"']; const sstr = size(str);
+    str = ["{'{n}'}"]; const sstr = size(str);
     ker = ['$1(']; const sker = size(ker);
     res = vectorsstr();
     p = q = find(str,ker);
@@ -25329,8 +25277,7 @@ fx_gmicky_preview :
 #@gui : - <b>2017/10/09</b> : version <i>2.1.0</i>.\n
 #@gui : - <b>2018/02/15</b> : version <i>2.2.0</i>.\n
 #@gui : - <b>2018/06/21</b> : version <i>2.3.0</i>.\n
-#@gui : - <span foreground="purple"><b>2018/10/30</b> : version <i>2.4.1</i> (Current stable).</span>\n
-##@gui : - <b>2018/10/15</b> : version <i>2.4.1</i> (Current pre-release).\n
+#@gui : - <span foreground="purple"><b>2018/11/30</b> : version <i>2.4.2</i> (Current stable).</span>\n
 #@gui : "}
 #@gui : sep = separator()
 #@gui : url = link{"View changelog to upcoming major version (2.5.0)","https://discuss.pixls.us/t/on-the-road-to-2-5-0"}
@@ -26606,7 +26553,7 @@ fx_polygonize_delaunay :
 
     # Render outlines.
     if $6
-      norm[0] f[0] "i!=j(1) || i!=j(0,1)" thinning[0] 1
+      norm[0] f[0] "i!=j(1) || i!=j(0,1)" # thinning[0] 1
       +fc. ${7-10} j.. .,0,0,0,0,{$6%},... rm.
     fi
 
@@ -27206,7 +27153,7 @@ fx_recolorize :
     if $3 s=$>,{$>+1} else s={2*$>},{2*$>+1} fi
     l[$s] rv[0,1]
       channels[0] 0 to_rgb.. # Convert to pure gray.
-      to_rgba. split_opacity. !=. 0  # Retrieve mask of color patchs.
+      to_rgba. split_opacity. !=. 0  # Retrieve mask of color patches.
       srgb2rgb[-3,-2] rgb2lab8[-3,-2] channels... 0 channels.. 1,2 # Now, list is [0]=lightness / [1]=chroma / [2]=mask.
       +.. 1 *.. . +gradient_norm... *. -1 watershed... . rm. -.. 1 # Get first estimate for the color interpolation.
       +diffusiontensors... $2,1,0.5,0.5 ==.. 0 *. .. rm..
@@ -27332,7 +27279,6 @@ fx_autofill_lineart_preview :
 #@gui : Colorize Mode = choice("Generate Random-Colors Layer","Extrapolate Color Spots on Transparent Top Layer","Auto-Clean Bottom Color Layer")
 #@gui : sep = separator(), note = note{"<small><b>Global geometry parameters:</b></small>"}
 #@gui : Contour Detection (%) = float(95,0,100)
-#@gui : Contour Erosion = int(0,-1,10)
 #@gui : note = note{"<small>Set <i>Contour erosion</i> to <i>-1</i> for erosion based on automatic estimation of stroke thickness.</small>"}
 #@gui : Discard Contour Guides = bool(0)
 #@gui : note = note{"<small>Add strokes with a saturated color having value 255 (e.g. pure red) on your lineart allows to guide the colorization algorithm with virtual contours.</small>"}
@@ -27344,7 +27290,7 @@ fx_autofill_lineart_preview :
 #@gui : sep = separator(), note = note{"<small><b>For <i>color spots</i> mode only:</b></small>"}
 #@gui : Color Shading (%) = int(0,0,100)
 #@gui : sep = separator(), note = note{"<small><b>Connection parameters:</b></small>"}
-#@gui : End Point Rate (%) = float(85,0,100)
+#@gui : End Point Rate (%) = float(75,0,100)
 #@gui : End Point Connectivity = int(2,1,5)
 #@gui : Spline Max Length (px) = float(60,0,256)
 #@gui : Segment Max Length (px) = float(20,0,256)
@@ -27352,14 +27298,8 @@ fx_autofill_lineart_preview :
 #@gui : Spline Roundness = float(1,0,2)
 #@gui : Minimal Region Area = float(10,0,100)
 #@gui : Allow Self Intersections = bool(1)
-#@gui : sep = separator(), note = note{"<small><b>Hatch detection:</b> <span color="red">(work-in-progress, still slow!)</span></small>"}
-#@gui : Detection Rate = float(0,0,1)
-#@gui : Max Segment Curvature (deg) = float(20,0,180)
-#@gui : Max Grouping Distance (px) = float(64,0,1024)
-#@gui : Max Grouping Angle (deg) = float(7.5,0,180)
-#@gui : Max Grouping Ratio = float(0.5,0,1)
 #@gui : sep = separator(), Preview Type = choice(0,"Colored geometry","Colored regions","Colored lineart")
-#@gui : sep = separator(), note = note("<small>Authors: <i>David Tschumperl&#233;</i>, <i>S&#233;bastien Fourey</i> and <i>David Revoy</i>.      Latest Update: <i>2017/03/08</i>.</small>")
+#@gui : sep = separator(), note = note("<small>Authors: <i>David Tschumperl&#233;</i>, <i>S&#233;bastien Fourey</i> and <i>David Revoy</i>.      Latest Update: <i>2018/11/09</i>.</small>")
 fx_colorize_lineart_smartcoloring :
   _fx_colorize_lineart_smartcoloring $*,-1 round
 
@@ -27367,13 +27307,13 @@ fx_colorize_lineart_smartcoloring_preview :
   if {$1==1" && "$!<2} gui_warning_preview "A top layer with color spots is missing, for this colorization mode." return
   elif {$1==2" && "$!<2} gui_warning_preview "A bottom color layer is missing, for this colorization mode." return
   fi
-  _fx_colorize_lineart_smartcoloring ${1-4},0,${6--1}
+  _fx_colorize_lineart_smartcoloring ${1-3},0,${5--1}
 
 _fx_colorize_lineart_smartcoloring :
   if {$1==1" && "$!<2} error "A top layer with color strokes is missing, for this colorization mode."
   elif {$1==2" && "$!<2} error "A bottom color layer is missing, for this colorization mode."
   fi
-  min_color_area={$16^2}
+  min_color_area={$15^2}
 
   repeat {$1?1:$!} inds=${arg\ 1+!!$1,$<,0--1} l[$inds]
 
@@ -27392,21 +27332,9 @@ _fx_colorize_lineart_smartcoloring :
     >. {255*(1-$2%)}
     nm. strokes
 
-    # Erode strokes (estimate stroke thickness if needed).
-    erode_size=$3
-    if {$erode_size<0}
-      +label_fg[strokes] 0 +distance[strokes] 0 {-2,iM}
-      f... ">if (i, j = i - 1; i[#-1,j] = max(i[#-1,j],i(#-2)));i"
-      stroke_width={2*ic}
-      erode_size={round($stroke_width/5)}
-      rm[-3--1]
-    fi
-    if $erode_size erode[strokes] {2*$erode_size} fi
-    area_fg[strokes] 0,1 >[strokes] 4
-
     # Retrieve closed binary shape.
     _keep_keycoords={$-1==0}
-    [strokes] close_binary. ${10-15},$min_color_area,$17,${18-22} nm. new_strokes
+    [strokes] close_binary. ${9-14},$min_color_area,$16 nm. new_strokes
 
     if {$-1==0} # Render estimated geometry
       +negate[strokes] *. 255 to_rgb.
@@ -27426,13 +27354,13 @@ _fx_colorize_lineart_smartcoloring :
       +l[new_strokes] * -1 + 1 +b 1% b.. 1 min endl
       watershed... .,0 rm. map.. . rm.
 
-      if {!$9} rm[strokes] # No color shading
+      if {!$8} rm[strokes] # No color shading
       else # Shade colors
         j[strokes] [new_strokes] distance[strokes] 0 *[strokes] -1
         eq[new_strokes] 0 label_fg[new_strokes] 0,0
         if $min_color_area +area_fg[new_strokes] 0,0 >. $min_color_area *[new_strokes,-1] fi
         watershed[new_strokes] [strokes],0 rm[strokes]
-        srgb2rgb. guided. [new_strokes],{1+$9/5},0 rgb2srgb.
+        srgb2rgb. guided. [new_strokes],{1+$8/5},0 rgb2srgb.
       fi
       rm[new_strokes]
       nm. new_colors
@@ -27454,9 +27382,9 @@ _fx_colorize_lineart_smartcoloring :
       +histogram[new_strokes] {new_strokes,[iM+1,0,iM]} equalize. 1024 n. 0,240
       ind_bg={xM}
       channels. 0,2 srand 0
-      f. "[i,u(1,max(3,$7))/255,u(min(252,$8),255)/255]"
+      f. "[i,u(1,max(3,$6))/255,u(min(252,$7),255)/255]"
       . sh. 0 rand. 0,360 rm.
-      hsi2rgb[-2,-1] *.. $6 *. {1-$6} +[-2,-1] round.
+      hsi2rgb[-2,-1] *.. $5 *. {1-$5} +[-2,-1] round.
       point. $ind_bg,0,0,1,255 point. 0,0,0,1,255
 
       map[new_strokes] . rm.
@@ -27467,7 +27395,7 @@ _fx_colorize_lineart_smartcoloring :
     ind_lineart=$lineart
     ind_colors=$new_colors
 
-    if $5 # Output region delimiters
+    if $4 # Output region delimiters
       100%,100%,1,1,"const boundary = 1; J(#"$new_colors",1)!=I(#"$new_colors") || J(#"$new_colors",0,1)!=I(#"$new_colors")"
       *. 255 channels. -3,0 sh. 0,2 fc. 255,0,0 rm.
       gui_set_layer_name. $nm" [region delimiters]"
@@ -27479,7 +27407,7 @@ _fx_colorize_lineart_smartcoloring :
     if {$-1==-1} # Rendering : Lineart and color layers
       if {!$is_alpha} gui_set_layer_mode[$ind_lineart] multiply fi
 
-      if $4 l[0] # Discard contour guides
+      if $3 l[0] # Discard contour guides
         if $is_alpha
           100%,100%,1,3,255 blend. [0],alpha,1 rgb2hsv. channels. 2 *. 255 negate.
           channels.. 0,{0,s-2} s={0,s} luminance[0] to_colormode[0] $s a c
@@ -27497,7 +27425,7 @@ _fx_colorize_lineart_smartcoloring :
       k[$ind_colors]
     else # Preview : Colored lineart
       if {$is_alpha} channels[$ind_lineart] 100% negate[$ind_lineart] fi to_rgb[$ind_lineart]
-      if $4 l[$ind_lineart] s={s} to_rgb rgb2hsv channels 2 * 255 to_colormode $s endl fi
+      if $3 l[$ind_lineart] s={s} to_rgb rgb2hsv channels 2 * 255 to_colormode $s endl fi
       blend[$ind_lineart,$ind_colors] multiply k[$ind_lineart]
     fi
 
@@ -27695,18 +27623,12 @@ fx_freaky_bw :
     channels. 3,4
     luminance[0] ia={0,ia}
 
-    # Estimate laplacian of final image.
+    # Estimate laplacian of final image and invert it.
     s. c
     f.. "i - i(x-1,y,0,0)"
     f. "i - i(x,y-1,0,0)"
     +[-2,-1]
-
-    # Reconstruct image from laplacian.
-    fft.
-    100%,100%,1,1,'cos(2*x*pi/w)+cos(2*y*pi/h)' *. 2 -. 4
-    =. 1 /[-3,-2] . rm.
-    =.. 0 =. 0
-    ifft[-2,-1] rm.
+    ilaplacian. 0
     shrink_xy. 1 +. $ia n. 0,255
 
     # Merge result with original color image.
@@ -27879,13 +27801,18 @@ fx_boost_chroma_preview :
 
 #@gui Boost-Fade : fx_boost_fade, fx_boost_fade_preview
 #@gui : Amplitude = float(5,0,10)
+#@gui : Chromaticity From = choice("YCbCr","Lab")
 #@gui : sep = separator(), Preview Type = choice("Full","Forward Horizontal","Forward Vertical","Backward Horizontal","Backward Vertical","Duplicate Top","Duplicate Left","Duplicate Bottom","Duplicate Right","Duplicate Horizontal","Duplicate Vertical","Checkered","Checkered Inverse"), Preview split = point(50,50,0,0,200,200,200,0,10,0)
-#@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2011/12/10</i>.</small>")
+#@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2018/11/26</i>.</small>")
 fx_boost_fade :
-  i[0] 640,480,1,3 rand[0] 0,1 b[0] {10-$1} n[0] 0,255 transfer_colors[^0] [0] rm[0]
+  repeat $! l[$>]
+    100%,100%,1,3 rand. 0,1 b. {10-10*($1/10)^0.5} n. 0,255
+    to_colormode 0 a z
+    ac "s z transfer_histogram.. . rm.",${"arg 1+$2,ycbcr_cbcr,lab_ab"}
+  endl done
 
 fx_boost_fade_preview :
-  gui_split_preview "fx_boost_fade $*",${-3--1}
+  gui_split_preview "fx_boost_fade $1,$2",${-3--1}
 
 #@gui Channel Processing : fx_channel_processing, fx_channel_processing_preview(1)
 #@gui : Brightness (%) = float(0,-100,100)
@@ -29074,7 +29001,7 @@ fx_sepia :
 fx_sepia_preview :
   gui_split_preview "fx_sepia $*",${-3--1}
 
-#@gui Transfer Colors [Advanced] : fx_transfer_rgb, fx_transfer_rgb_preview
+#@gui Transfer Colors [Variationnal] : fx_transfer_rgb, fx_transfer_rgb_preview(1)+
 #@gui : Regularization = int(8,0,32)
 #@gui : Preserve Luminance = float(0.2,0,1)
 #@gui : Precision = _choice(1,"Low","Normal","High","Very High")
@@ -29110,17 +29037,31 @@ fx_transfer_rgb_preview :
     rm.
   endl done fi
 
-#@gui Transfer Colors [Basic] : fx_transfer_colors, fx_transfer_colors
-#@gui : Transfer Brightness = bool(0)
-#@gui : Revert Layers = bool(0)
-#@gui : note = note{"<small><b>Note: </b>
-#@gui : The bottom layer contains the target colors.\n
+#@gui Transfer Colors [Histogram] : fx_transfer_histogram, fx_transfer_histogram_preview(1)+
+#@gui : Channel(s) = choice("All","RGBA [All]","RGB [All]","RGB [Red]","RGB [Green]","RGB [Blue]","RGBA [Alpha]","Linear RGB [All]","Linear RGB [Red]","Linear RGB [Green]","Linear RGB [Blue]","YCbCr [Luminance]","YCbCr [Blue-Red Chrominances]","YCbCr [Blue Chrominance]","YCbCr [Red Chrominance]","YCbCr [Green Chrominance]","Lab [Lightness]","Lab [ab-Chrominances]","Lab [a-Chrominance]","Lab [b-Chrominance]","Lch [ch-Chrominances]","Lch [c-Chrominance]","Lch [h-Chrominance]","HSV [Hue]","HSV [Saturation]","HSV [Value]","HSI [Intensity]","HSL [Lightness]","CMYK [Cyan]","CMYK [Magenta]","CMYK [Yellow]","CMYK [Key]","YIQ [Luma]","YIQ [Chromas]")
+#@gui : sep = separator(), Preview Type = choice("Full","Forward Horizontal","Forward Vertical","Backward Horizontal","Backward Vertical","Duplicate Top","Duplicate Left","Duplicate Bottom","Duplicate Right","Duplicate Horizontal","Duplicate Vertical","Checkered","Checkered Inverse"), Preview split = point(50,50,0,0,200,200,200,0,10,0)
+#@gui : sep = separator(), note = note{"<small><b>Note: </b>
+#@gui : The bottom layer contains the reference colors.\n
 #@gui : This filter needs at least two layers to work properly. Set the <i>Input layers</i> option to handle multiple input layers.
 #@gui : </small>"}
-#@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2010/29/12</i>.</small>")
-fx_transfer_colors :
-  if ${2=0} _fx_revert_layers fi
-  transfer_colors[^-1] .,$1
+#@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2018/11/26</i>.</small>")
+fx_transfer_histogram :
+  to_colormode 0
+  repeat {$!-1} l[$>,-1]
+    nm0={0,n} nm1={1,n}
+    m "_split : s z r.. "{[w#0,h#0,1,s#0,0]}" r. "{[w#1,h#1,1,s#1,0]}
+    a z
+    ac "_split transfer_histogram.. . a z",$1
+    _split uncommand _split
+    nm[0] $nm0 nm[1] $nm1
+  endl done
+
+fx_transfer_histogram_preview :
+  to_colormode 0
+  repeat {$!-1} l[$>,-1]
+    i[0] [0] fx_transfer_histogram[-2,-1] $1 rm.
+    a z gui_split_preview "s z k.",${-3--1}
+  endl done
 
 #@gui User-Defined : fx_custom_transform, fx_custom_transform
 #@gui : Red - Green - Blue - Alpha = text{"i"}
@@ -33010,7 +32951,7 @@ fx_equalize_shadow_preview :
 #@gui : note = note{"<small>Parameter <i>Minimal shape area</i> is only active in <i>Multiple colored shapes</i> input mode.</small>"}
 #@gui : Preview Detected Shapes = bool(0)
 #@gui : Erosion / Dilation = float(0,-10,10)
-#@gui : Smoothness = float(2,0,6)
+#@gui : Smoothness = float(3,0,6)
 #@gui : Bump Factor = float(1,-5,5)
 #@gui : Avg / Max Weight = float(1,0,1)
 #@gui : Resolution = choice{4,"Full (Slower)","2048","1024","512","256","128","64 (Faster)"}
@@ -33080,7 +33021,7 @@ fx_illuminate_shape2d_preview :
   if $keep_input_bg
     repeat {$!-1} l[$>,-1]
       fx_illuminate_shape2d $*
-      rv to_colormode  0 a z
+      rv to_colormode 0 a z
       gui_split_preview "slices 50%,100%",$-1
     endl done
   else
@@ -33122,7 +33063,7 @@ fx_illuminate_shape2d_preview_interactive :
         fi
         lightx,lighty={rgb,3.5*(2*[$x/w,$y/h]-1)}
         if {[$ox,$oy,$ob,$olightz]!=[$x,$y,$b,$lightz]}
-          +fx_illuminate_shape2d[normal,rgb] 4,0,${3-6},1,1,""$9,0,${11-15},""${16-25},$lightx,$lighty,$lightz,0,""0,0
+          +fx_illuminate_shape2d[normal,rgb] 4,0,${3-6},1,1,""$9,0,${11-15},""${16-25},$lightx,$lighty,$lightz,$29,""0,0
           +j[background] .,0,0,0,0,1,[alpha],255 rm..
           +r2dx[light_alpha,light_rgb] {light_rgb,8+$lightz*(w-8)} j... .,{[$x,$y]-[w,h]/2},0,0,1,.. rm[-2,-1]
           r. $wsiz,1,100% to. "Light: ("{``{_round([$lightx,$lighty,$lightz],0.1)}}")",2,2,16
@@ -33214,9 +33155,9 @@ _fx_illuminate_shape2d : # Input selection must contains a single image. Output 
     return
   fi
 
-  if {$input_type<=1} shape2bump. {arg($resolution,2048,1024,512,256,128,64)},$weight_avg_max,{$dilation%*max(w,h)} fi
+  if {$input_type<=1} shape2bump. {arg($resolution,2048,1024,512,256,128,64)},$weight_avg_max,{$dilation%*max(w,h)},{$shape_smoothness*50} fi
   if {$input_type<=2}
-    if $shape_smoothness mM={[im,iM]} guided. ..,$shape_smoothness%,100 n. $mM fi
+    if {$input_type==2" && "$shape_smoothness} mM={[im,iM]} guided. ..,$shape_smoothness%,100 n. $mM fi
     *. $bump_factor
   fi
 
@@ -33932,7 +33873,7 @@ fx_syntexturize :
 fx_syntexturize_preview :
   gui_split_preview "fx_syntexturize 100%,100%,$3",${-3--1}
 
-#@gui Resynthetize Texture [Patch-Based] : syntexturize_patchmatch, fx_syntexturize_patchmatch_preview(1)
+#@gui Resynthetize Texture [Patch-Based] : syntexturize_matchpatch, fx_syntexturize_matchpatch_preview(1)
 #@gui : Width = _int(512,32,8192)
 #@gui : Height = _int(512,32,8192)
 #@gui : Number of Scales = int(0,0,16)
@@ -33945,16 +33886,16 @@ fx_syntexturize_preview :
 #@gui : note = note{"<small><b>Note:</b> This filter tries to re-synthetize an input texture image onto a bigger output image (with an arbitrary size).
 #@gui : Beware, this filter is quite slow to compute!</small>"}
 #@gui : sep = separator(), note = note("<small>Authors: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2015/22/10</i>.</small>")
-_fx_syntexturize_patchmatch_preview :
+_fx_syntexturize_matchpatch_preview :
   repeat $! l[$>]
     if $7 +b {20.5-$7/50}% -[0] [1] fc. ${average_colors.} + c 0,255 fi
     w={w} h={h}
-    syntexturize_patchmatch 100%,100%,${3--1}
+    syntexturize_matchpatch 100%,100%,${3--1}
     to_rgba r $w,$h,1,4,0,0,0.5,0.5
   endl done
 
-fx_syntexturize_patchmatch_preview :
-  gui_split_preview "_fx_syntexturize_patchmatch_preview ${1--2}",${-3--1}
+fx_syntexturize_matchpatch_preview :
+  gui_split_preview "_fx_syntexturize_matchpatch_preview ${1--2}",${-3--1}
 
 #@gui Rorschach : fx_rorschach, fx_rorschach
 #@gui : Scale = float(3,0,10)
@@ -34215,7 +34156,7 @@ fx_inpaint_morpho :
 fx_inpaint_morpho_preview :
   fx_inpaint_morpho ${1-4},{1+$5}
 
-#@gui Inpaint [Multi-Scale] : fx_inpaint_patchmatch, fx_inpaint_patchmatch_preview(1)
+#@gui Inpaint [Multi-Scale] : fx_inpaint_matchpatch, fx_inpaint_matchpatch_preview(1)
 #@gui : Number of Scales = _int(0,0,16)
 #@gui : note = note{"<small>(Set <i>Number of scales</i> to <i>0</i> for automatic scale detection)</small>"}
 #@gui : Patch Size = _int(9,1,64)
@@ -34227,7 +34168,7 @@ fx_inpaint_morpho_preview :
 #@gui : sep = separator(), Preview progression While Running = _bool(0)
 #@gui : sep = separator(), note = note{"<small><b>Note:</b> Preview and final result may strongly differ.</small>"}
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2015/25/11</i>.</small>")
-fx_inpaint_patchmatch :
+fx_inpaint_matchpatch :
   repeat $! l[$>]
     R=$6 G=$7 B=$8 A=$9
     if {!$A" && "(s==2" || "s==4)} split_opacity +!=. 0 *[0,-1] a c R=0 G=0 B=0 fi # Purely transparent color.
@@ -34237,12 +34178,12 @@ fx_inpaint_patchmatch :
       visu_size=${fitscreen[]" "{0,w},{0,h},1,25%,50%}
       w1.. $visu_size,0,"[Preview] G'MIC: Inpaint [multi-scale]"
     fi
-    srand 0 inpaint_patchmatch.. [1],${1-5}
+    srand 0 inpaint_matchpatch.. [1],${1-5}
     rm.
   endl done
 
-fx_inpaint_patchmatch_preview :
-  fx_inpaint_patchmatch ${1-9},{1+$10},0
+fx_inpaint_matchpatch_preview :
+  fx_inpaint_matchpatch ${1-9},{1+$10},0
 
 #@gui Inpaint [Patch-Based] : fx_inpaint_patch, fx_inpaint_patch_preview
 #@gui : Patch Size = _int(7,1,64)
