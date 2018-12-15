@@ -1,3 +1,12 @@
+gmic (2.4.2-1) unstable; urgency=medium
+
+  * [f0be9ab] Update upstream source from tag 'upstream/2.4.2'
+    Update to upstream version '2.4.2'
+    with Debian dir 55a225d6fb5485923c4ac6e9a06ab84cd32b1aee
+  * [d6c8988] Removing patches, applied upstream.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sat, 15 Dec 2018 12:57:33 +0100
+
 gmic (2.4.1-3) unstable; urgency=medium
 
   [ Pino Toscano ]
