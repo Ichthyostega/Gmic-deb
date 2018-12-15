@@ -10,9 +10,9 @@
 
                       GREYC's Magic for Image Computing
 
-                             ( http://gmic.eu )
+                             ( https://gmic.eu )
 
-                                    2.4.1
+                                    2.4.2
 
 --------------------------------------------------------------------------------
 
@@ -62,12 +62,12 @@
 # Project Managers and main developers
 #-------------------------------------
 
-  David Tschumperlé  ( http://tschumperle.users.greyc.fr/ )
+  David Tschumperlé  ( https://tschumperle.users.greyc.fr/ )
   Sébastien Fourey   ( https://foureys.users.greyc.fr/ )
 
   A complete list of contributors is available on the project web page:
 
-                           http://gmic.eu
+                           https://gmic.eu
 
 # Institution
 #-------------
@@ -92,7 +92,7 @@
 # More information online
 #-------------------------
 
-  - Home page : http://gmic.eu
+  - Home page : https://gmic.eu
   - G'MIC Online Service : https://gmicol.greyc.fr
 
   - Google+ group: https://plus.google.com/117441237982283011318/posts
@@ -100,8 +100,8 @@
   - Flickr forum: http://www.flickr.com/groups/gmic/discuss
   - GimpChat forum: http://gimpchat.com/viewforum.php?f=28
 
-  - Tutorial page: http://gmic.eu/tutorial
-  - Reference documentation: http://gmic.eu/reference.shtml
+  - Tutorial page: https://gmic.eu/tutorial
+  - Reference documentation: https://gmic.eu/reference.shtml
   - G'MIC wiki: https://github.com/dtschump/gmic-community/wiki
 
 --------------------------------------------------------------------------------

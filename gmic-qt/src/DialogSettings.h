@@ -39,6 +39,15 @@ namespace Ui
 class DialogSettings;
 }
 
+namespace GmicQt
+{
+enum ApplicationType
+{
+  GuiApplication,
+  NonGuiApplication
+};
+}
+
 class DialogSettings : public QDialog {
   Q_OBJECT
 
@@ -51,8 +60,9 @@ public:
   static QString languageCode();
   static bool nativeColorDialogs();
   static void saveSettings(QSettings &);
-  static void loadSettings();
+  static void loadSettings(GmicQt::ApplicationType applicationType);
   static bool previewZoomAlwaysEnabled();
+  static bool notifyFailedStartupUpdate();
   static const QColor CheckBoxTextColor;
   static const QColor CheckBoxBaseColor;
   static QColor UnselectedFilterTextColor;
@@ -76,6 +86,7 @@ public slots:
   void onPreviewTimeoutChange(int);
   void onOutputMessageModeChanged(int);
   void onPreviewZoomToggled(bool);
+  void onNotifyStartupUpdateFailedToggle(bool);
 
 private:
   Ui::DialogSettings * ui;
@@ -88,6 +99,7 @@ private:
   static int _previewTimeout;
   static GmicQt::OutputMessageMode _outputMessageMode;
   static bool _previewZoomAlwaysEnabled;
+  static bool _notifyFailedStartupUpdate;
 };
 
 #endif // _GMIC_QT_DIALOGSETTINGS_H_

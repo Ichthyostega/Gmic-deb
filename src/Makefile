@@ -11,10 +11,10 @@
 #                 . the G'MIC plug-in for Krita (type 'make krita').
 #                 . To compile all of them, just type 'make', or 'make all').
 #
-#                ( http://gmic.eu )
+#                ( https://gmic.eu )
 #
 #  Copyright   : David Tschumperle
-#                ( http://tschumperle.users.greyc.fr/ )
+#                ( https://tschumperle.users.greyc.fr/ )
 #
 #  Licenses    : This file is 'dual-licensed', you have to choose one
 #      	          of the two licenses below to apply.
@@ -68,7 +68,7 @@ SO = .so
 PIC = -fPIC
 EXE =
 WGET = wget --no-check-certificate --quiet -O
-PLUGINDIR = `gimptool-2.0 --gimpplugindir`/plug-ins
+PLUGINDIR = $(shell gimptool-2.0 --gimpplugindir)/plug-ins
 VERSION = $(shell grep 'gmic_version\ ' gmic.h | tail -c4 | head -c3)
 VERSION1 = $(shell grep 'gmic_version\ ' gmic.h | tail -c4 | head -c1)
 VERSION2 = $(shell grep 'gmic_version\ ' gmic.h | tail -c3 | head -c1)
@@ -134,6 +134,16 @@ SO = .dll
 PIC =
 endif
 
+ifeq ($(shell echo $(notdir $(CXX)) | head -c3),g++)
+IS_GCC = 1
+endif
+ifeq ($(shell echo $(notdir $(CXX)) | head -c7),clang++)
+IS_CLANG = 1
+endif
+ifeq ($(shell echo $(notdir $(CXX)) | head -c4),icpc)
+IS_ICPC = 1
+endif
+
 ifdef NOSTRIP
 STRIP = echo skip strip
 else
@@ -141,7 +151,7 @@ STRIP = strip
 endif
 
 ifndef QMAKE
-QMAKE=qmake
+QMAKE = qmake
 endif
 
 #--------------------------------------------------------
@@ -149,17 +159,17 @@ endif
 #--------------------------------------------------------
 
 # Flags set to describe a 'prerelease' version.
-NO_PRERELEASE = `date +%y%m%d`
+NO_PRERELEASE = $(shell date +%y%m%d)
 NO_PRERELEASE_CFLAGS = -Dgmic_prerelease="\\\"$(PRERELEASE)\\\""
 
 # Minimal set of flags mandatory to compile G'MIC.
-MANDATORY_CFLAGS = -Dgmic_build -Dcimg_use_zlib `pkg-config --cflags zlib || echo -I$(USR)/$(INCLUDE)` $(PRERELEASE_CFLAGS) $(EXTRA_CFLAGS)
-MANDATORY_LIBS = `pkg-config --libs zlib || echo -lz` $(EXTRA_LIBS)
+MANDATORY_CFLAGS = -Dgmic_build -Dcimg_date=\\\"\\\" -Dcimg_time=\\\"\\\" -Dcimg_use_zlib $(shell pkg-config --cflags zlib || echo -I$(USR)/$(INCLUDE)) $(PRERELEASE_CFLAGS) $(EXTRA_CFLAGS)
+MANDATORY_LIBS = $(shell pkg-config --libs zlib || echo -lz) $(EXTRA_LIBS)
 ifndef NO_SRIPDLIB
 MANDATORY_CFLAGS += -std=c++11 -pedantic
 endif
 MANDATORY_LIBS += -L$(USR)/$(LIB)
-ifeq ($(notdir $(CXX)),g++)
+ifdef IS_GCC
 MANDATORY_CFLAGS += -Wall -Wextra -Wfatal-errors
 MANDATORY_LIBS += -lm
 endif
@@ -176,14 +186,12 @@ MANDATORY_LIBS += -Wl,--stack,16777216
 endif
 
 # Enable optimizations.
-ifeq ($(notdir $(CXX)),g++)
-OPT_CFLAGS = -Ofast -mtune=generic # -fno-finite-math-only
-else
-ifeq ($(notdir $(CXX)),icpc)
-OPT_CFLAGS = -fast
-else
 OPT_CFLAGS = -Ofast
+ifdef IS_GCC
+OPT_CFLAGS = -Ofast -mtune=generic # -fno-finite-math-only
 endif
+ifdef icpc
+OPT_CFLAGS = -fast
 endif
 
 # Enable multi-threading support.
@@ -213,22 +221,22 @@ ABORT_CFLAGS = -Dcimg_use_abort
 # Enable image display, using X11 (Unix).
 # (Keep /usr/ dirname here since X11 is located in /usr/ on Mac too)
 ifneq ($(OS),Darwin)
-X11_CFLAGS = -Dcimg_display=1 `pkg-config --cflags x11 || echo -I/usr/X11R6/include` #-Dcimg_use_xrandr
-X11_LIBS = `pkg-config --libs x11 || echo -L/usr/X11R6/lib -lX11` -lpthread #`pkg-config --libs xrandr || echo -lXrandr`
+X11_CFLAGS = -Dcimg_display=1 $(shell pkg-config --cflags x11 || echo -I/usr/X11R6/include) #-Dcimg_use_xrandr
+X11_LIBS = $(shell pkg-config --libs x11 || echo -L/usr/X11R6/lib -lX11) -lpthread # $(shell pkg-config --libs xrandr || echo -lXrandr)
 else
 ifeq (,$(wildcard /usr/X11))
 X11_CFLAGS = -Dcimg_display=0 #-Dcimg_use_xrandr
-X11_LIBS = -lpthread #`pkg-config --libs xrandr || echo -lXrandr`
+X11_LIBS = -lpthread # $(shell pkg-config --libs xrandr || echo -lXrandr)
 else
-X11_CFLAGS = -Dcimg_display=1 `pkg-config --cflags x11 || echo -I/usr/X11/include` #-Dcimg_use_xrandr
-X11_LIBS = -L/usr/X11/lib -lX11 -lpthread #`pkg-config --libs xrandr || echo -lXrandr`
+X11_CFLAGS = -Dcimg_display=1 $(shell pkg-config --cflags x11 || echo -I/usr/X11/include) #-Dcimg_use_xrandr
+X11_LIBS = -L/usr/X11/lib -lX11 -lpthread # $(shell pkg-config --libs xrandr || echo -lXrandr)
 endif
 endif
 
 # Enable faster X11 display, using XShm extension.
 # (ftp://www.x.org/pub/X11R7.7/doc/man/man3/XShm.3.xhtml)
-XSHM_CFLAGS = -Dcimg_use_xshm `pkg-config --cflags xcb-shm`
-XSHM_LIBS = `pkg-config --libs xcb-shm || echo -L$(USR)/X11R6/lib -lXext`
+XSHM_CFLAGS = -Dcimg_use_xshm $(shell pkg-config --cflags xcb-shm)
+XSHM_LIBS = $(shell pkg-config --libs xcb-shm || echo -L$(USR)/X11R6/lib -lXext)
 
 # Enable image display, using GDI32 (Windows).
 GDI32_CFLAGS = -Dcimg_display=2
@@ -237,12 +245,12 @@ GDI32_LIBS = -lgdi32
 # Enable native support of PNG image files, using the PNG library.
 # (http://www.libpng.org/pub/png/libpng.html)
 ifneq ($(OS),Darwin)
-PNG_CFLAGS = -Dcimg_use_png `pkg-config --cflags libpng`
-PNG_LIBS = `pkg-config --libs libpng || echo -lpng -lz`
+PNG_CFLAGS = -Dcimg_use_png $(shell pkg-config --cflags libpng)
+PNG_LIBS = $(shell pkg-config --libs libpng || echo -lpng -lz)
 else
 ifeq (,$(wildcard /tmp/skl))
-PNG_CFLAGS = -Dcimg_use_png `pkg-config --cflags libpng`
-PNG_LIBS = `pkg-config --libs libpng || echo -lpng -lz`
+PNG_CFLAGS = -Dcimg_use_png $(shell pkg-config --cflags libpng)
+PNG_LIBS = $(shell pkg-config --libs libpng || echo -lpng -lz)
 else
 PNG_CFLAGS = -Dcimg_use_png
 PNG_LIBS = -lpng -lz
@@ -256,8 +264,8 @@ JPEG_LIBS = -ljpeg
 
 # Enable native support of TIFF image files, using the TIFF library.
 # (http://www.libtiff.org/)
-TIFF_CFLAGS = -Dcimg_use_tiff `pkg-config --cflags libtiff-4`
-TIFF_LIBS = `pkg-config --libs libtiff-4 || echo -ltiff`
+TIFF_CFLAGS = -Dcimg_use_tiff $(shell pkg-config --cflags libtiff-4)
+TIFF_LIBS = $(shell pkg-config --libs libtiff-4 || echo -ltiff)
 
 # Enable native support of MINC2 image files, using the MINC2 library.
 # ( http://en.wikibooks.org/wiki/MINC/Reference/MINC2.0_Users_Guide )
@@ -266,18 +274,18 @@ MINC2_LIBS = -lminc_io -lvolume_io2 -lminc2 -lnetcdf -lhdf5 -lz -L${HOME}/local/
 
 # Enable native support for downloading files from the network.
 # ( http://curl.haxx.se/libcurl/ )
-CURL_CFLAGS = -Dcimg_use_curl `pkg-config --cflags libcurl`
-CURL_LIBS = `pkg-config --libs libcurl || echo -lcurl`
+CURL_CFLAGS = -Dcimg_use_curl $(shell pkg-config --cflags libcurl)
+CURL_LIBS = $(shell pkg-config --libs libcurl || echo -lcurl)
 
 # Enable native support of webcams and video streaming, using the OpenCV library.
 # (https://opencv.org/)
-OPENCV_CFLAGS = -Dcimg_use_opencv  `pkg-config opencv --cflags || echo -I/usr/include/opencv` -I/usr/include/opencv
-OPENCV_LIBS = `pkg-config opencv --libs || echo -lopencv_core -lopencv_highgui`
+OPENCV_CFLAGS = -Dcimg_use_opencv $(shell pkg-config opencv --cflags || echo -I/usr/include/opencv) -I/usr/include/opencv
+OPENCV_LIBS = $(shell pkg-config opencv --libs || echo -lopencv_core -lopencv_highgui)
 
 # Enable support of most classical image file formats, using the GraphicsMagick++ library.
 # (http://www.graphicsmagick.org/Magick++/)
-MAGICK_CFLAGS = -Dcimg_use_magick `pkg-config --cflags GraphicsMagick++ || echo -I$(USR)/$(INCLUDE)/GraphicsMagick`
-MAGICK_LIBS = `pkg-config --libs GraphicsMagick++ || echo -lGraphicsMagick++`
+MAGICK_CFLAGS = -Dcimg_use_magick $(shell pkg-config --cflags GraphicsMagick++ || echo -I$(USR)/$(INCLUDE)/GraphicsMagick)
+MAGICK_LIBS = $(shell pkg-config --libs GraphicsMagick++ || echo -lGraphicsMagick++)
 
 # Enable native support of EXR image files, using the OpenEXR library.
 # (http://www.openexr.com/)
@@ -286,8 +294,8 @@ OPENEXR_LIBS = -lIlmImf -lHalf
 
 # Enable Fast Fourier Transforms, using the FFTW3 library.
 # (http://www.fftw.org/)
-FFTW_CFLAGS = -Dcimg_use_fftw3 `pkg-config --cflags fftw3`
-FFTW_LIBS = `pkg-config --libs fftw3 || echo -lfftw3`
+FFTW_CFLAGS = -Dcimg_use_fftw3 $(shell pkg-config --cflags fftw3)
+FFTW_LIBS = $(shell pkg-config --libs fftw3 || echo -lfftw3)
 ifneq ($(OS),Windows)
 FFTW_LIBS += -lfftw3_threads
 endif
@@ -586,7 +594,7 @@ zart_files:
 gmic_stdlib.h: gmic_stdlib.gmic
 	@echo "> Retrieve G'MIC Standard Library..."
 	@if [ ! -f ./gmic_stdlib.h ]; then \
-	  $(WGET) gmic_stdlib.h http://gmic.eu/gmic_stdlib$(VERSION).h; \
+	  $(WGET) gmic_stdlib.h https://gmic.eu/gmic_stdlib$(VERSION).h; \
 	  touch gmic_stdlib.h; \
 	fi
 	@echo " done!"
@@ -618,10 +626,10 @@ do_gmic_stdlib.h:
  #                into a compressed form.\n\
  #                This file has been automatically generated by the Makefile entry\n\
  #                'do_gmic_stdlib.h:', from the G'MIC source file 'gmic_stdlib.gmic'.\n\
- #                ( http://gmic.eu )\n\
+ #                ( https://gmic.eu )\n\
  #\n\
  #  Copyright   : David Tschumperle\n\
- #                ( http://tschumperle.users.greyc.fr/ )\n\
+ #                ( https://tschumperle.users.greyc.fr/ )\n\
  #\n\
  #  Licenses    : This file is 'dual-licensed', you have to choose one\n\
  #      	   of the two licenses below to apply.\n\
@@ -672,7 +680,7 @@ do_gmic_stdlib.h:
 #-----------------------
 bashcompletion:
 	@mkdir -p ../resources
-	@\gmic v - gmic_stdlib.gmic raw:gmic_stdlib.gmic,uchar document_gmic bash 2> ../resources/gmic_bashcompletion.sh
+	@\gmic v - gmic_stdlib.gmic raw:gmic_stdlib.gmic,uchar nm gmic document_gmic bash 2> ../resources/gmic_bashcompletion.sh
 	@echo "Bash completion script 'gmic_bashcompletion.sh' has been successfully generated in '../resources/'."
 
 # Man pages
@@ -719,9 +727,9 @@ endif
 	  cp -f ../man/gmic.1.gz $(DESTDIR)$(USR)/share/man/fr/man1/gmic.1.gz; \
 	fi
 	@if [ -f ../resources/gmic_bashcompletion.sh ]; then \
-	  if [ -d /etc/bash_completion.d/ ]; then \
-	    mkdir -p $(DESTDIR)/etc/bash_completion.d/; \
-            cp -f ../resources/gmic_bashcompletion.sh $(DESTDIR)/etc/bash_completion.d/gmic; \
+	  if [ -d /usr/share/bash-completion/completions ]; then \
+	    mkdir -p $(DESTDIR)/usr/share/bash-completion/completions/; \
+            cp -f ../resources/gmic_bashcompletion.sh $(DESTDIR)/usr/share/bash-completion/completions/gmic; \
 	  fi; \
 	  if [ -d /opt/local/etc/bash_completion.d/ ]; then \
             mkdir -p $(DESTDIR)/opt/local/etc/bash_completion.d/; \
