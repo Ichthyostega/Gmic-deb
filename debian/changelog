@@ -1,3 +1,17 @@
+gmic (2.4.2-2) unstable; urgency=medium
+
+  [ Pino Toscano ]
+  * [9085ecd] Build the plugin for krita.
+    Build gmic-qt once more for the "krita" host, and install the result
+    into a new krita-gmic binary package.
+
+  [ Bernd Zeimetz ]
+  * [bd67baa] Merge branch 'add-krita-gmic' into 'master'
+    Build the plugin for krita
+    See merge request debian/gmic!3
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sat, 15 Dec 2018 23:19:34 +0100
+
 gmic (2.4.2-1) unstable; urgency=medium
 
   * [f0be9ab] Update upstream source from tag 'upstream/2.4.2'
