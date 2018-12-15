@@ -69,6 +69,20 @@ Description: GREYC's Magic for Image Computing - GIMP Plugin
  .
  This package contains the GIMP plugin.
 
+Package: krita-gmic
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libgmic1 (= ${binary:Version})
+Suggests: krita
+Enhances: krita
+Multi-Arch: foreign
+Description: GREYC's Magic for Image Computing - Helper Tool for Krita
+ G'MIC is an open and full-featured framework for image processing,
+ providing several different user interfaces to
+ convert/manipulate/filter/visualize generic image datasets, from 1d
+ scalar signals to 3d+t sequences of multi-spectral volumetric images.
+ .
+ This package contains the helper tool for the QMic plugin of Krita.
+
 Package: libgmic1
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
