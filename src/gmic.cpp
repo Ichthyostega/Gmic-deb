@@ -633,7 +633,7 @@ CImg<T> _gmic_shift(const float delta_x, const float delta_y=0, const float delt
   if (delta_c!=0) // 4D shift
     switch (boundary_conditions) {
     case 3 : { // Mirror
-      const float w2 = 2.0f*width(), h2 = 2.0f*height(), d2 = 2.0f*depth(), s2 = 2.0f*spectrum();
+      const float w2 = 2.f*width(), h2 = 2.f*height(), d2 = 2.f*depth(), s2 = 2.f*spectrum();
       cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
       cimg_forXYZC(res,x,y,z,c) {
         const float
@@ -665,7 +665,7 @@ CImg<T> _gmic_shift(const float delta_x, const float delta_y=0, const float delt
   else if (delta_z!=0) // 3D shift
     switch (boundary_conditions) {
     case 3 : { // Mirror
-      const float w2 = 2.0f*width(), h2 = 2.0f*height(), d2 = 2.0f*depth();
+      const float w2 = 2.f*width(), h2 = 2.f*height(), d2 = 2.f*depth();
       cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
       cimg_forC(res,c) cimg_forXYZ(res,x,y,z) {
         const float
@@ -694,7 +694,7 @@ CImg<T> _gmic_shift(const float delta_x, const float delta_y=0, const float delt
   else if (delta_y!=0) // 2D shift
     switch (boundary_conditions) {
     case 3 : { // Mirror
-      const float w2 = 2.0f*width(), h2 = 2.0f*height();
+      const float w2 = 2.f*width(), h2 = 2.f*height();
       cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
       cimg_forZC(res,z,c) cimg_forXY(res,x,y) {
         const float
@@ -720,7 +720,7 @@ CImg<T> _gmic_shift(const float delta_x, const float delta_y=0, const float delt
   else // 1D shift
     switch (boundary_conditions) {
     case 3 : { // Mirror
-      const float w2 = 2.0f*width();
+      const float w2 = 2.f*width();
       cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
       cimg_forYZC(res,y,z,c) cimg_forX(res,x) {
         const float mx = cimg::mod(x - delta_x,w2);
@@ -994,7 +994,7 @@ CImg<T>& inpaint_patch(const CImg<t>& mask, const unsigned int patch_size=11,
                        const unsigned int lookup_size=22, const float lookup_factor=1,
                        const int lookup_increment=1,
                        const unsigned int blend_size=0, const float blend_threshold=0.5f,
-                       const float blend_decay=0.02, const unsigned int blend_scales=10,
+                       const float blend_decay=0.02f, const unsigned int blend_scales=10,
                        const bool is_blend_outer=false) {
   if (depth()>1)
     throw CImgInstanceException(_cimg_instance
@@ -1070,7 +1070,7 @@ CImg<T>& inpaint_patch(const CImg<t>& mask, const unsigned int patch_size=11,
   CImg<ucharT> pM, pN;  // Pre-declare patch variables (avoid iterative memory alloc/dealloc)
   CImg<T> pP, pbest;
   CImg<floatT> weights(patch_size,patch_size,1,1,0);
-  weights.draw_gaussian((float)p1,(float)p1,patch_size/15.0f,&one)/=patch_size2;
+  weights.draw_gaussian((float)p1,(float)p1,patch_size/15.f,&one)/=patch_size2;
   unsigned int target_index = 0;
 
   while (true) {
@@ -1093,10 +1093,10 @@ CImg<T>& inpaint_patch(const CImg<t>& mask, const unsigned int patch_size=11,
           // Compute smoothed normal vector.
           const float
             // N = smoothed 3x3 neighborhood of M.
-            Npc = (4.0f*Mpc + 2.0f*Mbc + 2.0f*Mcc + 2.0f*Mpp + 2.0f*Mpn + Mbp + Mbn + Mcp + Mcn)/16,
-            Nnc = (4.0f*Mnc + 2.0f*Mac + 2.0f*Mcc + 2.0f*Mnp + 2.0f*Mnn + Map + Man + Mcp + Mcn)/16,
-            Ncp = (4.0f*Mcp + 2.0f*Mcb + 2.0f*Mcc + 2.0f*Mpp + 2.0f*Mnp + Mpb + Mnb + Mpc + Mnc)/16,
-            Ncn = (4.0f*Mcn + 2.0f*Mca + 2.0f*Mcc + 2.0f*Mpn + 2.0f*Mnn + Mpa + Mna + Mpc + Mnc)/16,
+            Npc = (4.f*Mpc + 2.f*Mbc + 2.f*Mcc + 2.f*Mpp + 2.f*Mpn + Mbp + Mbn + Mcp + Mcn)/16,
+            Nnc = (4.f*Mnc + 2.f*Mac + 2.f*Mcc + 2.f*Mnp + 2.f*Mnn + Map + Man + Mcp + Mcn)/16,
+            Ncp = (4.f*Mcp + 2.f*Mcb + 2.f*Mcc + 2.f*Mpp + 2.f*Mnp + Mpb + Mnb + Mpc + Mnc)/16,
+            Ncn = (4.f*Mcn + 2.f*Mca + 2.f*Mcc + 2.f*Mpn + 2.f*Mnn + Mpa + Mna + Mpc + Mnc)/16,
             _nx = 0.5f*(Nnc - Npc),
             _ny = 0.5f*(Ncn - Ncp),
             nn = std::sqrt(1e-8f + _nx*_nx + _ny*_ny),
@@ -1290,7 +1290,7 @@ CImg<T>& inpaint_patch(const CImg<t>& mask, const unsigned int patch_size=11,
 
   // Blend inpainting result (if requested), using multi-scale blending algorithm.
   if (blend_size && blend_scales) {
-    const float _blend_threshold = std::max(0.0f,std::min(1.0f,blend_threshold));
+    const float _blend_threshold = std::max(0.f,std::min(1.f,blend_threshold));
     saved_patches._height = nb_saved_patches;
 
     // Re-crop image and mask if outer blending is activated.
@@ -1363,8 +1363,8 @@ CImg<T>& inpaint_patch(const CImg<t>& mask, const unsigned int patch_size=11,
         blended = _inpaint_patch_crop(ox,oy,ox + dx - 1,oy + dy - 1,0),
         cumul(dx,dy,1,1);
       weights.assign(blend_width,blend_width,1,1,0).
-        draw_gaussian((float)b1,(float)b1,blend_width/4.0f,&one);
-      cimg_forXY(cumul,x,y) cumul(x,y) = mask(x + ox,y + oy)?0.0f:1.0f;
+        draw_gaussian((float)b1,(float)b1,blend_width/4.f,&one);
+      cimg_forXY(cumul,x,y) cumul(x,y) = mask(x + ox,y + oy)?0.f:1.f;
       blended.mul(cumul);
 
       cimg_forY(saved_patches,l) {
@@ -5655,8 +5655,8 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                     const int mx = disp.mouse_x(), my = disp.mouse_y();
                     if (disp.button()) {
                       if (mx>=0 && my>=0 && (mx!=omx || my!=omy)) {
-                        percent0 = (my - 16)*100.0/(disp.height() - 32);
-                        percent1 = (mx - 16)*100.0/(disp.width() - 32);
+                        percent0 = (my - 16)*100./(disp.height() - 32);
+                        percent1 = (mx - 16)*100./(disp.width() - 32);
                         if (percent0<0) percent0 = 0; else if (percent0>101) percent0 = 101;
                         if (percent1<0) percent1 = 0; else if (percent1>101) percent1 = 101;
                         if (percent0>percent1) cimg::swap(percent0,percent1);
@@ -6500,7 +6500,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
         // Estimate displacement field.
         if (!std::strcmp("displacement",command)) {
           gmic_substitute_args(true);
-          float nb_scales = 0, nb_iterations = 10000, smoothness = 0.1f, precision = 5.0f;
+          float nb_scales = 0, nb_iterations = 10000, smoothness = 0.1f, precision = 5.f;
           unsigned int is_backward = 1;
           sep = *argx = 0;
           ind0.assign();
@@ -11274,7 +11274,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
         // Anisotropic PDE-based smoothing.
         if (!std::strcmp("smooth",command)) {
           gmic_substitute_args(true);
-          float sharpness = 0.7f, anisotropy = 0.3f, dl =0.8f, da = 30.0f, gauss_prec = 2.0f;
+          float sharpness = 0.7f, anisotropy = 0.3f, dl =0.8f, da = 30.f, gauss_prec = 2.f;
           unsigned int is_fast_approximation = 1;
           *argx = *argy = *argz = sep = sep0 = sep1 = 0;
           interpolation = 0;
@@ -11905,7 +11905,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                     const int mx = disp.mouse_x(), my = disp.mouse_y();
                     if (disp.button()) {
                       if (mx>=0 && my>=0 && (mx!=omx || my!=omy)) {
-                        percent = (my - 16)*100.0/(disp.height() - 32);
+                        percent = (my - 16)*100./(disp.height() - 32);
                         if (percent<0) percent = 0; else if (percent>101) percent = 101;
                         omx = mx; omy = my; g_img_uc.assign();
                       }
@@ -12338,8 +12338,8 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                             dimh>0?(int)dimh:disp.window_height(),
                             false);
                 if (is_move) {
-                  if (sepx=='%') posx*=(CImgDisplay::screen_width() - disp.window_width())/100.0f;
-                  if (sepy=='%') posy*=(CImgDisplay::screen_height() - disp.window_height())/100.0f;
+                  if (sepx=='%') posx*=(CImgDisplay::screen_width() - disp.window_width())/100.f;
+                  if (sepy=='%') posy*=(CImgDisplay::screen_height() - disp.window_height())/100.f;
                   disp.move((int)posx,(int)posy);
                 }
                 if (norm>=0) disp._normalization = (unsigned int)norm;
@@ -12353,8 +12353,8 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                             fullscreen<0?false:(bool)fullscreen,
                             is_move);
                 if (is_move) {
-                  if (sepx=='%') posx*=(CImgDisplay::screen_width() - disp.window_width())/100.0f;
-                  if (sepy=='%') posy*=(CImgDisplay::screen_height() - disp.window_height())/100.0f;
+                  if (sepx=='%') posx*=(CImgDisplay::screen_width() - disp.window_width())/100.f;
+                  if (sepy=='%') posy*=(CImgDisplay::screen_height() - disp.window_height())/100.f;
                   disp.move((int)posx,(int)posy);
                 }
                 if (norm==2) {
@@ -12439,7 +12439,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                 g_list.assign((int)nb_frames);
                 name = images_names[_ind];
                 cimglist_for(g_list,t)
-                  g_list[t] = img.get_warp(warping_field*((t + 1.0f)/nb_frames),mode,
+                  g_list[t] = img.get_warp(warping_field*((t + 1.f)/nb_frames),mode,
                                            interpolation,boundary);
                 if (is_get) {
                   images_names.insert((int)nb_frames,name.copymark());

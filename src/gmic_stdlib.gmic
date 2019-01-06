@@ -3985,7 +3985,7 @@ update_gallery_html : check "isbool(${1=0})"
   x "ln -fs ../highslide ."
 
   # Define categories and sample pictures.
-  categories=arrays,artistic,blackandwhite,colors,deformations,filtering,patterns,3drendering,codesamples
+  categories=arrays,artistic,blackandwhite,colors,deformations,filtering,patterns,3drendering,stylization,codesamples
   nb_categories={narg($categories)}
   commands_arrays=gallery_arrays,array,array_fade,array_mirror,frame_blur,frame_cube,frame_painting,img2ascii,imagegrid,rotate_tiles,vignette,tunnel
   commands_artistic=gallery_artistic,boxfitting,cartoon,cubism,draw_whirl,fractalize,halftone,sketchbw,light_relief,mosaic,linify,polaroid,polygonize,poster_hope,rodilius,stencil,stained_glass
@@ -3995,6 +3995,7 @@ update_gallery_html : check "isbool(${1=0})"
   commands_filtering=gallery_filtering,blur_angular,blur_linear,blur_radial,glow,smooth,bilateral,dog,deriche,distance,gradient_norm,normalize_local,sharpen,solidify
   commands_patterns=gallery_patterns,tsp,chessboard,mandelbrot,maze_mask,plasma,shape_fern,shape_snowflake,sierpinski,syntexturize_matchpatch,truchet,turbulence,watermark_visible,weave
   commands_3drendering=gallery_3drendering,add3d,distribution3d,elevation3d,gmic3d,imageblocks3d,imagerubik3d,skeleton3d,spherical3d,tensors3d,text3d,torus3d,weird3d
+  commands_stylization=gallery_stylization
   commands_codesamples=gallery_codesamples
 
   pics=apples,bottles,butterfly,car,cat,cliff,david,dog,duck,eagle,elephant,earth,flower,fruits,greece,gummy,inside,landscape,leaf,leno,lion,mandrill,monalisa,parrots,pencils,rooster,rose,square,teddy,tiger,wall,waterfall,zelda
@@ -4042,14 +4043,15 @@ update_gallery_html : check "isbool(${1=0})"
          "<br/><br/>\n<div id=\"menu\">\n"
 
     html_menu="<font size=\"-1\"><table cellspacing=\"0\" cellpadding=\"4\" border=\"1\" align=\"center\"><tr>\n"\
-         $td_arrays"<a href=\"arrays.shtml#menu\">Arrays &amp; frames</a></td>"\
+         $td_arrays"<a href=\"arrays.shtml#menu\">Arrays &amp; Frames</a></td>"\
          $td_artistic"<a href=\"artistic.shtml#menu\">Artistic</a></td>"\
          $td_blackandwhite"<a href=\"blackandwhite.shtml#menu\">B&amp;W</a></td>"\
          $td_colors"<a href=\"colors.shtml#menu\">Colors</a></td>"\
          $td_deformations"<a href=\"deformations.shtml#menu\">Deformations</a></td>"\
          $td_filtering"<a href=\"filtering.shtml#menu\">Filtering</a></td>"\
          $td_patterns"<a href=\"patterns.shtml#menu\">Patterns</a></td>"\
-         $td_3drendering"<a href=\"3drendering.shtml#menu\">3D rendering</a></td>"\
+         $td_3drendering"<a href=\"3drendering.shtml#menu\">3D Rendering</a></td>"\
+         $td_stylization"<a href=\"stylization.shtml#menu\">Stylization</a></td>"\
          $td_codesamples"<a href=\"codesamples.shtml#menu\">Code samples</a></td>"\
          "</tr></table></font>\n"
 
@@ -4059,6 +4061,8 @@ update_gallery_html : check "isbool(${1=0})"
 
     repeat $nb_commands
       command=${"arg "1+$>,$commands}
+      is_stylization={;'$command'=='gallery_stylization'}
+
       v + e[] $_gmic_m"    - Command '"$_gmic_b$command$_gmic_n"' ["{1+$>}/$nb_commands"]."$_gmic_n v -
       +l # Parse command definition and examples
         s -,{'"#@cli "$command" :"'}
@@ -4092,8 +4096,19 @@ update_gallery_html : check "isbool(${1=0})"
 
             l[] # Create a HTML representation of the command
               ({'${example$nex}'}) y
-              +replace_str. "image.jpg","<a href=\"https://gmic.eu/img/sample_"$sample".png\" target=\"_blank\">"$sample".png</a>"
-              y -.. . is_input={-2,im!=0||iM!=0}
+              is_input={find(#-1,'image.jpg')>=0}
+
+              if {!$is_input" && "find(#-1,'"sample "')>=0}
+                 s +,{'"sample "'}
+                 if {0,crop()=='"sample "'" && "$!>1} l[1]
+                   s +,{'" "'}
+                   if {find(#0,_',')==-1} sample={0,t} is_input=1 fi
+                   a y
+                 endl fi
+                 a y
+              fi
+              replace_str. "image.jpg","<a href=\"https://gmic.eu/img/sample_"$sample".png\" target=\"_blank\">"$sample".png</a>"
+              replace_str. "_output_mode=1",""
               l. s +,{'" "'} repeat $! if {$<,crop(0,0,1,5)=='_fps='||crop(0,0,1,7)=='_label='} # Discard '_fps=?' and '_label=?'
                 rm[$<]
               fi done a y endl
@@ -4134,9 +4149,17 @@ update_gallery_html : check "isbool(${1=0})"
 
               db3d m3d md3d f3d l3d sl3d ss3d 0.8 srand 512
               etime=$| _run etime={_round($|-$etime,0.01)}
-              _gallery
-              width,height={[w,h]}
-              if $_is_animated o $filename_full,$_fps else o $filename_full,70 fi
+
+              if $is_stylization
+                +l _gallery o $filename_full,70 rm endl k.
+                _gallery
+                width,height={[w,h]}
+              else
+                _gallery
+                width,height={[w,h]}
+                if $_is_animated o $filename_full,$_fps else o $filename_full,70 fi
+              fi
+              v + e[] "\r"$_gmic_g"        $ "${example$nex}" (done in "$_gmic_n${etime}"s"$_gmic_g")."$_gmic_n v -
 
               crop 5,5,{w-6},{h-6} # Remove frame added by '_gallery'
               frame 3%,3%,255 rr2d 440,440,0,3 drop_shadow 2,2,2
@@ -4161,7 +4184,14 @@ update_gallery_html : check "isbool(${1=0})"
               fi
             endl fi
 
-            l[] $filename_full width,height={round([w,h]*(max(w,h)<300?1.75:1))} rm endl
+            is_samesize=0
+            l[]
+              $filename_full
+              width,height={round([w,h]*(max(w,h)<300?1.75:1))}
+              if $filename_original $filename_original is_samesize={w==w#0" && "h==h#0} fi
+              rm
+            endl
+            if {!$is_samesize} filename_original=$filename_full fi
 
             if {!($col%$nb_cols)} html=${html}"<tr>\n" fi
             if {$nb_examples==1} counter= else counter=" <font size=\"-2\"><i>"[{$>+1}/$nb_examples]"</i></font>" fi
@@ -4189,10 +4219,6 @@ update_gallery_html : check "isbool(${1=0})"
                   "</center></div>\n"\
                   "<div class=\"highslide-caption\">Command: <tt>$ gmic "${replaced_example$nex}"</tt>"${html_etime}"</div></div></center></td>\n"
             else
-              # html=${html}\
-              #     "  <td><center><div><a href=\""$filename_full"\" class=\"highslide\" onclick=\"return hs.expand(this, { width: "{$width+64}", height: "{$height+64}" })\">"\
-              #     "<img alt=\""gallery_$command$nex"\" border=\"0\" src=\""$filename_thumb"\" /><br/><b>"${_label}${html_codesample}"</b></a>"\
-              #     "<div class=\"highslide-caption\">Command: <tt>$ gmic "${replaced_example$nex}"</tt>"${html_etime}"</div></div></center></td>\n"
               html=${html}\
                   "  <td><center><div><a href=\"#\" onclick=\"return hs.htmlExpand(this, { width: "{$width+64}", height: "{$height+64}" })\">\n"\
                   "  <img alt=\""gallery_$command$nex"\" border=\"0\" src=\""$filename_thumb"\" /><br/><b>"${_label}${html_codesample}"</b></a>\n"\
@@ -4264,7 +4290,7 @@ _gallery :
 
 __gallery :
   if {$!==2} if {w>h} a y else a x fi
-  else append_tiles 2
+  else montage A # append_tiles 2
   fi
 
 # Function that inserts a new 'Update information' filter for a previous version number,
@@ -4495,7 +4521,7 @@ update_server :
         if {$!>=3} l[1]
           s +,{'='}
           if {$!>=3} if {{1,@0}==_'='}
-            if {0,find(crop(),'"<span "')<0}
+            if {find(#0,'"<span "')<0}
               rows[0] 1,100%
               _update_server_calibrate_name[0]
               i[0] ({':'};32) i[2] (32)
@@ -4630,7 +4656,7 @@ update_server :
     replace_str "<i>David Tschumperl&#233;</i>","<i><a href=\""$url"\">David Tschumperl&#233;</a></i>"
     o cimgz:/tmp/update$_version.gmic,uchar
 
-    (242)
+    (242,243)
     repeat {w}
       v={i[$>]}
       _update_server_upload[] ${_path_rc}update$_version.gmic,plain_update$v.gmic
@@ -5219,8 +5245,8 @@ _update_header_html : check "${2=0}>=0 && isbool(${3=0})"
       +autocrop {'" "'} autocrop. {'\t'}
       if {"s = ['Latest stable version: ']; crop(0,0,1,size(s))==s"}
 
-        is_gmic={find(crop(),'gmic.eu')>=0}
-        is_cimg={find(crop(),'cimg.eu')>=0}
+        is_gmic={find(#-1,'gmic.eu')>=0}
+        is_cimg={find(#-1,'cimg.eu')>=0}
         if (!$is_gmic" && "!$is_cimg} v + return fi
 
         # Retrieve latest stable version specified in the header file.
@@ -7148,7 +7174,7 @@ luminance :
 #@cli : $$
 mix_rgb : skip ${1=1},${2=0},${3=0},${4=0},${5=1},${6=0},${7=0},${8=0},${9=1}
   e[^-1] "Apply matrix [ $1 $2 $3 ; $4 $5 $6 ; $7 $8 $9 ] to RGB colors of image$?."
-  v - r 100%,100%,100%,3,0,2 mix_channels (${1-3};${4-6};${7-9}) v +
+  v - to_color repeat $! sh[$>] 0,2 mix_channels. (${1-3};${4-6};${7-9}) rm. done v +
 
 #@cli pseudogray : _max_increment>=0,_JND_threshold>=0,_bits_depth>0
 #@cli : Generate pseudogray colormap with specified increment and perceptual threshold.
@@ -7429,16 +7455,16 @@ rgb2xyz : skip "${1=,}"
   v - l[] if {isval("$1")} illu={"$1?1:0"} else if {["'$1'"]!=','} noarg fi illu=1 fi onfail noarg illu=1 endl v +
   e[^-1] "Convert color representation of image$? from RGB to XYZ, using the D"{arg(1+$illu,50,65)}" illuminant."
   v -
-  / 255
   if $illu # D65
-    mix_rgb 0.4124564,0.3575761,0.1804375,\
-            0.2126729,0.7151522,0.0721750,\
-            0.0193339,0.1191920,0.9503041
+    mix_rgb {[0.4124564,0.3575761,0.1804375,\
+              0.2126729,0.7151522,0.0721750,\
+              0.0193339,0.1191920,0.9503041]/255}
   else # D50
-    mix_rgb 0.43603516,0.38511658,0.14305115,\
-            0.22248840,0.71690369,0.06060791,\
-            0.01391602,0.09706116,0.71392822
-  fi v +
+    mix_rgb {[0.43603516,0.38511658,0.14305115,\
+              0.22248840,0.71690369,0.06060791,\
+              0.01391602,0.09706116,0.71392822]/255}
+  fi
+  v +
 
 #@cli rgb2xyz8 : illuminant={ 0=D50 | 1=D65 } : (no arg)
 #@cli : Convert color representation of selected images from RGB to XYZ8.
@@ -7480,8 +7506,9 @@ rgb2yiq8 :
 #@cli : $ image.jpg rgb2ycbcr split c
 rgb2ycbcr :
   e[^-1] "Convert color representation of image$? from RGB to YCbCr."
-  v - mix_rgb 66,129,25,-38,-74,112,112,-94,-18 + 128 / 256
+  v - mix_rgb 66,129,25,-38,-74,112,112,-94,-18
   repeat $!
+    sh[$>] 0,2 +. 128 /. 256 rm.
     sh[$>] 0 +. 16 rm.
     sh[$>] 1,2 +. 128 rm.
   done v +
@@ -7491,10 +7518,10 @@ rgb2ycbcr :
 #@cli : $ image.jpg rgb2yuv split c
 rgb2yuv :
   e[^-1] "Convert color representation of image$? from RGB to YUV."
-  v - / 255
-  mix_rgb 0.299,0.587,0.114,\
-          -0.14713,-0.28886,0.436,\
-          0.615,-0.51498,-0.10001
+  v -
+  mix_rgb {[0.299,0.587,0.114,\
+            -0.14713,-0.28886,0.436,\
+            0.615,-0.51498,-0.10001]/255}
   v +
 
 #@cli rgb2yuv8
@@ -7738,7 +7765,7 @@ transfer_histogram : check ${"is_image_arg $1"}" && ${2=256}>0" skip "${3=0}"
       r[$>] $w0,$h0,$d0,$s0,0
     done
   else repeat $! pass$1 _transfer_histogram[$>,-1] $2 done rm.
-  fi
+  fi v +
 
 _transfer_histogram :
   repeat {min(s#0,s#1)}
@@ -7918,15 +7945,15 @@ xyz2rgb : skip "${1=,}"
   e[^-1] "Convert color representation of image$? from XYZ to RGB, using the D"{arg(1+$illu,50,65)}" illuminant."
   v -
   if $illu # D65
-    mix_rgb 3.2404542,-1.5371385,-0.4985314,\
-            -0.9692660,1.8760108,0.0415560,\
-            0.0556434,-0.2040259,1.0572252
+    mix_rgb {[3.2404542,-1.5371385,-0.4985314,\
+              -0.9692660,1.8760108,0.0415560,\
+              0.0556434,-0.2040259,1.0572252]*255}
   else # D50
-    mix_rgb 3.134274799724,-1.617275708956,-0.490724283042,\
-            -0.978795575994,1.916161689117,0.033453331711,\
-            0.071976988401,-0.228984974402,1.405718224383
+    mix_rgb {[3.134274799724,-1.617275708956,-0.490724283042,\
+              -0.978795575994,1.916161689117,0.033453331711,\
+              0.071976988401,-0.228984974402,1.405718224383]*255}
   fi
-  * 255 c 0,255 v +
+  c 0,255 v +
 
 #@cli xyz82rgb : illuminant={ 0=D50 | 1=D65 } : (no arg)
 #@cli : Convert color representation of selected images from XYZ8 to RGB.
@@ -7938,18 +7965,20 @@ xyz82rgb : skip "${1=,}"
     sh[$>] 0 /. 255 rm.
     sh[$>] 1 /. 255 rm.
     sh[$>] 2 /. 231.8182 rm.
-  done -xyz2rgb $illu v +
+  done xyz2rgb $illu v +
 
 #@cli ycbcr2rgb
 #@cli : Convert color representation of selected images from YCbCr to RGB.
 ycbcr2rgb :
   e[^-1] "Convert color representation of image$? from YCbCr to RGB."
-  v - repeat $! l[$>] sh 0 -. 16 rm. sh 1,2 -. 128 rm. endl done
-  mix_rgb 298,0,409,\
-          298,-100,-208,\
-          298,516,0
-  + 128 / 256 c 0,255
-  v +
+  v - repeat $!
+    sh[$>] 0 -. 16 rm.
+    sh[$>] 1,2 -. 128 rm.
+    sh[$>] 0,2 mix_rgb. 298,0,409,\
+                        298,-100,-208,\
+                        298,516,0
+    +. 128 /. 256 c. 0,255 rm.
+  done v +
 
 #@cli yiq2rgb
 #@cli : Convert color representation of selected images from YIQ to RGB.
@@ -7979,10 +8008,10 @@ yiq82rgb :
 yuv2rgb :
   e[^-1] "Convert color representation of image$? from YUV to RGB."
   v -
-  mix_rgb 1,0,1.13983,\
-          1,-0.39465,-0.5806,\
-          1,2.03211,0
-  * 255 c 0,255 v +
+  mix_rgb {[1,0,1.13983,\
+            1,-0.39465,-0.5806,\
+            1,2.03211,0]*255}
+  c 0,255 v +
 
 #@cli yuv82rgb
 #@cli : Convert selected images from YUV8 to RGB color bases.
@@ -9057,7 +9086,7 @@ warp_patch : check ${is_image_arg\ $1}" && isint(${2=3}) && $2>=1 && isint(${3=$
     100%,100%,100%,{0,s}
 
     if {1,s>=3} # 3D version
-      eval[1] "*
+      eval[1] ">
         begin(
           const pw = $2;
           const ph = $3;
@@ -9086,7 +9115,6 @@ warp_patch : check ${is_image_arg\ $1}" && isint(${2=3}) && $2>=1 && isint(${3=$
             );
           );
         );
-
         u = i(x,y,z,0);
         v = i(x,y,z,1);
         w = i(x,y,z,2);
@@ -9095,7 +9123,7 @@ warp_patch : check ${is_image_arg\ $1}" && isint(${2=3}) && $2>=1 && isint(${3=$
           draw(#2,patch,x - pw1,y - ph1,z - pd1,0,pw,ph,pd,s#0,-1,weights):
           draw(#2,patch,x - pw1,y - ph1,z - pd1,0,pw,ph,pd,s#0,-1)"
     else # 2D version
-      eval[1] "*
+      eval[1] ">
         begin(
           const pw = $2;
           const ph = $3;
@@ -24476,10 +24504,10 @@ gui_filter_sources : skip ${1=0},${2=1}
   endl fi
 
   # Build list of filter sources.
-  ({'{/$_path_user}'}) # Include local '.gmic' (or 'user.gmic') file.
   ({'https://gmic.eu/update$_version.gmic'},1) # Include stdlib update (last 1 -> Override default filters).
   l[] _gui_filter_sources $1 onfail rm endl # Invoke custom command to include other filter sources.
   l[] i cimgz:${_path_rc}gui_filter_sources onfail endl # Include other user-defined filters sources.
+  ({'{/$_path_user}'}) # Include local '.gmic' (or 'user.gmic') file.
 
 # Function that alway returns a valid preview size.
 gui_preview_wh :
@@ -25277,7 +25305,8 @@ fx_gmicky_preview :
 #@gui : - <b>2017/10/09</b> : version <i>2.1.0</i>.\n
 #@gui : - <b>2018/02/15</b> : version <i>2.2.0</i>.\n
 #@gui : - <b>2018/06/21</b> : version <i>2.3.0</i>.\n
-#@gui : - <span foreground="purple"><b>2018/11/30</b> : version <i>2.4.2</i> (Current stable).</span>\n
+#@gui : - <span foreground="purple"><b>2018/12/17</b> : version <i>2.4.3</i> (Current stable).</span>\n
+##@gui : - <b>2018/12/12</b> : version <i>2.4.3_pre</i> (Current pre-release).</span>\n
 #@gui : "}
 #@gui : sep = separator()
 #@gui : url = link{"View changelog to upcoming major version (2.5.0)","https://discuss.pixls.us/t/on-the-road-to-2-5-0"}
@@ -26436,7 +26465,7 @@ fx_kuwahara_preview :
 #@gui : Line Opacity = float(10,0,30)
 #@gui : Line Precision = int(24,1,128)
 #@gui : Color Mode = choice(0,"Subtractive","Additive")
-#@gui : sep = separator(), Preview progression while running = _bool(1)
+#@gui : sep = separator(), Preview Progression While Running = _bool(1)
 #@gui : sep = separator(), Preview Type = choice("Full","Forward Horizontal","Forward Vertical","Backward Horizontal","Backward Vertical","Duplicate Top","Duplicate Left","Duplicate Bottom","Duplicate Right","Duplicate Horizontal","Duplicate Vertical","Checkered","Checkered Inverse"), Preview split = point(50,50,0,0,200,200,200,0,10,0)
 #@gui : sep = separator(), note = note{"<b>Note:</b>\n\n
 #@gui : - This filter is our own implementation of the nice algorithm proposed on the webpage
@@ -32288,7 +32317,7 @@ fx_frame_smooth :
 #@gui : Vignette Max Radius = float(85,0,100)
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2010/29/12</i>.</small>")
 fx_old_photo :
-  -vignette ${1-3} -old_photo
+  vignette ${1-3} old_photo
 
 #@gui Polaroid : fx_polaroid, fx_polaroid(1)
 #@gui : Frame Size = int(10,0,400)
@@ -32303,7 +32332,7 @@ fx_old_photo :
 #@gui : Vignette Max Radius = float(95,0,100)
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2016/20/06</i>.</small>")
 fx_polaroid :
-  -vignette ${8-10} polaroid $1,$2 drop_shadow $3%,$4%,$5%,$6 rotate $7,1,0
+  vignette ${8-10} polaroid $1,$2 drop_shadow $3%,$4%,$5%,$6 rotate $7,1,0
 
 #@gui Tunnel : fx_tunnel, fx_tunnel(1)
 #@gui : Depth = int(4,1,100)
@@ -32324,7 +32353,7 @@ fx_tunnel :
 fx_vignette :
   repeat $! to_rgb l[$>]
     to_rgba split_opacity
-    =. 0 -vignette. ${1-3} a c +fc ${4-7} rv blend alpha
+    =. 0 vignette. ${1-3} a c +fc ${4-7} rv blend alpha
   endl done
 
 #@gui ____<b>Frequencies</b>
@@ -32893,7 +32922,7 @@ fx_contrast_swm :
 #@gui : Angle = float(0,0,360)
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2012/14/11</i>.</small>")
 fx_drop_shadow :
-  * -1 + 255 -vignette {255*$5},80,95 * -1 + 255
+  * -1 + 255 vignette {255*$5},80,95 * -1 + 255
   drop_shadow $1%,$2%,$3%,$4 rotate $6,1,0
 
 #@gui Drop Shadow 3D : fx_drop_shadow3d, fx_drop_shadow3d_preview(1)
@@ -36697,6 +36726,14 @@ fx_solve_maze_preview :
 #@cli : $ image.jpg fx_quadtree 2,1024,1.05,0,2.33,0.68,0.39,1,0 _label="Quadtree~variations"
 #@cli : $ image.jpg fx_vector_painting 9.37,0 _label="Vector~painting"
 
+#@cli gallery_blackandwhite
+#@cli : This entry defines some examples of black-and-white filters for the G'MIC gallery page.
+#@cli : $ image.jpg fx_freaky_bw 90,20,0,0,0,0 _label="Freaky~B&amp;W"
+#@cli : $ image.jpg fx_engrave 0.5,50,0,8,40,0,0,0,10,1,0,0,0,1,0 _label="Engrave"
+#@cli : $ image.jpg fx_gcd_layeretch 11,4,12,0.12,100,8.5,5,0,0,3,1,1,0 _label="Multi-layer~etch"
+#@cli : $ image.jpg fx_pencil_portraitbw 30,120,1,0.5,144,79,21,0 _label="Pencil~portrait"
+#@cli : $ image.jpg fx_gcd_etch 125,153,171,185,0.1,50,80,50,10,15,12,20,0,1,0.3,1,0,0 _label="Threshold~etch"
+
 #@cli gallery_colors
 #@cli : This entry defines some examples of color filters for the G'MIC gallery page.
 #@cli : $ image.jpg fx_color_abstraction 1,10,0.2,0 _label="Color~abstraction"
@@ -36750,13 +36787,28 @@ fx_solve_maze_preview :
 #@cli : $ sample leno,lion,leno resize 400,400 transition3d 20,5,5 rm. _fps=10 _label="transition3d"
 #@cli : $ 256,192 fx_text_pointcloud3d 64,"G'MIC","Rocks!",1,200,220,255,255,255,255,255,2,2,1,19 _fps=10 _label="3D~text~pointcloud"
 
-#@cli gallery_blackandwhite
-#@cli : This entry defines some examples of black-and-white filters for the G'MIC gallery page.
-#@cli : $ image.jpg fx_freaky_bw 90,20,0,0,0,0 _label="Freaky~B&amp;W"
-#@cli : $ image.jpg fx_engrave 0.5,50,0,8,40,0,0,0,10,1,0,0,0,1,0 _label="Engrave"
-#@cli : $ image.jpg fx_gcd_layeretch 11,4,12,0.12,100,8.5,5,0,0,3,1,1,0 _label="Multi-layer~etch"
-#@cli : $ image.jpg fx_pencil_portraitbw 30,120,1,0.5,144,79,21,0 _label="Pencil~portrait"
-#@cli : $ image.jpg fx_gcd_etch 125,153,171,185,0.1,50,80,50,10,15,12,20,0,1,0.3,1,0,0 _label="Threshold~etch"
+#@cli gallery_stylization
+#@cli : This entry defines some examples of image stylization for the G'MIC gallery page.
+#@cli : $ sample car _fx_stylize starrynight _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Van~Gogh:~Starry~Night"
+#@cli : $ sample car _fx_stylize graytree _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Mondrian:~Gray~Tree"
+#@cli : $ sample car _fx_stylize yellowredblue _output_mode=1 +fx_stylize 1,4,0,0,0.25,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Kandinsky:~Yellow-Red-Blue"
+#@cli : $ sample car _fx_stylize littlebayatlaciotat _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Braque:~Little~Bay~at~La~Ciotat"
+#@cli : $ sample car _fx_stylize leviaducalestaque _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Braque:~Le~Viaduc~a~l'Estaque"
+#@cli : $ sample car _fx_stylize greatwave _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Hokusai:~The~Great~Wave"
+#@cli : $ sample elephant input ../img/hatching.png _output_mode=1 +fx_stylize 1,2,0,0,1,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,10,2,0 _label="from~Hatch Drawing"
+#@cli : $ sample cat input ../img/hatching.png _output_mode=1 +fx_stylize 1,2,0,0,1,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,10,2,0 _label="from~Hatch Drawing"
+#@cli : $ sample bottles _fx_stylize starrynight _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,1,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Van~Gogh:~Starry~Night"
+#@cli : $ sample cat _fx_stylize summertime9a _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Pollock:~Summertime~No 9A"
+#@cli : $ sample cat _fx_stylize greatwave _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Hokusai:~The~Great~Wave"
+#@cli : $ sample dog _fx_stylize convergence _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Pollock:~Convergence"
+#@cli : $ sample dog _fx_stylize irises _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,1,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Van~Gogh:~Irises"
+#@cli : $ sample leno _fx_stylize themandola _output_mode=1 +fx_stylize 1,4,0,0,0,3,1,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Braque:~The~Mandola"
+#@cli : $ sample monkey _fx_stylize orientalpleasuregardenanagoria _output_mode=1 +fx_stylize 1,4,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Klee:~Oriental~Pleasure~Garden~Anagoria"
+#@cli : $ sample monalisa _fx_stylize squareswithconcentriccircles _output_mode=1 +fx_stylize 1,2,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Kandisnky:~Squares~with~Concentric~Circles"
+#@cli : $ sample monalisa _fx_stylize inthestyleofkairouan _output_mode=1 +fx_stylize 1,2,2,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Klee:~In~the~Style~of~Kairouan"
+#@cli : $ sample square _fx_stylize polyphony2 _output_mode=1 +fx_stylize 1,4,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Klee:~Polyphony~2"
+#@cli : $ sample square _fx_stylize wheatstacksendofsummer _output_mode=1 +fx_stylize 1,4,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Monet:~Wheatstacks~-~End~of~Summer"
+
 
 #@cli gallery_codesamples
 #@cli : This entry defines some examples of coding-fun filters for the G'MIC gallery page.
