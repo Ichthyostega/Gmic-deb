@@ -1,3 +1,11 @@
+gmic (2.4.3-1) unstable; urgency=medium
+
+  * [82fd7ee] Update upstream source from tag 'upstream/2.4.3'
+    Update to upstream version '2.4.3'
+    with Debian dir b5063d8f16c042266d1d66454291bc13d1922fe6
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 06 Jan 2019 18:43:34 +0100
+
 gmic (2.4.2-2) unstable; urgency=medium
 
   [ Pino Toscano ]
