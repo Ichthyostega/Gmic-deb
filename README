@@ -12,7 +12,7 @@
 
                              ( https://gmic.eu )
 
-                                    2.4.3
+                                    2.4.5
 
 --------------------------------------------------------------------------------
 
@@ -20,33 +20,33 @@
 #---------------
 
  G'MIC is a full-featured open-source framework for image processing, distributed
- under the CeCILL licenses (LGPL-like and/or GPL-compatible).
- It provides several different user interfaces to convert/manipulate/filter/
- visualize generic image datasets, ranging from 1d scalar signals to 3d+t
- sequences of multi-spectral volumetric images, hence including 2d color images.
+ under the CeCILL free software licenses (LGPL-like and/or GPL-compatible). It
+ provides several user interfaces to convert / manipulate / filter / visualize
+ generic image datasets, ranging from 1D scalar signals to 3D+t sequences of
+ multi-spectral volumetric images, hence including 2D color images.
 
- These user interfaces are:
+ G'MIC user interfaces are:
 
- 1 - A command-line interface 'gmic', to use the G'MIC image processing features
-     from a shell. In this setting, G'MIC may be seen as a friendly companion to
-     the ImageMagick or GraphicsMagick software suites.
+ 1 - 'gmic', a command-line tool to use the G'MIC image processing features from
+     a shell. In this setting, G'MIC may be seen as a friendly companion to the
+     ImageMagick or GraphicsMagick software suites.
 
- 2 - A small, portable, thread-safe and multi-threaded, C++ image processing
-     library 'libgmic', to be linked to third-party applications. Its simple API
+ 2 - 'libgmic', a small, portable, thread-safe and multi-threaded, C++ image
+     processing library to be linked to third-party applications. Its simple API
      allows programmers to add all G'MIC features in their own software without
-     much efforts (a C API is provided as well).
+     much efforts (a C API is available as well).
+[
+ 3 - 'G'MIC-Qt', a plug-in to bring G'MIC capabilities to the image retouching and
+     painting software GIMP and Krita. More than 500 filters are already available,
+     sorted by category (Artistic, Black & white, Colors, Contours, Deformations,
+     Degradations, Details, Film emulation, Frames, Layers, Light & shadows, Patterns,
+     Rendering, Repair, Sequences, etc.).
 
- 3 - A plug-in 'gmic_gimp_qt', to bring G'MIC capabilities
-     to the image retouching software GIMP and Krita. More than 500 filters are
-     already available, sorted by category (Artistic, Black & white, Colors,
-     Contours, Deformations, Degradations, Details, Film emulation, Frames, Layers,
-     Light & shadows, Patterns, Rendering, Repair, Sequences, etc.).
+ 4 - G'MIC Online, a web service to allow users applying image processing algorithms
+     on their images, directly from a web browser.
 
- 4 - A web service G'MIC Online, to allow users applying image processing
-     algorithms on their images, directly from a web browser.
-
- 5 - A Qt-based interface ZArt, for real-time processing of video streaming
-     coming from webcams or video files.
+ 5 - 'ZArt', a Qt-based interface for real-time processing of video streaming coming
+     from webcams or video files.
 
  G'MIC is an open framework: the default script language can be extended with
  custom G'MIC-written commands, defining thus new image available filters or

@@ -52,7 +52,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 243
+#define gmic_version 245
 
 #ifndef gmic_pixel_type
 #define gmic_pixel_type float
@@ -166,14 +166,6 @@ namespace cimg_library {
 #error "[gmic] *** Error *** File 'CImg.h' has been already included (should have been done first in file 'gmic.h')."
 #endif
 #define cimg_plugin "gmic.cpp"
-
-// #ifdef cimg_use_abort
-// static struct cimg_is_abort {
-//   bool value, *ptr;
-//   cimg_is_abort():value(false),ptr(&value) {}
-// } _cimg_is_abort;
-// #define cimg_abort_test if (*_cimg_is_abort.ptr) throw CImgAbortException()
-// #endif // #ifdef cimg_use_abort
 
 #ifdef cimg_use_abort
 inline bool *gmic_abort_ptr(bool *const p_is_abort);

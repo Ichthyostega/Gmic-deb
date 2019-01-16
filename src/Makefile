@@ -170,7 +170,7 @@ MANDATORY_CFLAGS += -std=c++11 -pedantic
 endif
 MANDATORY_LIBS += -L$(USR)/$(LIB)
 ifdef IS_GCC
-MANDATORY_CFLAGS += -Wall -Wextra -Wfatal-errors
+MANDATORY_CFLAGS += -Wall -Wextra -Wfatal-errors -Werror=unknown-pragmas -Werror=unused-label
 MANDATORY_LIBS += -lm
 endif
 ifeq ($(OS),Unix)
@@ -207,7 +207,11 @@ OPENMP_LIBS = -lgomp
 
 # Enable software debugging.
 # (Use address sanitizer and thus slows down the code)
+ifeq ($(OS),Windows)
+DEBUG_CFLAGS = -pedantic -Dcimg_verbosity=3 -Dcimg_strict_warnings -g
+else
 DEBUG_CFLAGS = -pedantic -Dcimg_verbosity=3 -Dcimg_strict_warnings -g -fsanitize=address # -fsanitize=thread # -fsanitize=undefined # Removed '-ansi' as it (silently) disables c++11.
+endif
 
 # Enable extra checking of image buffer pointers.
 # (Useful for debug, also slows down the code)
