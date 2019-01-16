@@ -648,12 +648,15 @@ _help_usage :
 \n       . '"${c}"w"$n"': display width (i.e. width of the display area managed by the window).
 \n       . '"${c}"h"$n"': display height (i.e. height of the display area managed by the window).
 \n       . '"${c}"wh"$n"': display width x display height.
+\n       . '"${c}"w,h"$n"': display width, display height (equivalent to '"${c}"{*,w},{*,h}"$n"').
 \n       . '"${c}"d"$n"': window width (i.e. width of the window widget).
 \n       . '"${c}"e"$n"': window height (i.e. height of the window widget).
 \n       . '"${c}"de"$n"': window width x window height.
+\n       . '"${c}"d,e"$n"': window width, window height (equivalent to '"${c}"{*,d},{*,e}"$n"').
 \n       . '"${c}"u"$n"': screen width (actually independent on the window size).
 \n       .' "${c}"v"$n"': screen height (actually independent on the window size).
 \n       . '"${c}"uv"$n"': screen width x screen height.
+\n       . '"${c}"u,v"$n"': screen width, screen height (equivalent to '"${c}"{*,u},{*,v}"$n"').
 \n       . '"${c}"n"$n"': current normalization type of the instant display.
 \n       . '"${c}"t"$n"': window title of the instant display.
 \n       . '"${c}"x"$n"': X-coordinate of the mouse position (or -1, if outside the display area).
@@ -1168,7 +1171,7 @@ __help_header_ascii :
   if {narg($_prerelease)} strprerelease=" (pre-release ""#"$_prerelease")" else strprerelease="" fi
   str="\n  "${_gmic_b}"gmic: GREYC\'s Magic for Image Computing."$_gmic_n"
 \n
-\n        "$_gmic_g${_gmic_b}"Version "${-strver}$strprerelease$_gmic_n", Copyright (c) 2008-2018, David Tschumperle.
+\n        "$_gmic_g${_gmic_b}"Version "${-strver}$strprerelease$_gmic_n", Copyright (c) 2008-2019, David Tschumperle.
 \n        "$_gmic_g"(https://gmic.eu)"$_gmic_n
   if {['$$_e']==0} m "_e : e[] \"$""*\"" fi
   v + _e[] $str v -
@@ -1260,7 +1263,7 @@ _help_header_html :
 \n<a id=\"section0\"><h2>Version</h2></a>
 \n<pre><font color=\"blue\"><b>gmic:</b> GREYC\'s Magic for Image Computing.</font>
 \n
-\n       Version <font color=\"brown\"><b>"${-strver}$strprerelease"</b></font>, Copyright (c) 2008-2018, David Tschumperl&eacute;
+\n       Version <font color=\"brown\"><b>"${-strver}$strprerelease"</b></font>, Copyright (c) 2008-2019, David Tschumperl&eacute;
 \n       (<a href=\"https://gmic.eu\">https://gmic.eu</a>)
 \n</pre>
 "
@@ -1334,35 +1337,37 @@ _help_header_latex :
 \n\\tableofcontents
 \n\\chapter*{Preamble}
 \n\\section*{License}
-\nThis document is distributed under the \\textbf{GNU Free Documentation License}, version 1.3.\\\\
-\nRead the full license terms at \\url{http://www.gnu.org/licenses/fdl-1.3.txt}.\\\\~\\\\
-\nAn online version of this documentation is available at:\\\\\\url{https://gmic.eu/reference.shtml}.
+\n This document is distributed under the \\textbf{GNU Free Documentation License}, version 1.3.\\\\
+\n Read the full license terms at \\url{http://www.gnu.org/licenses/fdl-1.3.txt}.\\\\~\\\\
+\n An online version of this documentation is available at:\\\\\\url{https://gmic.eu/reference.shtml}.
 \n\\section*{Motivations}
-\n\\Cc{G\47MIC} is a full-featured open-source framework for image processing, providing several different user interfaces to
-\nconvert/manipulate/filter/visualize generic image datasets, from 1D scalar signales to 3D+t sequences of multi-spectral volumetric images.
-\nTechnically speaking, what it does is:
+\n \\Cc{G\47MIC} is a full-featured open-source framework for image processing, distributed under the CeCILL free software licenses
+\n (LGPL-like and/or GPL-compatible). It provides several user interfaces to
+\n convert/manipulate/filter/visualize generic image datasets, ranging from 1D scalar signals to 3D+t sequences of multi-spectral
+\n volumetric images, hence including 2D color images.
+\n~\\\\G'MIC user interfaces are:
 \n\\begin{itemize}
-\n\\item Define a lightweight but powerful script language (the \\Cc{G\47MIC} language) dedicated to the design of image processing pipelines.
-\n\\item Provide several user interfaces embedding the corresponding interpreter:
-\n\\begin{itemize}
-\n\\item A command-line executable '\\texttt{gmic}', to use the \\Cc{G\47MIC} framework from a shell.
-\nIn this setting, \\Cc{G\47MIC} may be seen as a direct (and friendly) competitor of the ImageMagick or GraphicsMagick software suites.
-\n\\item A plug-in '\\texttt{gmic\\_gimp}', to bring \\Cc{G\47MIC} capabilities to the GIMP image retouching software.
-\n\\item A web-service '\\texttt{\\Cc{G\47MIC} Online}', to allow users applying image processing algorithms directly in a web browser.
-\n\\item A Qt-based interface '\\texttt{ZArt}', for real-time manipulation of webcam images.
-\n\\item A C++ library '\\texttt{libgmic}', to be linked with third-party applications.
+\n\\item '\\texttt{gmic}', a command-line tool to use the \\Cc{G\47MIC} image processing features from a shell.
+\n In this setting, \\Cc{G\47MIC} may be seen as a friendly companion to the ImageMagick or GraphicsMagick software suites.
+\n\\item '\\texttt{libgmic}', a small, portable, thread-safe and multi-threaded, C++ image processing library to be linked to third-party applications.
+\n It's simple API allows programmers to add all \\Cc{G\47MIC} features in their own software without much efforts (a C API is available as well).
+\n\\item '\\texttt{G'MIC-Qt}', a plug-in to bring \\Cc{G\47MIC} capabilities to the image retouching and painting software GIMP and Krita.
+\n More than 500 filters are already available, sorted by category (Artistic, Black \\& white, Colors, Contours, Deformations,
+\n Degradations, Details, Film emulation, Frames, Layers, Light \\& shadows, Patterns,
+\n Rendering, Repair, Sequences, etc.).
+\n\\item '\\texttt{\\Cc{G\47MIC} Online}', a web service to allow users applying image processing algorithms on their images, directly from a web browser.
+\n\\item '\\texttt{ZArt}', a Qt-based interface for real-time processing of video streaming coming from webcams or video files.
 \n\\end{itemize}
-\n\\end{itemize}
-\n\\Cc{G\47MIC} is focused on the design of possibly complex pipelines for converting, manipulating, filtering and visualizing generic 1D/2D/3D multi-spectral image datasets. This includes of course color images, but also more complex data as image sequences or 3D(+t) volumetric float-valued datasets.\\\\
+\n \\Cc{G\47MIC} is focused on the design of possibly complex pipelines for converting, manipulating, filtering and visualizing generic 1D/2D/3D multi-spectral image datasets. This includes of course color images, but also more complex data as image sequences or 3D(+t) volumetric float-valued datasets.\\\\
 \n
-\n\\Cc{G\47MIC} is an open framework: the default language can be extended with custom \\Cc{G\47MIC}-written commands, defining thus new available image filters or effects. By the way, \\Cc{G\47MIC} already contains a substantial set of pre-defined image processing algorithms and pipelines (more than 1000).\\\\
+\n \\Cc{G\47MIC} is an open framework: the default language can be extended with custom \\Cc{G\47MIC}-written commands, defining thus new available image filters or effects. By the way, \\Cc{G\47MIC} already contains a substantial set of pre-defined image processing algorithms and pipelines (more than 1000).\\\\
 \n
-\n\\Cc{G\47MIC} has been designed with portability in mind and runs on different platforms (Windows, Unix, MacOSX). It is distributed partly under the CeCILL licenses (CeCILL-C and/or CeCILL). Since 2008, it is developed in the Image Team of the GREYC laboratory, in Caen/France, by permanent researchers working in the field of image processing on a daily basis.
+\n \\Cc{G\47MIC} has been designed with portability in mind and runs on different platforms (Windows, Unix, MacOSX). It is distributed partly under the CeCILL licenses (CeCILL-C and/or CeCILL). Since 2008, it is developed in the Image Team of the GREYC laboratory, in Caen/France, by permanent researchers working in the field of image processing on a daily basis.
 \n\\section*{Version}
 \n
 \n \\Ca{\\textbf{gmic:} GREYC\'s Magic for Image Computing.}\\\\
 \n
-\n        \\Cb{Version \\textbf{"$strver$strprerelease"}, Copyright (c) 2008-2018, David Tschumperl\\'e}\\\\
+\n        \\Cb{Version \\textbf{"$strver$strprerelease"}, Copyright (c) 2008-2019, David Tschumperl\\'e}\\\\
 \n        \\Cb{(\\url{https://gmic.eu})}
 \n\\chapter{Usage}
 "
@@ -1588,7 +1593,7 @@ _display_array : check ${1=13}>0" && "${2=$1}>0
       wait[0-3]
       oc0=$c0
       repeat 4
-        if {$>" && "!{*$>}" && "${x$>}>=0} -w$> 0 x$>=-1 y$>=-1 c$>=0 fi
+        if {$>" && "!{*$>}" && "${x$>}>=0} w$> 0 x$>=-1 y$>=-1 c$>=0 fi
         if {*$>,o} c$>={(${c$>}+sign({*$>,o}))%s} wait[$>] -1 fi
         if {{*$>,SPACE}" || "{*$>,ENTER}" || "{*$>,ARROWRIGHT}" || "{*$>,ARROWDOWN}} c$>={(${c$>}+1)%s} wait[$>] -1 fi
         if {{*$>,BACKSPACE}" || "{*$>,ARROWLEFT}" || "{*$>,ARROWUP}} c$>={(${c$>}-1)%s} wait[$>] -1 fi
@@ -1876,7 +1881,7 @@ _display_parallel :
     a x com={t} rm
   endl
   m "__dp : parallel "$com __dp uncommand __dp
-  -d[] v +
+  d[] v +
 
 #@cli dp0 : eq. to 'display_parallel0'.
 dp0 :
@@ -1904,7 +1909,7 @@ _display_parallel0 :
     a x com={t} rm
   endl
   m "__dp0 : parallel "$com __dp0 uncommand __dp0
-  -d[] v +
+  d[] v +
 
 #@cli display_polar : _width>32,_height>32,_outline_type,_fill_R,_fill_G,_fill_B,_theta_start,_theta_end,_xlabel,_ylabel
 #@cli : Render polar curve from selected image data.
@@ -2530,7 +2535,7 @@ _document_gmic_description_html :
     fi
     v -
 
-  elif $is_equivalent # Reached line as '#@cli : (eq. to -shortcut)'.
+  elif $is_equivalent # Reached line as '#@cli : (eq. to shortcut)'.
     replace_str "eq. to","equivalent to shorcut command"
     s +,39 if {$!==5} i[2] ({'"<font color=\"blue\"><b>"'}) i[4] ({'"</b></font>"'}) y fi a y
     v + e[] ${-don}"<i>"{t}"</i>" v -
@@ -2602,8 +2607,12 @@ _document_gmic_example_images :
   v -
   if $_filename else # Generate picture only if the file doesn't yet exist.
     m "foo"$_example" : "{t}
-    l[] v -1 reset v -99 foo$_example v -1 _document_gmic o $_filename,85 rm endl
+    l[] v -1 reset v -99 etime=$| foo$_example etime={_round($|-$etime,0.01)} v -1 _document_gmic o $_filename,85 rm endl
     uncommand foo$_example
+    v +
+    e[] "\r    "${_gmic_c}"["$_example"]"${_gmic_n}" Command '"${_gmic_g}$_command_name${_gmic_n}"': $ "{t}\
+     ${_gmic_m}" (done in "$_gmic_n${etime}"s"$_gmic_m")."$_gmic_n
+    v -
   fi
 
 _document_gmic_footer_images : skip $1
@@ -4656,7 +4665,7 @@ update_server :
     replace_str "<i>David Tschumperl&#233;</i>","<i><a href=\""$url"\">David Tschumperl&#233;</a></i>"
     o cimgz:/tmp/update$_version.gmic,uchar
 
-    (242,243)
+    (242,243,244,245)
     repeat {w}
       v={i[$>]}
       _update_server_upload[] ${_path_rc}update$_version.gmic,plain_update$v.gmic
@@ -4770,50 +4779,35 @@ _update_server_binaries :
   v -
   is_pre=${"strcontains $1,_pre"}
   N=0
-  file$N=gmic_$1_debian_wheezy_i386.deb                N+=1
   file$N=gmic_$1_debian_wheezy_amd64.deb               N+=1
-  file$N=gmic_$1_debian_jessie_i386.deb                N+=1
   file$N=gmic_$1_debian_jessie_amd64.deb               N+=1
-  file$N=gmic_$1_debian_stretch_i386.deb               N+=1
   file$N=gmic_$1_debian_stretch_amd64.deb              N+=1
   file$N=gmic_$1_debian_sid_amd64.deb                  N+=1
   file$N=gmic_$1_ubuntu_xenial_amd64.deb               N+=1
   file$N=gmic_$1_ubuntu_artful_amd64.deb               N+=1
   file$N=gmic_$1_ubuntu_bionic_amd64.deb               N+=1
 
-  file$N=gmic_gimp2.8_qt_$1_linux32.zip                N+=1
   file$N=gmic_gimp2.8_qt_$1_linux64.zip                N+=1
-  file$N=gmic_gimp2.8_qt_$1_debian_jessie_i386.zip     N+=1
   file$N=gmic_gimp2.8_qt_$1_debian_jessie_amd64.zip    N+=1
-  file$N=gmic_gimp2.8_qt_$1_debian_stretch_i386.zip    N+=1
   file$N=gmic_gimp2.8_qt_$1_debian_stretch_amd64.zip   N+=1
   file$N=gmic_gimp2.10_qt_$1_debian_sid_amd64.zip      N+=1
   file$N=gmic_gimp2.8_qt_$1_ubuntu_xenial_amd64.zip    N+=1
   file$N=gmic_gimp2.8_qt_$1_ubuntu_artful_amd64.zip    N+=1
   file$N=gmic_gimp2.8_qt_$1_ubuntu_bionic_amd64.zip    N+=1
 
-  file$N=gmic_krita_qt_$1_debian_jessie_i386.zip       N+=1
   file$N=gmic_krita_qt_$1_debian_jessie_amd64.zip      N+=1
-  file$N=gmic_krita_qt_$1_debian_stretch_i386.zip      N+=1
   file$N=gmic_krita_qt_$1_debian_stretch_amd64.zip     N+=1
   file$N=gmic_krita_qt_$1_debian_sid_amd64.zip         N+=1
   file$N=gmic_krita_qt_$1_ubuntu_xenial_amd64.zip      N+=1
   file$N=gmic_krita_qt_$1_ubuntu_artful_amd64.zip      N+=1
   file$N=gmic_krita_qt_$1_ubuntu_bionic_amd64.zip      N+=1
 
-  file$N=gmic_cli_$1_win32.zip                         N+=1
   file$N=gmic_cli_$1_win64.zip                         N+=1
-  file$N=gmic_lib_$1_win32.zip                         N+=1
   file$N=gmic_lib_$1_win64.zip                         N+=1
-  file$N=gmic_gimp2.10_qt_$1_win32.zip                 N+=1
   file$N=gmic_gimp2.10_qt_$1_win64.zip                 N+=1
-  file$N=gmic_gimp2.10_qt_$1_win32.exe                 N+=1
   file$N=gmic_gimp2.10_qt_$1_win64.exe                 N+=1
-  file$N=gmic_gimp2.8_qt_$1_win32.zip                  N+=1
   file$N=gmic_gimp2.8_qt_$1_win64.zip                  N+=1
-  file$N=gmic_gimp2.8_qt_$1_win32.exe                  N+=1
   file$N=gmic_gimp2.8_qt_$1_win64.exe                  N+=1
-  file$N=gmic_krita_qt_$1_win32.zip                    N+=1
   file$N=gmic_krita_qt_$1_win64.zip                    N+=1
 
   t0=$| n=0 t=0
@@ -9561,7 +9555,7 @@ denoise_haar : check "${1=1.4}>=0 && isint(${2=0}) && $2>=0 && isint(${3=10}) &&
 #@cli denoise_patchpca : _strength>=0,_patch_size>0,_lookup_size>0,_spatial_sampling>0
 #@cli : Denoise selected images using the patch-pca algorithm.
 #@cli : Default values: 'patch_size=7', 'lookup_size=11', 'details=1.8' and 'spatial_sampling=5'.
-#@cli : $ image.jpg +noise 20 c[-1] 0,255 +denoise_patchpca[-1] ,
+#@cli : $ image.jpg +noise 20 cut[-1] 0,255 +denoise_patchpca[-1] ,
 denoise_patchpca : check "${1=1.8} && $1>=0 && isint(${2=7}) && $2>0 && isint(${3=11}) && $3>0 && isint(${4=5}) && $4>0"
   e[^-1] "Denoise image$? using patch-pca, with strength $1, patch size $2, lookup size $3 and spatial sampling $4."
   v - repeat $! l[$>] nm={n}
@@ -9883,7 +9877,7 @@ _haar_z : # Direct haar transform along the z-axis.
 #@cli : $ image.jpg +heat_flow 20
 heat_flow : skip ${1=10},${2=30},${3=0}
   e[^-1] "Apply $1 iterations of the heat flow on image$?, with time step $2."
-  v - -pde_flow $1,$2,laplacian,$3 v +
+  v - pde_flow $1,$2,laplacian,$3 v +
 
 #@cli hessian : { xx | xy | xz | yy | yz | zz }...{ xx | xy | xz | yy | yz | zz } : (no arg) : (+)
 #@cli : Compute the hessian components (second derivatives) of selected images.
@@ -10426,7 +10420,7 @@ map_tones_fast : check "${1=3%}>=0 && ${2=0.3}>=0"
 #@cli : $ image.jpg +meancurvature_flow 20
 meancurvature_flow : skip ${1=10},${2=30},${3=0}
   e[^-1] "Apply $1 iterations of the mean curvature flow on image$?, with time step $2."
-  v - -pde_flow $1,$2,iee,$3 v +
+  v - pde_flow $1,$2,iee,$3 v +
 
 #@cli median : size>=0,_threshold>0 : (+)
 #@cli : Apply (opt. thresholded) median filter on selected images with structuring element size x size.
@@ -10546,7 +10540,7 @@ peronamalik_flow : check "${1=20}>0 && ${2=5}>=0" skip ${3=5},${4=0}
            (C+i(x-1,y,z,s-1,0,1))*(i-j(-1,0,0,0,0,1)) +
            (C+i(x,y+1,z,s-1,0,1))*(j(0,1,0,0,0,1)-i) -
            (C+i(x,y-1,z,s-1,0,1))*(i-j(0,-1,0,0,0,1)))\"'"
-  -pde_flow $2,$3,_peronamalik_flow,$4
+  pde_flow $2,$3,_peronamalik_flow,$4
   uncommand _peronamalik_flow
   v +
 
@@ -10930,7 +10924,7 @@ _syntexturize_matchpatch : check ${is_image_arg\ $1}" && isint(${2=3}) && $2>=0"
 #@cli : $ image.jpg +tv_flow 40
 tv_flow : skip ${1=10},${2=30},${3=0}
   e[^-1] "Apply $1 iterations of the total variation flow on image$?, with time step $2."
-  v - -pde_flow $1,$2,curvature,$3 v +
+  v - pde_flow $1,$2,curvature,$3 v +
 
 #@cli unsharp : radius[%]>=0,_amount>=0,_threshold[%]>=0
 #@cli : Apply unsharp mask on selected images.
@@ -11384,7 +11378,7 @@ minimal_path : check "$1>=0 && $2>=0 && $3>=0" skip ${7=0}
 
 #@cli mse : : (+)
 #@cli : Compute MSE (Mean-Squared Error) matrix between selected images.
-#@cli : $ image.jpg +noise 30 +noise[0] 35 +noise[0] 38 cut. 0,255 -mse
+#@cli : $ image.jpg +noise 30 +noise[0] 35 +noise[0] 38 cut. 0,255 mse
 
 #@cli patches : patch_width>0,patch_height>0,patch_depth>0,x0,y0,z0,_x1,_y1,_z1,...,_xN,_yN,_zN
 #@cli : Extract N+1 patches from selected images, centered at specified locations.
@@ -11485,13 +11479,13 @@ pointcloud : check "${1=0}<=3 && ${2=0}>=0 && ${3=0}>=0 && ${4=0}>=0"
 psnr : skip "${1=}"
   if {isval("$1")}
     e[0--3] "Compute the "$!x$!" matrix of PSNR values, from image$? with maximum value $1."
-    v - -mse log10 - {log10(($1)^2)}
+    v - mse log10 - {log10(($1)^2)}
   else
     e[0--3] "Compute the "$!x$!" matrix of PSNR values, from image$?."
     v - noarg
     if {$!}
       $! repeat {$!-1} =. {$>,iM},$> done
-      -mse[^-1] sqr. log10 -.. 'max(i[#-1,x],i[#-1,y])' rm.
+      mse[^-1] sqr. log10 -.. 'max(i[#-1,x],i[#-1,y])' rm.
     fi
   fi
   * -10 nm [PSNR] v +
@@ -16985,7 +16979,7 @@ poster_edges : check "${1=40}>=0 && $1<=100 && ${2=5}>=0 && $2<=100 && ${3=0.5}>
     +g xy,1 a[-2,-1] c norm. b. $3 n. 0,255
     apply_curve. 1,0,1,{max(0,(100-($1%)^0.1*100)*255%)},0.99,{min(255,(101-($1%)^0.1*100+$2)*255%)},0.01,255,0 c. 0,1
     if $4 smooth. {min(50,$4)},0,1,{$4/40},{$4/40},0.8,90 fi
-    if $5 -autoindex[0] {round((4-sqrt($5+1))*32+2)} fi
+    if $5 autoindex[0] {round((4-sqrt($5+1))*32+2)} fi
     if $6 smooth[0] {min(50,$6)},0,1,{$6/40},{$6/40},0.8,90 fi
     *
   endl a c endl done v +
@@ -18259,14 +18253,14 @@ apply_camera : skip "${1=},${4=}" check "${2=0}>=0 && ${3=0}>=0"
   e[^-1] "Apply command '$1' on camera stream ""#$2, with $3 frames skip and output filename '$4'."
   v - is_ext "$4",avi is_outavi=${}
   l[] i=0 do
-    -camera $2,1,$3 $1 w. -1,-1,"[G'MIC] Camera ""#$2 ("{w}x{h}")"
+    camera $2,1,$3 $1 w. -1,-1,"[G'MIC] Camera ""#$2 ("{w}x{h}")"
     if {narg("$4")} if $is_outavi z. 0,{w-(w%8)-1} o. "$4",25,mp4v,1 else o. ${filename\ "$4",$i} i+=1 fi fi
     if {*,S} o. gmic_camera.png fi
     if {({*,CTRLLEFT}" || "{*,CTRLRIGHT})" && "{*,D}} w[] {{*,w}*1.5},{{*,h}*1.5} wait -1 fi # Increase window size.
     if {({*,CTRLLEFT}" || "{*,CTRLRIGHT})" && "{*,C}} w[] {{*,w}/1.5},{{*,h}/1.5} wait -1 fi # Decrease window size.
     if {({*,CTRLLEFT}" || "{*,CTRLRIGHT})" && "{*,R}} w[] {0,w},{0,h} wait -1 fi             # Reset window size.
     rm.
-  while {{*}" && "!{*,ESC}" && "!{*,Q}} -camera $2,0 endl v +
+  while {{*}" && "!{*,ESC}" && "!{*,Q}} camera $2,0 endl v +
 
 #@cli apply_files : "filename_pattern",_"command",_first_frame>=0,_last_frame={ >=0 | -1=last },_frame_step>=1,_output_filename
 #@cli : Apply a G'MIC command on specified input image files, in a streamed way.
@@ -19367,7 +19361,7 @@ img2str :
         u ${}{^}
         rm.
         if {$y!=h-1} u ${}; fi
-        -e ${}
+        e ${}
       done
       if {$z!=d-1} u ${}/ fi
     done
@@ -20160,14 +20154,14 @@ demo : check "isint(${1=2}) && $1>=0 && $1<=2"
 
     # Manage user selection.
     if {!$mb" && "$omb" && "$ind_clicked" && "$ind_clicked==$ind}
-      m "com : -v 0 "${arg\ $ind,$commands} parallel $parallel_mode,"l[] com v -1 rm endl" uncommand com
+      m "com : v 0 "${arg\ $ind,$commands} parallel $parallel_mode,"l[] com v -1 rm endl" uncommand com
     elif {!$mb} ind_clicked=0
     fi
     omb=$mb
 
     wait 20
   while {{*}" && "!{*,ESC}" && "!{*,Q}}
-  rm w 0 endl -v 0 e[] ""
+  rm w 0 endl v 0 e[] ""
 
 _demo_color_curves :
   v - use_vt100 g=$_gmic_g c=$_gmic_c n=$_gmic_n r=$_gmic_r v +
@@ -20327,7 +20321,7 @@ x_2048 :
           if {iM<0} rm[-2,-1]
           else # At least one tile fusions.
             discard. -1
-            rv[0,-2] _x_2048_object3d rv[0,-3] -vshift2048. *3d. 121 # Only tiles that do not move in this step.
+            rv[0,-2] _x_2048_object3d rv[0,-3] vshift2048. *3d. 121 # Only tiles that do not move in this step.
             j[1] [2],18,130 j3d[1] .,78,190 rm[-3,-1]
             N={h} repeat {h} v={-{1+$>},@$>} ++3d[{2+($v>>4)}] {$v&3},{($v>>2)&3} done # Only tiles that move.
             +3d[-$N--1] rm..
@@ -21173,8 +21167,8 @@ x_fire : skip "${1=G\47MIC}"
   v -
 
   # Init image data.
-  i[0] 100,32 w[0] 450,200,0,"[G"{`39`}"MIC] Fire Effect"
-  if {{*,w}<0.5*{*,u}} w[] {[{*,w},{*,h}]*=1.5} fi
+  i[0] 100,32 w[0] {[4.5*w,6.75*h]},0,"[G"{`39`}"MIC] Fire Effect"
+  if {{*,w}<0.5*{*,u}} w[] {[{*,w},{*,h}]*1.5} fi
   i[1] (0,255,255,255,255^0,0,255,255,255^0,0,0,128,255) r[1] 256,1,1,3,3
   i[2] (0,0,0;0,0,0;1,1,1;0,1,0) *[2] 0.21
   text3d "$1",33,3,1
@@ -21185,16 +21179,16 @@ x_fire : skip "${1=G\47MIC}"
   # Start animation loop.
   angle=0
   do
-    correlate[0] [2]                                  # Apply fire effect.
-    {0,w},1 rand. 128,256 j[0] .,0,{{0,h}-1} rm.      # Add new random values at the bottom line.
+    correlate[0] [2]                                 # Apply fire effect.
+    {0,w},1 rand. 128,256 j[0] .,0,{{0,h}-1} rm.     # Add new random values at the bottom line.
     +r[0] 400,200,1,1,3 map. [1]                     # Map fire palette
     +r3d[3] 0,1,0,$angle j3d.. .,50%,50%,0,1,5,0,0   # Draw 3D object.
     *3d. 0.25,0.16,1 j3d[0] .,50%,50%,0,1,3,0,0
     rm.
-    angle+=3                                          # Update 3D angle.
+    angle+=3                                         # Update 3D angle.
     fps=${-fps} if {$fps>0} to. $fps" fps",5,{h-22},16,1,0.2 fi
     w.
-    if {{*,CTRLLEFT}&&{*,D}} w[] {1.5*w},{1.5*h} elif {{*,CTRLLEFT}&&{*,C}} w[] {w},{h} fi
+    if {{*,CTRLLEFT}&&{*,D}} w[] {1.5*[w,h]} elif {{*,CTRLLEFT}&&{*,C}} w[] {[w,h]} fi
     rm. wait 40
   while {{*}" && "!{*,ESC}" && "!{*,Q}}
 
@@ -22011,7 +22005,6 @@ x_landscape :
       1,$N,1,1,1
       y[-5--1] y a[-5--1] y *3d. -1,-1
       +j3d[background] .,{background,w-1},{background,h},0,1,1,0,0,0 rm[-3,-2]
-
     else # Case of nothing to display (only water).
       rm[-5--1] [background]
     fi
@@ -23149,7 +23142,7 @@ x_quantize_rgb : check "isint(${1=16}) && $1>1"
     fi
 
     if {!narg($visu_centroids)} # Update colormap.
-      +luminance[centroids] -a. [centroids],y sort. +,x rows. 1 r. {visu,w-10},50,1,3
+      +luminance[centroids] a. [centroids],y sort. +,x rows. 1 r. {visu,w-10},50,1,3
       0 t. "Colors: "{centroids,w},2,0,16,1,255,255,255 +dilate. 3 j... ..,2,2,0,0,1,.,255
       rm[-2,-1] nm. visu_centroids j[visu] [visu_centroids],5,310
     fi
@@ -24117,7 +24110,7 @@ x_starfield3d :
         r[2] 3,{2,h/3},1,1,-1 s[2] x %[4] 1000
         +/[4] 1000 *. -1 n. 0,2 c. 0,1 sqr. j.. . rm.
         a[2-4] x
-        y -a y
+        y a y
       endl
       j3d. ..,50%,50%,-600,1,0,0,0,240 -3d.. 0,0,{min(12,$t0/10-4)}
 
@@ -24791,7 +24784,7 @@ fx_logo_version3 : skip "${1=Universal plug-in}"
     0 t. {`arg(1+$>,{'$s'})`},0,0,53,1,1 frame. 3,0,0
     r. 500%,500%,1,1,3 b. 3% >=. 50%
     distance. 1 <=. 10
-    [-1]x3 -whirls[-4--2] ,
+    [-1]x3 whirls[-4--2] ,
     r$>={u(0.4,1)} g$>={u(0.2,1)} b$>={u(0.6,1)}
     *[-4] ${r$>} *... ${g$>} *.. ${b$>}
     a[-4--2] c n.. 0,255 *. 255 a[-2,-1] c
@@ -25305,8 +25298,8 @@ fx_gmicky_preview :
 #@gui : - <b>2017/10/09</b> : version <i>2.1.0</i>.\n
 #@gui : - <b>2018/02/15</b> : version <i>2.2.0</i>.\n
 #@gui : - <b>2018/06/21</b> : version <i>2.3.0</i>.\n
-#@gui : - <span foreground="purple"><b>2018/12/17</b> : version <i>2.4.3</i> (Current stable).</span>\n
-##@gui : - <b>2018/12/12</b> : version <i>2.4.3_pre</i> (Current pre-release).</span>\n
+#@gui : - <span foreground="purple"><b>2019/01/11</b> : version <i>2.4.5</i> (Current stable).</span>\n
+##@gui : - <b>2019/01/02</b> : version <i>2.4.5_pre</i> (Current pre-release).</span>\n
 #@gui : "}
 #@gui : sep = separator()
 #@gui : url = link{"View changelog to upcoming major version (2.5.0)","https://discuss.pixls.us/t/on-the-road-to-2-5-0"}
@@ -26318,7 +26311,7 @@ fx_diffusiontensors :
     wh={[w,h]}
     +diffusiontensors ${5-8}
     r2dx. $1%
-    -dt. {round(125/$1)},$2,{$3<3?$3:0},$4
+    dt. {round(125/$1)},$2,{$3<3?$3:0},$4
     if {$3==3}
       remove_opacity.. r.. .,.,1,100%,3 blend[0] [1],shapeaverage0 dilate. {1+2*$4} a c
     else k. fi
@@ -26535,7 +26528,7 @@ fx_painting_preview :
 #@gui : sep = separator(), Preview Type = choice("Full","Forward Horizontal","Forward Vertical","Backward Horizontal","Backward Vertical","Duplicate Top","Duplicate Left","Duplicate Bottom","Duplicate Right","Duplicate Horizontal","Duplicate Vertical","Checkered","Checkered Inverse"), Preview split = point(50,50,0,0,200,200,200,0,10,0)
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2010/29/12</i>.</small>")
 fx_pen_drawing :
-  -drawing $1
+  drawing $1
 
 fx_pen_drawing_preview :
   gui_split_preview "fx_pen_drawing $*",${-3--1}
@@ -26980,7 +26973,7 @@ fx_vector_painting_preview :
 #@gui : sep = separator(), Preview Type = choice("Full","Forward Horizontal","Forward Vertical","Backward Horizontal","Backward Vertical","Duplicate Top","Duplicate Left","Duplicate Bottom","Duplicate Right","Duplicate Horizontal","Duplicate Vertical","Checkered","Checkered Inverse"), Preview split = point(50,50,0,0,200,200,200,0,10,0)
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2010/29/12</i>.</small>")
 fx_draw_whirl :
-  repeat $! l[$>] split_opacity -draw_whirl[0] $* a c endl done
+  repeat $! l[$>] split_opacity draw_whirl[0] $* a c endl done
 
 fx_draw_whirl_preview :
   gui_split_preview "fx_draw_whirl $*",${-3--1}
@@ -27308,7 +27301,6 @@ fx_autofill_lineart_preview :
 #@gui : Colorize Mode = choice("Generate Random-Colors Layer","Extrapolate Color Spots on Transparent Top Layer","Auto-Clean Bottom Color Layer")
 #@gui : sep = separator(), note = note{"<small><b>Global geometry parameters:</b></small>"}
 #@gui : Contour Detection (%) = float(95,0,100)
-#@gui : note = note{"<small>Set <i>Contour erosion</i> to <i>-1</i> for erosion based on automatic estimation of stroke thickness.</small>"}
 #@gui : Discard Contour Guides = bool(0)
 #@gui : note = note{"<small>Add strokes with a saturated color having value 255 (e.g. pure red) on your lineart allows to guide the colorization algorithm with virtual contours.</small>"}
 #@gui : Output Region Delimiters = _bool(0)
@@ -27759,7 +27751,7 @@ fx_stamp :
     norm
     if $7 r 150%,150%,1,1,3 fi
     noise $5
-    if $1 -otsu 256 else >= $2% fi
+    if $1 otsu 256 else >= $2% fi
     b {if($7,1.5,1)*$3},0 sharpen $4 n 0,255
     apply_curve 1,0,0,101,33,170,229,255,255
     if $7 r $wh,1,1,2 fi
@@ -28111,7 +28103,7 @@ fx_colormap :
       r. 3,{w/3},1,1,-1 permute. yzcx r. $3,1,1,3,3
       index[0] .,$2,1 rm.
     else                      # Adaptive colormap.
-      -autoindex[0] $3,$2,{if($3<=32,1,0)}
+      autoindex[0] $3,$2,{if($3<=32,1,0)}
     fi
     a c
   endl done
@@ -28936,7 +28928,7 @@ fx_retrofade :
   repeat $! l[$>] split_opacity l[0]
     +f 0
     repeat $1
-      +noise[0] $3 c. 0,255 -autoindex. $2,0,0
+      +noise[0] $3 c. 0,255 autoindex. $2,0,0
       +[-2,-1]
       progress {$>*100/$1}
     done
@@ -29221,7 +29213,7 @@ fx_distance_preview :
 #@gui : sep = separator(), Preview Type = choice("Full","Forward Horizontal","Forward Vertical","Backward Horizontal","Backward Vertical","Duplicate Top","Duplicate Left","Duplicate Bottom","Duplicate Right","Duplicate Horizontal","Duplicate Vertical","Checkered","Checkered Inverse"), Preview split = point(50,50,0,0,200,200,200,0,10,0)
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2010/29/12</i>.</small>")
 fx_edges :
-  to_rgb b $1% -edges $2%
+  to_rgb b $1% edges $2%
   if $3 negate fi
   n 0,255
 
@@ -29429,29 +29421,29 @@ _fx_morpho_v2 :
     m "my_dilate : ("$ckernel") dilate[^-1] . rm."
   fi
   # Erosion
-  if {$1==0} m "my_action : -my_erode $3"
+  if {$1==0} m "my_action : my_erode $3"
   # Dilation
-  elif {$1==1} m "my_action : -my_dilate $3"
+  elif {$1==1} m "my_action : my_dilate $3"
   # Opening
-  elif {$1==2} m "my_action : -my_erode $3 -my_dilate $3"
+  elif {$1==2} m "my_action : my_erode $3 my_dilate $3"
   # Closing
-  elif {$1==3} m "my_action : -my_dilate $3 -my_erode $3"
+  elif {$1==3} m "my_action : my_dilate $3 my_erode $3"
   # Original - Erosion
   elif {$1==4} m "my_action : +my_erode $3 -"
   # Dilation - Original
   elif {$1==5} m "my_action : +my_dilate $3 rv -"
   # Original - Opening
-  elif {$1==6} m "my_action : +my_erode $3 -my_dilate. $3 -"
+  elif {$1==6} m "my_action : +my_erode $3 my_dilate. $3 -"
   # Closing - Original
-  elif {$1==7} m "my_action : +my_dilate $3 -my_erode. $3 rv -"
+  elif {$1==7} m "my_action : +my_dilate $3 my_erode. $3 rv -"
   # Original - (Opening + Closing)/2
-  elif {$1==8} m "my_action : +my_erode $3 -my_dilate. $3 +my_dilate.. $3 -my_erode. $3 +[-2,-1] /. 2 -"
+  elif {$1==8} m "my_action : +my_erode $3 my_dilate. $3 +my_dilate.. $3 my_erode. $3 +[-2,-1] /. 2 -"
   # Closing - Opening
-  else m "my_action : +my_erode $3 -my_dilate. $3 -my_dilate.. $3 -my_erode.. $3 -"
+  else m "my_action : +my_erode $3 my_dilate. $3 my_dilate.. $3 my_erode.. $3 -"
   fi
   repeat $! l[$>]
     if {!$6} split_opacity fi
-    -my_action[0]
+    my_action[0]
     a c
   endl done
   if $5 repeat $! l[$>] split_opacity negate[0] a c endl done fi
@@ -29790,7 +29782,7 @@ fx_drop_water_preview :
 #@gui : Mode = choice{"to Nadir / Zenith","to Equirectangular"}
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2015/29/12</i>.</small>")
 fx_equirectangular2nadirzenith :
-  if $1 -nadirzenith2equirectangular else equirectangular2nadirzenith fi
+  if $1 nadirzenith2equirectangular else equirectangular2nadirzenith fi
 
 #@gui Euclidean - Polar : fx_euclidean2polar, fx_euclidean2polar(1)
 #@gui : Center (%) = point(50,50,0,1)
@@ -29845,7 +29837,7 @@ fx_rotoidoscope :
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2010/29/12</i>.</small>")
 fx_kaleidoscope :
   if {!$7} to_a fi
-  shift $3%,$4%,0,0,2 -kaleidoscope $1%,$2%,$5,$6,$7
+  shift $3%,$4%,0,0,2 kaleidoscope $1%,$2%,$5,$6,$7
 
 #@gui Kaleidoscope [Symmetry] : fx_symmetrizoscope, fx_symmetrizoscope(1)
 #@gui : Iterations = int(4,1,32)
@@ -29918,7 +29910,7 @@ fx_quadrangle_preview :
     if {$!==2}
       drgba to[0] Quadrangle to[1] Result frame 1,1,0
       +a x a[0,1] y rr2d ${-gui_preview_wh},0,3
-      -k[{max(w#0,h#0)>max(w#1,h#1)?0:1}]
+      k[{max(w#0,h#0)>max(w#1,h#1)?0:1}]
     fi
   endl done
 
@@ -30258,7 +30250,7 @@ fx_textured_glass_preview :
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2010/29/12</i>.</small>")
 fx_twirl :
   if {!$4} to_a fi
-  -twirl $1,$2%,$3%,$4
+  twirl $1,$2%,$3%,$4
 
 #@gui Water : water, water(0)
 #@gui : Amplitude = float(30,0,300)
@@ -30699,7 +30691,7 @@ fx_8bits :
   remove_opacity repeat $! l[$>]
     w={w} h={h}
     r $1%,$1%,1,100%,2
-    +luminance sharpen. $2 -otsu. 256 blend[-2,-1] shapeaverage0
+    +luminance sharpen. $2 otsu. 256 blend[-2,-1] shapeaverage0
     l. s c quantize $3,1,1 a c endl
     r. $w,$h,1,100%,1
   endl done
@@ -34194,7 +34186,7 @@ fx_inpaint_morpho_preview :
 #@gui : Allow Outer Blending = _bool(1)
 #@gui : Mask Color = _color(255,0,0,255)
 #@gui : Mask Dilation = _int(0,0,32)
-#@gui : sep = separator(), Preview progression While Running = _bool(0)
+#@gui : sep = separator(), Preview Progression While Running = _bool(0)
 #@gui : sep = separator(), note = note{"<small><b>Note:</b> Preview and final result may strongly differ.</small>"}
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2015/25/11</i>.</small>")
 fx_inpaint_matchpatch :
@@ -34643,7 +34635,7 @@ fx_smooth_haar_preview :
 #@gui : Sharpness = float(50,0,100)
 #@gui : sep = separator(), note = note("<small>Author: <i>David Tschumperl&#233;</i>.      Latest Update: <i>2010/29/12</i>.</small>")
 fx_upscale_smart :
-  to_rgb -upscale_smart $1,$2,1,$3,$4,$5 c 0,255
+  to_rgb upscale_smart $1,$2,1,$3,$4,$5 c 0,255
 
 fx_upscale_smart_preview :
   repeat $!
@@ -34750,7 +34742,7 @@ fx_render3d : skip ${14=1}
     fi
   endl done
 
-#@gui 3d Blocks : fx_blocks3d, fx_blocks3d(1)
+#@gui 3D Blocks : fx_blocks3d, fx_blocks3d(1)
 #@gui : Resolution = int(32,1,128)
 #@gui : Smoothness = float(0,0,40)
 #@gui : Elevation = float(4,-10,10)
@@ -35157,7 +35149,7 @@ fx_equation_plot :
   repeat $! l[$>]
     w={w} h={h} rm
     $4,1,1,$5,"X=$2+($3-$2)*x/($4-1);$1"
-    -dg $w,$h,$6,$7,$2,$3
+    dg $w,$h,$6,$7,$2,$3
   endl done
 
 #@gui Gradient [Corners] : fx_corner_gradient, fx_corner_gradient
@@ -36789,26 +36781,33 @@ fx_solve_maze_preview :
 
 #@cli gallery_stylization
 #@cli : This entry defines some examples of image stylization for the G'MIC gallery page.
-#@cli : $ sample car _fx_stylize starrynight _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Van~Gogh:~Starry~Night"
-#@cli : $ sample car _fx_stylize graytree _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Mondrian:~Gray~Tree"
-#@cli : $ sample car _fx_stylize yellowredblue _output_mode=1 +fx_stylize 1,4,0,0,0.25,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Kandinsky:~Yellow-Red-Blue"
-#@cli : $ sample car _fx_stylize littlebayatlaciotat _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Braque:~Little~Bay~at~La~Ciotat"
-#@cli : $ sample car _fx_stylize leviaducalestaque _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Braque:~Le~Viaduc~a~l'Estaque"
-#@cli : $ sample car _fx_stylize greatwave _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Hokusai:~The~Great~Wave"
-#@cli : $ sample elephant input ../img/hatching.png _output_mode=1 +fx_stylize 1,2,0,0,1,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,10,2,0 _label="from~Hatch Drawing"
-#@cli : $ sample cat input ../img/hatching.png _output_mode=1 +fx_stylize 1,2,0,0,1,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,10,2,0 _label="from~Hatch Drawing"
-#@cli : $ sample bottles _fx_stylize starrynight _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,1,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Van~Gogh:~Starry~Night"
-#@cli : $ sample cat _fx_stylize summertime9a _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Pollock:~Summertime~No 9A"
-#@cli : $ sample cat _fx_stylize greatwave _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Hokusai:~The~Great~Wave"
-#@cli : $ sample dog _fx_stylize convergence _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Pollock:~Convergence"
-#@cli : $ sample dog _fx_stylize irises _output_mode=1 +fx_stylize 1,4,0,0,0.5,2,3,0.5,0.1,1,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Van~Gogh:~Irises"
-#@cli : $ sample leno _fx_stylize themandola _output_mode=1 +fx_stylize 1,4,0,0,0,3,1,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Braque:~The~Mandola"
-#@cli : $ sample monkey _fx_stylize orientalpleasuregardenanagoria _output_mode=1 +fx_stylize 1,4,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Klee:~Oriental~Pleasure~Garden~Anagoria"
-#@cli : $ sample monalisa _fx_stylize squareswithconcentriccircles _output_mode=1 +fx_stylize 1,2,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Kandisnky:~Squares~with~Concentric~Circles"
-#@cli : $ sample monalisa _fx_stylize inthestyleofkairouan _output_mode=1 +fx_stylize 1,2,2,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Klee:~In~the~Style~of~Kairouan"
-#@cli : $ sample square _fx_stylize polyphony2 _output_mode=1 +fx_stylize 1,4,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Klee:~Polyphony~2"
-#@cli : $ sample square _fx_stylize wheatstacksendofsummer _output_mode=1 +fx_stylize 1,4,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,0.25,0,1,0,5,5,7,1,30,1000,2,0 _label="from~Monet:~Wheatstacks~-~End~of~Summer"
-
+#@cli : $ sample car _fx_stylize starrynight _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Van~Gogh:~Starry~Night"
+#@cli : $ sample car _fx_stylize graytree _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Mondrian:~Gray~Tree"
+#@cli : $ sample car _fx_stylize yellowredblue _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Kandinsky:~Yellow-Red-Blue"
+#@cli : $ sample car _fx_stylize littlebayatlaciotat _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Braque:~Little~Bay~at~La~Ciotat"
+#@cli : $ sample car _fx_stylize leviaducalestaque _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Braque:~Le~Viaduc~a~l'Estaque"
+#@cli : $ sample car _fx_stylize greatwave _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Hokusai:~The~Great~Wave"
+#@cli : $ sample elephant input ../img/hatching.png _output_mode=1 +fx_stylize 1,4,0,0,1,2,3,0.5,0.1,2,5,0,0.7,0,0,1,0,5,5,7,1,30,10,2,1.85,0 _label="from~Hatch Drawing"
+#@cli : $ sample cat input ../img/hatching.png _output_mode=1 +fx_stylize 1,4,0,0,1,2,3,0.5,0.1,2,5,0,0.7,0,0,1,0,5,5,7,1,30,10,2,1.85,0 _label="from~Hatch Drawing"
+#@cli : $ sample bottles _fx_stylize starrynight _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,1,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Van~Gogh:~Starry~Night"
+#@cli : $ sample cat _fx_stylize summertime9a _output_mode=1 +fx_stylize 1,6,0,0,2,0,1,0.5,0.1,2,5,0,0.7,0,2,1,0,5,5,7,1,130,1000,2,1.85,0 _label="from~Pollock:~Summertime~No~9A"
+#@cli : $ sample cat _fx_stylize greatwave _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Hokusai:~The~Great~Wave"
+#@cli : $ sample dog _fx_stylize convergence _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Pollock:~Convergence"
+#@cli : $ sample dog _fx_stylize irises _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,1,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Van~Gogh:~Irises"
+#@cli : $ sample mandrill _fx_stylize themandola _output_mode=1 +fx_stylize 1,5,0,0,0,3,1,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Braque:~The~Mandola"
+#@cli : $ sample square _fx_stylize orientalpleasuregardenanagoria _output_mode=1 +fx_stylize 1,6,0,0,0.52,0.5,3,0.14,0.1,2,5,0,0.7,3.39,0,1,0,5,5,7,5,30,100,2,1.85,0 _label="from~Klee:~Oriental~Pleasure~Garden~Anagoria"
+#@cli : $ sample monalisa _fx_stylize squareswithconcentriccircles _output_mode=1 +fx_stylize 1,4,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Kandisnky:~Squares~with~Concentric~Circles"
+#@cli : $ sample monalisa _fx_stylize inthestyleofkairouan _output_mode=1 +fx_stylize 1,4,2,0,0.15,3,2,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Klee:~In~the~Style~of~Kairouan"
+#@cli : $ sample square _fx_stylize polyphony2 _output_mode=1 +fx_stylize 1,6,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Klee:~Polyphony~2"
+#@cli : $ sample square _fx_stylize wheatstacksendofsummer _output_mode=1 +fx_stylize 1,6,0,0,0.15,3,2,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Monet:~Wheatstacks~-~End~of~Summer"
+#@cli : $ sample square _fx_stylize portraitdemetzinger _output_mode=1 +fx_stylize 1,5,0,0,0.1,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Delaunay:~Portrait~de~Metzinger"
+#@cli : $ sample monalisa input ../img/mandelbrot.jpg _output_mode=1 +fx_stylize 1,3,3,0,0.15,4,3,0.5,0.1,0,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Mandelbrot Fractal~Set"
+#@cli : $ sample bottles _fx_stylize redtree _output_mode=1 +fx_stylize 1,5,0,0,2.12,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Mondrian:~Evening;~Red~Tree"
+#@cli : $ sample bottles _fx_stylize redwaistcoat _output_mode=1 +fx_stylize 1,4,0,0,0.67,3.17,3,0.5,0.06,2,1,0,0.7,5,0,2,0,5,5,7,1,30,1090,2.05,1.85,0 _label="from~Klee:~Red~Waistcoat"
+#@cli : $ sample bottles _fx_stylize reservoirhortadeebro _output_mode=1 +fx_stylize 1,6,0,0,0.5,2,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Picasso:~The~Reservoir"
+#@cli : $ sample bottles _fx_stylize almondblossom _output_mode=1 +fx_stylize 1,6,0,0,0,3,3,0.5,0.1,2,5,0,0.7,5,0,2,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Van~Gogh:~Almond~Blossom"
+#@cli : $ sample bottles _fx_stylize landscapenearantwerp _output_mode=1 +fx_stylize 1,6,0,0,2.17,3.65,3,0.5,0.1,2,5,0,0.7,1,0,1,0,5,5,7,1,30,1000,2,1.85,0 _label="from~Braque:~Landscape~near~Antwerp"
+#@cli : $ sample bottles _fx_stylize wheatfieldwithcrows _output_mode=1 +fx_stylize 1,6,0,0,3.86,2,3,0.5,0.1,1,5,0,0.7,3.35,1,1,0,5,5,7,1,30,1000,5,1.85,0 _label="from~Van~Gogh:~Wheat~Field~with~Crows"
 
 #@cli gallery_codesamples
 #@cli : This entry defines some examples of coding-fun filters for the G'MIC gallery page.

@@ -1,6 +1,6 @@
 #
 # Set HOST variable to define target host software.
-# Possible values are "none", "gimp", and "krita"
+# Possible values are "none", "gimp", "krita" and "paintdotnet"
 #
 #
 
@@ -54,7 +54,7 @@ equals( HOST, "gimp" ) {
 
 DEFINES += cimg_use_cpp11=1
 DEFINES += cimg_use_fftw3 cimg_use_zlib
-DEFINES += gmic_build cimg_use_abort gmic_is_parallel cimg_use_curl cimg_use_png cimg_use_rng
+DEFINES += gmic_build cimg_use_abort gmic_is_parallel cimg_use_curl cimg_use_png
 DEFINES += cimg_appname="\\\"gmic\\\""
 
 equals(TIMING, "on") {
@@ -174,6 +174,14 @@ equals( HOST, "krita") {
  DEFINES += GMIC_HOST=krita
  DEPENDPATH += $$PWD/src/Host/Krita
  message(Target host software is Krita)
+}
+
+equals( HOST, "paintdotnet") {
+ TARGET = gmic_paintdotnet_qt
+ SOURCES += src/Host/PaintDotNet/host_paintdotnet.cpp
+ DEFINES += GMIC_HOST=paintdotnet
+ DEPENDPATH += $$PWD/src/Host/PaintDotNet
+ message(Target host software is Paint.NET)
 }
 
 # enable OpenMP by default on with g++, except on OS X

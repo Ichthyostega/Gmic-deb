@@ -350,11 +350,11 @@ CImg<T> get_draw_object3d(const float x0, const float y0, const float z0,
                           const unsigned int render_mode, const bool double_sided,
                           const float focale,
                           const float light_x, const float light_y,const float light_z,
-                          const float specular_light, const float specular_shine,
-                          CImg<floatT>& zbuffer) const {
+                          const float specular_lightness, const float specular_shininess,
+                          const float g_opacity, CImg<floatT>& zbuffer) const {
   return (+*this).draw_object3d(x0,y0,z0,vertices,primitives,colors,opacities,render_mode,
-                                double_sided,focale,light_x,light_y,light_z,specular_light,
-                                specular_shine,zbuffer);
+                                double_sided,focale,light_x,light_y,light_z,specular_lightness,
+                                specular_shininess,g_opacity,zbuffer);
 }
 
 CImg<T> get_draw_plasma(const float alpha, const float beta, const unsigned int scale) const {
@@ -634,7 +634,7 @@ CImg<T> _gmic_shift(const float delta_x, const float delta_y=0, const float delt
     switch (boundary_conditions) {
     case 3 : { // Mirror
       const float w2 = 2.f*width(), h2 = 2.f*height(), d2 = 2.f*depth(), s2 = 2.f*spectrum();
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forXYZC(res,x,y,z,c) {
         const float
           mx = cimg::mod(x - delta_x,w2),
@@ -648,25 +648,25 @@ CImg<T> _gmic_shift(const float delta_x, const float delta_y=0, const float delt
       }
     } break;
     case 2 : // Periodic
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forXYZC(res,x,y,z,c) res(x,y,z,c) = _linear_atXYZC(cimg::mod(x - delta_x,(float)_width),
                                                               cimg::mod(y - delta_y,(float)_height),
                                                               cimg::mod(z - delta_z,(float)_depth),
                                                               cimg::mod(c - delta_c,(float)_spectrum));
       break;
     case 1 : // Neumann
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forXYZC(res,x,y,z,c) res(x,y,z,c) = _linear_atXYZC(x - delta_x,y - delta_y,z - delta_z,c - delta_c);
       break;
     default : // Dirichlet
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forXYZC(res,x,y,z,c) res(x,y,z,c) = linear_atXYZC(x - delta_x,y - delta_y,z - delta_z,c - delta_c,(T)0);
     }
   else if (delta_z!=0) // 3D shift
     switch (boundary_conditions) {
     case 3 : { // Mirror
       const float w2 = 2.f*width(), h2 = 2.f*height(), d2 = 2.f*depth();
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forC(res,c) cimg_forXYZ(res,x,y,z) {
         const float
           mx = cimg::mod(x - delta_x,w2),
@@ -678,24 +678,24 @@ CImg<T> _gmic_shift(const float delta_x, const float delta_y=0, const float delt
       }
     } break;
     case 2 : // Periodic
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forC(res,c) cimg_forXYZ(res,x,y,z) res(x,y,z,c) = _linear_atXYZ(cimg::mod(x - delta_x,(float)_width),
                                                                            cimg::mod(y - delta_y,(float)_height),
                                                                            cimg::mod(z - delta_z,(float)_depth),c);
     break;
     case 1 : // Neumann
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forC(res,c) cimg_forXYZ(res,x,y,z) res(x,y,z,c) = _linear_atXYZ(x - delta_x,y - delta_y,z - delta_z,c);
       break;
     default : // Dirichlet
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forC(res,c) cimg_forXYZ(res,x,y,z) res(x,y,z,c) = linear_atXYZ(x - delta_x,y - delta_y,z - delta_z,c,(T)0);
     }
   else if (delta_y!=0) // 2D shift
     switch (boundary_conditions) {
     case 3 : { // Mirror
       const float w2 = 2.f*width(), h2 = 2.f*height();
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forZC(res,z,c) cimg_forXY(res,x,y) {
         const float
           mx = cimg::mod(x - delta_x,w2),
@@ -705,38 +705,38 @@ CImg<T> _gmic_shift(const float delta_x, const float delta_y=0, const float delt
       }
     } break;
     case 2 : // Periodic
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forZC(res,z,c) cimg_forXY(res,x,y) res(x,y,z,c) = _linear_atXY(cimg::mod(x - delta_x,(float)_width),
                                                                           cimg::mod(y - delta_y,(float)_height),z,c);
       break;
     case 1 : // Neumann
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forZC(res,z,c) cimg_forXY(res,x,y) res(x,y,z,c) = _linear_atXY(x - delta_x,y - delta_y,z,c);
       break;
     default : // Dirichlet
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forZC(res,z,c) cimg_forXY(res,x,y) res(x,y,z,c) = linear_atXY(x - delta_x,y - delta_y,z,c,(T)0);
     }
   else // 1D shift
     switch (boundary_conditions) {
     case 3 : { // Mirror
       const float w2 = 2.f*width();
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forYZC(res,y,z,c) cimg_forX(res,x) {
         const float mx = cimg::mod(x - delta_x,w2);
         res(x,y,z,c) = _linear_atX(mx<width()?mx:w2 - mx - 1,y,z,c);
       }
     } break;
     case 2 : // Periodic
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forYZC(res,y,z,c) cimg_forX(res,x) res(x,y,z,c) = _linear_atX(cimg::mod(x - delta_x,(float)_width),y,z,c);
       break;
     case 1 : // Neumann
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forYZC(res,y,z,c) cimg_forX(res,x) res(x,y,z,c) = _linear_atX(x - delta_x,y,z,c);
       break;
     default : // Dirichlet
-      cimg_pragma_openmp(parallel for collapse(3) if (res.size()>=4096))
+      cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(res.size(),4096))
       cimg_forYZC(res,y,z,c) cimg_forX(res,x) res(x,y,z,c) = linear_atX(x - delta_x,y,z,c,(T)0);
     }
   return res;
@@ -1460,10 +1460,9 @@ CImg<T>& operator_diveq(const char *const expression, CImgList<T> &images) {
 }
 
 template<typename t>
-CImg<T>& operator_eq(const t val) {
+CImg<T>& operator_eq(const t value) {
   if (is_empty()) return *this;
-  cimg_pragma_openmp(parallel for cimg_openmp_if(size()>=131072))
-  cimg_rof(*this,ptrd,T) *ptrd = (T)(*ptrd == (T)val);
+  cimg_openmp_for(*this,*ptr == (T)value,131072);
   return *this;
 }
 
@@ -1487,10 +1486,9 @@ CImg<T>& operator_eq(const CImg<t>& img) {
 }
 
 template<typename t>
-CImg<T>& operator_ge(const t val) {
+CImg<T>& operator_ge(const t value) {
   if (is_empty()) return *this;
-  cimg_pragma_openmp(parallel for cimg_openmp_if(size()>=131072))
-  cimg_rof(*this,ptrd,T) *ptrd = (T)(*ptrd >= (T)val);
+  cimg_openmp_for(*this,*ptr >= (T)value,131072);
   return *this;
 }
 
@@ -1514,10 +1512,9 @@ CImg<T>& operator_ge(const CImg<t>& img) {
 }
 
 template<typename t>
-CImg<T>& operator_gt(const t val) {
+CImg<T>& operator_gt(const t value) {
   if (is_empty()) return *this;
-  cimg_pragma_openmp(parallel for cimg_openmp_if(size()>=131072))
-  cimg_rof(*this,ptrd,T) *ptrd = (T)(*ptrd > (T)val);
+  cimg_openmp_for(*this,*ptr > (T)value,131072);
   return *this;
 }
 
@@ -1541,10 +1538,9 @@ CImg<T>& operator_gt(const CImg<t>& img) {
 }
 
 template<typename t>
-CImg<T>& operator_le(const t val) {
+CImg<T>& operator_le(const t value) {
   if (is_empty()) return *this;
-  cimg_pragma_openmp(parallel for cimg_openmp_if(size()>=131072))
-  cimg_rof(*this,ptrd,T) *ptrd = (T)(*ptrd <= (T)val);
+  cimg_openmp_for(*this,*ptr <= (T)value,131072);
   return *this;
 }
 
@@ -1568,10 +1564,9 @@ CImg<T>& operator_le(const CImg<t>& img) {
 }
 
 template<typename t>
-CImg<T>& operator_lt(const t val) {
+CImg<T>& operator_lt(const t value) {
   if (is_empty()) return *this;
-  cimg_pragma_openmp(parallel for cimg_openmp_if(size()>=131072))
-  cimg_rof(*this,ptrd,T) *ptrd = (T)(*ptrd < (T)val);
+  cimg_openmp_for(*this,*ptr < (T)value,131072);
   return *this;
 }
 
@@ -1607,10 +1602,9 @@ CImg<T>& operator_muleq(const char *const expression, CImgList<T> &images) {
 }
 
 template<typename t>
-CImg<T>& operator_neq(const t val) {
+CImg<T>& operator_neq(const t value) {
   if (is_empty()) return *this;
-  cimg_pragma_openmp(parallel for cimg_openmp_if(size()>=131072))
-  cimg_rof(*this,ptrd,T) *ptrd = (T)(*ptrd != (T)val);
+  cimg_openmp_for(*this,*ptr != (T)value,131072);
   return *this;
 }
 
@@ -1899,7 +1893,7 @@ inline char *_gmic_argument_text(const char *const argument, CImg<char>& argumen
     if (is_get) { \
       images[__ind].get_##function.move_to(images); \
       images_names[__ind].get_copymark().move_to(images_names); \
-    } else images[__ind].function; \
+    } else images[__ind].function;                              \
   }
 
 // Macro for simple commands that has no arguments and act on images.
@@ -2056,17 +2050,17 @@ bool *gmic::abort_ptr(bool *const p_is_abort) {
 
 // Manage mutexes.
 struct _gmic_mutex {
-#if cimg_OS==2
-  HANDLE mutex[256];
-  _gmic_mutex() { for (unsigned int i = 0; i<256; ++i) mutex[i] = CreateMutex(0,FALSE,0); }
-  void lock(const unsigned int n) { WaitForSingleObject(mutex[n],INFINITE); }
-  void unlock(const unsigned int n) { ReleaseMutex(mutex[n]); }
-#elif defined(_PTHREAD_H) // #if cimg_OS==2
+#ifdef _PTHREAD_H
   pthread_mutex_t mutex[256];
   _gmic_mutex() { for (unsigned int i = 0; i<256; ++i) pthread_mutex_init(&mutex[i],0); }
   void lock(const unsigned int n) { pthread_mutex_lock(&mutex[n]); }
   void unlock(const unsigned int n) { pthread_mutex_unlock(&mutex[n]); }
-#else // #if cimg_OS==2
+#elif cimg_OS==2 // #ifdef _PTHREAD_H
+  HANDLE mutex[256];
+  _gmic_mutex() { for (unsigned int i = 0; i<256; ++i) mutex[i] = CreateMutex(0,FALSE,0); }
+  void lock(const unsigned int n) { WaitForSingleObject(mutex[n],INFINITE); }
+  void unlock(const unsigned int n) { ReleaseMutex(mutex[n]); }
+#else // #ifdef _PTHREAD_H
   _gmic_mutex() {}
   void lock(const unsigned int) {}
   void unlock(const unsigned int) {}
@@ -2086,11 +2080,11 @@ struct _gmic_parallel {
   gmic_exception exception;
   gmic gmic_instance;
 #ifdef gmic_is_parallel
-#if cimg_OS!=2
+#ifdef _PTHREAD_H
   pthread_t thread_id;
-#else // #if cimg_OS!=2
+#elif cimg_OS==2
   HANDLE thread_id;
-#endif // #if cimg_OS!=2
+#endif // #ifdef _PTHREAD_H
 #endif // #ifdef gmic_is_parallel
   _gmic_parallel() { variables_sizes.assign(gmic_varslots); }
 };
@@ -2118,12 +2112,12 @@ static DWORD WINAPI gmic_parallel(void *arg)
     cimglist_for(threads_data,i) cimg_forY(threads_data[i],l)
       if (&threads_data(i,l)!=&st && threads_data(i,l).is_thread_running) {
         threads_data(i,l).gmic_instance.is_abort_thread = true;
-#if cimg_OS!=2
+#ifdef _PTHREAD_H
         pthread_join(threads_data(i,l).thread_id,0);
-#else // #if cimg_OS!=2
+#elif cimg_OS==2 // #ifdef _PTHREAD_H
         WaitForSingleObject(threads_data(i,l).thread_id,INFINITE);
         CloseHandle(threads_data(i,l).thread_id);
-#endif // #if cimg_OS!=2
+#endif // #ifdef _PTHREAD_H
         threads_data(i,l).is_thread_running = false;
       }
 #endif // #ifdef gmic_is_parallel
@@ -2131,9 +2125,9 @@ static DWORD WINAPI gmic_parallel(void *arg)
     st.exception._command_help.assign(e._command_help);
     st.exception._message.assign(e._message);
   }
-#if defined(gmic_is_parallel) && cimg_OS!=2
+#if defined(gmic_is_parallel) && defined(_PTHREAD_H)
   pthread_exit(0);
-#endif // #if defined(gmic_is_parallel) && cimg_OS!=2
+#endif // #if defined(gmic_is_parallel) && defined(_PTHREAD_H)
   return 0;
 }
 
@@ -3399,8 +3393,7 @@ void gmic::_gmic(const char *const commands_line,
   }
   cimg::mutex(22,0);
 
-  static const unsigned int seed = cimg::srand();
-  cimg::unused(seed);
+  cimg::srand();
   setlocale(LC_NUMERIC,"C");
   cimg_exception_mode = cimg::exception_mode();
   cimg::exception_mode(0);
@@ -3943,22 +3936,39 @@ CImg<char> gmic::substitute_item(const char *const source,
                 if (flush_request) disp._keys[0] = 0;
                 break;
               } else if (*feature=='w' && feature[1]=='h' && !feature[2]) { // Display width*height
-              cimg_snprintf(substr,substr.width(),"%ld",
-                            (long)disp.width()*disp.height());
+              cimg_snprintf(substr,substr.width(),"%lu",
+                            (unsigned long)disp.width()*disp.height());
               is_substituted = true;
             } else if (*feature=='d' && feature[1]=='e' && !feature[2]) { // Window width*height
-              cimg_snprintf(substr,substr.width(),"%ld",
-                            (long)disp.window_width()*disp.window_height());
+              cimg_snprintf(substr,substr.width(),"%lu",
+                            (unsigned long)disp.window_width()*disp.window_height());
               is_substituted = true;
             } else if (*feature=='u' && feature[1]=='v' && !feature[2]) { // Screen width*height
               try {
-                cimg_snprintf(substr,substr.width(),"%ld",
-                              (long)CImgDisplay::screen_width()*CImgDisplay::screen_height());
+                cimg_snprintf(substr,substr.width(),"%lu",
+                              (unsigned long)CImgDisplay::screen_width()*CImgDisplay::screen_height());
               } catch (CImgDisplayException&) {
                 *substr = '0'; substr[1] = 0;
               }
               is_substituted = true;
+            } else if (*feature=='w' && feature[1]==',' && feature[2]=='h' && !feature[3]) { // Display width,height
+              cimg_snprintf(substr,substr.width(),"%u,%u",
+                            (unsigned int)disp.width(),(unsigned int)disp.height());
+              is_substituted = true;
+            } else if (*feature=='d' && feature[1]==',' && feature[2]=='e' && !feature[3]) { // Window width,height
+              cimg_snprintf(substr,substr.width(),"%u,%u",
+                            (unsigned int)disp.window_width(),(unsigned int)disp.window_height());
+              is_substituted = true;
+            } else if (*feature=='u' && feature[1]==',' && feature[2]=='v' && !feature[3]) { // Display width,height
+              try {
+                cimg_snprintf(substr,substr.width(),"%u,%u",
+                              (unsigned int)CImgDisplay::screen_width(),(unsigned int)CImgDisplay::screen_height());
+              } catch (CImgDisplayException&) {
+                *substr = '0'; substr[1] = ','; substr[2] = '0'; substr[3] = 0;
+              }
+              is_substituted = true;
             }
+
             if (!is_substituted) { // Pressed state of specified key
               bool &ik = disp.is_key(feature);
               cimg_snprintf(substr,substr.width(),"%d",(int)ik);
@@ -4134,7 +4144,8 @@ CImg<char> gmic::substitute_item(const char *const source,
                 CImg<char> _status;
                 status.move_to(_status); // Save status because 'selection2cimg' may change it
                 try {
-                  const CImg<unsigned int> inds = selection2cimg(subset,img.size(),CImgList<char>::empty(),"",false);
+                  const CImg<unsigned int> inds = selection2cimg(subset,(unsigned int)img.size(),
+                                                                 CImgList<char>::empty(),"",false);
                   values.assign(1,inds.height());
                   cimg_foroff(inds,p) values[p] = img[inds[p]];
                 } catch (gmic_exception &e) {
@@ -8910,6 +8921,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                   _specular_lightness3d,_specular_shininess3d);
             CImgList<float> opacities;
             vertices.assign(img0,false);
+
             try {
               if (_render3d>=3) {
                 vertices.CImg3dtoobject3d(primitives,g_list_uc,opacities,false);
@@ -8924,7 +8936,6 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
               else throw;
             }
 
-            cimglist_for(opacities,o) if (!opacities[o].is_shared()) opacities[o]*=opacity;
             cimg_forY(selection,l) {
               CImg<T> &img = images[selection[l]];
               const float
@@ -8936,20 +8947,21 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                                          _render3d,_is_double3d,_focale3d,
                                          _light3d_x,_light3d_y,_light3d_z,
                                          _specular_lightness3d,_specular_shininess3d,
-                                         zbuffer));
+                                         opacity,zbuffer));
                 g_list_f.assign();
               } else {
                 gmic_apply(draw_object3d(nx,ny,z,vertices,primitives,g_list_uc,opacities,
                                          _render3d,_is_double3d,_focale3d,
                                          _light3d_x,_light3d_y,_light3d_z,
                                          _specular_lightness3d,_specular_shininess3d,
-                                         zbuffer));
+                                         opacity,zbuffer));
                 g_list_uc.assign();
               }
             }
           } else arg_error("object3d");
           vertices.assign();
           primitives.assign();
+
           is_released = false; ++position; continue;
         }
 
@@ -9764,7 +9776,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
           // Run threads.
           cimg_forY(_threads_data,l) {
 #ifdef gmic_is_parallel
-#if cimg_OS!=2
+#ifdef _PTHREAD_H
 
 #if defined(__MACOSX__) || defined(__APPLE__)
             const uint64T stacksize = (uint64T)8*1024*1024;
@@ -9776,10 +9788,10 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
 #endif // #if defined(__MACOSX__) || defined(__APPLE__)
               pthread_create(&_threads_data[l].thread_id,0,gmic_parallel<T>,(void*)&_threads_data[l]);
 
-#else // #if cimg_OS!=2
+#elif cimg_OS==2 // #ifdef _PTHREAD_H
             _threads_data[l].thread_id = CreateThread(0,0,gmic_parallel<T>,
                                                       (void*)&_threads_data[l],0,0);
-#endif // #if cimg_OS!=2
+#endif // #ifdef _PTHREAD_H
 #else // #ifdef gmic_is_parallel
             gmic_parallel<T>((void*)&_threads_data[l]);
 #endif // #ifdef gmic_is_parallel
@@ -9789,12 +9801,12 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
           if (wait_mode) {
             cimg_forY(_threads_data,l) if (_threads_data[l].is_thread_running) {
 #ifdef gmic_is_parallel
-#if cimg_OS!=2
+#ifdef _PTHREAD_H
               pthread_join(_threads_data[l].thread_id,0);
-#else // #if cimg_OS!=2
+#elif cimg_OS==2 // #ifdef _PTHREAD_H
               WaitForSingleObject(_threads_data[l].thread_id,INFINITE);
               CloseHandle(_threads_data[l].thread_id);
-#endif // #if cimg_OS!=2
+#endif // #ifdef _PTHREAD_H
               _threads_data[l].is_thread_running = false;
 #endif // #ifdef gmic_is_parallel
             }
@@ -13281,7 +13293,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
               const char *ns = std::strchr(s,',');
               if (ns==s) { is_valid_name = false; break; }
               if (!ns || ns>=s_op_left) ns = s_op_left;
-              CImg<char>(s,ns - s + 1).move_to(name);
+              CImg<char>(s,(unsigned int)(ns - s + 1)).move_to(name);
               name.back() = 0;
               if (cimg_sscanf(name,"%255[a-zA-Z0-9_]%c",title,&sep)==1 && (*title<'0' || *title>'9'))
                 name.move_to(varnames);
@@ -13297,7 +13309,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                 while (s<s_end) {
                   const char *ns = std::strchr(s,',');
                   if (!ns) ns = s_end;
-                  CImg<char>(s,ns - s + 1).move_to(name);
+                  CImg<char>(s,(unsigned int)(ns - s + 1)).move_to(name);
                   name.back() = 0;
                   name.move_to(varvalues);
                   s = ns + 1;
@@ -13896,8 +13908,8 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
             if (!cimg::strcasecmp(stype,svalue_type)) \
               CImg<value_type>::get_load_raw(filename, \
                                              (unsigned int)dx,(unsigned int)dy, \
-                                             (unsigned int)dz,(unsigned int)dc,false,false,offset).\
-                move_to(input_images);
+                                             (unsigned int)dz,(unsigned int)dc,false,false,\
+                                             (cimg_ulong)offset).move_to(input_images);
             gmic_load_raw(unsigned char,"uchar")
             else gmic_load_raw(unsigned char,"unsigned char")
               else gmic_load_raw(char,"char")
@@ -14205,12 +14217,12 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
 #ifdef gmic_is_parallel
     cimglist_for(threads_data,i) cimg_forY(threads_data[i],l) {
       if (!threads_data(i,l).is_thread_running) threads_data(i,l).gmic_instance.is_abort_thread = true;
-#if cimg_OS!=2
+#ifdef _PTHREAD_H
       pthread_join(threads_data(i,l).thread_id,0);
-#else // #if cimg_OS!=2
+#elif cimg_OS==2 // #ifdef _PTHREAD_H
       WaitForSingleObject(threads_data(i,l).thread_id,INFINITE);
       CloseHandle(threads_data(i,l).thread_id);
-#endif // #if cimg_OS!=2
+#endif // #ifdef _PTHREAD_H
       is_released&=threads_data(i,l).gmic_instance.is_released;
       threads_data(i,l).is_thread_running = false;
     }
