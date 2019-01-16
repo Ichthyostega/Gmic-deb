@@ -1,3 +1,11 @@
+gmic (2.4.5-1) unstable; urgency=medium
+
+  * [592c9d2] Update upstream source from tag 'upstream/2.4.5'
+    Update to upstream version '2.4.5'
+    with Debian dir e983597c57375c4c84914cdf90d7ae17dd296111
+
+ -- Bernd Zeimetz <bzed@debian.org>  Wed, 16 Jan 2019 21:00:37 +0100
+
 gmic (2.4.3-1) unstable; urgency=medium
 
   * [82fd7ee] Update upstream source from tag 'upstream/2.4.3'
