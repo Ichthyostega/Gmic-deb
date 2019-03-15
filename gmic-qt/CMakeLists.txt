@@ -91,7 +91,7 @@ option(PRERELEASE "Set to ON makes this a prelease build")
 if (${PRERELEASE})
     string(TIMESTAMP PRERELEASE_DATE %y%m%d)
     message("Prelease date is " ${PRERELEASE_DATE})
-    add_definitions(-Dgmic_prelease=${PRERELEASE_DATE})
+    add_definitions(-Dgmic_prerelease="${PRERELEASE_DATE}")
 endif()
 
 option(DRMINGW "Set to ON enables the drmingw debugger.")
@@ -156,6 +156,12 @@ if (CURL_FOUND)
 endif()
 
 #
+# EIGEN3
+#
+find_package (Eigen3 3.0 REQUIRED NO_MODULE)
+add_definitions(-Dcimg_use_eigen)
+
+#
 # Test for OpenMP
 #
 find_package(OpenMP)
@@ -185,6 +191,7 @@ set(gmic_qt_LIBRARIES
         ${PNG_LIBRARIES}
         ${FFTW3_LIBRARIES}
         ${ZLIB_LIBRARIES}
+	Eigen3::Eigen
 )
 
 if (CURL_FOUND)
@@ -249,6 +256,10 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
     string(REPLACE "-O2" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
     string(REPLACE "-O3" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
+    if (WIN32)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
+    endif()
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     message("Release build with debug info")
     add_definitions(-DQT_NO_DEBUG_OUTPUT)
@@ -481,6 +492,7 @@ if (${GMIC_QT_HOST} STREQUAL "gimp")
       ${GIMP2_LIBRARIES}
       ${gmic_qt_LIBRARIES}
       )
+    install(TARGETS gmic_gimp_qt RUNTIME DESTINATION bin)
 
 elseif (${GMIC_QT_HOST} STREQUAL "krita")
 
@@ -492,6 +504,7 @@ elseif (${GMIC_QT_HOST} STREQUAL "krita")
       PRIVATE
       ${gmic_qt_LIBRARIES}
       )
+    install(TARGETS gmic_krita_qt RUNTIME DESTINATION bin)
 
 elseif (${GMIC_QT_HOST} STREQUAL "none")
 
@@ -499,6 +512,7 @@ elseif (${GMIC_QT_HOST} STREQUAL "none")
     add_definitions(-DGMIC_HOST=standalone)
     add_executable(gmic_qt ${gmic_qt_SRCS} ${gmic_qt_QRC}  ${qmic_qt_QM})
     target_link_libraries(gmic_qt PRIVATE ${gmic_qt_LIBRARIES})
+    install(TARGETS gmic_qt RUNTIME DESTINATION bin)
 
 elseif (${GMIC_QT_HOST} STREQUAL "paintdotnet")
 

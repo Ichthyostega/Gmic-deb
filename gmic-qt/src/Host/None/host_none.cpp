@@ -48,8 +48,8 @@
 //#define DEFAULT_IMAGE "local/space-shuttle-transp.png"
 //#define DEFAULT_IMAGE "local/bug.jpg"
 //#define DEFAULT_IMAGE "local/bug2.jpg"
-//#define DEFAULT_IMAGE "local/crop_inktober.jpg"
-#define DEFAULT_IMAGE "local/lena.png"
+#define DEFAULT_IMAGE "local/crop_inktober.jpg"
+//#define DEFAULT_IMAGE "local/lena.png"
 //#define DEFAULT_IMAGE "local/lena_border.png"
 //#define DEFAULT_IMAGE "local/transp.png"
 //#define DEFAULT_IMAGE "local/small_lena.png"
@@ -107,6 +107,7 @@ namespace GmicQt
 {
 const QString HostApplicationName;
 const char * HostApplicationShortname = XSTRINGIFY(GMIC_HOST);
+const bool DarkThemeIsDefault = false;
 } // namespace GmicQt
 
 void gmic_qt_get_image_size(int * width, int * height)

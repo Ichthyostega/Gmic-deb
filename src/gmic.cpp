@@ -261,28 +261,6 @@ CImg<T> get_copymark() const {
   return res;
 }
 
-template<typename tc>
-CImg<T> get_draw_axes(const float x0, const float x1, const float y0, const float y1,
-                      const tc *const color, const float opacity=1,
-                      const int subdivisionx=-60, const int subdivisiony=-60,
-                      const float precisionx=0, const float precisiony=0,
-                      const unsigned int patternx=~0U, const unsigned int patterny=~0U,
-                      const unsigned int font_height=13) const {
-  return (+*this).draw_axes(x0,x1,y0,y1,color,opacity,subdivisionx,subdivisiony,
-                            precisionx,precisiony,patternx,patterny,font_height);
-}
-
-CImg<T> get_draw_circle(const int x, const int y, const int r, const T *const col,
-                        const float opacity) const {
-  return (+*this).draw_circle(x,y,r,col,opacity);
-}
-
-CImg<T> get_draw_circle(const int x, const int y, const int r, const T *const col,
-                        const float opacity,
-                        const unsigned int pattern) const {
-  return (+*this).draw_circle(x,y,r,col,opacity,pattern);
-}
-
 CImg<T> get_draw_ellipse(const int x, const int y, const float r0, const float r1,
                          const float angle, const T *const col, const float opacity) const {
   return (+*this).draw_ellipse(x,y,r0,r1,angle,col,opacity);
@@ -302,21 +280,11 @@ CImg<T> get_draw_fill(const int x, const int y, const int z,
 
 template<typename t, typename tc>
 CImg<T> get_draw_graph(const CImg<t>& data,
-                       const tc *const color, const float opacity=1,
-                       const unsigned int plot_type=1, const int vertex_type=1,
-                       const double ymin=0, const double ymax=0,
-                       const unsigned int pattern=~0U) const {
+                       const tc *const color, const float opacity,
+                       const unsigned int plot_type, const int vertex_type,
+                       const double ymin, const double ymax,
+                       const unsigned int pattern) const {
   return (+*this).draw_graph(data,color,opacity,plot_type,vertex_type,ymin,ymax,pattern);
-}
-
-template<typename tc>
-CImg<T> get_draw_grid(const float sizex, const float sizey,
-                      const float offsetx, const float offsety,
-                      const bool invertx, const bool inverty,
-                      const tc *const color, const float opacity=1,
-                      const unsigned int patternx=~0U, const unsigned int patterny=~0U) {
-  return (+*this).draw_grid(sizex,sizey,offsetx,offsety,invertx,inverty,color,opacity,
-                            patternx,patterny);
 }
 
 CImg<T> get_draw_image(const int x, const int y, const int z, const int c,
@@ -2239,7 +2207,7 @@ unsigned int gmic::hashcode(const char *const str, const bool is_variable) {
   return hash&(gmic_comslots - 1);
 }
 
-// Tells if the the implementation of a G'MIC command contains arguments.
+// Tells if the implementation of a G'MIC command contains arguments.
 bool gmic::command_has_arguments(const char *const command) {
   if (!command || !*command) return false;
   for (const char *s = std::strchr(command,'$'); s; s = std::strchr(s,'$')) {
@@ -2932,7 +2900,7 @@ gmic& gmic::add_commands(std::FILE *const file, const char *const filename,
 
 // Return subset indices from a selection string.
 //-----------------------------------------------
-CImg<unsigned int> gmic::selection2cimg(const char *const string, const unsigned int indice_max,
+CImg<unsigned int> gmic::selection2cimg(const char *const string, const unsigned int index_max,
                                         const CImgList<char>& names,
                                         const char *const command, const bool is_selection,
                                         CImg<char> *const new_name) {
@@ -2940,13 +2908,13 @@ CImg<unsigned int> gmic::selection2cimg(const char *const string, const unsigned
   // Try to detect common cases to be faster.
   if (string && !*string) return CImg<unsigned int>(); // Empty selection
   if (!string || (*string=='^' && !string[1])) { // Whole selection
-    CImg<unsigned int> res(1,indice_max); cimg_forY(res,y) res[y] = (unsigned int)y; return res;
+    CImg<unsigned int> res(1,index_max); cimg_forY(res,y) res[y] = (unsigned int)y; return res;
   } else if (*string>='0' && *string<='9' && !string[1]) { // Single positive digit
     const unsigned int ind = *string - '0';
-    if (ind<indice_max) return CImg<unsigned int>::vector(ind);
+    if (ind<index_max) return CImg<unsigned int>::vector(ind);
   } else if (*string=='-' && string[1]>='0' && string[2]<='9' && !string[2]) { // Single negative digit
-    const unsigned int ind = indice_max - string[1] + '0';
-    if (ind<indice_max) return CImg<unsigned int>::vector(ind);
+    const unsigned int ind = index_max - string[1] + '0';
+    if (ind<index_max) return CImg<unsigned int>::vector(ind);
   }
 
   // Manage remaining cases.
@@ -2955,13 +2923,13 @@ CImg<unsigned int> gmic::selection2cimg(const char *const string, const unsigned
     ctypel = is_selection?'[':'\'',
     ctyper = is_selection?']':'\'';
 
-  CImg<bool> is_selected(1,indice_max,1,1,false);
+  CImg<bool> is_selected(1,index_max,1,1,false);
   CImg<char> name, item;
   bool is_inverse = *string=='^';
   const char *it = string + (is_inverse?1:0);
   for (bool stopflag = false; !stopflag; ) {
     float ind0 = 0, ind1 = 0, step = 1;
-    int iind0 = 0, iind1 = 0;
+    int iind0 = 0, iind1 = 0, istep = 1;
     bool is_label = false;
     char sep = 0;
     name.assign(256);
@@ -2970,17 +2938,23 @@ CImg<unsigned int> gmic::selection2cimg(const char *const string, const unsigned
     if (it_comma) { item.assign(it,(unsigned int)(it_comma - it + 1)); item.back() = 0; it = it_comma + 1; }
     else { CImg<char>::string(it).move_to(item); stopflag = true; }
 
-    char end, *const it_colon = std::strchr(item,':');
+    char end, *it_colon = std::strchr(item,':');
     if (it_colon) {
-      *it_colon = 0;
-      if (cimg_sscanf(it_colon + 1,"%f%c",&step,&end)!=1 || step<=0)
+      *(it_colon++) = sep = 0;
+      if ((cimg_sscanf(it_colon,"%f%c",&step,&end)==1 ||
+           cimg_sscanf(it_colon,"%f%c%c",&step,&sep,&end)==2) &&
+          (!sep || sep=='%') && step>0) {
+        if (sep=='%') step*=index_max/100.0f;
+      } else step = 0;
+      istep = (int)cimg::round(step);
+      if (istep<=0)
         error("Command '%s': Invalid %s %c%s%c (syntax error after colon ':').",
               command,stype,ctypel,string,ctyper);
     }
     if (!*item) { // Particular cases [:N] or [^:N]
       if (is_inverse) { iind0 = 0; iind1 = -1; is_inverse = false; }
       else continue;
-    } else if (cimg_sscanf(item,"%f%c",&ind0,&end)==1) { // Single indice
+    } else if (cimg_sscanf(item,"%f%c",&ind0,&end)==1) { // Single index
       iind1 = iind0 = (int)cimg::round(ind0);
     } else if (cimg_sscanf(item,"%f-%f%c",&ind0,&ind1,&end)==2) { // Sequence between 2 indices
       iind0 = (int)cimg::round(ind0);
@@ -2998,47 +2972,46 @@ CImg<unsigned int> gmic::selection2cimg(const char *const string, const unsigned
                      command,stype,ctypel,string,ctyper,name.data());
       }
     } else if (cimg_sscanf(item,"%f%c%c",&ind0,&sep,&end)==2 && sep=='%') { // Single percent
-      iind1 = iind0 = (int)cimg::round(ind0*((int)indice_max - 1)/100) - (ind0<0?1:0);
+      iind1 = iind0 = (int)cimg::round(ind0*((int)index_max - 1)/100) - (ind0<0?1:0);
     } else if (cimg_sscanf(item,"%f%%-%f%c%c",&ind0,&ind1,&sep,&end)==3 && sep=='%') {
       // Sequence between 2 percents.
-      iind0 = (int)cimg::round(ind0*((int)indice_max - 1)/100) - (ind0<0?1:0);
-      iind1 = (int)cimg::round(ind1*((int)indice_max - 1)/100) - (ind1<0?1:0);
+      iind0 = (int)cimg::round(ind0*((int)index_max - 1)/100) - (ind0<0?1:0);
+      iind1 = (int)cimg::round(ind1*((int)index_max - 1)/100) - (ind1<0?1:0);
     } else if (cimg_sscanf(item,"%f%%-%f%c",&ind0,&ind1,&end)==2) {
-      // Sequence between a percent and an indice.
-      iind0 = (int)cimg::round(ind0*((int)indice_max - 1)/100) - (ind0<0?1:0);;
+      // Sequence between a percent and an index.
+      iind0 = (int)cimg::round(ind0*((int)index_max - 1)/100) - (ind0<0?1:0);;
       iind1 = (int)cimg::round(ind1);
     } else if (cimg_sscanf(item,"%f-%f%c%c",&ind0,&ind1,&sep,&end)==3 && sep=='%') {
-      // Sequence between an indice and a percent.
+      // Sequence between an index and a percent.
       iind0 = (int)cimg::round(ind0);
-      iind1 = (int)cimg::round(ind1*((int)indice_max - 1)/100) - (ind1<0?1:0);;
+      iind1 = (int)cimg::round(ind1*((int)index_max - 1)/100) - (ind1<0?1:0);;
     } else error("Command '%s': Invalid %s %c%s%c.",
                  command,stype,ctypel,string,ctyper);
 
-    if (!indice_max) error("Command '%s': Invalid %s %c%s%c (no data available).",
+    if (!index_max) error("Command '%s': Invalid %s %c%s%c (no data available).",
                            command,stype,ctypel,string,ctyper);
     if (!is_label) {
       int
-        uind0 = (int)(iind0<0?iind0 + indice_max:iind0),
-        uind1 = (int)(iind1<0?iind1 + indice_max:iind1);
+        uind0 = (int)(iind0<0?iind0 + index_max:iind0),
+        uind1 = (int)(iind1<0?iind1 + index_max:iind1);
       if (uind0>uind1) { cimg::swap(uind0,uind1); cimg::swap(iind0,iind1); }
-      if (uind0<0 || uind0>=(int)indice_max)
-        error("Command '%s': Invalid %s %c%s%c (contains indice '%d', "
+      if (uind0<0 || uind0>=(int)index_max)
+        error("Command '%s': Invalid %s %c%s%c (contains index '%d', "
               "not in range -%u...%u).",
-              command,stype,ctypel,string,ctyper,iind0,indice_max,indice_max - 1);
-      if (uind1<0 || uind1>=(int)indice_max)
-        error("Command '%s': Invalid %s %c%s%c (contains indice '%d', "
+              command,stype,ctypel,string,ctyper,iind0,index_max,index_max - 1);
+      if (uind1<0 || uind1>=(int)index_max)
+        error("Command '%s': Invalid %s %c%s%c (contains index '%d', "
               "not in range -%u...%u).",
-              command,stype,ctypel,string,ctyper,iind1,indice_max,indice_max - 1);
-      const int istep = (int)cimg::round(step);
+              command,stype,ctypel,string,ctyper,iind1,index_max,index_max - 1);
       for (int l = uind0; l<=uind1; l+=istep) is_selected[l] = true;
     }
   }
-  unsigned int indice = 0;
-  cimg_for(is_selected,p,bool) if (*p) ++indice;
-  CImg<unsigned int> selection(1,is_inverse?indice_max - indice:indice);
-  indice = 0;
-  if (is_inverse) { cimg_forY(is_selected,l) if (!is_selected[l]) selection[indice++] = (unsigned int)l; }
-  else cimg_forY(is_selected,l) if (is_selected[l]) selection[indice++] = (unsigned int)l;
+  unsigned int index = 0;
+  cimg_for(is_selected,p,bool) if (*p) ++index;
+  CImg<unsigned int> selection(1,is_inverse?index_max - index:index);
+  index = 0;
+  if (is_inverse) { cimg_forY(is_selected,l) if (!is_selected[l]) selection[index++] = (unsigned int)l; }
+  else cimg_forY(is_selected,l) if (is_selected[l]) selection[index++] = (unsigned int)l;
   return selection;
 }
 
@@ -3835,148 +3808,156 @@ CImg<char> gmic::substitute_item(const char *const source,
              (inbraces[1]>='0' && inbraces[1]<='9' && !inbraces[2]) ||
              (inbraces[1]==',' && inbraces[2]) ||
              (inbraces[1]>='0' && inbraces[1]<='9' && inbraces[2]==',' && inbraces[3]))) {
-#if cimg_display==0
-          *substr = '0'; substr[1] = 0;
-          is_substituted = true;
-#else // #if cimg_display==0
+
+          char *feature = inbraces.data() + 1;
           unsigned int wind = 0;
-          const char *feature = inbraces.data() + 1;
           if (*feature>='0' && *feature<='9') wind = (unsigned int)(*(feature++) - '0');
+          char *e_feature = 0;
+#if cimg_display!=0
           CImgDisplay &disp = _display_windows[wind];
+#else
+          cimg::unused(wind);
+#endif
 
           if (!*feature) {
+#if cimg_display==0
+            *substr = '0'; substr[1] = 0;
+#else
             cimg_snprintf(substr,substr.width(),"%d",disp?(disp.is_closed()?0:1):0);
             is_substituted = true;
-          } else if (*feature==',') {
-            bool flush_request = false;
-            if (*(++feature)=='-' &&
-                feature[1]!='w' && feature[1]!='h' && feature[1]!='d' && feature[1]!='e' &&
-                feature[1]!='u' && feature[1]!='v' && feature[1]!='n' && feature[1]!='t') {
-              flush_request = true; ++feature;
-            }
-            if (!feature[1]) switch (*feature) { // Single-char features
-              case 'w' : // Display width
-                cimg_snprintf(substr,substr.width(),"%d",disp.width());
-                is_substituted = true;
-                break;
-              case 'h' : // Display height
-                cimg_snprintf(substr,substr.width(),"%d",disp.height());
-                is_substituted = true;
-                break;
-              case 'd' : // Window width
-                cimg_snprintf(substr,substr.width(),"%d",disp.window_width());
-                is_substituted = true;
-                break;
-              case 'e' : // Window height
-                cimg_snprintf(substr,substr.width(),"%d",disp.window_height());
-                is_substituted = true;
-                break;
-              case 'u' : // Screen width
-                try {
-                  cimg_snprintf(substr,substr.width(),"%d",CImgDisplay::screen_width());
-                } catch (CImgDisplayException&) {
-                  *substr = '0'; substr[1] = 0;
-                }
-                is_substituted = true;
-                break;
-              case 'v' : // Screen height
-                try {
-                  cimg_snprintf(substr,substr.width(),"%d",CImgDisplay::screen_height());
-                } catch (CImgDisplayException&) {
-                  *substr = '0'; substr[1] = 0;
-                }
-                is_substituted = true;
-                break;
-              case 'n' : // Normalization type
-                cimg_snprintf(substr,substr.width(),"%d",disp.normalization());
-                is_substituted = true;
-                break;
-              case 't' : // Window title
-                cimg_snprintf(substr,substr.width(),"%s",disp.title());
-                is_substituted = true;
-                break;
-              case 'x' : // X-coordinate of mouse pointer
-                cimg_snprintf(substr,substr.width(),"%d",disp.mouse_x());
-                is_substituted = true;
-                if (flush_request) { disp._mouse_x = -1; disp._mouse_y = -1; }
-                break;
-              case 'y' : // Y-coordinate of mouse pointer
-                cimg_snprintf(substr,substr.width(),"%d",disp.mouse_y());
-                is_substituted = true;
-                if (flush_request) { disp._mouse_x = -1; disp._mouse_y = -1; }
-                break;
-              case 'b' : // State of mouse buttons
-                cimg_snprintf(substr,substr.width(),"%d",disp.button());
-                is_substituted = true;
-                if (flush_request) disp._button = 0;
-                break;
-              case 'o' : // State of mouse wheel
-                cimg_snprintf(substr,substr.width(),"%d",disp.wheel());
-                is_substituted = true;
-                if (flush_request) disp._wheel = 0;
-                break;
-              case 'c' : // Closed state of display window
-                cimg_snprintf(substr,substr.width(),"%d",(int)disp.is_closed());
-                is_substituted = true;
-                if (flush_request) disp._is_closed = false;
-                break;
-              case 'r' : // Resize event
-                cimg_snprintf(substr,substr.width(),"%d",(int)disp.is_resized());
-                is_substituted = true;
-                if (flush_request) disp._is_resized = false;
-                break;
-              case 'm' : // Move event
-                cimg_snprintf(substr,substr.width(),"%d",(int)disp.is_moved());
-                is_substituted = true;
-                if (flush_request) disp._is_moved = false;
-                break;
-              case 'k' : // Key event
-                cimg_snprintf(substr,substr.width(),"%u",disp.key());
-                is_substituted = true;
-                if (flush_request) disp._keys[0] = 0;
-                break;
-              } else if (*feature=='w' && feature[1]=='h' && !feature[2]) { // Display width*height
-              cimg_snprintf(substr,substr.width(),"%lu",
-                            (unsigned long)disp.width()*disp.height());
-              is_substituted = true;
-            } else if (*feature=='d' && feature[1]=='e' && !feature[2]) { // Window width*height
-              cimg_snprintf(substr,substr.width(),"%lu",
-                            (unsigned long)disp.window_width()*disp.window_height());
-              is_substituted = true;
-            } else if (*feature=='u' && feature[1]=='v' && !feature[2]) { // Screen width*height
-              try {
-                cimg_snprintf(substr,substr.width(),"%lu",
-                              (unsigned long)CImgDisplay::screen_width()*CImgDisplay::screen_height());
-              } catch (CImgDisplayException&) {
-                *substr = '0'; substr[1] = 0;
-              }
-              is_substituted = true;
-            } else if (*feature=='w' && feature[1]==',' && feature[2]=='h' && !feature[3]) { // Display width,height
-              cimg_snprintf(substr,substr.width(),"%u,%u",
-                            (unsigned int)disp.width(),(unsigned int)disp.height());
-              is_substituted = true;
-            } else if (*feature=='d' && feature[1]==',' && feature[2]=='e' && !feature[3]) { // Window width,height
-              cimg_snprintf(substr,substr.width(),"%u,%u",
-                            (unsigned int)disp.window_width(),(unsigned int)disp.window_height());
-              is_substituted = true;
-            } else if (*feature=='u' && feature[1]==',' && feature[2]=='v' && !feature[3]) { // Display width,height
-              try {
-                cimg_snprintf(substr,substr.width(),"%u,%u",
-                              (unsigned int)CImgDisplay::screen_width(),(unsigned int)CImgDisplay::screen_height());
-              } catch (CImgDisplayException&) {
-                *substr = '0'; substr[1] = ','; substr[2] = '0'; substr[3] = 0;
-              }
-              is_substituted = true;
-            }
-
-            if (!is_substituted) { // Pressed state of specified key
-              bool &ik = disp.is_key(feature);
-              cimg_snprintf(substr,substr.width(),"%d",(int)ik);
-              is_substituted = true;
-              if (flush_request) ik = false;
-            }
-          }
 #endif // #if cimg_display==0
+          } else if (*(feature++)==',') {
+            do {
+              is_substituted = false;
+              e_feature = std::strchr(feature,',');
+              if (e_feature) *e_feature = 0;
+#if cimg_display==0
+              *substr = '0'; substr[1] = 0;
+              is_substituted = true;
+#else // #if cimg_display==0
+              bool flush_request = false;
+              if (*feature=='-' &&
+                  feature[1]!='w' && feature[1]!='h' && feature[1]!='d' && feature[1]!='e' &&
+                  feature[1]!='u' && feature[1]!='v' && feature[1]!='n' && feature[1]!='t') {
+                flush_request = true; ++feature;
+              }
+              if (!*feature) { // Empty feature
+                cimg_snprintf(substr,substr.width(),"%d",disp?(disp.is_closed()?0:1):0);
+                is_substituted = true;
+              } else if (*feature && !feature[1]) switch (*feature) { // Single-char features
+                case 'w' : // Display width
+                  cimg_snprintf(substr,substr.width(),"%d",disp.width());
+                  is_substituted = true;
+                  break;
+                case 'h' : // Display height
+                  cimg_snprintf(substr,substr.width(),"%d",disp.height());
+                  is_substituted = true;
+                  break;
+                case 'd' : // Window width
+                  cimg_snprintf(substr,substr.width(),"%d",disp.window_width());
+                  is_substituted = true;
+                  break;
+                case 'e' : // Window height
+                  cimg_snprintf(substr,substr.width(),"%d",disp.window_height());
+                  is_substituted = true;
+                  break;
+                case 'u' : // Screen width
+                  try {
+                    cimg_snprintf(substr,substr.width(),"%d",CImgDisplay::screen_width());
+                  } catch (CImgDisplayException&) {
+                    *substr = '0'; substr[1] = 0;
+                  }
+                  is_substituted = true;
+                  break;
+                case 'v' : // Screen height
+                  try {
+                    cimg_snprintf(substr,substr.width(),"%d",CImgDisplay::screen_height());
+                  } catch (CImgDisplayException&) {
+                    *substr = '0'; substr[1] = 0;
+                  }
+                  is_substituted = true;
+                  break;
+                case 'n' : // Normalization type
+                  cimg_snprintf(substr,substr.width(),"%d",disp.normalization());
+                  is_substituted = true;
+                  break;
+                case 't' : // Window title
+                  cimg_snprintf(substr,substr.width(),"%s",disp.title());
+                  is_substituted = true;
+                  break;
+                case 'x' : // X-coordinate of mouse pointer
+                  cimg_snprintf(substr,substr.width(),"%d",disp.mouse_x());
+                  is_substituted = true;
+                  if (flush_request) { disp._mouse_x = -1; disp._mouse_y = -1; }
+                  break;
+                case 'y' : // Y-coordinate of mouse pointer
+                  cimg_snprintf(substr,substr.width(),"%d",disp.mouse_y());
+                  is_substituted = true;
+                  if (flush_request) { disp._mouse_x = -1; disp._mouse_y = -1; }
+                  break;
+                case 'b' : // State of mouse buttons
+                  cimg_snprintf(substr,substr.width(),"%d",disp.button());
+                  is_substituted = true;
+                  if (flush_request) disp._button = 0;
+                  break;
+                case 'o' : // State of mouse wheel
+                  cimg_snprintf(substr,substr.width(),"%d",disp.wheel());
+                  is_substituted = true;
+                  if (flush_request) disp._wheel = 0;
+                  break;
+                case 'c' : // Closed state of display window
+                  cimg_snprintf(substr,substr.width(),"%d",(int)disp.is_closed());
+                  is_substituted = true;
+                  if (flush_request) disp._is_closed = false;
+                  break;
+                case 'r' : // Resize event
+                  cimg_snprintf(substr,substr.width(),"%d",(int)disp.is_resized());
+                  is_substituted = true;
+                  if (flush_request) disp._is_resized = false;
+                  break;
+                case 'm' : // Move event
+                  cimg_snprintf(substr,substr.width(),"%d",(int)disp.is_moved());
+                  is_substituted = true;
+                  if (flush_request) disp._is_moved = false;
+                  break;
+                case 'k' : // Key event
+                  cimg_snprintf(substr,substr.width(),"%u",disp.key());
+                  is_substituted = true;
+                  if (flush_request) disp._keys[0] = 0;
+                  break;
+                } else if (*feature=='w' && feature[1]=='h' && !feature[2]) { // Display width*height
+                cimg_snprintf(substr,substr.width(),"%lu",
+                              (unsigned long)disp.width()*disp.height());
+                is_substituted = true;
+              } else if (*feature=='d' && feature[1]=='e' && !feature[2]) { // Window width*height
+                cimg_snprintf(substr,substr.width(),"%lu",
+                              (unsigned long)disp.window_width()*disp.window_height());
+                is_substituted = true;
+              } else if (*feature=='u' && feature[1]=='v' && !feature[2]) { // Screen width*height
+                try {
+                  cimg_snprintf(substr,substr.width(),"%lu",
+                                (unsigned long)CImgDisplay::screen_width()*CImgDisplay::screen_height());
+                } catch (CImgDisplayException&) {
+                  *substr = '0'; substr[1] = 0;
+                }
+                is_substituted = true;
+              }
+              if (*feature && !is_substituted) { // Pressed state of specified key
+                bool &ik = disp.is_key(feature);
+                cimg_snprintf(substr,substr.width(),"%d",(int)ik);
+                is_substituted = true;
+                if (flush_request) ik = false;
+              }
+#endif // #if cimg_display==0
+              if (is_substituted)
+                CImg<char>::string(substr,false,true).append_string_to(substituted_items,ptr_sub);
+              if (e_feature) {
+                *e_feature = ','; feature = e_feature + 1;
+                CImg<char>::append_string_to(',',substituted_items,ptr_sub);
+              } else feature+=std::strlen(feature);
+            } while (*feature || e_feature);
+            *substr = 0; is_substituted = true;
+          }
         }
 
         // Double-backquoted string.
@@ -4268,7 +4249,7 @@ CImg<char> gmic::substitute_item(const char *const source,
         }
         nsource+=2;
 
-        // Substitute '$>' and '$<' -> Forward/backward indice of current loop.
+        // Substitute '$>' and '$<' -> Forward/backward index of current loop.
       } else if (nsource[1]=='>' || nsource[1]=='<') {
         if (!nb_repeatdones)
           error(images,0,0,
@@ -4300,7 +4281,7 @@ CImg<char> gmic::substitute_item(const char *const source,
         }
         nsource+=l_name;
 
-        // Substitute '$name' and '${name}' -> Variable, image indice or environment variable.
+        // Substitute '$name' and '${name}' -> Variable, image index or environment variable.
       } else if ((((is_braces && cimg_sscanf(inbraces,"%255[a-zA-Z0-9_]",
                                              substr.assign(256).data())==1) &&
                    !inbraces[std::strlen(substr)]) ||
@@ -4332,7 +4313,7 @@ CImg<char> gmic::substitute_item(const char *const source,
             if (images_names[l] && !std::strcmp(images_names[l],name)) {
               is_name_found = true; ind = l; break;
             }
-          if (is_name_found) { // Latest image indice
+          if (is_name_found) { // Latest image index
             cimg_snprintf(substr,substr.width(),"%d",ind);
             CImg<char>(substr.data(),(unsigned int)std::strlen(substr),1,1,1,true).
               append_string_to(substituted_items,ptr_sub);
@@ -6068,7 +6049,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
           capture_height = cimg::round(capture_height);
           if (!nb_frames) {
             print(images,0,"Release camera #%g.",cam_index);
-            CImg<T>::get_load_camera((unsigned int)cam_index,0,true);
+            CImg<T>::get_load_camera((unsigned int)cam_index,0,0,0,true);
           } else {
             if (capture_width)
               print(images,0,"Insert %g image%s from camera #%g, with %g frames skipping "
@@ -6093,8 +6074,9 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                 std::fflush(cimg::output());
                 cimg::mutex(29,0);
               }
-              CImg<T>::get_load_camera((unsigned int)cam_index,(unsigned int)skip_frames,false,
-                                       (unsigned int)capture_width,(unsigned int)capture_height).
+              CImg<T>::get_load_camera((unsigned int)cam_index,
+                                       (unsigned int)capture_width,(unsigned int)capture_height,
+                                       (unsigned int)skip_frames,false).
                 move_to(images);
               images_names.insert(name);
             }
@@ -6861,14 +6843,12 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                 nx = (int)cimg::round(sepx=='%'?x*(img.width() - 1)/100:x),
                 ny = (int)cimg::round(sepy=='%'?y*(img.height() - 1)/100:y);
               const float
-                nR = cimg::round(sepz=='%'?R*rmax/100:R),
-                nr = cimg::round(sepc=='%'?r*rmax/100:r);
+                nR = sepz=='%'?R*rmax/100:R,
+                nr = sepc=='%'?r*rmax/100:r;
               if (sep=='x') {
-                if (nR==nr) { gmic_apply(draw_circle(nx,ny,(int)nR,g_img.data(),opacity,~0U)); }
-                else gmic_apply(draw_ellipse(nx,ny,nR,nr,angle,g_img.data(),opacity,~0U));
+                gmic_apply(draw_ellipse(nx,ny,nR,nr,angle,g_img.data(),opacity,pattern));
               } else {
-                if (nR==nr) { gmic_apply(draw_circle(nx,ny,(int)nR,g_img.data(),opacity)); }
-                else gmic_apply(draw_ellipse(nx,ny,nR,nr,angle,g_img.data(),opacity));
+                gmic_apply(draw_ellipse(nx,ny,nR,nr,angle,g_img.data(),opacity));
               }
             }
           } else arg_error("ellipse");
@@ -8057,7 +8037,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
         //-----------------------------
       gmic_commands_l :
 
-        // Start local environnement.
+        // Start local environment.
         if (!std::strcmp("local",command)) {
           if (is_debug_info && debug_line!=~0U) {
             cimg_snprintf(argx,_argx.width(),"*local#%u",debug_line);
@@ -8607,7 +8587,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
             nb_randoms = cimg::round(nb_randoms);
             if (ind0) initialization = &images[*ind0];
             print(images,0,"Estimate correspondence map between image%s and patch image [%u], "
-                  "using %gx%gx%g patches, %g iteration%s, %g randomization%s and occurence penalization %g "
+                  "using %gx%gx%g patches, %g iteration%s, %g randomization%s and occurrence penalization %g "
                   "(%sscore returned).",
                   gmic_selection.data(),
                   *ind,
@@ -8795,7 +8775,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
               noise_type==1?"uniform":
               noise_type==2?"salt&pepper":
               noise_type==3?"poisson":"rice";
-            if (sep=='%') sigma = -sigma;
+            if (sep=='%' && noise_type!=2) sigma = -sigma;
             print(images,0,"Add %s noise to image%s, with standard deviation %g%s.",
                   s_type,
                   gmic_selection.data(),
@@ -8948,20 +8928,20 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                                          _light3d_x,_light3d_y,_light3d_z,
                                          _specular_lightness3d,_specular_shininess3d,
                                          opacity,zbuffer));
-                g_list_f.assign();
+
               } else {
                 gmic_apply(draw_object3d(nx,ny,z,vertices,primitives,g_list_uc,opacities,
                                          _render3d,_is_double3d,_focale3d,
                                          _light3d_x,_light3d_y,_light3d_z,
                                          _specular_lightness3d,_specular_shininess3d,
                                          opacity,zbuffer));
-                g_list_uc.assign();
               }
             }
           } else arg_error("object3d");
+          g_list_f.assign();
+          g_list_uc.assign();
           vertices.assign();
           primitives.assign();
-
           is_released = false; ++position; continue;
         }
 
@@ -9836,7 +9816,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
           is_released = false; ++position; continue;
         }
 
-        // Set progress indice.
+        // Set progress index.
         if (!std::strcmp("progress",item)) {
           gmic_substitute_args(false);
           value = -1;
@@ -9844,10 +9824,10 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                           &value,&end)==1) {
             if (value<0) value = -1; else if (value>100) value = 100;
             if (value>=0)
-              print(images,0,"Set progress indice to %g%%.",
+              print(images,0,"Set progress index to %g%%.",
                     value);
             else
-              print(images,0,"Disable progress indice.");
+              print(images,0,"Disable progress index.");
             *progress = (float)value;
           } else arg_error("progress");
           ++position; continue;
@@ -12962,7 +12942,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                   is_braces = true;
                 }
 
-                // Substitute $# -> maximum indice of known arguments.
+                // Substitute $# -> maximum index of known arguments.
                 if (nsource[1]=='#') {
                   nsource+=2;
                   cimg_snprintf(substr,substr.width(),"%u",nb_arguments);
@@ -13055,7 +13035,7 @@ gmic& gmic::_run(const CImgList<char>& commands_line, unsigned int& position,
                   has_arguments = true;
 
                   // Substitute ${i=$#} -> value of the i^th argument, or the default value,
-                  // i.e. the maximum indice of known arguments.
+                  // i.e. the maximum index of known arguments.
                 } else if (cimg_sscanf(nsource,"${%d=$#%c",&ind,&sep)==2 && sep=='}' &&
                            ind>0) {
                   if (ind>=arguments.width()) arguments.insert(2 + 2*ind - arguments.size());

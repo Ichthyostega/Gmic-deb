@@ -42,6 +42,7 @@ public:
     QString previewCommand;
     QString parameters;
     QList<QString> defaultParameterValues;
+    QList<int> defaultVisibilityStates;
     QString hash;
     bool isAccurateIfZoomed;
     float previewFactor;
@@ -65,6 +66,8 @@ public:
   void readFaves();
 
   bool allFavesAreValid() const;
+  bool danglingFaveIsSelected() const;
+
   /**
    * @brief restoreFaveHashLinksRelease236
    * Starting with release 240 of gmic, filter name capitalization has been normalized.
@@ -76,7 +79,7 @@ public:
   void restoreFaveHashLinksAfterCaseChange();
   void importGmicGTKFaves();
   void saveFaves();
-  void addSelectedFilterAsNewFave(const QList<QString> & defaultValues, GmicQt::InputOutputState inOutState);
+  void addSelectedFilterAsNewFave(const QList<QString> & defaultValues, const QList<int> & visibilityStates, GmicQt::InputOutputState inOutState);
 
   void applySearchCriterion(const QString & text);
   void selectFilterFromHash(QString hash, bool notify);
@@ -94,6 +97,8 @@ public:
 
   void expandAll();
   void collapseAll();
+
+  const QString & errorMessage() const;
 
 signals:
   void filterSelectionChanged();
@@ -116,6 +121,7 @@ private:
   FavesModel _favesModel;
   FiltersView * _filtersView;
   Filter _currentFilter;
+  QString _errorMessage;
 };
 
 #endif // _GMIC_QT_FILTERSPRESENTER_H_

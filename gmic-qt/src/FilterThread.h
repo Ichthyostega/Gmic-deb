@@ -52,6 +52,7 @@ public:
   const cimg_library::CImgList<float> & images() const;
   const cimg_library::CImgList<char> & imageNames() const;
   QStringList gmicStatus() const;
+  QList<int> parametersVisibilityStates() const;
   QString errorMessage() const;
   bool failed() const;
   bool aborted() const;
@@ -60,6 +61,9 @@ public:
   QString name() const;
   QString fullCommand() const;
   void setLogSuffix(const QString & text);
+
+  static QStringList status2StringList(const QString &);
+  static QList<int> status2Visibilities(const QString &);
 
 public slots:
   void abortGmic();
