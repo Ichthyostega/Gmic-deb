@@ -47,12 +47,10 @@ ColorParameter::~ColorParameter()
   delete _dialog;
 }
 
-void ColorParameter::addTo(QWidget * widget, int row)
+bool ColorParameter::addTo(QWidget * widget, int row)
 {
   _grid = dynamic_cast<QGridLayout *>(widget->layout());
-  if (!_grid) {
-    return;
-  }
+  Q_ASSERT_X(_grid, __PRETTY_FUNCTION__, "No grid layout in widget");
   _row = row;
   delete _button;
   delete _label;
@@ -72,6 +70,7 @@ void ColorParameter::addTo(QWidget * widget, int row)
   _grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
   _grid->addWidget(_button, row, 1, 1, 1);
   connect(_button, SIGNAL(clicked()), this, SLOT(onButtonPressed()));
+  return true;
 }
 
 QString ColorParameter::textValue() const
@@ -109,6 +108,9 @@ void ColorParameter::reset()
 bool ColorParameter::initFromText(const char * text, int & textLength)
 {
   QList<QString> list = parseText("color", text, textLength);
+  if (list.isEmpty()) {
+    return false;
+  }
   _name = HtmlTranslator::html2txt(list[0]);
   QList<QString> channels = list[1].split(",");
   const int n = channels.size();

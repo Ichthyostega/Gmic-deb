@@ -57,11 +57,6 @@ AbstractParameter::AbstractParameter(QObject * parent, bool actualParameter) : Q
 
 AbstractParameter::~AbstractParameter() {}
 
-bool AbstractParameter::isVisible() const
-{
-  return true;
-}
-
 bool AbstractParameter::isActualParameter() const
 {
   return _actualParameter;
@@ -159,14 +154,14 @@ AbstractParameter::VisibilityState AbstractParameter::defaultVisibilityState() c
 
 void AbstractParameter::setVisibilityState(AbstractParameter::VisibilityState state)
 {
-  if (!_grid || _row == -1) {
-    return;
-  }
   if (state == UnspecifiedVisibilityState) {
     setVisibilityState(defaultVisibilityState());
     return;
   }
   _visibilityState = state;
+  if (!_grid || _row == -1) {
+    return;
+  }
   for (int col = 0; col < 5; ++col) {
     QLayoutItem * item = _grid->itemAtPosition(_row, col);
     if (item) {
@@ -219,13 +214,17 @@ QStringList AbstractParameter::parseText(const QString & type, const char * text
   }
 
   QString open = re.cap(2);
-  const char * end = 0;
+  const char * end = nullptr;
   if (open == "(") {
     end = strstr(text + prefixLength, ")");
   } else if (open == "{") {
     end = strstr(text + prefixLength, "}");
   } else if (open == "[") {
     end = strstr(text + prefixLength, "]");
+  }
+  if (!end) {
+    Logger::log(QString("[gmic-qt] Parse error in %1 parameter.").arg(type));
+    return QStringList();
   }
   QString values = str.mid(prefixLength, -1).left(end - (text + prefixLength)).trimmed();
   length = 1 + end - text;

@@ -52,7 +52,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 251
+#define gmic_version 260
 
 #ifndef gmic_pixel_type
 #define gmic_pixel_type float
@@ -304,6 +304,10 @@ struct gmic {
 				   const unsigned int *const variables_sizes,
                                    const gmic_image<unsigned int> *const command_selection,
                                    const bool is_image_expr);
+
+  template<typename T>
+  void wait_threads(void *const p_gmic_threads, const bool try_abort, const T foo);
+
   template<typename T>
   gmic& print(const gmic_list<T>& list, const gmic_image<unsigned int> *const callstack_selection,
 	      const char *format, ...);
@@ -315,6 +319,9 @@ struct gmic {
   template<typename T>
   gmic& error(const gmic_list<T>& list, const gmic_image<unsigned int> *const callstack_selection,
 	      const char *const command, const char *format, ...);
+
+  template<typename T>
+  bool check_cond(const char *const expr, gmic_list<T>& images, const char *const command);
 
   template<typename T>
   gmic& debug(const gmic_list<T>& list, const char *format, ...);
@@ -386,7 +393,7 @@ struct gmic {
   unsigned long reference_time;
   unsigned int nb_dowhiles, nb_fordones, nb_repeatdones, nb_carriages, debug_filename, debug_line, cimg_exception_mode;
   int verbosity,render3d, renderd3d;
-  bool is_released, is_debug, is_running, is_start, is_return, is_quit, is_double3d, is_debug_info, check_elif,
+  bool is_released, is_debug, is_running, is_start, is_return, is_quit, is_double3d, is_debug_info,
     _is_abort, *is_abort, is_abort_thread;
   const char *starting_commands_line;
 };
