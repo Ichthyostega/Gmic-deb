@@ -1,6 +1,6 @@
 /** -*- mode: c++ ; c-basic-offset: 2 -*-
  *
- *  @file FiltersModelReader.h
+ *  @file CustomDoubleSpinBox.h
  *
  *  Copyright 2017 Sebastien Fourey
  *
@@ -22,23 +22,18 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_FILTERSMODELREADER_H_
-#define _GMIC_QT_FILTERSMODELREADER_H_
-#include <QString>
-#include "FilterSelector/FiltersModel.h"
+#ifndef _GMIC_QT_CUSTOMDOUBLESPINBOX_H_
+#define _GMIC_QT_CUSTOMDOUBLESPINBOX_H_
 
-class QByteArray;
-class QBuffer;
+#include <QDoubleSpinBox>
 
-class FiltersModelReader {
+class CustomDoubleSpinBox : public QDoubleSpinBox {
+  Q_OBJECT
 public:
-  FiltersModelReader(FiltersModel & model);
-  void parseFiltersDefinitions(QByteArray & stdlibArray);
+  CustomDoubleSpinBox(QWidget * parent = nullptr);
+  ~CustomDoubleSpinBox();
 
-private:
-  FiltersModel & _model;
-  static QString readBufferLine(QBuffer &);
-  static bool textIsPrecededBySpacesInSomeLineOfArray(const QByteArray & text, const QByteArray & array);
+  QString textFromValue(double value) const override;
 };
 
-#endif // _GMIC_QT_FILTERSMODELREADER_H_
+#endif // _GMIC_QT_CUSTOMDOUBLESPINBOX_H_

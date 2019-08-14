@@ -52,7 +52,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 260
+#define gmic_version 270
 
 #ifndef gmic_pixel_type
 #define gmic_pixel_type float
@@ -107,6 +107,7 @@ namespace cimg_library {
     const T& operator()(const unsigned int x, const unsigned int y=0, const unsigned z=0, const unsigned c=0) const {
       return _data[x + y*_width + z*_width*_height + c*_width*_height*_depth ];
     }
+
   };
 
   // Class 'gmic_list<T>'.
@@ -133,11 +134,11 @@ namespace cimg_library {
       return _data;
     }
 
-    T& operator()(const unsigned int l) {
+    gmic_image<T>& operator()(const unsigned int l) {
       return _data[l];
     }
 
-    const T& operator()(const unsigned int l) const {
+    const gmic_image<T>& operator()(const unsigned int l) const {
       return _data[l];
     }
 
@@ -166,6 +167,7 @@ namespace cimg_library {
 #error "[gmic] *** Error *** File 'CImg.h' has been already included (should have been done first in file 'gmic.h')."
 #endif
 #define cimg_plugin "gmic.cpp"
+#define cimglist_plugin "gmic.cpp"
 
 #ifdef cimg_use_abort
 inline bool *gmic_abort_ptr(bool *const p_is_abort);
@@ -238,8 +240,7 @@ struct gmic {
   static const char* path_rc(const char *const custom_path=0);
   static bool init_rc(const char *const custom_path=0);
 
-  // Functions below should be considered as *private*, and should not be
-  // used in user's code.
+  // Functions below should be considered as *private*, and should not be used in user's code.
   template<typename T>
   static bool search_sorted(const char *const str, const T& list, const unsigned int length, unsigned int &out_ind);
   static int _levenshtein(const char *const s, const char *const t,
@@ -271,11 +272,11 @@ struct gmic {
   gmic& add_commands(std::FILE *const file, const char *const filename=0,
                      unsigned int *count_new=0, unsigned int *count_replaced=0);
 
-  gmic_image<char> callstack2string(const bool is_debug=false) const;
+  gmic_image<char> callstack2string(const bool _is_debug=false) const;
   gmic_image<char> callstack2string(const gmic_image<unsigned int>& callstack_selection,
-                                    const bool is_debug=false) const;
+                                    const bool _is_debug=false) const;
   gmic_image<char> callstack2string(const gmic_image<unsigned int>* callstack_selection,
-                                    const bool is_debug=false) const;
+                                    const bool _is_debug=false) const;
 
   gmic_image<unsigned int> selection2cimg(const char *const string, const unsigned int indice_max,
                                           const gmic_list<char>& names, const char *const command,
@@ -294,7 +295,7 @@ struct gmic {
                              const gmic_list<T>& images);
 
   gmic& print(const char *format, ...);
-  gmic& error(const char *format, ...);
+  gmic& error(const bool output_header, const char *format, ...);
   gmic& debug(const char *format, ...);
 
   template<typename T>
@@ -317,7 +318,8 @@ struct gmic {
              const bool force_visible, const char *format, ...);
 
   template<typename T>
-  gmic& error(const gmic_list<T>& list, const gmic_image<unsigned int> *const callstack_selection,
+  gmic& error(const bool output_header, const gmic_list<T>& list,
+              const gmic_image<unsigned int> *const callstack_selection,
 	      const char *const command, const char *format, ...);
 
   template<typename T>
@@ -381,19 +383,19 @@ struct gmic {
   static gmic_list<void*> list_p_is_abort;
   static bool is_display_available;
 
-  gmic_list<char> *const commands, *const commands_names, *const commands_has_arguments,
-    *const _variables, *const _variables_names, **const variables, **const variables_names,
+  gmic_list<char> *commands, *commands_names, *commands_has_arguments,
+    *_variables, *_variables_names, **variables, **variables_names,
     commands_files, callstack;
   gmic_image<unsigned int> dowhiles, fordones, repeatdones;
   gmic_image<unsigned char> light3d;
+  gmic_image<void*> display_windows;
   gmic_image<char> status;
-  void *display_windows;
 
   float focale3d, light3d_x, light3d_y, light3d_z, specular_lightness3d, specular_shininess3d, _progress, *progress;
   unsigned long reference_time;
   unsigned int nb_dowhiles, nb_fordones, nb_repeatdones, nb_carriages, debug_filename, debug_line, cimg_exception_mode;
   int verbosity,render3d, renderd3d;
-  bool is_released, is_debug, is_running, is_start, is_return, is_quit, is_double3d, is_debug_info,
+  bool is_change, is_debug, is_running, is_start, is_return, is_quit, is_double3d, is_debug_info,
     _is_abort, *is_abort, is_abort_thread;
   const char *starting_commands_line;
 };

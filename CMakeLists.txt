@@ -53,7 +53,7 @@
 #  knowledge of the CeCILL and CeCILL-C licenses and that you accept its terms.
 #
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.8)
 cmake_policy(SET CMP0046 OLD)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -79,7 +79,6 @@ include(GNUInstallDirs)
 option(BUILD_LIB "Build the GMIC shared library" ON)
 option(BUILD_LIB_STATIC "Build the GMIC static library" ON)
 option(BUILD_CLI "Build the CLI interface" ON)
-option(BUILD_PLUGIN "Build the GIMP plug-in" OFF)
 option(BUILD_MAN "Build the manpage" ON)
 option(BUILD_BASH_COMPLETION "Build Bash completion" ON)
 option(CUSTOM_CFLAGS "Override default compiler optimization flags" OFF)

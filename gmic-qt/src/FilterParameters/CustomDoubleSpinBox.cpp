@@ -1,6 +1,6 @@
 /** -*- mode: c++ ; c-basic-offset: 2 -*-
  *
- *  @file FiltersModelReader.h
+ *  @file CustomDoubleSpinBox.h
  *
  *  Copyright 2017 Sebastien Fourey
  *
@@ -22,23 +22,23 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_FILTERSMODELREADER_H_
-#define _GMIC_QT_FILTERSMODELREADER_H_
-#include <QString>
-#include "FilterSelector/FiltersModel.h"
+#include "FilterParameters/CustomDoubleSpinBox.h"
 
-class QByteArray;
-class QBuffer;
+CustomDoubleSpinBox::CustomDoubleSpinBox(QWidget * parent) : QDoubleSpinBox(parent) {}
 
-class FiltersModelReader {
-public:
-  FiltersModelReader(FiltersModel & model);
-  void parseFiltersDefinitions(QByteArray & stdlibArray);
+CustomDoubleSpinBox::~CustomDoubleSpinBox() {}
 
-private:
-  FiltersModel & _model;
-  static QString readBufferLine(QBuffer &);
-  static bool textIsPrecededBySpacesInSomeLineOfArray(const QByteArray & text, const QByteArray & array);
-};
-
-#endif // _GMIC_QT_FILTERSMODELREADER_H_
+QString CustomDoubleSpinBox::textFromValue(double value) const
+{
+  QString text = QString::number(value, 'g', 15);
+  if (text.contains('e') || text.contains('E')) {
+    text = QString::number(value, 'f', 15);
+    const QChar DecimalPoint = QLocale().decimalPoint();
+    if (text.contains(DecimalPoint)) {
+      while (text.endsWith(QChar('0'))) {
+        text.chop(1);
+      }
+    }
+  }
+  return text;
+}

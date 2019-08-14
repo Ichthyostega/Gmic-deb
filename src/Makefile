@@ -82,10 +82,9 @@ CIMG_VERSION = $(shell grep 'cimg_version\ ' CImg.h | tail -c4 | head -c3)
 else
 CIMG_VERSION = $(VERSION)
 endif
+
 ifneq ($(VERSION),$(CIMG_VERSION))
-MISMATCH_VERSIONS=1
-else
-MISMATCH_VERSIONS=0
+REMOVE_CIMG_H := $(shell rm -f CImg.h)
 endif
 
 ifeq ($(OS),Linux)
@@ -174,6 +173,10 @@ MANDATORY_LIBS += -L$(USR)/$(LIB)
 ifdef IS_GCC
 MANDATORY_CFLAGS += -Wall -Wextra -Wfatal-errors -Werror=unknown-pragmas -Werror=unused-label
 MANDATORY_LIBS += -lm
+GCC_VER_GTEQ5 = $(shell expr `$(CXX) -dumpversion | cut -f1 -d.` \>= 5)
+ifeq ($(GCC_VER_GTEQ5),1)
+MANDATORY_CFLAGS += -Wshadow
+endif
 endif
 ifeq ($(OS),Unix)
 MANDATORY_CFLAGS += -Dcimg_use_vt100
@@ -358,7 +361,7 @@ cli:
 debug:
 	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) $(DEBUG_CFLAGS)" "LIBS+=$(GMIC_CLI_LIBS)" _cli
 
-_cli: check_versions gmic.cpp gmic.h gmic_stdlib.h CImg.h
+_cli: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CXX) -o gmic_cli.o -c gmic.cpp $(CFLAGS)
 	$(CXX) -o gmic gmic_cli.cpp gmic_cli.o $(CFLAGS) $(LIBS)
 
@@ -407,7 +410,7 @@ else
 	$(CXX) -o use_libgmic use_libgmic.cpp -L. -lgmic $(LIBS)
 endif
 
-libgmic.o: check_versions gmic.cpp gmic.h gmic_stdlib.h CImg.h
+libgmic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CXX) -o libgmic.o -c gmic.cpp $(PIC) $(CFLAGS)
 
 # LibCgmic (standard)
@@ -443,7 +446,7 @@ endif
 endif
 	$(CC) -std=c99 -o use_libcgmic use_libcgmic.c -L. -lcgmic
 
-libcgmic.o: check_versions gmic.cpp gmic.h gmic_stdlib.h CImg.h
+libcgmic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CXX) -o libcgmic.o -c gmic_libc.cpp $(PIC) $(CFLAGS)
 
 libcgmic_files:
@@ -499,7 +502,7 @@ endif
 endif
 	$(CC) -std=c99 -o use_libcgmic_static use_libcgmic.c -L. -lcgmicstatic
 
-libcgmicstatic.o: check_versions gmic.cpp gmic.h gmic_stdlib.h CImg.h
+libcgmicstatic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CXX) -o libcgmicstatic.o -c gmic_libc.cpp $(PIC) $(CFLAGS)
 
 # All interfaces, sharing the same dynamic library
@@ -515,7 +518,7 @@ _allshared: libgmic_shared.o
 	$(CXX) -o gmic gmic_cli.cpp $(CFLAGS) -lgmic_shared $(LIBS)
 	$(STRIP) gmic$(EXE)
 
-libgmic_shared.o: check_versions CImg.h gmic_stdlib.h
+libgmic_shared.o: CImg.h gmic_stdlib.h
 	$(CXX) -o libgmic_shared.o -c gmic.cpp $(PIC) $(CFLAGS)
 
 # G'MIC Online
@@ -530,15 +533,15 @@ gmicol:
 
 # G'MIC-Qt
 #---------
-gimp: check_versions gmic_qt_files CImg.h gmic_stdlib.h
+gimp: gmic_qt_files CImg.h gmic_stdlib.h
 	cd ../gmic-qt && $(QMAKE) CONFIG+=release GMIC_PATH=$(SRC_PATH) PRERELEASE=$(PRERELEASE) HOST=gimp gmic_qt.pro && $(MAKE)
 	@echo "Executable 'gmic_gimp_qt' has been successfully compiled in '../gmic-qt/'."
 
-krita: check_versions gmic_qt_files CImg.h gmic_stdlib.h
+krita: gmic_qt_files CImg.h gmic_stdlib.h
 	cd ../gmic-qt && $(QMAKE) CONFIG+=release GMIC_PATH=$(SRC_PATH) PRERELEASE=$(PRERELEASE) HOST=krita gmic_qt.pro && $(MAKE)
 	@echo "Executable 'gmic_krita_qt' has been successfully compiled in '../gmic-qt/'."
 
-gmic_qt: check_versions gmic_qt_files CImg.h gmic_stdlib.h
+gmic_qt: gmic_qt_files CImg.h gmic_stdlib.h
 	cd ../gmic-qt && $(QMAKE) CONFIG+=release GMIC_PATH=$(SRC_PATH) PRERELEASE=$(PRERELEASE) HOST=none gmic_qt.pro && $(MAKE)
 	@echo "Executable 'gmic_qt' has been successfully compiled in '../gmic-qt/'."
 
@@ -566,7 +569,7 @@ gmic_qt_files:
 
 # ZArt
 #-----
-zart: check_versions zart_files CImg.h gmic_stdlib.h
+zart: zart_files CImg.h gmic_stdlib.h
 ifeq ($(OS),Darwin)
 	cd ../zart && $(QMAKE) CONFIG+=release GMIC_PATH=$(SRC_PATH) zart.pro && $(MAKE) && $(STRIP) zart.app/Contents/MacOS/zart
 else
@@ -614,13 +617,6 @@ CImg.h:
           touch CImg.h; \
         fi
 	@echo " done!"
-
-check_versions:
-	@if [ $(MISMATCH_VERSIONS) = 1 ]; then \
-	  echo >&2 "make: *** Version numbers of files 'gmic.h' (v.$(VERSION)) and 'CImg.h' (v.$(CIMG_VERSION)) do not match."; \
-	  echo >&2 "make: *** Try make 'clean' to ensure you get the latest version of the CImg library."; \
-          false; \
-        fi
 
 do_gmic_stdlib.h:
 	@echo "/*\n\

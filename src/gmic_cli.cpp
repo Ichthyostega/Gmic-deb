@@ -251,13 +251,13 @@ int main(int argc, char **argv) {
 
   if (is_invalid_user) { // Display warning message in case of invalid user command file
     CImg<char> tmpstr(1024);
-    cimg_snprintf(tmpstr,tmpstr.width(),"warn \"File '%s' is not a valid G'MIC command file.\" ",
+    cimg_snprintf(tmpstr,tmpstr.width(),"warn \"File '\"{/\"%s\"}\"' is not a valid G'MIC command file.\" ",
                   filename_user);
     items.insert(CImg<char>::string(tmpstr.data(),false),is_first_item_verbose?2:0);
   }
   if (is_invalid_update) { // Display warning message in case of invalid user command file
     CImg<char> tmpstr(1024);
-    cimg_snprintf(tmpstr,tmpstr.width(),"warn \"File '%s' is not a valid G'MIC command file.\" ",
+    cimg_snprintf(tmpstr,tmpstr.width(),"warn \"File '\"{/\"%s\"}\"' is not a valid G'MIC command file.\" ",
                   filename_update.data());
     items.insert(CImg<char>::string(tmpstr.data(),false),is_first_item_verbose?2:0);
   }
