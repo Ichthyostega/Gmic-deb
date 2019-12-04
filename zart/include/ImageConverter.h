@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -43,17 +43,14 @@
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL license and that you accept its terms.
  */
-#ifndef _IMAGECONVERTER_H_
-#define _IMAGECONVERTER_H_
-
-#if defined(HAS_OPENCV2_HEADERS) || defined(OPENCV2_HEADERS)
-#include <opencv2/core/core_c.h>
-#include <opencv2/imgproc/imgproc_c.h>
-#else
-#include <cv.h>
-#endif
+#ifndef ZART_IMAGECONVERTER_H
+#define ZART_IMAGECONVERTER_H
 
 #include <QMutex>
+#include <opencv2/opencv.hpp>
+#ifndef gmic_build
+#include "CImg.h"
+#endif
 #include "gmic.h"
 
 class QImage;
@@ -70,20 +67,20 @@ public:
     DuplicateHorizontal
   };
 
-  static void convert(const IplImage * in, QImage * out);
-  static void convert(const QImage & in, IplImage ** out);
-  static void convert(const IplImage * in, cimg_library::CImg<float> & out);
+  static void convert(const cv::Mat * in, QImage * out);
+  static void convert(const QImage & in, cv::Mat ** out);
+  static void convert(const cv::Mat * in, cimg_library::CImg<float> & out);
   static void convert(const cimg_library::CImg<float> & in, QImage * out);
-  static void merge(IplImage * iplImage, const cimg_library::CImg<float> & cimgImage, QImage * out, QMutex * imageMutex, MergeDirection direction);
-  static void mergeTop(IplImage * iplImage, const cimg_library::CImg<float> & cimgImage, QImage * out);
-  static void mergeLeft(IplImage * iplImage, const cimg_library::CImg<float> & cimgImage, QImage * out);
-  static void mergeBottom(IplImage * iplImage, const cimg_library::CImg<float> & cimgImage, QImage * out, bool shift = false);
-  static void mergeRight(IplImage * iplImage, const cimg_library::CImg<float> & cimgImage, QImage * out, bool shift = true);
-  static void duplicateVertical(IplImage * iplImage, const cimg_library::CImg<float> & cimgImage, QImage * out);
-  static void duplicateHorizontal(IplImage * iplImage, const cimg_library::CImg<float> & cimgImage, QImage * out);
+  static void merge(cv::Mat * cvImage, const cimg_library::CImg<float> & cimgImage, QImage * out, QMutex * imageMutex, MergeDirection direction);
+  static void mergeTop(cv::Mat * cvImage, const cimg_library::CImg<float> & cimgImage, QImage * out);
+  static void mergeLeft(cv::Mat * cvImage, const cimg_library::CImg<float> & cimgImage, QImage * out);
+  static void mergeBottom(cv::Mat * cvImage, const cimg_library::CImg<float> & cimgImage, QImage * out, bool shift = false);
+  static void mergeRight(cv::Mat * cvImage, const cimg_library::CImg<float> & cimgImage, QImage * out, bool shift = true);
+  static void duplicateVertical(cv::Mat * cvImage, const cimg_library::CImg<float> & cimgImage, QImage * out);
+  static void duplicateHorizontal(cv::Mat * cvImage, const cimg_library::CImg<float> & cimgImage, QImage * out);
 
 private:
-  static IplImage * _image;
+  static cv::Mat * _image;
 };
 
-#endif // _IMAGECONVERTER_H_
+#endif // ZART_IMAGECONVERTER_H

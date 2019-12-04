@@ -26,11 +26,12 @@
 #include <QAction>
 #include <QCursor>
 #include <QDebug>
-#include <QDesktopWidget>
 #include <QEvent>
+#include <QGuiApplication>
 #include <QKeySequence>
 #include <QMessageBox>
 #include <QPalette>
+#include <QScreen>
 #include <QSettings>
 #include <QShowEvent>
 #include <QStyleFactory>
@@ -38,6 +39,8 @@
 #include <iostream>
 #include <typeinfo>
 #include "Common.h"
+#include "CroppedActiveLayerProxy.h"
+#include "CroppedImageListProxy.h"
 #include "DialogSettings.h"
 #include "FilterSelector/FavesModelReader.h"
 #include "FilterSelector/FiltersPresenter.h"
@@ -92,11 +95,11 @@ MainWindow::MainWindow(QWidget * parent) : QWidget(parent), ui(new Ui::MainWindo
 
   ui->tbExpandCollapse->setToolTip(tr("Expand/Collapse all"));
 
-  ui->logosLabel->setToolTip(tr("G'MIC (http://gmic.eu)<br/>"
-                                "GREYC (http://www.greyc.fr)<br/>"
-                                "CNRS (http://www.cnrs.fr)<br/>"
-                                "Normandy University (http://www.unicaen.fr)<br/>"
-                                "Ensicaen (http://www.ensicaen.fr)"));
+  ui->logosLabel->setToolTip(tr("G'MIC (https://gmic.eu)<br/>"
+                                "GREYC (https://www.greyc.fr)<br/>"
+                                "CNRS (https://www.cnrs.fr)<br/>"
+                                "Normandy University (https://www.unicaen.fr)<br/>"
+                                "Ensicaen (https://www.ensicaen.fr)"));
   ui->logosLabel->setPixmap(QPixmap(":resources/logos.png"));
 
   ui->tbSelectionMode->setToolTip(tr("Selection mode"));
@@ -166,6 +169,8 @@ MainWindow::MainWindow(QWidget * parent) : QWidget(parent), ui(new Ui::MainWindo
   connect(escAction, SIGNAL(triggered(bool)), this, SLOT(onEscapeKeyPressed()));
   addAction(escAction);
 
+  CroppedImageListProxy::clear();
+  CroppedActiveLayerProxy::clear();
   LayersExtentProxy::clear();
   QSize layersExtent = LayersExtentProxy::getExtent(ui->inOutSelector->inputMode());
   ui->previewWidget->setFullImageSize(layersExtent);
@@ -219,7 +224,7 @@ void MainWindow::setDarkTheme()
   p.setColor(QPalette::Text, QColor(255, 255, 255));
   p.setColor(QPalette::ButtonText, QColor(255, 255, 255));
   p.setColor(QPalette::WindowText, QColor(255, 255, 255));
-  QColor linkColor(100, 100, 100);
+  QColor linkColor(130, 130, 150);
   linkColor = linkColor.lighter();
   p.setColor(QPalette::Link, linkColor);
   p.setColor(QPalette::LinkVisited, linkColor);
@@ -254,7 +259,6 @@ void MainWindow::setDarkTheme()
                       "QGroupBox { border: 1px solid #808080; margin-top: 4ex; } "
                       "QFileDialog QAbstractItemView { background: #505050; } "
                       "QComboBox:editable { background: #505050; } "
-                      "QComboBox::disabled { background: rgb(40,40,40); } "
                       "QProgressBar { background: #505050; }";
   qApp->setStyleSheet(css);
   ui->inOutSelector->setDarkTheme();
@@ -292,7 +296,7 @@ void MainWindow::onUpdateDownloadsFinished(int status)
   buildFiltersTree();
   ui->tbUpdateFilters->setEnabled(true);
   if (!_filtersPresenter->currentFilter().hash.isEmpty()) {
-    ui->previewWidget->sendUpdateRequest();
+    ui->previewWidget->sendUpdateRequest(); // FIXME : Select filter
   }
 }
 
@@ -561,7 +565,14 @@ void MainWindow::onPreviewUpdateRequested(bool synchronous)
 void MainWindow::onPreviewKeypointsEvent(unsigned int flags, unsigned long time)
 {
   if (flags & PreviewWidget::KeypointMouseReleaseEvent) {
-    ui->filterParams->setKeypoints(ui->previewWidget->keypoints(), true);
+    if (flags & PreviewWidget::KeypointBurstEvent) {
+      // Notify the filter twice (synchronously) so that it can guess that the button has been released
+      ui->filterParams->setKeypoints(ui->previewWidget->keypoints(), false);
+      onPreviewUpdateRequested(true);
+      onPreviewUpdateRequested(true);
+    } else {
+      ui->filterParams->setKeypoints(ui->previewWidget->keypoints(), true);
+    }
     _lastPreviewKeypointBurstUpdateTime = 0;
   } else {
     ui->filterParams->setKeypoints(ui->previewWidget->keypoints(), false);
@@ -581,6 +592,7 @@ void MainWindow::onPreviewKeypointsEvent(unsigned int flags, unsigned long time)
 void MainWindow::onPreviewImageAvailable()
 {
   ui->filterParams->setValues(_processor.gmicStatus(), false);
+  ui->filterParams->setVisibilityStates(_processor.parametersVisibilityStates());
   // Make sure keypoint positions are synchronized with gmic status
   if (ui->filterParams->hasKeypoints()) {
     ui->previewWidget->setKeypoints(ui->filterParams->keypoints());
@@ -678,6 +690,7 @@ void MainWindow::onFullImageProcessingDone()
   enableWidgetList(true);
   ui->previewWidget->update();
   ui->filterParams->setValues(_processor.gmicStatus(), false);
+  ui->filterParams->setVisibilityStates(_processor.parametersVisibilityStates());
   if ((_pendingActionAfterCurrentProcessing == OkAction || _pendingActionAfterCurrentProcessing == CloseAction)) {
     close();
   } else {
@@ -762,6 +775,7 @@ void MainWindow::onProgressionWidgetCancelClicked()
 void MainWindow::onReset()
 {
   if (!_filtersPresenter->currentFilter().hash.isEmpty() && _filtersPresenter->currentFilter().isAFave) {
+    ui->filterParams->setVisibilityStates(_filtersPresenter->currentFilter().defaultVisibilityStates);
     ui->filterParams->setValues(_filtersPresenter->currentFilter().defaultParameterValues, true);
     return;
   }
@@ -790,6 +804,7 @@ void MainWindow::saveCurrentParameters()
   QString hash = ui->filterParams->filterHash();
   if (!hash.isEmpty() && (hash == ui->filterParams->filterHash())) {
     ParametersCache::setValues(hash, ui->filterParams->valueStringList());
+    ParametersCache::setVisibilityStates(hash, ui->filterParams->visibilityStates());
     ParametersCache::setInputOutputState(hash, ui->inOutSelector->state());
   }
 }
@@ -871,14 +886,16 @@ void MainWindow::loadSettings()
       setGeometry(r);
       move(position);
     } else {
-      QDesktopWidget desktop;
-      QRect screenSize = desktop.availableGeometry();
-      screenSize.setWidth(static_cast<int>(screenSize.width() * 0.66));
-      screenSize.setHeight(static_cast<int>(screenSize.height() * 0.66));
-      screenSize.moveCenter(desktop.availableGeometry().center());
-      setGeometry(screenSize);
-      int w = screenSize.width();
-      ui->splitter->setSizes(QList<int>() << static_cast<int>(w * 0.4) << static_cast<int>(w * 0.2) << static_cast<int>(w * 0.4));
+      QList<QScreen *> screens = QGuiApplication::screens();
+      if (!screens.isEmpty()) {
+        QRect screenSize = screens.front()->geometry();
+        screenSize.setWidth(static_cast<int>(screenSize.width() * 0.66));
+        screenSize.setHeight(static_cast<int>(screenSize.height() * 0.66));
+        screenSize.moveCenter(screens.front()->geometry().center());
+        setGeometry(screenSize);
+        int w = screenSize.width();
+        ui->splitter->setSizes(QList<int>() << static_cast<int>(w * 0.4) << static_cast<int>(w * 0.2) << static_cast<int>(w * 0.4));
+      }
     }
   }
 
@@ -991,7 +1008,11 @@ void MainWindow::activateFilter(bool resetZoom)
     if (savedValues.isEmpty() && filter.isAFave) {
       savedValues = filter.defaultParameterValues;
     }
-    if (!ui->filterParams->build(filter.name, filter.hash, filter.parameters, savedValues)) {
+    QList<int> savedVisibilityStates = ParametersCache::getVisibilityStates(filter.hash);
+    if (savedVisibilityStates.isEmpty() && filter.isAFave) {
+      savedVisibilityStates = filter.defaultVisibilityStates;
+    }
+    if (!ui->filterParams->build(filter.name, filter.hash, filter.parameters, savedValues, savedVisibilityStates)) {
       _filtersPresenter->setInvalidFilter();
       ui->previewWidget->setKeypoints(KeypointList());
     } else {
@@ -1015,7 +1036,7 @@ void MainWindow::activateFilter(bool resetZoom)
 
 void MainWindow::setNoFilter()
 {
-  ui->filterParams->setNoFilter();
+  ui->filterParams->setNoFilter(_filtersPresenter->errorMessage());
   ui->previewWidget->disableRightClick();
   ui->previewWidget->setKeypoints(KeypointList());
   ui->inOutSelector->hide();
@@ -1025,20 +1046,18 @@ void MainWindow::setNoFilter()
   ui->tbResetParameters->setVisible(false);
   ui->zoomLevelSelector->showWarning(false);
   _okButtonShouldApply = false;
-
-  ui->tbRemoveFave->setEnabled(false);
+  ui->tbRemoveFave->setEnabled(_filtersPresenter->danglingFaveIsSelected());
   ui->tbRenameFave->setEnabled(false);
 }
 
 void MainWindow::showEvent(QShowEvent * event)
 {
   TIMING;
-  static bool first = true;
   event->accept();
-  if (!first) {
+  if (_showEventReceived) {
     return;
   }
-  first = false;
+  _showEventReceived = true;
   adjustVerticalSplitter();
   if (_newSession) {
     Logger::clear();
@@ -1093,7 +1112,7 @@ void MainWindow::onAddFave()
     return;
   }
   saveCurrentParameters();
-  _filtersPresenter->addSelectedFilterAsNewFave(ui->filterParams->valueStringList(), ui->inOutSelector->state());
+  _filtersPresenter->addSelectedFilterAsNewFave(ui->filterParams->valueStringList(), ui->filterParams->visibilityStates(), ui->inOutSelector->state());
 }
 void MainWindow::onRemoveFave()
 {

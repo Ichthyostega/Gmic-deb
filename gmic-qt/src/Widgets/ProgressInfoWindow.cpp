@@ -25,8 +25,9 @@
 #include "ProgressInfoWindow.h"
 #include <QApplication>
 #include <QCloseEvent>
-#include <QDesktopWidget>
+#include <QGuiApplication>
 #include <QMessageBox>
+#include <QScreen>
 #include <QSettings>
 #include <QStyleFactory>
 #include "Common.h"
@@ -55,7 +56,7 @@ ProgressInfoWindow::ProgressInfoWindow(HeadlessProcessor * processor) : QMainWin
   connect(processor, SIGNAL(done(QString)), this, SLOT(onProcessingFinished(QString)));
   _isShown = false;
 
-  if (QSettings().value(DARK_THEME_KEY, false).toBool()) {
+  if (DialogSettings::darkThemeEnabled()) {
     setDarkTheme();
   }
 }
@@ -68,8 +69,11 @@ ProgressInfoWindow::~ProgressInfoWindow()
 void ProgressInfoWindow::showEvent(QShowEvent *)
 {
   QRect position = frameGeometry();
-  position.moveCenter(QDesktopWidget().availableGeometry().center());
-  move(position.topLeft());
+  QList<QScreen *> screens = QGuiApplication::screens();
+  if (!screens.isEmpty()) {
+    position.moveCenter(screens.front()->geometry().center());
+    move(position.topLeft());
+  }
   _isShown = true;
 }
 

@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -45,8 +45,8 @@
  *
  */
 
-#ifndef _TREEWIDGETPRESETITEM_H_
-#define _TREEWIDGETPRESETITEM_H_
+#ifndef ZART_TREEWIDGETPRESETITEM_H
+#define ZART_TREEWIDGETPRESETITEM_H
 
 #include <QDomNode>
 #include <QStringList>
@@ -67,4 +67,4 @@ private:
   QDomNode _presetNode;
 };
 
-#endif
+#endif // ZART_TREEWIDGETPRESETITEM_H

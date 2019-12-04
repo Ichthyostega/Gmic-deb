@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -59,19 +59,24 @@ VideoFileSource::VideoFileSource()
 
 VideoFileSource::~VideoFileSource()
 {
-  cvReleaseCapture(&_capture);
+  delete _capture;
+  _capture = nullptr;
 }
 
 void VideoFileSource::capture()
 {
-  if (!_videoIsReadable)
+  if (!_videoIsReadable) {
     return;
-  IplImage * newImage = cvQueryFrame(_capture);
-  if (!newImage) {
-    cvReleaseCapture(&_capture);
+  }
+  cv::Mat * newImage = new cv::Mat;
+  if (!_capture->read(*newImage)) {
+    _capture->release();
+    delete _capture;
+    _capture = nullptr;
     loadVideoFile(_filename);
-    if (_loop)
-      newImage = cvQueryFrame(_capture);
+    if (_loop) {
+      _capture->read(*newImage);
+    }
   }
   setImage(newImage);
 }
@@ -79,17 +84,18 @@ void VideoFileSource::capture()
 bool VideoFileSource::loadVideoFile(QString filename)
 {
   QFileInfo info(filename);
-  if (!info.isReadable())
+  if (!info.isReadable()) {
     return false;
-  _capture = cvCaptureFromFile(filename.toLatin1().constData());
+  }
+  _capture = new cv::VideoCapture(filename.toLatin1().constData());
   if (_capture) {
-    IplImage * iplImage = cvQueryFrame(_capture);
-    if (iplImage) {
+    cv::Mat image;
+    if (_capture->read(image)) {
       _filename = filename;
       _filePath = info.absolutePath();
       _videoIsReadable = true;
-      setWidth(iplImage->width);
-      setHeight(iplImage->height);
+      setWidth(image.cols);
+      setHeight(image.rows);
     } else {
       _filename.clear();
       _videoIsReadable = false;

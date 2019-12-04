@@ -24,7 +24,6 @@
  */
 #include "FilterParameters/FloatParameter.h"
 #include <QDebug>
-#include <QDoubleSpinBox>
 #include <QGridLayout>
 #include <QLabel>
 #include <QLocale>
@@ -34,6 +33,7 @@
 #include <QTimerEvent>
 #include <QWidget>
 #include "DialogSettings.h"
+#include "FilterParameters/CustomDoubleSpinBox.h"
 #include "Globals.h"
 #include "HtmlTranslator.h"
 
@@ -50,12 +50,11 @@ FloatParameter::~FloatParameter()
   delete _label;
 }
 
-void FloatParameter::addTo(QWidget * widget, int row)
+bool FloatParameter::addTo(QWidget * widget, int row)
 {
-  auto grid = dynamic_cast<QGridLayout *>(widget->layout());
-  if (!grid) {
-    return;
-  }
+  _grid = dynamic_cast<QGridLayout *>(widget->layout());
+  Q_ASSERT_X(_grid, __PRETTY_FUNCTION__, "No grid layout in widget");
+  _row = row;
   delete _spinBox;
   delete _slider;
   delete _label;
@@ -69,15 +68,16 @@ void FloatParameter::addTo(QWidget * widget, int row)
     p.setColor(QPalette::Highlight, QColor(130, 130, 130));
     _slider->setPalette(p);
   }
-  _spinBox = new QDoubleSpinBox(widget);
+  _spinBox = new CustomDoubleSpinBox(widget);
   _spinBox->setRange(_min, _max);
   _spinBox->setValue(_value);
-  _spinBox->setDecimals(2);
+  _spinBox->setDecimals(6);
   _spinBox->setSingleStep((_max - _min) / 100.0);
-  grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
-  grid->addWidget(_slider, row, 1, 1, 1);
-  grid->addWidget(_spinBox, row, 2, 1, 1);
+  _grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
+  _grid->addWidget(_slider, row, 1, 1, 1);
+  _grid->addWidget(_spinBox, row, 2, 1, 1);
   connectSliderSpinBox();
+  return true;
 }
 
 QString FloatParameter::textValue() const
@@ -113,6 +113,9 @@ bool FloatParameter::initFromText(const char * text, int & textLength)
 {
   textLength = 0;
   QList<QString> list = parseText("float", text, textLength);
+  if (list.isEmpty()) {
+    return false;
+  }
   _name = HtmlTranslator::html2txt(list[0]);
   QList<QString> values = list[1].split(QChar(','));
   if (values.size() != 3) {

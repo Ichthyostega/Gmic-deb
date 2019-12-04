@@ -20,17 +20,17 @@
 #
 #                CeCILL-C
 #                The CeCILL-C license is close to the GNU LGPL.
-#                ( http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html )
+#                ( http://cecill.info/licences/Licence_CeCILL-C_V1-en.html )
 #
 #            or  CeCILL v2.1
 #                The CeCILL license is compatible with the GNU GPL.
-#                ( http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html )
+#                ( http://cecill.info/licences/Licence_CeCILL_V2.1-en.html )
 #
 #  This software is governed either by the CeCILL or the CeCILL-C license
 #  under French law and abiding by the rules of distribution of free software.
 #  You can  use, modify and or redistribute the software under the terms of
 #  the CeCILL or CeCILL-C licenses as circulated by CEA, CNRS and INRIA
-#  at the following URL: "http://www.cecill.info".
+#  at the following URL: "http://cecill.info".
 #
 #  As a counterpart to the access to the source code and  rights to copy,
 #  modify and redistribute granted by the license, users are provided only
@@ -53,7 +53,7 @@
 #  knowledge of the CeCILL and CeCILL-C licenses and that you accept its terms.
 #
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.8)
 cmake_policy(SET CMP0046 OLD)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -79,7 +79,6 @@ include(GNUInstallDirs)
 option(BUILD_LIB "Build the GMIC shared library" ON)
 option(BUILD_LIB_STATIC "Build the GMIC static library" ON)
 option(BUILD_CLI "Build the CLI interface" ON)
-option(BUILD_PLUGIN "Build the GIMP plug-in" OFF)
 option(BUILD_MAN "Build the manpage" ON)
 option(BUILD_BASH_COMPLETION "Build Bash completion" ON)
 option(CUSTOM_CFLAGS "Override default compiler optimization flags" OFF)

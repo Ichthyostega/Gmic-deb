@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_NOTEPARAMETER_H_
-#define _GMIC_QT_NOTEPARAMETER_H_
+#ifndef GMIC_QT_NOTEPARAMETER_H
+#define GMIC_QT_NOTEPARAMETER_H
 
 #include "AbstractParameter.h"
 class QLabel;
@@ -33,7 +33,7 @@ class NoteParameter : public AbstractParameter {
 public:
   NoteParameter(QObject * parent = nullptr);
   ~NoteParameter();
-  void addTo(QWidget *, int row) override;
+  bool addTo(QWidget *, int row) override;
   QString textValue() const override;
   void setValue(const QString & value) override;
   void reset() override;
@@ -46,4 +46,4 @@ private:
   QString _text;
 };
 
-#endif // _GMIC_QT_NOTEPARAMETER_H_
+#endif // GMIC_QT_NOTEPARAMETER_H

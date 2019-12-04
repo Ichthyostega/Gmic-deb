@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -44,6 +44,7 @@
  * knowledge of the CeCILL license and that you accept its terms.
  */
 #include "ImageSource.h"
+#include <opencv2/opencv.hpp>
 
 ImageSource::ImageSource()
 {
@@ -54,7 +55,7 @@ ImageSource::ImageSource()
 
 ImageSource::~ImageSource() {}
 
-IplImage * ImageSource::image() const
+cv::Mat * ImageSource::image() const
 {
   return _image;
 }
@@ -69,12 +70,12 @@ void ImageSource::setHeight(int height)
   _height = height;
 }
 
-void ImageSource::setImage(IplImage * image)
+void ImageSource::setImage(cv::Mat * image)
 {
   _image = image;
   if (_image) {
-    _width = image->width;
-    _height = image->height;
+    _width = image->cols;
+    _height = image->rows;
   } else {
     _width = 0;
     _height = 0;

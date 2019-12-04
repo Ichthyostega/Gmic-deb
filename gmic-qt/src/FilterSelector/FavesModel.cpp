@@ -71,12 +71,12 @@ size_t FavesModel::faveCount() const
   return _faves.size();
 }
 
-FavesModel::const_iterator FavesModel::findFaveFromHash(const QString & hash)
+FavesModel::const_iterator FavesModel::findFaveFromHash(const QString & hash) const
 {
   return {_faves.find(hash)};
 }
 
-const FavesModel::Fave & FavesModel::getFaveFromHash(const QString & hash)
+const FavesModel::Fave & FavesModel::getFaveFromHash(const QString & hash) const
 {
   Q_ASSERT_X(_faves.contains(hash), "getFaveFromHash", "Hash not found");
   return _faves.find(hash).value();
@@ -150,6 +150,12 @@ FavesModel::Fave & FavesModel::Fave::setDefaultValues(const QList<QString> & def
   return *this;
 }
 
+FavesModel::Fave & FavesModel::Fave::setDefaultVisibilities(const QList<int> & defaultVisibilities)
+{
+  _defaultVisibilityStates = defaultVisibilities;
+  return *this;
+}
+
 FavesModel::Fave & FavesModel::Fave::build()
 {
   QCryptographicHash hash(QCryptographicHash::Md5);
@@ -168,44 +174,49 @@ FavesModel::Fave & FavesModel::Fave::build()
   return *this;
 }
 
-QString FavesModel::Fave::name() const
+const QString & FavesModel::Fave::name() const
 {
   return _name;
 }
 
-QString FavesModel::Fave::plainText() const
+const QString & FavesModel::Fave::plainText() const
 {
   return _plainText;
 }
 
-QString FavesModel::Fave::originalName() const
+const QString & FavesModel::Fave::originalName() const
 {
   return _originalName;
 }
 
-QString FavesModel::Fave::originalHash() const
+const QString & FavesModel::Fave::originalHash() const
 {
   return _originalHash;
 }
 
-QString FavesModel::Fave::command() const
+const QString & FavesModel::Fave::command() const
 {
   return _command;
 }
 
-QString FavesModel::Fave::previewCommand() const
+const QString & FavesModel::Fave::previewCommand() const
 {
   return _previewCommand;
 }
 
-QString FavesModel::Fave::hash() const
+const QString & FavesModel::Fave::hash() const
 {
   return _hash;
 }
 
-QList<QString> FavesModel::Fave::defaultValues() const
+const QList<QString> & FavesModel::Fave::defaultValues() const
 {
   return _defaultValues;
+}
+
+const QList<int> & FavesModel::Fave::defaultVisibilityStates() const
+{
+  return _defaultVisibilityStates;
 }
 
 QString FavesModel::Fave::toString() const

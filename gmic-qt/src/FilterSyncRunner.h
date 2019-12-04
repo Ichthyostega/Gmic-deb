@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_FILTERSYNCRUNNER_H_
-#define _GMIC_QT_FILTERSYNCRUNNER_H_
+#ifndef GMIC_QT_FILTERSYNCRUNNER_H
+#define GMIC_QT_FILTERSYNCRUNNER_H
 
 #include <QObject>
 #include <QString>
@@ -53,6 +53,7 @@ public:
   const cimg_library::CImgList<float> & images() const;
   const cimg_library::CImgList<char> & imageNames() const;
   QStringList gmicStatus() const;
+  QList<int> parametersVisibilityStates() const;
   QString errorMessage() const;
   bool failed() const;
   bool aborted() const;
@@ -79,4 +80,4 @@ private:
   GmicQt::OutputMessageMode _messageMode;
 };
 
-#endif // _GMIC_QT_FILTERSYNCRUNNER_H_
+#endif // GMIC_QT_FILTERSYNCRUNNER_H

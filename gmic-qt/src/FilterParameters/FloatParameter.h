@@ -22,12 +22,12 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_FLOATPARAMETER_H_
-#define _GMIC_QT_FLOATPARAMETER_H_
+#ifndef GMIC_QT_FLOATPARAMETER_H
+#define GMIC_QT_FLOATPARAMETER_H
 
 #include <QString>
 #include "AbstractParameter.h"
-class QDoubleSpinBox;
+class CustomDoubleSpinBox;
 class QSlider;
 class QLabel;
 
@@ -36,7 +36,7 @@ class FloatParameter : public AbstractParameter {
 public:
   FloatParameter(QObject * parent = nullptr);
   ~FloatParameter();
-  void addTo(QWidget *, int row) override;
+  bool addTo(QWidget *, int row) override;
   QString textValue() const override;
   void setValue(const QString & value) override;
   void reset() override;
@@ -59,10 +59,10 @@ private:
   float _value;
   QLabel * _label;
   QSlider * _slider;
-  QDoubleSpinBox * _spinBox;
+  CustomDoubleSpinBox * _spinBox;
   int _timerId;
   static const int UPDATE_DELAY = 300;
   bool _connected;
 };
 
-#endif // _GMIC_QT_FLOATPARAMETER_H_
+#endif // GMIC_QT_FLOATPARAMETER_H

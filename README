@@ -12,14 +12,14 @@
 
                              ( https://gmic.eu )
 
-                                    2.4.5
+                                    2.8.0
 
 --------------------------------------------------------------------------------
 
 # In a nutshell
 #---------------
 
- G'MIC is a full-featured open-source framework for image processing, distributed
+ G'MIC is a full-featured open-source framework for digital image processing, distributed
  under the CeCILL free software licenses (LGPL-like and/or GPL-compatible). It
  provides several user interfaces to convert / manipulate / filter / visualize
  generic image datasets, ranging from 1D scalar signals to 3D+t sequences of
@@ -37,10 +37,10 @@
      much efforts (a C API is available as well).
 [
  3 - 'G'MIC-Qt', a plug-in to bring G'MIC capabilities to the image retouching and
-     painting software GIMP and Krita. More than 500 filters are already available,
-     sorted by category (Artistic, Black & white, Colors, Contours, Deformations,
-     Degradations, Details, Film emulation, Frames, Layers, Light & shadows, Patterns,
-     Rendering, Repair, Sequences, etc.).
+     painting software GIMP, Krita and Paint.NET. More than 500 filters are already
+     available, sorted by category (Artistic, Black & white, Colors, Contours,
+     Deformations, Degradations, Details, Film emulation, Frames, Layers,
+     Light & shadows, Patterns, Rendering, Repair, Sequences, etc.).
 
  4 - G'MIC Online, a web service to allow users applying image processing algorithms
      on their images, directly from a web browser.
@@ -67,7 +67,7 @@
 
   A complete list of contributors is available on the project web page:
 
-                           https://gmic.eu
+                         https://gmic.eu
 
 # Institution
 #-------------
@@ -81,7 +81,7 @@
 
  The C++ source code of G'MIC is distributed partly under the CeCILL-C v.1.0
  (LGPL-like) and CeCILL v.2.1 (GPL-compatible) licenses (see file 'COPYING').
- These licenses ( http://www.cecill.info/index.en.html ) have been
+ These licenses ( http://cecill.info/index.en.html ) have been
  created under the supervision of the three biggest research institutions on
  computer sciences in France:
 
@@ -89,20 +89,30 @@
    - CEA   ( http://www.cea.fr/ )
    - INRIA ( http://www.inria.fr/ )
 
+# Give Us Support !
+#------------------
+
+  If you appreciate what we do on G'MIC, please consider supporting us !
+  We collaborate with "Association LILA (Libre comme l'Art)", a French
+  non-profit organization which collects donations to help developing the
+  G'MIC project.
+  Visit the donation page : libreart.info/en/projects/gmic
+
 # More information online
 #-------------------------
 
-  - Home page : https://gmic.eu
-  - G'MIC Online Service : https://gmicol.greyc.fr
-
-  - Google+ group: https://plus.google.com/117441237982283011318/posts
-  - Pixls.us forum: https://discuss.pixls.us/c/software/gmic
-  - Flickr forum: http://www.flickr.com/groups/gmic/discuss
-  - GimpChat forum: http://gimpchat.com/viewforum.php?f=28
-
+  - Home page: https://gmic.eu
+  - Download page: https://gmic.eu/download.shtml
   - Tutorial page: https://gmic.eu/tutorial
   - Reference documentation: https://gmic.eu/reference.shtml
-  - G'MIC wiki: https://github.com/dtschump/gmic-community/wiki
+  - G'MIC Online: https://gmicol.greyc.fr
+
+  - Discussion forum: https://discuss.pixls.us/c/software/gmic
+  - Reddit: https://www.reddit.com/r/gmic/
+  - Twitter: https://twitter.com/gmic_ip
+  - Framasphere: https://framasphere.org/u/gmic
+  - GimpChat forum: http://gimpchat.com/viewforum.php?f=28
+  - IRC: #pixls.us on Freenode.
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------

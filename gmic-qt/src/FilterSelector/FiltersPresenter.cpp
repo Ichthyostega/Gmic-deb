@@ -167,14 +167,14 @@ void FiltersPresenter::saveFaves()
   favesModelWriter.writeFaves();
 }
 
-void FiltersPresenter::addSelectedFilterAsNewFave(const QList<QString> & defaultValues, GmicQt::InputOutputState inOutState)
+void FiltersPresenter::addSelectedFilterAsNewFave(const QList<QString> & defaultValues, const QList<int> & visibilityStates, GmicQt::InputOutputState inOutState)
 {
   if (_currentFilter.hash.isEmpty() || (!_filtersModel.contains(_currentFilter.hash) && !_favesModel.contains(_currentFilter.hash))) {
     return;
   }
-
   FavesModel::Fave fave;
   fave.setDefaultValues(defaultValues);
+  fave.setDefaultVisibilities(visibilityStates);
 
   if (_filtersModel.contains(_currentFilter.hash)) {
     const FiltersModel::Filter & filter = _filtersModel.getFilterFromHash(_currentFilter.hash);
@@ -199,6 +199,7 @@ void FiltersPresenter::addSelectedFilterAsNewFave(const QList<QString> & default
   FiltersVisibilityMap::setVisibility(fave.hash(), true);
   _favesModel.addFave(fave);
   ParametersCache::setValues(fave.hash(), defaultValues);
+  ParametersCache::setVisibilityStates(fave.hash(), visibilityStates);
   ParametersCache::setInputOutputState(fave.hash(), inOutState);
   _filtersView->addFave(fave.name(), fave.hash());
   _filtersView->sortFaves();
@@ -214,6 +215,7 @@ void FiltersPresenter::applySearchCriterion(const QString & text)
     _filtersView->preserveExpandedFolders();
   }
   QList<QString> keywords = text.split(QChar(' '), QString::SkipEmptyParts);
+
   rebuildFilterViewWithSelection(keywords);
   if (text.isEmpty()) {
     _filtersView->restoreExpandedFolders();
@@ -259,9 +261,7 @@ void FiltersPresenter::saveSettings(QSettings & settings)
 
 void FiltersPresenter::setInvalidFilter()
 {
-  _currentFilter.clear();
-  _currentFilter.command = "skip";
-  _currentFilter.previewCommand = "skip";
+  _currentFilter.setInvalid();
 }
 
 bool FiltersPresenter::isInvalidFilter() const
@@ -293,6 +293,11 @@ void FiltersPresenter::expandAll()
 void FiltersPresenter::collapseAll()
 {
   _filtersView->collapseAll();
+}
+
+const QString & FiltersPresenter::errorMessage() const
+{
+  return _errorMessage;
 }
 
 void FiltersPresenter::removeSelectedFave()
@@ -328,9 +333,11 @@ void FiltersPresenter::onFaveRenamed(const QString & hash, const QString & name)
 
   // Move parameters
   QList<QString> values = ParametersCache::getValues(hash);
+  QList<int> visibilityStates = ParametersCache::getVisibilityStates(hash);
   GmicQt::InputOutputState inOutState = ParametersCache::getInputOutputState(hash);
   ParametersCache::remove(hash);
   ParametersCache::setValues(fave.hash(), values);
+  ParametersCache::setVisibilityStates(fave.hash(), visibilityStates);
   ParametersCache::setInputOutputState(fave.hash(), inOutState);
 
   _favesModel.addFave(fave);
@@ -366,8 +373,21 @@ void FiltersPresenter::removeFave(const QString & hash)
   onFilterChanged(_filtersView->selectedFilterHash());
 }
 
+bool FiltersPresenter::danglingFaveIsSelected() const
+{
+  if (!_filtersView->aFaveIsSelected()) {
+    return false;
+  }
+  QString hash = _filtersView->selectedFilterHash();
+  if (_favesModel.contains(hash)) {
+    return not _filtersModel.contains(_favesModel.getFaveFromHash(hash).originalHash());
+  }
+  return false;
+}
+
 void FiltersPresenter::setCurrentFilter(const QString & hash)
 {
+  _errorMessage.clear();
   if (hash.isEmpty()) {
     _currentFilter.clear();
   } else if (_favesModel.contains(hash)) {
@@ -377,6 +397,7 @@ void FiltersPresenter::setCurrentFilter(const QString & hash)
       const FiltersModel::Filter & filter = _filtersModel.getFilterFromHash(originalHash);
       _currentFilter.command = fave.command();
       _currentFilter.defaultParameterValues = fave.defaultValues();
+      _currentFilter.defaultVisibilityStates = fave.defaultVisibilityStates();
       _currentFilter.hash = hash;
       _currentFilter.isAFave = true;
       _currentFilter.name = fave.name();
@@ -385,11 +406,15 @@ void FiltersPresenter::setCurrentFilter(const QString & hash)
       _currentFilter.previewCommand = fave.previewCommand();
       _currentFilter.isAccurateIfZoomed = filter.isAccurateIfZoomed();
       _currentFilter.previewFactor = filter.previewFactor();
+    } else {
+      setInvalidFilter();
+      _errorMessage = tr("Cannot find this fave's original filter\n");
     }
   } else if (_filtersModel.contains(hash)) {
     const FiltersModel::Filter & filter = _filtersModel.getFilterFromHash(hash);
     _currentFilter.command = filter.command();
     _currentFilter.defaultParameterValues = ParametersCache::getValues(hash);
+    _currentFilter.defaultVisibilityStates = ParametersCache::getVisibilityStates(hash);
     _currentFilter.hash = hash;
     _currentFilter.isAFave = false;
     _currentFilter.name = filter.name();

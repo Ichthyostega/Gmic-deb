@@ -1,11 +1,21 @@
 TEMPLATE = app
 
-QT       += core gui xml network
+QT += core gui xml network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 # OPTIONS
 
+defined(GMIC_PATH, var) { message("GMIC_PATH is set ("$$GMIC_PATH")") }
+
 !defined(GMIC_DYNAMIC_LINKING,var) { GMIC_DYNAMIC_LINKING = off }
+
+defined(GMIC_LIB_PATH, var) { message("GMIC_LIB_PATH is set ("$$GMIC_LIB_PATH")") }
+
+!defined(PREFIX, var) { PREFIX = /usr/bin }
+
+# Sample qmake command to build with dynamic linking to libgmic.so
+#    $qmake GMIC_DYNAMIC_LINKING=on GMIC_PATH=/usr/include GMIC_LIB_PATH=/usr/lib/x86_64-linux-gnu/
+#    $make
 
 #
 #
@@ -20,48 +30,54 @@ CONFIG	+= warn_on
 QT_CONFIG -= no-pkg-config
 CONFIG += link_pkgconfig
 PKGCONFIG += opencv fftw3 zlib
-# LIBS += -lfftw3_threads
 DEFINES += cimg_use_fftw3 cimg_use_zlib
 
-defined(GMIC_PATH, var) {
-  message("GMIC_PATH is set ("$$GMIC_PATH")")
-}
+DEFINES += QT_DEPRECATED_WARNINGS
+
 !defined(GMIC_PATH, var):exists(../src/gmic.cpp) {
-  message(GMIC_PATH was not set: Found gmic sources in ../src)
-  GMIC_PATH = ../src
+ message(GMIC_PATH was not set: Found gmic sources in ../src)
+ GMIC_PATH = ../src
 }
 !defined(GMIC_PATH, var):exists(../gmic/src/gmic.cpp) {
-  message(GMIC_PATH was not set: Found gmic sources in ../gmic/src)
-  GMIC_PATH = ../gmic/src
+ message(GMIC_PATH was not set: Found gmic sources in ../gmic/src)
+ GMIC_PATH = ../gmic/src
 }
 !defined(GMIC_PATH, var):exists(./gmic/src/gmic.cpp) {
-  message(GMIC_PATH was not set: Found gmic sources in ./gmic/src)
-  GMIC_PATH = ./gmic/src
+ message(GMIC_PATH was not set: Found gmic sources in ./gmic/src)
+ GMIC_PATH = ./gmic/src
 }
-defined(GMIC_PATH, var):!exists( $$GMIC_PATH/gmic.cpp ) {
- error("G'MIC repository was not found ("$$GMIC_PATH")")
+equals(GMIC_DYNAMIC_LINKING, "off" ){
+ defined(GMIC_PATH, var):!exists( $$GMIC_PATH/gmic.cpp ) {
+  error("G'MIC repository was not found ("$$GMIC_PATH")")
+ }
+ message("G'MIC repository was found ("$$GMIC_PATH")")
 }
-message("G'MIC repository was found ("$$GMIC_PATH")")
+equals(GMIC_DYNAMIC_LINKING, "on" ){
+ defined(GMIC_PATH, var):!exists( $$GMIC_PATH/gmic.h ) {
+  error("G'MIC header was not found ("$$GMIC_PATH"/gmic.h)")
+ }
+ message("G'MIC header was found ("$$GMIC_PATH"/gmic.h)")
+}
 
-defined(GMIC_LIB_PATH, var) {
-  message("GMIC_LIB_PATH is set ("$$GMIC_LIB_PATH")")
-}
 !defined(GMIC_LIB_PATH, var) {
-  GMIC_LIB_PATH = $$GMIC_PATH
+ GMIC_LIB_PATH = $$GMIC_PATH
 }
 
 unix {
-   VERSION = $$system(grep \"define.ZART_VERSION \" include/Common.h | sed -e \"s/.*VERSION //\")
+ VERSION = $$system(grep \"define.ZART_VERSION \" include/Common.h | sed -e \"s/.*VERSION //\")
+ zart_program.path = $$PREFIX
+ zart_program.files = ./zart
+ INSTALLS += zart_program
 }
 
 isEmpty( VERSION ):{
-   VERSION = 0.0.0
-   message( Warning: VERSION was not found in include/Common.h. Set to $$VERSION )
+ VERSION = 0.0.0
+ message( Warning: VERSION was not found in include/Common.h. Set to $$VERSION )
 }
 
 # enable OpenMP by default on with g++, except on OS X
 !macx:*g++* {
-    CONFIG += openmp
+ CONFIG += openmp
 }
 
 !win32 {
@@ -75,31 +91,45 @@ isEmpty( VERSION ):{
 #  - the compiler name is g++-4.8 on Homebrew and g++-mp-4.8 on MacPorts
 #  - we use the unsupported/macx-clang config because macx-g++ uses arch flags that are not recognized by GNU GCC
 openmp {
-    DEFINES += cimg_use_openmp
-    QMAKE_CXXFLAGS += -fopenmp
-    QMAKE_LFLAGS += -fopenmp
+ DEFINES += cimg_use_openmp
+ QMAKE_CXXFLAGS += -fopenmp
+ QMAKE_LFLAGS += -fopenmp
 }
 
-# compile our own version of gmic, with the same cimg_* flags as zart
-#LIBS += $$GMIC_PATH/libgmic.a
-
 equals(GMIC_DYNAMIC_LINKING, "on" ) {
-  message(Dynamic linking with libgmic)
-  LIBS += $$GMIC_LIB_PATH/libgmic.so
+ message(Dynamic linking with libgmic)
+ LIBS += -L$$GMIC_LIB_PATH -lgmic
 }
 
 equals(GMIC_DYNAMIC_LINKING, "off" ) {
-   SOURCES += $$GMIC_PATH/gmic.cpp
+ HEADERS += $$GMIC_PATH/gmic_stdlib.h
+ SOURCES += $$GMIC_PATH/gmic.cpp
+ DEFINES += gmic_build
 }
 
-DEFINES += gmic_build gmic_is_parallel cimg_use_abort
+#
+# Check for V4L2
+#
+linux:exists(/usr/include/linux/videodev2.h) {
+ message("v4l2 header file videodev2.h is available")
+ DEFINES += HAS_V4L2
+}
 
-INCLUDEPATH += $$PWD $$PWD/include $$GMIC_PATH
+linux:!exists(/usr/include/linux/videodev2.h) {
+ warning(v4l2 header file videodev2.h not found. It is HIGHLY recommended.)
+}
+
+DEFINES += gmic_is_parallel cimg_use_abort
+
+INCLUDEPATH += $$PWD $$PWD/include
+
+!equals(GMIC_PATH,/usr/include):!equals(GMIC_PATH,/include) {
+ INCLUDEPATH += $$GMIC_PATH
+}
 
 DEPENDPATH += $$PWD/include
 
 HEADERS	+= $$GMIC_PATH/gmic.h \
-    $$GMIC_PATH/gmic_stdlib.h \
     $$GMIC_PATH/CImg.h \
     include/ImageView.h \
     include/MainWindow.h \
@@ -181,15 +211,15 @@ FORMS = ui/MainWindow.ui \
 PRE_TARGETDEPS +=
 
 CONFIG(release, debug|release) {
-    message(Release build)
-    DEFINES += QT_NO_DEBUG_OUTPUT
+ message(Release build)
+ DEFINES += QT_NO_DEBUG_OUTPUT
 }
 
 CONFIG(debug, debug|release) {
-    message(Debug build)
-    DEFINES += _ZART_DEBUG_
-#    QMAKE_CXXFLAGS_DEBUG += -fsanitize=address -Dcimg_verbosity=3
-#    QMAKE_LFLAGS_DEBUG +=  -fsanitize=address
+ message(Debug build)
+ DEFINES += _ZART_DEBUG_
+# QMAKE_CXXFLAGS_DEBUG += -fsanitize=address -Dcimg_verbosity=3
+# QMAKE_LFLAGS_DEBUG +=  -fsanitize=address
 }
 
 UI_DIR = .ui
@@ -199,10 +229,11 @@ OBJECTS_DIR = .obj
 
 unix:!macx { DEFINES += _IS_UNIX_ }
 
+freebsd {
+ DEFINES += _IS_FREEBSD_
+ message(Detected OS is PreeBSD)
+}
+
 macx {  DEFINES += _IS_MACOS_ }
 
 DEFINES += cimg_display=0
-
-#QMAKE_LIBS =
-#QMAKE_LFLAGS_DEBUG = -lcxcore -lcv -lhighgui -lml
-#QMAKE_LFLAGS_RELEASE = -lcxcore -lcv -lhighgui -lml

@@ -32,12 +32,10 @@ ConstParameter::ConstParameter(QObject * parent) : AbstractParameter(parent, tru
 
 ConstParameter::~ConstParameter() = default;
 
-bool ConstParameter::isVisible() const
+bool ConstParameter::addTo(QWidget *, int)
 {
   return false;
 }
-
-void ConstParameter::addTo(QWidget *, int) {}
 
 QString ConstParameter::textValue() const
 {
@@ -57,6 +55,9 @@ void ConstParameter::reset()
 bool ConstParameter::initFromText(const char * text, int & textLength)
 {
   QStringList list = parseText("value", text, textLength);
+  if (list.isEmpty()) {
+    return false;
+  }
   _name = HtmlTranslator::html2txt(list[0]);
   _value = _default = list[1];
   return true;

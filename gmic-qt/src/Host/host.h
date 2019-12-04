@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_HOST_H_
-#define _GMIC_QT_HOST_H_
+#ifndef GMIC_QT_HOST_H
+#define GMIC_QT_HOST_H
 #include <QString>
 #include "gmic_qt.h"
 
@@ -31,13 +31,14 @@ namespace cimg_library
 {
 template <typename T> struct CImg;
 template <typename T> struct CImgList;
-}
+} // namespace cimg_library
 
 namespace GmicQt
 {
 extern const QString HostApplicationName;
 extern const char * HostApplicationShortname;
-}
+extern const bool DarkThemeIsDefault;
+} // namespace GmicQt
 
 /**
  * @brief gmic_qt_get_image_size
@@ -91,7 +92,7 @@ void gmic_qt_output_images(cimg_library::CImgList<gmic_pixel_type> & images, con
 /**
  * @brief Apply a color profile to a given image
  *
- * @param image[in,out] An image
+ * @param [in,out] images An image
  */
 void gmic_qt_apply_color_profile(cimg_library::CImg<gmic_pixel_type> & images);
 
@@ -105,4 +106,4 @@ void gmic_qt_apply_color_profile(cimg_library::CImg<gmic_pixel_type> & images);
  */
 void gmic_qt_show_message(const char * message);
 
-#endif // _GMIC_QT_HOST_H_
+#endif // GMIC_QT_HOST_H

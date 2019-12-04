@@ -4,24 +4,27 @@
 ### Purpose
 
  G'MIC-Qt is a versatile front-end to the image processing framework
- [G'MIC](http://gmic.eu).  It is in fact a plugin for
- [GIMP](http://gimp.org) and [Krita](https://krita.org), as well as a standalone application.
+ [G'MIC](https://gmic.eu).  It is in fact a plugin for
+ [GIMP](http://gimp.org), [Krita](https://krita.org), [Paint.NET](https://www.getpaint.net/),
+ and [digiKam](https://www.digikam.org) as well as a standalone application.
 
 ### Authors
 
-  * Sébastien Fourey
-  * David Tschumperlé (G'MIC lib & original GTK-based plugin)
+  * SÃ©bastien Fourey
+  * David TschumperlÃ© (G'MIC lib & original GTK-based plugin)
 
-### Contributor
+### Contributors
 
  * Boudewijn Rempt <boud@valdyas.org> (Krita compatibility layer, work in progress)
+ * Nicholas Hayes (Paint.NET compatibility layer, work in progress)
+ * Gilles Caulier (digiKam compatibility layer)
 
 ### Translators
 
  * Jan Helebrant (Czech translation)
  * Frank Tegtmeyer (German translation)
  * chroma_ghost & bazza/pixls.us (Spanish translation)
- * Sébastien Fourey (French translation)
+ * SÃ©bastien Fourey (French translation)
  * Duddy Hadiwido (Indonesian translation)
  * Francesco Riosa (Italian translation)
  * iarga / pixls.us (Dutch translation)
@@ -34,7 +37,7 @@
 
 ### Official (pre-release) binary packages
 
- * Available at [gmic.eu](http://gmic.eu)
+ * Available at [gmic.eu](https://gmic.eu)
 
 ### Tavis CI last build status
 
@@ -58,6 +61,8 @@ qmake [HOST=none|gimp|krita|paintdotnet]
 make
 ```
 
+NOTE: digikam plugin do not support qmake, use Cmake instead.
+
 #### CMake
 
 cmake works on all platforms. The first part is the same and requires make and wget to be available. If you don't have all dependencies, cmake will warn you which ones are missing. Note that the minimum cmake version is 3.1.
@@ -77,6 +82,6 @@ cd build
 ```
 
 ```sh
-cmake .. [-DGMIC_QT_HOST=none|gimp|krita|paintdotnet] [-DGMIC_PATH=/path/to/gmic] [-DCMAKE_BUILD_TYPE=[Debug|Release|RelwithDebInfo]
+cmake .. [-DGMIC_QT_HOST=none|gimp|krita|paintdotnet|digikam] [-DGMIC_PATH=/path/to/gmic] [-DCMAKE_BUILD_TYPE=[Debug|Release|RelwithDebInfo]
 make
 ```

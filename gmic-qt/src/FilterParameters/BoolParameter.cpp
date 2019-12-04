@@ -41,12 +41,11 @@ BoolParameter::~BoolParameter()
   delete _label;
 }
 
-void BoolParameter::addTo(QWidget * widget, int row)
+bool BoolParameter::addTo(QWidget * widget, int row)
 {
-  auto grid = dynamic_cast<QGridLayout *>(widget->layout());
-  if (!grid) {
-    return;
-  }
+  _grid = dynamic_cast<QGridLayout *>(widget->layout());
+  Q_ASSERT_X(_grid, __PRETTY_FUNCTION__, "No grid layout in widget");
+  _row = row;
   delete _checkBox;
   delete _label;
   _checkBox = new QCheckBox(_name, widget);
@@ -57,8 +56,9 @@ void BoolParameter::addTo(QWidget * widget, int row)
     p.setColor(QPalette::Base, DialogSettings::CheckBoxBaseColor);
     _checkBox->setPalette(p);
   }
-  grid->addWidget(_checkBox, row, 0, 1, 3);
+  _grid->addWidget(_checkBox, row, 0, 1, 3);
   connectCheckBox();
+  return true;
 }
 
 QString BoolParameter::textValue() const
@@ -107,6 +107,9 @@ void BoolParameter::disconnectCheckBox()
 bool BoolParameter::initFromText(const char * text, int & textLength)
 {
   QList<QString> list = parseText("bool", text, textLength);
+  if (list.isEmpty()) {
+    return false;
+  }
   _name = HtmlTranslator::html2txt(list[0]);
   _value = _default = (list[1].startsWith("true") || list[1].startsWith("1"));
   return true;

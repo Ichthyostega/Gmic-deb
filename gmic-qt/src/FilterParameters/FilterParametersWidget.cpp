@@ -1,6 +1,6 @@
 /** -*- mode: c++ ; c-basic-offset: 2 -*-
  *
- *  @file FilterParamsWidget.cpp
+ *  @file FilterParametersWidget.cpp
  *
  *  Copyright 2017 Sebastien Fourey
  *
@@ -44,10 +44,11 @@ FilterParametersWidget::FilterParametersWidget(QWidget * parent) : QWidget(paren
   _hasKeypoints = false;
 }
 
-bool FilterParametersWidget::build(const QString & name, const QString & hash, const QString & parameters, const QList<QString> & values)
+bool FilterParametersWidget::build(const QString & name, const QString & hash, const QString & parameters, const QList<QString> & values, const QList<int> & visibilityStates)
 {
   _filterName = name;
   _filterHash = hash;
+  hide();
   clear();
   delete layout();
   auto grid = new QGridLayout(this);
@@ -103,12 +104,18 @@ bool FilterParametersWidget::build(const QString & name, const QString & hash, c
   QVector<AbstractParameter *>::iterator it = _presetParameters.begin();
   while (it != _presetParameters.end()) {
     AbstractParameter * parameter = *it;
-    if (parameter->isVisible()) {
-      parameter->addTo(this, row++);
-      grid->setRowStretch(row - 1, 0);
+    if (parameter->addTo(this, row)) {
+      grid->setRowStretch(row, 0);
+      ++row;
     }
     connect(parameter, SIGNAL(valueChanged()), this, SLOT(updateValueString()));
     ++it;
+  }
+
+  if (visibilityStates.isEmpty()) {
+    applyDefaultVisibilityStates();
+  } else {
+    setVisibilityStates(visibilityStates);
   }
 
   // Retrieve a dummy keypoint list
@@ -150,17 +157,22 @@ bool FilterParametersWidget::build(const QString & name, const QString & hash, c
     grid->addWidget(_labelNoParams, 0, 0, 4, 3);
   }
   updateValueString(false);
+  show();
   return error.isEmpty();
 }
 
-void FilterParametersWidget::setNoFilter()
+void FilterParametersWidget::setNoFilter(const QString & message)
 {
   clear();
   delete layout();
   auto grid = new QGridLayout(this);
   grid->setRowStretch(1, 2);
 
-  _labelNoParams = new QLabel(tr("<i>Select a filter</i>"), this);
+  if (message.isEmpty()) {
+    _labelNoParams = new QLabel(tr("<i>Select a filter</i>"), this);
+  } else {
+    _labelNoParams = new QLabel(QString("<i>%1</i>").arg(message), this);
+  }
   _labelNoParams->setAlignment(Qt::AlignHCenter | Qt::AlignCenter);
   grid->addWidget(_labelNoParams, 0, 0, 4, 3);
 
@@ -191,16 +203,93 @@ QStringList FilterParametersWidget::valueStringList() const
 
 void FilterParametersWidget::setValues(const QStringList & list, bool notify)
 {
-  if (list.isEmpty() || _actualParametersCount != list.size()) {
+  if (list.isEmpty()) {
     return;
   }
-  int j = 0;
+  if (_actualParametersCount != list.size()) {
+    TRACE << "Wrong number of values" << list << "expecting" << _actualParametersCount;
+    return;
+  }
+  auto itValue = list.begin();
   for (AbstractParameter * param : _presetParameters) {
     if (param->isActualParameter()) {
-      param->setValue(list[j++]);
+      param->setValue(*itValue++);
     }
   }
   updateValueString(notify);
+}
+
+void FilterParametersWidget::setVisibilityStates(const QList<int> & states)
+{
+  if (states.isEmpty()) {
+    return;
+  }
+  if (_actualParametersCount != states.size()) {
+    TRACE << "Wrong number of states" << states << "expecting" << _actualParametersCount;
+    return;
+  }
+
+  // Fill a table of new states for all parameters, including no-value ones
+  QVector<AbstractParameter::VisibilityState> newVisibilityStates(_presetParameters.size(), AbstractParameter::UnspecifiedVisibilityState);
+  {
+    auto itState = states.begin();
+    for (int n = 0; n < _presetParameters.size(); ++n) {
+      AbstractParameter * parameter = _presetParameters[n];
+      if (parameter->isActualParameter()) {
+        newVisibilityStates[n] = static_cast<AbstractParameter::VisibilityState>(*itState);
+        ++itState;
+      }
+    }
+  }
+  // Propagate if necessary
+  for (int n = 0; n < _presetParameters.size(); ++n) {
+    AbstractParameter * parameter = _presetParameters[n];
+    if (parameter->isActualParameter()) {
+      AbstractParameter::VisibilityState state = newVisibilityStates[n];
+      if (state == AbstractParameter::UnspecifiedVisibilityState) {
+        state = parameter->defaultVisibilityState();
+      }
+      if (parameter->visibilityPropagation() == AbstractParameter::PropagateUp || parameter->visibilityPropagation() == AbstractParameter::PropagateUpDown) {
+        int i = n - 1;
+        while ((i >= 0) && !_presetParameters[i]->isActualParameter()) {
+          newVisibilityStates[i++] = state;
+        }
+      }
+      if (parameter->visibilityPropagation() == AbstractParameter::PropagateDown || parameter->visibilityPropagation() == AbstractParameter::PropagateUpDown) {
+        int i = n + 1;
+        while ((i < _presetParameters.size()) && !_presetParameters[i]->isActualParameter()) {
+          newVisibilityStates[i++] = state;
+        }
+      }
+    }
+  }
+
+  for (int n = 0; n < _presetParameters.size(); ++n) {
+    AbstractParameter * const parameter = _presetParameters[n];
+    parameter->setVisibilityState(newVisibilityStates[n]);
+  }
+}
+
+QList<int> FilterParametersWidget::visibilityStates()
+{
+  QList<int> states;
+  for (const AbstractParameter * const param : _presetParameters) {
+    if (param->isActualParameter()) {
+      states.push_back(param->visibilityState());
+    }
+  }
+  return states;
+}
+
+QList<int> FilterParametersWidget::defaultVisibilityStates()
+{
+  QList<int> states;
+  for (AbstractParameter * param : _presetParameters) {
+    if (param->isActualParameter()) {
+      states.push_back(param->defaultVisibilityState());
+    }
+  }
+  return states;
 }
 
 void FilterParametersWidget::reset(bool notify)
@@ -210,6 +299,7 @@ void FilterParametersWidget::reset(bool notify)
       param->reset();
     }
   }
+  applyDefaultVisibilityStates();
   updateValueString(notify);
 }
 
@@ -264,6 +354,11 @@ void FilterParametersWidget::clear()
 
   delete _paddingWidget;
   _paddingWidget = nullptr;
+}
+
+void FilterParametersWidget::applyDefaultVisibilityStates()
+{
+  setVisibilityStates(defaultVisibilityStates()); // Will propagate
 }
 
 void FilterParametersWidget::clearButtonParameters()

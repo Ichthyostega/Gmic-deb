@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_INTPARAMETER_H_
-#define _GMIC_QT_INTPARAMETER_H_
+#ifndef GMIC_QT_INTPARAMETER_H
+#define GMIC_QT_INTPARAMETER_H
 
 #include <QString>
 #include "AbstractParameter.h"
@@ -36,7 +36,7 @@ class IntParameter : public AbstractParameter {
 public:
   IntParameter(QObject * parent = nullptr);
   ~IntParameter();
-  void addTo(QWidget *, int row) override;
+  bool addTo(QWidget *, int row) override;
   QString textValue() const override;
   void setValue(const QString & value) override;
   void reset() override;
@@ -65,4 +65,4 @@ private:
   bool _connected;
 };
 
-#endif // _GMIC_QT_INTPARAMETER_H_
+#endif // GMIC_QT_INTPARAMETER_H

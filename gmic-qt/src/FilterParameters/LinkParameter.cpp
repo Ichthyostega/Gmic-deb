@@ -39,24 +39,24 @@ LinkParameter::~LinkParameter()
   delete _label;
 }
 
-void LinkParameter::addTo(QWidget * widget, int row)
+bool LinkParameter::addTo(QWidget * widget, int row)
 {
-  auto grid = dynamic_cast<QGridLayout *>(widget->layout());
-  if (!grid) {
-    return;
-  }
+  _grid = dynamic_cast<QGridLayout *>(widget->layout());
+  Q_ASSERT_X(_grid, __PRETTY_FUNCTION__, "No grid layout in widget");
+  _row = row;
   delete _label;
   _label = new QLabel(QString("<a href=\"%2\">%1</a>").arg(_text).arg(_url), widget);
   _label->setAlignment(_alignment);
   _label->setTextFormat(Qt::RichText);
   _label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
   connect(_label, SIGNAL(linkActivated(QString)), this, SLOT(onLinkActivated(QString)));
-  grid->addWidget(_label, row, 0, 1, 3);
+  _grid->addWidget(_label, row, 0, 1, 3);
+  return true;
 }
 
 QString LinkParameter::textValue() const
 {
-  return QString::null;
+  return QString();
 }
 
 void LinkParameter::setValue(const QString &) {}
@@ -66,6 +66,9 @@ void LinkParameter::reset() {}
 bool LinkParameter::initFromText(const char * text, int & textLength)
 {
   QList<QString> list = parseText("link", text, textLength);
+  if (list.isEmpty()) {
+    return false;
+  }
   QList<QString> values = list[1].split(QChar(','));
 
   if (values.size() == 3) {

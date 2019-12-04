@@ -45,20 +45,21 @@ FolderParameter::~FolderParameter()
   delete _button;
 }
 
-void FolderParameter::addTo(QWidget * widget, int row)
+bool FolderParameter::addTo(QWidget * widget, int row)
 {
-  auto grid = dynamic_cast<QGridLayout *>(widget->layout());
-  if (!grid)
-    return;
+  _grid = dynamic_cast<QGridLayout *>(widget->layout());
+  Q_ASSERT_X(_grid, __PRETTY_FUNCTION__, "No grid layout in widget");
+  _row = row;
   delete _label;
   delete _button;
 
   _button = new QPushButton(widget);
   _button->setIcon(LOAD_ICON("folder"));
-  grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
-  grid->addWidget(_button, row, 1, 1, 2);
+  _grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
+  _grid->addWidget(_button, row, 1, 1, 2);
   setValue(_value);
   connect(_button, SIGNAL(clicked()), this, SLOT(onButtonPressed()));
+  return true;
 }
 
 QString FolderParameter::textValue() const
@@ -96,6 +97,9 @@ void FolderParameter::reset()
 bool FolderParameter::initFromText(const char * text, int & textLength)
 {
   QList<QString> list = parseText("folder", text, textLength);
+  if (list.isEmpty()) {
+    return false;
+  }
   _name = HtmlTranslator::html2txt(list[0]);
   QRegExp re("^\".*\"$");
   if (re.exactMatch(list[1])) {

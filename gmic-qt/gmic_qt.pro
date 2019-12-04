@@ -32,6 +32,8 @@ equals(QT_MAJOR_VERSION,5) {
   !greaterThan(QT_MINOR_VERSION, 1):error("You need Qt 5.2 or greater to build this program.")
 }
 
+DEFINES += QT_DEPRECATED_WARNINGS
+
 #
 # Check that pkg-config is installed (qmake error messages are misleading, if not)
 #
@@ -237,6 +239,7 @@ HEADERS +=  \
   src/FilterParameters/ChoiceParameter.h \
   src/FilterParameters/ColorParameter.h \
   src/FilterParameters/ConstParameter.h \
+  src/FilterParameters/CustomDoubleSpinBox.h \
   src/FilterParameters/FileParameter.h \
   src/FilterParameters/FilterParametersWidget.h \
   src/FilterParameters/FloatParameter.h \
@@ -310,6 +313,7 @@ SOURCES += \
   src/FilterParameters/ChoiceParameter.cpp \
   src/FilterParameters/ColorParameter.cpp \
   src/FilterParameters/ConstParameter.cpp \
+  src/FilterParameters/CustomDoubleSpinBox.cpp \
   src/FilterParameters/FileParameter.cpp \
   src/FilterParameters/FilterParametersWidget.cpp \
   src/FilterParameters/FloatParameter.cpp \
@@ -404,6 +408,7 @@ translations/nl.ts \
 translations/pl.ts \
 translations/pt.ts \
 translations/ru.ts \
+translations/sv.ts \
 translations/ua.ts \
 translations/ja.ts \
 translations/zh.ts \
@@ -411,7 +416,7 @@ translations/zh_tw.ts
 
 # PRE_TARGETDEPS +=
 
-QMAKE_CXXFLAGS_RELEASE += -Ofast -s # -O3 -s
+QMAKE_CXXFLAGS_RELEASE += -Ofast # -O3 -s
 QMAKE_LFLAGS_RELEASE += -s
 QMAKE_CXXFLAGS_DEBUG += -Dcimg_verbosity=3
 

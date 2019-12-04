@@ -14,17 +14,17 @@
  #
  #                CeCILL-C
  #                The CeCILL-C license is close to the GNU LGPL.
- #                ( http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html )
+ #                ( http://cecill.info/licences/Licence_CeCILL-C_V1-en.html )
  #
  #            or  CeCILL v2.1
  #                The CeCILL license is compatible with the GNU GPL.
- #                ( http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html )
+ #                ( http://cecill.info/licences/Licence_CeCILL_V2.1-en.html )
  #
  #  This software is governed either by the CeCILL or the CeCILL-C license
  #  under French law and abiding by the rules of distribution of free software.
  #  You can  use, modify and or redistribute the software under the terms of
  #  the CeCILL or CeCILL-C licenses as circulated by CEA, CNRS and INRIA
- #  at the following URL: "http://www.cecill.info".
+ #  at the following URL: "http://cecill.info".
  #
  #  As a counterpart to the access to the source code and  rights to copy,
  #  modify and redistribute granted by the license, users are provided only
@@ -81,7 +81,7 @@ int main() {
                  img._height,
                  img._depth,
                  img._spectrum,
-                 img._data);
+                 (void*)img._data);
 
     // Fill each image buffer with sinus values (with different frequencies).
     float *ptr = img;
@@ -99,7 +99,7 @@ int main() {
 
     // Here you can call any G'MIC command you want !
     // (here, create a deformed average of the input images, and save it as a BMP file).
-    gmic("add normalize 0,255 flower 8 sharpen 100 output foo1.bmp",images,images_names);
+    gmic("v + add normalize 0,255 flower 8 sharpen 100 output foo1.bmp",images,images_names);
 
   } catch (gmic_exception &e) { // Catch exception, if an error occurred in the interpreter
     std::fprintf(stderr,"\n- Error encountered when calling G'MIC : '%s'\n",e.what());
@@ -108,7 +108,7 @@ int main() {
 
   // Third step (alternative) : Call G'MIC API to process input images.
   //---------------------------------------------------------------------
-  std::fprintf(stderr,"\n- 3rd step (alternative) : Call G'MIC interpreter from empty instance.\n");
+  std::fprintf(stderr,"\n- 3rd step (alternative) : Call G'MIC interpreter twice from empty instance.\n");
 
   gmic gmic_instance; // Construct first an empty 'gmic' instance
 
@@ -116,9 +116,9 @@ int main() {
 
     // Here, we use the already constructed 'gmic' instance. The same instance can be used
     // several times.
-    gmic_instance.run("blur 5 sharpen 1000 normalize 0,255 output foo2.bmp",images,images_names);
+    gmic_instance.run("v + blur 5 sharpen 1000 normalize 0,255 output foo2.bmp",images,images_names);
     std::fputc('\n',stderr);
-    gmic_instance.run("+resize 50%,50% to_rgba[-1] rotate[-1] 30 drop_shadow[-1] 0,13 "
+    gmic_instance.run("v + +resize 50%,50% to_rgba[-1] rotate[-1] 30 drop_shadow[-1] 0,13 "
                       "blur_radial[0] 10% blend alpha output foo3.bmp",images,images_names);
 
   } catch (gmic_exception &e) { // Catch exception, if an error occurred in the interpreter
@@ -135,7 +135,7 @@ int main() {
                  images[i]._height,
                  images[i]._depth,
                  images[i]._spectrum,
-                 images[i]._data);
+                 (void*)images[i]._data);
   }
 
   // Fourth step : Free image resources.

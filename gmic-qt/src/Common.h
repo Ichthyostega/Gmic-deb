@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_COMMON_H_
-#define _GMIC_QT_COMMON_H_
+#ifndef GMIC_QT_COMMON_H
+#define GMIC_QT_COMMON_H
 
 #include <iostream>
 #include "TimeLogger.h"
@@ -32,7 +32,7 @@
 #define ENTERING qWarning() << "[" << __PRETTY_FUNCTION__ << "] <<Entering>>"
 #define LEAVING qWarning() << "[" << __PRETTY_FUNCTION__ << "] <<Leaving>>"
 #define TRACE qWarning() << "[" << __PRETTY_FUNCTION__ << "]"
-#define TSHOW(V) qWarning() << "[" << __PRETTY_FUNCTION__ << "]" << #V << "=" << (V)
+#define TSHOW(V) qWarning() << "[" << __PRETTY_FUNCTION__ << __LINE__ << "]" << #V << "=" << (V)
 #define SHOW(V) qWarning() << #V << "=" << (V)
 #else
 #define ENTERING while (false)
@@ -58,4 +58,6 @@ template <typename T> inline void unused(const T &, ...) {}
   std::cout << ""
 #endif
 
-#endif // _GMIC_QT_COMMON_H
+#define QT_VERSION_GTE(MAJOR, MINOR) (((QT_VERSION_MAJOR == MAJOR) && (QT_VERSION_MINOR >= MINOR)) || (QT_VERSION_MAJOR > MAJOR))
+
+#endif // GMIC_QT_COMMON_H

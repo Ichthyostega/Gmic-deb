@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_FOLDERPARAMETER_H_
-#define _GMIC_QT_FOLDERPARAMETER_H_
+#ifndef GMIC_QT_FOLDERPARAMETER_H
+#define GMIC_QT_FOLDERPARAMETER_H
 
 #include <QString>
 #include "AbstractParameter.h"
@@ -35,7 +35,7 @@ class FolderParameter : public AbstractParameter {
 public:
   FolderParameter(QObject * parent = nullptr);
   ~FolderParameter();
-  void addTo(QWidget *, int row) override;
+  bool addTo(QWidget *, int row) override;
   QString textValue() const override;
   QString unquotedTextValue() const override;
   void setValue(const QString & value) override;
@@ -53,4 +53,4 @@ private:
   QPushButton * _button;
 };
 
-#endif // _GMIC_QT_FOLDERPARAMETER_H_
+#endif // GMIC_QT_FOLDERPARAMETER_H

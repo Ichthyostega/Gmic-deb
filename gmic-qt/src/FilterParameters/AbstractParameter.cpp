@@ -24,6 +24,7 @@
  */
 #include "FilterParameters/AbstractParameter.h"
 #include <QDebug>
+#include <QGridLayout>
 #include <cstring>
 #include "Common.h"
 #include "FilterParameters/BoolParameter.h"
@@ -40,15 +41,21 @@
 #include "FilterParameters/PointParameter.h"
 #include "FilterParameters/SeparatorParameter.h"
 #include "FilterParameters/TextParameter.h"
+#include "Logger.h"
 
-AbstractParameter::AbstractParameter(QObject * parent, bool actualParameter) : QObject(parent), _actualParameter(actualParameter), _update(true) {}
+const QStringList AbstractParameter::NoValueParameters = {"link", "note", "separator"};
+
+AbstractParameter::AbstractParameter(QObject * parent, bool actualParameter) : QObject(parent), _actualParameter(actualParameter)
+{
+  _update = true;
+  _defaultVisibilityState = VisibleParameter;
+  _visibilityState = VisibleParameter;
+  _visibilityPropagation = PropagateNone;
+  _row = -1;
+  _grid = nullptr;
+}
 
 AbstractParameter::~AbstractParameter() {}
-
-bool AbstractParameter::isVisible() const
-{
-  return true;
-}
 
 bool AbstractParameter::isActualParameter() const
 {
@@ -76,7 +83,7 @@ void AbstractParameter::extractPositionFromKeypointList(KeypointList &) {}
 
 AbstractParameter * AbstractParameter::createFromText(const char * text, int & length, QString & error, QWidget * parent)
 {
-  AbstractParameter * result = 0;
+  AbstractParameter * result = nullptr;
   QString line = text;
   error.clear();
 
@@ -140,11 +147,63 @@ AbstractParameter * AbstractParameter::createFromText(const char * text, int & l
   return result;
 }
 
+AbstractParameter::VisibilityState AbstractParameter::defaultVisibilityState() const
+{
+  return _defaultVisibilityState;
+}
+
+void AbstractParameter::setVisibilityState(AbstractParameter::VisibilityState state)
+{
+  if (state == UnspecifiedVisibilityState) {
+    setVisibilityState(defaultVisibilityState());
+    return;
+  }
+  _visibilityState = state;
+  if (!_grid || _row == -1) {
+    return;
+  }
+  for (int col = 0; col < 5; ++col) {
+    QLayoutItem * item = _grid->itemAtPosition(_row, col);
+    if (item) {
+      auto widget = item->widget();
+      switch (state & 3) {
+      case VisibleParameter:
+        widget->setEnabled(true);
+        widget->show();
+        break;
+      case DisabledParameter:
+        widget->setEnabled(false);
+        widget->show();
+        break;
+      case HiddenParameter:
+        widget->hide();
+        break;
+      case UnspecifiedVisibilityState:
+        // Taken care above (if)
+        break;
+      }
+    }
+  }
+}
+
+AbstractParameter::VisibilityState AbstractParameter::visibilityState() const
+{
+  return _visibilityState;
+}
+
+AbstractParameter::VisibilityPropagation AbstractParameter::visibilityPropagation() const
+{
+  return _visibilityPropagation;
+}
+
 QStringList AbstractParameter::parseText(const QString & type, const char * text, int & length)
 {
   QStringList result;
   const QString str = text;
   result << str.left(str.indexOf("=")).trimmed();
+#ifdef _GMIC_QT_DEBUG_
+  _debugName = result.back();
+#endif
 
   QRegExp re(QString("^[^=]*\\s*=\\s*(_?)%1\\s*(.)").arg(type), Qt::CaseInsensitive);
   re.indexIn(str);
@@ -155,7 +214,7 @@ QStringList AbstractParameter::parseText(const QString & type, const char * text
   }
 
   QString open = re.cap(2);
-  const char * end = 0;
+  const char * end = nullptr;
   if (open == "(") {
     end = strstr(text + prefixLength, ")");
   } else if (open == "{") {
@@ -163,8 +222,39 @@ QStringList AbstractParameter::parseText(const QString & type, const char * text
   } else if (open == "[") {
     end = strstr(text + prefixLength, "]");
   }
+  if (!end) {
+    Logger::log(QString("[gmic-qt] Parse error in %1 parameter.").arg(type));
+    return QStringList();
+  }
   QString values = str.mid(prefixLength, -1).left(end - (text + prefixLength)).trimmed();
   length = 1 + end - text;
+
+  if (text[length] == '_' && text[length + 1] >= '0' && text[length + 1] <= '2') {
+    _defaultVisibilityState = static_cast<VisibilityState>(text[length + 1] - '0');
+    _visibilityPropagation = PropagateNone;
+    switch (text[length + 2]) {
+    case '-':
+      _visibilityPropagation = PropagateUp;
+      length += 3;
+      break;
+    case '+':
+      _visibilityPropagation = PropagateDown;
+      length += 3;
+      break;
+    case '*':
+      _visibilityPropagation = PropagateUpDown;
+      length += 3;
+      break;
+    default:
+      length += 2;
+      break;
+    }
+    if (NoValueParameters.contains(type)) {
+      Logger::log(QString("[gmic-qt] Warning: %1 parameter should not define visibility. Ignored.").arg(result.first()));
+      _defaultVisibilityState = AbstractParameter::VisibleParameter;
+      _visibilityPropagation = PropagateNone;
+    }
+  }
   while (text[length] && (text[length] == ',' || str[length].isSpace())) {
     ++length;
   }

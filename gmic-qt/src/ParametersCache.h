@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_PARAMETERSCACHE_H
-#define _GMIC_QT_PARAMETERSCACHE_H
+#ifndef GMIC_QT_PARAMETERSCACHE_H
+#define GMIC_QT_PARAMETERSCACHE_H
 
 #include <QHash>
 #include <QList>
@@ -36,6 +36,8 @@ public:
   static void save();
   static void setValues(const QString & hash, const QList<QString> & values);
   static QList<QString> getValues(const QString & hash);
+  static void setVisibilityStates(const QString & hash, const QList<int> & states);
+  static QList<int> getVisibilityStates(const QString & hash);
   static void remove(const QString & hash);
 
   static GmicQt::InputOutputState getInputOutputState(const QString & hash);
@@ -46,6 +48,7 @@ public:
 private:
   static QHash<QString, QList<QString>> _parametersCache;
   static QHash<QString, GmicQt::InputOutputState> _inOutPanelStates;
+  static QHash<QString, QList<int>> _visibilityStates;
 };
 
-#endif // _GMIC_QT_PARAMETERSCACHE_H
+#endif // GMIC_QT_PARAMETERSCACHE_H

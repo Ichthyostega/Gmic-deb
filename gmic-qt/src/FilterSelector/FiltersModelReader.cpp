@@ -46,7 +46,7 @@ void FiltersModelReader::parseFiltersDefinitions(QByteArray & stdlibArray)
 {
   TIMING;
   QBuffer stdlib(&stdlibArray);
-  stdlib.open(QBuffer::ReadOnly);
+  stdlib.open(QBuffer::ReadOnly | QBuffer::Text);
   QList<QString> filterPath;
 
   QString language = LanguageSelectionWidget::configuredTranslator();
@@ -54,28 +54,29 @@ void FiltersModelReader::parseFiltersDefinitions(QByteArray & stdlibArray)
     language = "void";
   }
 
-  // Use _en locale if not localization for the language is found.
-  if (!stdlibArray.startsWith(QString("#@gui_%1").arg(language).toLocal8Bit()) && !stdlibArray.contains(QString("\n#@gui_%1").arg(language).toLocal8Bit())) {
+  // Use _en locale if no localization for the language is found.
+  QByteArray localePrefix = QString("#@gui_%1").arg(language).toLocal8Bit();
+  if (!textIsPrecededBySpacesInSomeLineOfArray(localePrefix, stdlibArray)) {
     language = "en";
   }
 
   QString buffer = readBufferLine(stdlib);
   QString line;
 
-  QRegExp folderRegexpNoLanguage("^#@gui[ ][^:]+$");
-  QRegExp folderRegexpLanguage(QString("^#@gui_%1[ ][^:]+$").arg(language));
+  QRegExp folderRegexpNoLanguage("^\\s*#@gui[ ][^:]+$");
+  QRegExp folderRegexpLanguage(QString("^\\s*#@gui_%1[ ][^:]+$").arg(language));
 
-  QRegExp filterRegexpNoLanguage("^#@gui[ ][^:]+[ ]*:.*");
-  QRegExp filterRegexpLanguage(QString("^#@gui_%1[ ][^:]+[ ]*:.*").arg(language));
+  QRegExp filterRegexpNoLanguage("^\\s*#@gui[ ][^:]+[ ]*:.*");
+  QRegExp filterRegexpLanguage(QString("^\\s*#@gui_%1[ ][^:]+[ ]*:.*").arg(language));
 
-  QRegExp hideCommandRegExp(QString("^#@gui_%1[ ]+hide\\((.*)\\)").arg(language));
-
+  QRegExp hideCommandRegExp(QString("^\\s*#@gui_%1[ ]+hide\\((.*)\\)").arg(language));
+  QRegExp guiComment("^\\s*#@gui");
   QVector<QString> hiddenPaths;
 
   const QChar WarningPrefix('!');
   do {
     line = buffer.trimmed();
-    if (line.startsWith("#@gui")) {
+    if (guiComment.indexIn(line) == 0) {
       if (hideCommandRegExp.exactMatch(line)) {
         QString path = hideCommandRegExp.cap(1);
         hiddenPaths.push_back(path);
@@ -85,7 +86,7 @@ void FiltersModelReader::parseFiltersDefinitions(QByteArray & stdlibArray)
         // A folder
         //
         QString folderName = line;
-        folderName.replace(QRegExp("^#@gui[_a-zA-Z]{0,3}[ ]"), "");
+        folderName.replace(QRegExp("^\\s*#@gui[_a-zA-Z]{0,3}[ ]"), "");
 
         while (folderName.startsWith("_") && !filterPath.isEmpty()) {
           folderName.remove(0, 1);
@@ -104,7 +105,7 @@ void FiltersModelReader::parseFiltersDefinitions(QByteArray & stdlibArray)
         //
         QString filterName = line;
         filterName.replace(QRegExp("[ ]*:.*$"), "");
-        filterName.replace(QRegExp("^#@gui[_a-zA-Z]{0,3}[ ]"), "");
+        filterName.replace(QRegExp("^\\s*#@gui[_a-zA-Z]{0,3}[ ]"), "");
 
         const bool warning = filterName.startsWith(WarningPrefix);
         if (warning) {
@@ -112,7 +113,7 @@ void FiltersModelReader::parseFiltersDefinitions(QByteArray & stdlibArray)
         }
 
         QString filterCommands = line;
-        filterCommands.replace(QRegExp("^#@gui[_a-zA-Z]{0,3}[ ][^:]+[ ]*:[ ]*"), "");
+        filterCommands.replace(QRegExp("^\\s*#@gui[_a-zA-Z]{0,3}[ ][^:]+[ ]*:[ ]*"), "");
 
         QList<QString> commands = filterCommands.split(",");
 
@@ -145,19 +146,24 @@ void FiltersModelReader::parseFiltersDefinitions(QByteArray & stdlibArray)
         // filterItem->setWarningFlag(warning);
 
         QString start = line;
+        start.replace(QRegExp("^\\s*"), "");
         start.replace(QRegExp(" .*"), " :");
+        QRegExp startRegexp(QString("^\\s*%1").arg(start));
 
         // Read parameters
         QString parameters;
         do {
           buffer = readBufferLine(stdlib);
-          if (buffer.startsWith(start)) {
+          if (startRegexp.indexIn(buffer) == 0) {
             QString parameterLine = buffer;
-            parameterLine.replace(QRegExp("^#@gui[_a-zA-Z]{0,3}[ ]*:[ ]*"), "");
+            parameterLine.replace(QRegExp("^\\s*#@gui[_a-zA-Z]{0,3}[ ]*:[ ]*"), "");
             parameters += parameterLine;
           }
-        } while ((buffer.startsWith(start) || buffer.startsWith("#") || (buffer.trimmed().isEmpty() && !stdlib.atEnd())) && !folderRegexpNoLanguage.exactMatch(buffer) &&
-                 !folderRegexpLanguage.exactMatch(buffer) && !filterRegexpNoLanguage.exactMatch(buffer) && !filterRegexpLanguage.exactMatch(buffer));
+        } while (!stdlib.atEnd()                               //
+                 && !folderRegexpNoLanguage.exactMatch(buffer) //
+                 && !folderRegexpLanguage.exactMatch(buffer)   //
+                 && !filterRegexpNoLanguage.exactMatch(buffer) //
+                 && !filterRegexpLanguage.exactMatch(buffer));
 
         FiltersModel::Filter filter;
         filter.setName(filterName);
@@ -184,21 +190,66 @@ void FiltersModelReader::parseFiltersDefinitions(QByteArray & stdlibArray)
     QList<QString> pathList = path.split("/", QString::SkipEmptyParts);
     _model.removePath(pathList);
     if (_model.filterCount() == count) {
-      Logger::log(QString("[%1]./warning/ While hidding filter, name or path not found: \"%2\"\n").arg(GmicQt::pluginCodeName()).arg(path));
+      Logger::log(QString("[%1]./warning/ While hiding filter, name or path not found: \"%2\"\n").arg(GmicQt::pluginCodeName()).arg(path));
     }
   }
   TIMING;
 }
 
+bool FiltersModelReader::textIsPrecededBySpacesInSomeLineOfArray(const QByteArray & text, const QByteArray & array)
+{
+  if (text.isEmpty()) {
+    return false;
+  }
+  int from = 0;
+  int position;
+  const char * data = array.constData();
+  while ((position = array.indexOf(text, from)) != -1) {
+    int index = position - 1;
+    while ((index >= 0) && (data[index] != '\n') && (data[index] <= ' ')) {
+      --index;
+    }
+    if ((index < 0) || (data[index] == '\n')) {
+      return true;
+    }
+    from = position + 1;
+  }
+  return false;
+}
+
 QString FiltersModelReader::readBufferLine(QBuffer & buffer)
 {
-  // QBuffer::readline(max_size) may be very slow, in debug mode, when max_size is too big (e.g. 1MB).
-  // We read large lines in multiple calls.
+  // QBuffer::readline(max_size) may be very slow, in debug mode, when max_size
+  // is too big (e.g. 1MB). We read large lines in multiple calls.
   QString result;
   QString text;
+  QRegExp commentStart("^\\s*#");
   do {
     text = buffer.readLine(1024);
     result.append(text);
   } while (!text.isEmpty() && !text.endsWith("\n"));
+
+  // Merge comment lines ending with '\'
+  if (commentStart.indexIn(result) == 0) {
+    while (result.endsWith("\\\n")) {
+      QString nextLinePeek = buffer.peek(1024);
+      if (commentStart.indexIn(nextLinePeek) == -1) {
+        return result;
+      }
+      const QString nextCommentPrefix = commentStart.cap(0);
+      result.chop(2);
+      QString nextLine;
+      do {
+        text = buffer.readLine(1024);
+        nextLine.append(text);
+      } while (!text.isEmpty() && !text.endsWith("\n"));
+      int ignoreCount = nextCommentPrefix.length();
+      const int limit = nextLine.length() - nextLine.endsWith("\n");
+      while (ignoreCount < limit && nextLine[ignoreCount] <= ' ') {
+        ++ignoreCount;
+      }
+      result.append(nextLine.rightRef(nextLine.length() - ignoreCount));
+    }
+  }
   return result;
 }

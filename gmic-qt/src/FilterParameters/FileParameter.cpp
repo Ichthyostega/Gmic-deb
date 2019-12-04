@@ -45,12 +45,11 @@ FileParameter::~FileParameter()
   delete _button;
 }
 
-void FileParameter::addTo(QWidget * widget, int row)
+bool FileParameter::addTo(QWidget * widget, int row)
 {
-  auto grid = dynamic_cast<QGridLayout *>(widget->layout());
-  if (!grid) {
-    return;
-  }
+  _grid = dynamic_cast<QGridLayout *>(widget->layout());
+  Q_ASSERT_X(_grid, __PRETTY_FUNCTION__, "No grid layout in widget");
+  _row = row;
   delete _label;
   delete _button;
 
@@ -64,9 +63,10 @@ void FileParameter::addTo(QWidget * widget, int row)
   }
   _button = new QPushButton(buttonText, widget);
   _button->setIcon(LOAD_ICON("document-open"));
-  grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
-  grid->addWidget(_button, row, 1, 1, 2);
+  _grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
+  _grid->addWidget(_button, row, 1, 1, 2);
   connect(_button, SIGNAL(clicked()), this, SLOT(onButtonPressed()));
+  return true;
 }
 
 QString FileParameter::textValue() const
@@ -110,6 +110,9 @@ bool FileParameter::initFromText(const char * text, int & textLength)
   } else {
     list = parseText("file", text, textLength);
     _dialogMode = InputOutputMode;
+  }
+  if (list.isEmpty()) {
+    return false;
   }
   _name = HtmlTranslator::html2txt(list[0]);
   QRegExp re("^\".*\"$");

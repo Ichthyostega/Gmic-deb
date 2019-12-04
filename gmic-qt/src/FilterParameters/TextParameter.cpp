@@ -49,12 +49,11 @@ TextParameter::~TextParameter()
   delete _label;
 }
 
-void TextParameter::addTo(QWidget * widget, int row)
+bool TextParameter::addTo(QWidget * widget, int row)
 {
-  auto grid = dynamic_cast<QGridLayout *>(widget->layout());
-  if (!grid) {
-    return;
-  }
+  _grid = dynamic_cast<QGridLayout *>(widget->layout());
+  Q_ASSERT_X(_grid, __PRETTY_FUNCTION__, "No grid layout in widget");
+  _row = row;
   delete _label;
   delete _lineEdit;
   delete _textEdit;
@@ -62,17 +61,18 @@ void TextParameter::addTo(QWidget * widget, int row)
     _label = nullptr;
     _lineEdit = nullptr;
     _textEdit = new MultilineTextParameterWidget(_name, _value, widget);
-    grid->addWidget(_textEdit, row, 0, 1, 3);
+    _grid->addWidget(_textEdit, row, 0, 1, 3);
   } else {
-    grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
+    _grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
     _lineEdit = new QLineEdit(_value, widget);
     _textEdit = nullptr;
-    grid->addWidget(_lineEdit, row, 1, 1, 2);
+    _grid->addWidget(_lineEdit, row, 1, 1, 2);
 #if QT_VERSION >= 0x050200
     _updateAction = _lineEdit->addAction(LOAD_ICON("view-refresh"), QLineEdit::TrailingPosition);
 #endif
   }
   connectEditor();
+  return true;
 }
 
 QString TextParameter::textValue() const
@@ -114,6 +114,9 @@ void TextParameter::reset()
 bool TextParameter::initFromText(const char * text, int & textLength)
 {
   QStringList list = parseText("text", text, textLength);
+  if (list.isEmpty()) {
+    return false;
+  }
   _name = HtmlTranslator::html2txt(list[0]);
   QString value = list[1];
   _multiline = false;

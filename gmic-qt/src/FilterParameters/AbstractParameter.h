@@ -22,11 +22,14 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_ABSTRACTPARAMETER_H_
-#define _GMIC_QT_ABSTRACTPARAMETER_H_
+#ifndef GMIC_QT_ABSTRACTPARAMETER_H
+#define GMIC_QT_ABSTRACTPARAMETER_H
 
 #include <QObject>
+#include <QStringList>
+
 class KeypointList;
+class QGridLayout;
 
 class AbstractParameter : public QObject {
   Q_OBJECT
@@ -34,9 +37,8 @@ class AbstractParameter : public QObject {
 public:
   AbstractParameter(QObject * parent, bool actualParameter);
   virtual ~AbstractParameter();
-  virtual bool isVisible() const;
   bool isActualParameter() const;
-  virtual void addTo(QWidget *, int row) = 0;
+  virtual bool addTo(QWidget *, int row) = 0;
   virtual QString textValue() const = 0;
   virtual QString unquotedTextValue() const;
   virtual bool isQuoted() const;
@@ -49,6 +51,29 @@ public:
 
   static AbstractParameter * createFromText(const char * text, int & length, QString & error, QWidget * parent = nullptr);
   virtual bool initFromText(const char * text, int & textLength) = 0;
+
+  enum VisibilityState
+  {
+    UnspecifiedVisibilityState = -1,
+    HiddenParameter = 0,
+    DisabledParameter = 1,
+    VisibleParameter = 2,
+  };
+  enum VisibilityPropagation
+  {
+    PropagateNone = 0,
+    PropagateUp = 1,
+    PropagateDown = 2,
+    PropagateUpDown = 3
+  };
+
+  static const QStringList NoValueParameters;
+
+  virtual VisibilityState defaultVisibilityState() const;
+  virtual void setVisibilityState(VisibilityState state);
+  VisibilityState visibilityState() const;
+  VisibilityPropagation visibilityPropagation() const;
+
 signals:
   void valueChanged();
 
@@ -57,9 +82,17 @@ protected:
   bool matchType(const QString & type, const char * text) const;
   void notifyIfRelevant();
   const bool _actualParameter;
+  VisibilityState _defaultVisibilityState;
+  QGridLayout * _grid;
+  int _row;
+#ifdef _GMIC_QT_DEBUG_
+  QString _debugName;
+#endif
 
 private:
   bool _update;
+  VisibilityState _visibilityState;
+  VisibilityPropagation _visibilityPropagation;
 };
 
-#endif // _GMIC_QT_ABSTRACTPARAMETER_H_
+#endif // GMIC_QT_ABSTRACTPARAMETER_H

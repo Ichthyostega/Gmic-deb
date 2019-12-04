@@ -26,6 +26,7 @@
 #include <QDebug>
 #include <QThread>
 #include <iostream>
+#include "FilterThread.h"
 #include "GmicStdlib.h"
 #include "ImageConverter.h"
 #include "Logger.h"
@@ -87,15 +88,12 @@ const cimg_library::CImgList<char> & FilterSyncRunner::imageNames() const
 
 QStringList FilterSyncRunner::gmicStatus() const
 {
-  if (!_gmicStatus.startsWith(QChar(24)) || !_gmicStatus.endsWith(QChar(25))) {
-    return QStringList();
-  }
-  QList<QString> list = _gmicStatus.split(QString("%1%2").arg(QChar(25)).arg(QChar(24)));
-  if (!list.isEmpty()) {
-    list[0].remove(0, 1);
-    list.back().chop(1);
-  }
-  return list;
+  return FilterThread::status2StringList(_gmicStatus);
+}
+
+QList<int> FilterSyncRunner::parametersVisibilityStates() const
+{
+  return FilterThread::status2Visibilities(_gmicStatus);
 }
 
 QString FilterSyncRunner::errorMessage() const
@@ -125,7 +123,9 @@ QString FilterSyncRunner::name() const
 
 QString FilterSyncRunner::fullCommand() const
 {
-  return QString("%1 %2").arg(_command).arg(_arguments);
+  QString result = _command;
+  GmicQt::appendWithSpace(result, _arguments);
+  return result;
 }
 
 void FilterSyncRunner::setLogSuffix(const QString & text)
@@ -145,13 +145,14 @@ void FilterSyncRunner::run()
   QString fullCommandLine;
   try {
     fullCommandLine = QString::fromLocal8Bit(GmicQt::commandFromOutputMessageMode(_messageMode));
-    fullCommandLine += QString(" %1 %2").arg(_command).arg(_arguments);
+    GmicQt::appendWithSpace(fullCommandLine, _command);
+    GmicQt::appendWithSpace(fullCommandLine, _arguments);
     _gmicAbort = false;
     _gmicProgress = -1;
     if (_messageMode > GmicQt::Quiet) {
       Logger::log(QString("\n[%1]%2 %3\n").arg(GmicQt::pluginCodeName()).arg(_logSuffix).arg(fullCommandLine));
     }
-    gmic gmicInstance(_environment.isEmpty() ? nullptr : QString("v - %1").arg(_environment).toLocal8Bit().constData(), GmicStdLib::Array.constData(), true);
+    gmic gmicInstance(_environment.isEmpty() ? nullptr : QString("%1").arg(_environment).toLocal8Bit().constData(), GmicStdLib::Array.constData(), true);
     gmicInstance.set_variable("_host", GmicQt::HostApplicationShortname, '=');
     gmicInstance.set_variable("_tk", "qt", '=');
     gmicInstance.run(fullCommandLine.toLocal8Bit().constData(), *_images, *_imageNames, &_gmicProgress, &_gmicAbort);
@@ -162,7 +163,7 @@ void FilterSyncRunner::run()
     const char * message = e.what();
     _errorMessage = message;
     if (_messageMode > GmicQt::Quiet) {
-      Logger::log(QString("\n[%1]./error/ When running command '%2', this error occured:\n%3\n").arg(GmicQt::pluginCodeName()).arg(fullCommandLine).arg(message));
+      Logger::log(QString("\n[%1]./error/ When running command '%2', this error occurred:\n%3\n").arg(GmicQt::pluginCodeName()).arg(fullCommandLine).arg(message));
     }
     _failed = true;
   }

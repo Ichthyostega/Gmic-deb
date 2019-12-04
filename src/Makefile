@@ -21,17 +21,17 @@
 #
 #                CeCILL-C
 #                The CeCILL-C license is close to the GNU LGPL.
-#                ( http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html )
+#                ( http://cecill.info/licences/Licence_CeCILL-C_V1-en.html )
 #
 #            or  CeCILL v2.1
 #                The CeCILL license is compatible with the GNU GPL.
-#                ( http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html )
+#                ( http://cecill.info/licences/Licence_CeCILL_V2.1-en.html )
 #
 #  This software is governed either by the CeCILL or the CeCILL-C license
 #  under French law and abiding by the rules of distribution of free software.
 #  You can  use, modify and or redistribute the software under the terms of
 #  the CeCILL or CeCILL-C licenses as circulated by CEA, CNRS and INRIA
-#  at the following URL: "http://www.cecill.info".
+#  at the following URL: "http://cecill.info".
 #
 #  As a counterpart to the access to the source code and  rights to copy,
 #  modify and redistribute granted by the license, users are provided only
@@ -82,10 +82,9 @@ CIMG_VERSION = $(shell grep 'cimg_version\ ' CImg.h | tail -c4 | head -c3)
 else
 CIMG_VERSION = $(VERSION)
 endif
+
 ifneq ($(VERSION),$(CIMG_VERSION))
-MISMATCH_VERSIONS=1
-else
-MISMATCH_VERSIONS=0
+REMOVE_CIMG_H := $(shell rm -f CImg.h)
 endif
 
 ifeq ($(OS),Linux)
@@ -116,6 +115,7 @@ endif
 
 ifneq (, $(findstring MINGW, $(OS)))
 OS = Windows
+USR = /mingw64
 endif
 
 ifeq ($(OS),Darwin)
@@ -165,6 +165,7 @@ NO_PRERELEASE_CFLAGS = -Dgmic_prerelease="\\\"$(PRERELEASE)\\\""
 # Minimal set of flags mandatory to compile G'MIC.
 MANDATORY_CFLAGS = -Dgmic_build -Dcimg_date=\\\"\\\" -Dcimg_time=\\\"\\\" -Dcimg_use_zlib $(shell pkg-config --cflags zlib || echo -I$(USR)/$(INCLUDE)) $(PRERELEASE_CFLAGS) $(EXTRA_CFLAGS)
 MANDATORY_LIBS = $(shell pkg-config --libs zlib || echo -lz) $(EXTRA_LIBS)
+
 ifndef NO_SRIPDLIB
 MANDATORY_CFLAGS += -std=c++11 -pedantic
 endif
@@ -172,6 +173,10 @@ MANDATORY_LIBS += -L$(USR)/$(LIB)
 ifdef IS_GCC
 MANDATORY_CFLAGS += -Wall -Wextra -Wfatal-errors -Werror=unknown-pragmas -Werror=unused-label
 MANDATORY_LIBS += -lm
+GCC_VER_GTEQ5 = $(shell expr `$(CXX) -dumpversion | cut -f1 -d.` \>= 5)
+ifeq ($(GCC_VER_GTEQ5),1)
+MANDATORY_CFLAGS += -Wshadow
+endif
 endif
 ifeq ($(OS),Unix)
 MANDATORY_CFLAGS += -Dcimg_use_vt100
@@ -240,7 +245,7 @@ endif
 # Enable faster X11 display, using XShm extension.
 # (ftp://www.x.org/pub/X11R7.7/doc/man/man3/XShm.3.xhtml)
 XSHM_CFLAGS = -Dcimg_use_xshm $(shell pkg-config --cflags xcb-shm)
-XSHM_LIBS = $(shell pkg-config --libs xcb-shm || echo -L$(USR)/X11R6/lib -lXext)
+XSHM_LIBS = $(shell pkg-config --libs xcb-shm || echo -L$(USR)/X11R6/lib) -lXext
 
 # Enable image display, using GDI32 (Windows).
 GDI32_CFLAGS = -Dcimg_display=2
@@ -334,10 +339,10 @@ native:
 
 # CLI (standard)
 #---------------
-GMIC_CLI_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
-GMIC_CLI_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
+GMIC_CLI_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(EIGEN_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
+GMIC_CLI_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(EIGEN_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
 ifeq ($(OS),Unix) # Unix.
-GMIC_CLI_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS) $(OPENEXR_CFLAGS) $(OPENCV_CFLAGS) # $(XSHM_CFLAGS) $(MAGICK_CFLAGS)
+GMIC_CLI_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS) $(OPENEXR_CFLAGS) $(OPENCV_CFLAGS) # $(XSHM_CFLAGS) # $(MAGICK_CFLAGS)
 GMIC_CLI_LIBS += $(OPENMP_LIBS) $(X11_LIBS) $(OPENEXR_LIBS) $(OPENCV_LIBS) # $(XSHM_LIBS) # $(MAGICK_LIBS)
 else
 ifeq ($(OS),Darwin) # MacOSX.
@@ -356,7 +361,7 @@ cli:
 debug:
 	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) $(DEBUG_CFLAGS)" "LIBS+=$(GMIC_CLI_LIBS)" _cli
 
-_cli: check_versions gmic.cpp gmic.h gmic_stdlib.h CImg.h
+_cli: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CXX) -o gmic_cli.o -c gmic.cpp $(CFLAGS)
 	$(CXX) -o gmic gmic_cli.cpp gmic_cli.o $(CFLAGS) $(LIBS)
 
@@ -364,8 +369,8 @@ _cli: check_versions gmic.cpp gmic.h gmic_stdlib.h CImg.h
 #-------------
 GMIC_STATIC_CLI_PATH = $(USR)/$(LIB)/x86_64-linux-gnu
 GMIC_STATIC_CLI_EXTRA =
-GMIC_STATIC_CLI_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) -Dcimg_display=0
-GMIC_STATIC_CLI_LIBS = $(PARALLEL_LIBS) \
+GMIC_STATIC_CLI_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(EIGEN_CFLAGS) $(ZLIB_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) -Dcimg_display=0
+GMIC_STATIC_CLI_LIBS = $(PARALLEL_LIBS) $(EIGEN_LIBS) \
 	               $(GMIC_STATIC_CLI_PATH)/libpng.a \
 	               $(GMIC_STATIC_CLI_PATH)/libjpeg.a \
                        $(GMIC_STATIC_CLI_PATH)/libz.a \
@@ -378,8 +383,8 @@ static:
 
 # Libgmic
 #--------
-GMIC_LIB_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
-GMIC_LIB_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
+GMIC_LIB_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(EIGEN_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
+GMIC_LIB_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(EIGEN_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
 ifeq ($(OS),Unix) # Unix.
 GMIC_LIB_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS)
 GMIC_LIB_LIBS += $(OPENMP_LIBS) $(X11_LIBS)
@@ -399,19 +404,19 @@ lib:
 _lib: libgmic.o use_libgmic.cpp
 	ar rcs libgmic.a libgmic.o
 ifeq ($(OS),Darwin)
-	$(CXX) -shared -o libgmic.so libgmic.o $(LIBS)
+	$(CXX) -shared -std=c++11 -pedantic -o libgmic.so libgmic.o $(LIBS)
 else
-	$(CXX) -shared -Wl,-soname,libgmic.so.$(VERSION1) -o libgmic.so libgmic.o $(LIBS)
-	$(CXX) -o use_libgmic use_libgmic.cpp -L. -lgmic $(LIBS)
+	$(CXX) -shared -std=c++11 -pedantic -Wl,-soname,libgmic.so.$(VERSION1) -o libgmic.so libgmic.o $(LIBS)
+	$(CXX) -o use_libgmic use_libgmic.cpp -std=c++11 -pedantic -L. -lgmic $(LIBS)
 endif
 
-libgmic.o: check_versions gmic.cpp gmic.h gmic_stdlib.h CImg.h
+libgmic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CXX) -o libgmic.o -c gmic.cpp $(PIC) $(CFLAGS)
 
 # LibCgmic (standard)
 #--------------------
-GMIC_LIBC_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
-GMIC_LIBC_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
+GMIC_LIBC_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(EIGEN_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
+GMIC_LIBC_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(EIGEN_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
 ifeq ($(OS),Unix) # Unix.
 GMIC_LIBC_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS)
 GMIC_LIBC_LIBS += $(OPENMP_LIBS) $(X11_LIBS)
@@ -441,7 +446,7 @@ endif
 endif
 	$(CC) -std=c99 -o use_libcgmic use_libcgmic.c -L. -lcgmic
 
-libcgmic.o: check_versions gmic.cpp gmic.h gmic_stdlib.h CImg.h
+libcgmic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CXX) -o libcgmic.o -c gmic_libc.cpp $(PIC) $(CFLAGS)
 
 libcgmic_files:
@@ -462,11 +467,11 @@ libcgmic_files:
 
 # LibCgmic (static)
 #------------------
-GMIC_LIBC_STATIC_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) # $(CURL_CFLAGS) $(TIFF_CFLAGS)
+GMIC_LIBC_STATIC_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(EIGEN_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) # $(CURL_CFLAGS) $(TIFF_CFLAGS)
 ifeq ($(OS),Window)
 GMIC_LIBC_STATIC_LIBS = -Bstatic -lpthread
 endif
-GMIC_LIBC_STATIC_LIBS += $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(FFTW_LIBS) $(PNG_LIBS) $(JPEG_LIBS) # $(CURL_LIBS) $(TIFF_LIBS)
+GMIC_LIBC_STATIC_LIBS += $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(EIGEN_LIBS) $(FFTW_LIBS) $(PNG_LIBS) $(JPEG_LIBS) # $(CURL_LIBS) $(TIFF_LIBS)
 ifeq ($(OS),Unix) # Unix.
 GMIC_LIBC_STATIC_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS)
 GMIC_LIBC_STATIC_LIBS += $(OPENMP_LIBS) $(X11_LIBS)
@@ -497,7 +502,7 @@ endif
 endif
 	$(CC) -std=c99 -o use_libcgmic_static use_libcgmic.c -L. -lcgmicstatic
 
-libcgmicstatic.o: check_versions gmic.cpp gmic.h gmic_stdlib.h CImg.h
+libcgmicstatic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CXX) -o libcgmicstatic.o -c gmic_libc.cpp $(PIC) $(CFLAGS)
 
 # All interfaces, sharing the same dynamic library
@@ -513,14 +518,14 @@ _allshared: libgmic_shared.o
 	$(CXX) -o gmic gmic_cli.cpp $(CFLAGS) -lgmic_shared $(LIBS)
 	$(STRIP) gmic$(EXE)
 
-libgmic_shared.o: check_versions CImg.h gmic_stdlib.h
+libgmic_shared.o: CImg.h gmic_stdlib.h
 	$(CXX) -o libgmic_shared.o -c gmic.cpp $(PIC) $(CFLAGS)
 
 # G'MIC Online
 #-------------
 GMICOL_LIB_PATH = /usr/lib/x86_64-linux-gnu/
-GMICOL_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) -Dcimg_display=0 # $(OPENMP_CFLAGS)
-GMICOL_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(ZLIB_LIBS) $(GMICOL_LIB_PATH)/libfftw3.a $(GMICOL_LIB_PATH)/libfftw3_threads.a # $(OPENMP_LIBS)
+GMICOL_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(EIGEN_CFLAGS) $(FFTW_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(ZLIB_CFLAGS) -Dcimg_display=0 # $(OPENMP_CFLAGS)
+GMICOL_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(EIGEN_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(ZLIB_LIBS) $(GMICOL_LIB_PATH)/libfftw3.a $(GMICOL_LIB_PATH)/libfftw3_threads.a # $(OPENMP_LIBS)
 
 gmicol:
 	$(MAKE) "CFLAGS+=$(GMICOL_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMICOL_LIBS)" _cli
@@ -528,15 +533,15 @@ gmicol:
 
 # G'MIC-Qt
 #---------
-gimp: check_versions gmic_qt_files CImg.h gmic_stdlib.h
+gimp: gmic_qt_files CImg.h gmic_stdlib.h
 	cd ../gmic-qt && $(QMAKE) CONFIG+=release GMIC_PATH=$(SRC_PATH) PRERELEASE=$(PRERELEASE) HOST=gimp gmic_qt.pro && $(MAKE)
 	@echo "Executable 'gmic_gimp_qt' has been successfully compiled in '../gmic-qt/'."
 
-krita: check_versions gmic_qt_files CImg.h gmic_stdlib.h
+krita: gmic_qt_files CImg.h gmic_stdlib.h
 	cd ../gmic-qt && $(QMAKE) CONFIG+=release GMIC_PATH=$(SRC_PATH) PRERELEASE=$(PRERELEASE) HOST=krita gmic_qt.pro && $(MAKE)
 	@echo "Executable 'gmic_krita_qt' has been successfully compiled in '../gmic-qt/'."
 
-gmic_qt: check_versions gmic_qt_files CImg.h gmic_stdlib.h
+gmic_qt: gmic_qt_files CImg.h gmic_stdlib.h
 	cd ../gmic-qt && $(QMAKE) CONFIG+=release GMIC_PATH=$(SRC_PATH) PRERELEASE=$(PRERELEASE) HOST=none gmic_qt.pro && $(MAKE)
 	@echo "Executable 'gmic_qt' has been successfully compiled in '../gmic-qt/'."
 
@@ -564,7 +569,7 @@ gmic_qt_files:
 
 # ZArt
 #-----
-zart: check_versions zart_files CImg.h gmic_stdlib.h
+zart: zart_files CImg.h gmic_stdlib.h
 ifeq ($(OS),Darwin)
 	cd ../zart && $(QMAKE) CONFIG+=release GMIC_PATH=$(SRC_PATH) zart.pro && $(MAKE) && $(STRIP) zart.app/Contents/MacOS/zart
 else
@@ -613,13 +618,6 @@ CImg.h:
         fi
 	@echo " done!"
 
-check_versions:
-	@if [ $(MISMATCH_VERSIONS) = 1 ]; then \
-	  echo >&2 "make: *** Version numbers of files 'gmic.h' (v.$(VERSION)) and 'CImg.h' (v.$(CIMG_VERSION)) do not match."; \
-	  echo >&2 "make: *** Try make 'clean' to ensure you get the latest version of the CImg library."; \
-          false; \
-        fi
-
 do_gmic_stdlib.h:
 	@echo "/*\n\
  #\n\
@@ -640,17 +638,17 @@ do_gmic_stdlib.h:
  #\n\
  #                CeCILL-C\n\
  #                The CeCILL-C license is close to the GNU LGPL.\n\
- #                ( http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html )\n\
+ #                ( http://cecill.info/licences/Licence_CeCILL-C_V1-en.html )\n\
  #\n\
  #            or  CeCILL v2.1\n\
  #                The CeCILL license is compatible with the GNU GPL.\n\
- #                ( http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html )\n\
+ #                ( http://cecill.info/licences/Licence_CeCILL_V2.1-en.html )\n\
  #\n\
  #  This software is governed either by the CeCILL or the CeCILL-C license\n\
  #  under French law and abiding by the rules of distribution of free software.\n\
  #  You can  use, modify and or redistribute the software under the terms of\n\
  #  the CeCILL or CeCILL-C licenses as circulated by CEA, CNRS and INRIA\n\
- #  at the following URL: \"http://www.cecill.info\".\n\
+ #  at the following URL: \"http://cecill.info\".\n\
  #\n\
  #  As a counterpart to the access to the source code and  rights to copy,\n\
  #  modify and redistribute granted by the license, users are provided only\n\
@@ -699,7 +697,7 @@ man:
 #-----------------------------
 install:
 	mkdir -p $(DESTDIR)$(PLUGINDIR)/
-	cp -f ../resources/gmic_film_cluts.gmz $(DESTDIR)$(PLUGINDIR)/
+	cp -f ../resources/gmic_cluts.gmz $(DESTDIR)$(PLUGINDIR)/
 	mkdir -p $(DESTDIR)$(USR)/$(BIN)/
 	cp -f gmic $(DESTDIR)$(USR)/$(BIN)/
 	mkdir -p $(DESTDIR)$(USR)/$(INCLUDE)/

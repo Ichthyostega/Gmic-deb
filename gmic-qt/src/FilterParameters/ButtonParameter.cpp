@@ -38,17 +38,17 @@ ButtonParameter::~ButtonParameter()
   delete _pushButton;
 }
 
-void ButtonParameter::addTo(QWidget * widget, int row)
+bool ButtonParameter::addTo(QWidget * widget, int row)
 {
-  auto grid = dynamic_cast<QGridLayout *>(widget->layout());
-  if (!grid) {
-    return;
-  }
+  _grid = dynamic_cast<QGridLayout *>(widget->layout());
+  Q_ASSERT_X(_grid, __PRETTY_FUNCTION__, "No grid layout in widget");
+  _row = row;
   delete _pushButton;
   _pushButton = new QPushButton(_text, widget);
   _pushButton->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-  grid->addWidget(_pushButton, row, 0, 1, 3, _alignment);
+  _grid->addWidget(_pushButton, row, 0, 1, 3, _alignment);
   connect(_pushButton, SIGNAL(clicked(bool)), this, SLOT(onPushButtonClicked(bool)));
+  return true;
 }
 
 QString ButtonParameter::textValue() const
@@ -77,6 +77,9 @@ void ButtonParameter::onPushButtonClicked(bool)
 bool ButtonParameter::initFromText(const char * text, int & textLength)
 {
   QList<QString> list = parseText("button", text, textLength);
+  if (list.isEmpty()) {
+    return false;
+  }
   _text = HtmlTranslator::html2txt(list[0]);
   QString & alignment = list[1];
   if (alignment.isEmpty()) {

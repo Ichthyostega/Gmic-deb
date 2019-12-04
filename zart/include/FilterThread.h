@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -44,12 +44,15 @@
  * knowledge of the CeCILL license and that you accept its terms.
  *
  */
-#ifndef _FILTERTHREAD_H_
-#define _FILTERTHREAD_H_
+#ifndef ZART_FILTERTHREAD_H
+#define ZART_FILTERTHREAD_H
 
 #include <QThread>
 #include "Common.h"
 #include "CriticalRef.h"
+#ifndef gmic_build
+#include "CImg.h"
+#endif
 #include "gmic.h"
 class ImageSource;
 class QMutex;
@@ -119,6 +122,7 @@ private:
   cimg_library::CImgList<float> _gmic_images;
   cimg_library::CImgList<char> _gmic_images_names;
   gmic * _gmic;
+  bool _noFilter;
 };
 
-#endif // _FILTERTHREAD_H_
+#endif // ZART_FILTERTHREAD_H

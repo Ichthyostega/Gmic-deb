@@ -1,6 +1,6 @@
 /** -*- mode: c++ ; c-basic-offset: 2 -*-
  *
- *  @file GmicStdLib.h
+ *  @file GmicStdlib.h
  *
  *  Copyright 2017 Sebastien Fourey
  *
@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_GMICSTDLIB_H_
-#define _GMIC_QT_GMICSTDLIB_H_
+#ifndef GMIC_QT_GMICSTDLIB_H
+#define GMIC_QT_GMICSTDLIB_H
 
 #include <QByteArray>
 
@@ -34,4 +34,4 @@ public:
   static QByteArray Array;
 };
 
-#endif // _GMIC_QT_GMICSTDLIB_H_
+#endif // GMIC_QT_GMICSTDLIB_H

@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -385,7 +385,8 @@ MainWindow::~MainWindow()
 {
   QSettings settings;
   for (int i = 0; i < _cameraDefaultResolutionsIndexes.size(); ++i) {
-    settings.setValue(QString("WebcamSource/DefaultResolutionCam%1").arg(i), WebcamSource::webcamResolutions(i).at(_cameraDefaultResolutionsIndexes[i]));
+    const int index = _cameraDefaultResolutionsIndexes[i];
+    settings.setValue(QString("WebcamSource/DefaultResolutionCam%1").arg(i), (index == -1) ? QSize() : WebcamSource::webcamResolutions(i).at(index));
   }
   settings.remove("Faves");
   settings.setValue("Faves/Count", _cbFaves->count());
@@ -407,7 +408,14 @@ MainWindow::~MainWindow()
 void MainWindow::setCurrentPreset(QDomNode node)
 {
   QDomNode command = node.namedItem("command");
-  _commandEditor->setPlainText(command.firstChild().toText().data().trimmed());
+  QString text = command.firstChild().toText().data().trimmed();
+  if (text == "_none_") {
+    _commandEditor->clear();
+    _commandEditor->setEnabled(false);
+  } else {
+    _commandEditor->setEnabled(true);
+    _commandEditor->setPlainText(text);
+  }
   _currentPresetNode = node;
   if (_displayMode == FullScreen) {
     _fullScreenWidget->commandParamsWidget()->saveValuesInDOM();
@@ -422,10 +430,10 @@ void MainWindow::setCurrentPreset(QDomNode node)
 void MainWindow::showOneSourceImage()
 {
   _currentSource->capture();
-  IplImage * image = _currentSource->image();
+  cv::Mat * image = _currentSource->image();
   if (image) {
     _imageView->imageMutex().lock();
-    QSize size(image->width, image->height);
+    QSize size(image->cols, image->rows);
     if (_imageView->image().size() != size) {
       _imageView->image() = QImage(size, QImage::Format_RGB888);
     }
@@ -1083,7 +1091,10 @@ void MainWindow::updateCameraResolutionCombo()
     _comboCamResolution->addItem(QString("%1 x %2").arg(it->width()).arg(it->height()), *it);
     ++it;
   }
-  _comboCamResolution->setCurrentIndex(_cameraDefaultResolutionsIndexes[index]);
+  const int defaultResIndex = index >= 0 ? _cameraDefaultResolutionsIndexes[index] : -1;
+  if (defaultResIndex >= 0) {
+    _comboCamResolution->setCurrentIndex(defaultResIndex);
+  }
   connect(_comboCamResolution, SIGNAL(currentIndexChanged(int)), this, SLOT(onWebcamResolutionComboChanged(int)));
 }
 
@@ -1205,6 +1216,10 @@ void MainWindow::initGUIFromCameraList(const QList<int> & camList, int firstUnus
     _comboWebcam->setEnabled(camList.size() > 1);
     _cameraDefaultResolutionsIndexes.clear();
     for (int iCam = 0; iCam < camList.size(); ++iCam) {
+      if (WebcamSource::webcamResolutions(iCam).isEmpty()) {
+        _cameraDefaultResolutionsIndexes.push_back(-1);
+        continue;
+      }
       _comboWebcam->addItem(QString("Webcam %1").arg(camList[iCam]), QVariant(camList[iCam]));
       QSize size = settings.value(QString("WebcamSource/DefaultResolutionCam%1").arg(iCam), QSize()).toSize();
       if (size.isValid() && WebcamSource::webcamResolutions(iCam).contains(size)) {

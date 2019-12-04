@@ -54,6 +54,12 @@ namespace GmicQt
 {
 const QString HostApplicationName = QString("GIMP %1.%2").arg(GIMP_MAJOR_VERSION).arg(GIMP_MINOR_VERSION);
 const char * HostApplicationShortname = GMIC_QT_XSTRINGIFY(GMIC_HOST);
+#if (GIMP_MAJOR_VERSION < 2) || ((GIMP_MAJOR_VERSION == 2) && (GIMP_MINOR_VERSION <= 8))
+const bool DarkThemeIsDefault = false;
+#else
+const bool DarkThemeIsDefault = true;
+#endif
+
 } // namespace GmicQt
 
 namespace
@@ -316,7 +322,7 @@ void gmic_qt_get_layers_extent(int * width, int * height, GmicQt::InputMode mode
   const int * endLayers = begLayers + layersCount;
   int activeLayerID = gimp_image_get_active_layer(gmic_qt_gimp_image_id);
 
-  // Buil list of input layers IDs
+  // Build list of input layers IDs
   std::vector<int> layers;
   switch (mode) {
   case GmicQt::NoInput:
@@ -413,7 +419,7 @@ void gmic_qt_get_cropped_images(gmic_list<float> & images, gmic_list<char> & ima
     height = 1.0;
   }
 
-  // Buil list of input layers IDs
+  // Build list of input layers IDs
   inputLayers.clear();
   switch (mode) {
   case GmicQt::NoInput:

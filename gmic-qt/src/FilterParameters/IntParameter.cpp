@@ -47,12 +47,11 @@ IntParameter::~IntParameter()
   delete _label;
 }
 
-void IntParameter::addTo(QWidget * widget, int row)
+bool IntParameter::addTo(QWidget * widget, int row)
 {
-  auto grid = dynamic_cast<QGridLayout *>(widget->layout());
-  if (!grid) {
-    return;
-  }
+  _grid = dynamic_cast<QGridLayout *>(widget->layout());
+  Q_ASSERT_X(_grid, __PRETTY_FUNCTION__, "No grid layout in widget");
+  _row = row;
   delete _spinBox;
   delete _slider;
   delete _label;
@@ -60,6 +59,15 @@ void IntParameter::addTo(QWidget * widget, int row)
   _slider->setMinimumWidth(SLIDER_MIN_WIDTH);
   _slider->setRange(_min, _max);
   _slider->setValue(_value);
+
+  const int delta = 1 + _max - _min;
+  if (delta < 20) {
+    _slider->setPageStep(1);
+  } else {
+    const int fact = delta < 100 ? 10 : delta < 1000 ? 100 : delta < 10000 ? 1000 : 10000;
+    _slider->setPageStep(fact * (delta / fact) / 10);
+  }
+
   _spinBox = new QSpinBox(widget);
   _spinBox->setRange(_min, _max);
   _spinBox->setValue(_value);
@@ -69,10 +77,11 @@ void IntParameter::addTo(QWidget * widget, int row)
     p.setColor(QPalette::Highlight, QColor(130, 130, 130));
     _slider->setPalette(p);
   }
-  grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
-  grid->addWidget(_slider, row, 1, 1, 1);
-  grid->addWidget(_spinBox, row, 2, 1, 1);
+  _grid->addWidget(_label = new QLabel(_name, widget), row, 0, 1, 1);
+  _grid->addWidget(_slider, row, 1, 1, 1);
+  _grid->addWidget(_spinBox, row, 2, 1, 1);
   connectSliderSpinBox();
+  return true;
 }
 
 QString IntParameter::textValue() const
@@ -103,6 +112,9 @@ void IntParameter::reset()
 bool IntParameter::initFromText(const char * text, int & textLength)
 {
   QList<QString> list = parseText("int", text, textLength);
+  if (list.isEmpty()) {
+    return false;
+  }
   _name = HtmlTranslator::html2txt(list[0]);
   QList<QString> values = list[1].split(QChar(','));
   if (values.size() != 3) {

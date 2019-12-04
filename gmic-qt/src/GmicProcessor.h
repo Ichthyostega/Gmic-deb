@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_GMICPROCESSOR_H_
-#define _GMIC_QT_GMICPROCESSOR_H_
+#ifndef GMIC_QT_GMICPROCESSOR_H
+#define GMIC_QT_GMICPROCESSOR_H
 
 #include <QList>
 #include <QObject>
@@ -92,6 +92,7 @@ public:
 
   const cimg_library::CImg<float> & previewImage() const;
   const QStringList & gmicStatus() const;
+  const QList<int> & parametersVisibilityStates() const;
 
   void saveSettings(QSettings & settings);
   ~GmicProcessor();
@@ -113,7 +114,7 @@ signals:
   void previewCommandFailed(QString errorMessage);
   void fullImageProcessingFailed(QString errorMessage);
   void previewImageAvailable();
-  void fullImageProcessingDone(); // TODO : Use for exemple to close the window
+  void fullImageProcessingDone(); // TODO : Use for example to close the window
   void noMoreUnfinishedJobs();
   void aboutToSendImagesToHost();
 
@@ -137,6 +138,7 @@ private:
 
   unsigned int _previewRandomSeed;
   QStringList _gmicStatus;
+  QList<int> _parametersVisibilityStates;
   QTimer _waitingCursorTimer;
   static const int WAITING_CURSOR_DELAY = 200;
 
@@ -151,4 +153,4 @@ private:
   std::deque<int> _lastFilterPreviewExecutionDurations;
 };
 
-#endif // _GMIC_QT_GMICPROCESSOR_H_
+#endif // GMIC_QT_GMICPROCESSOR_H

@@ -22,14 +22,16 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_PREVIEWWIDGET_H_
-#define _GMIC_QT_PREVIEWWIDGET_H_
+#ifndef GMIC_QT_PREVIEWWIDGET_H
+#define GMIC_QT_PREVIEWWIDGET_H
 
 #include <QFocusEvent>
 #include <QImage>
 #include <QMutex>
 #include <QPixmap>
+#include <QPointF>
 #include <QRect>
+#include <QRectF>
 #include <QSize>
 #include <QWidget>
 #include <memory>
@@ -47,8 +49,8 @@ class PreviewWidget : public QWidget {
   Q_OBJECT
 
 public:
-  explicit PreviewWidget(QWidget * parent = 0);
-  ~PreviewWidget();
+  explicit PreviewWidget(QWidget * parent = nullptr);
+  ~PreviewWidget() override;
   void setFullImageSize(const QSize &);
   void updateFullImageSizeIfDifferent(const QSize &);
   void normalizedVisibleRect(double & x, double & y, double & width, double & height) const;
@@ -145,8 +147,8 @@ private:
   ZoomConstraint _zoomConstraint;
 
   /*
-   * (0) for a 1:1 preview
-   * (1) for previewing the whole image
+   * (0) for a 1:1 preview (GmicQt::PreviewFactorActualSize)
+   * (1) for previewing the whole image (GmicQt::PreviewFactorFullImage)
    * (2) for 1/2 image
    * GmigQt::PreviewFactorAny
    */
@@ -159,6 +161,7 @@ private:
     bool isValid() const;
     bool operator!=(const PreviewPoint &) const;
     bool operator==(const PreviewPoint &) const;
+    QPointF toPointF() const { return QPointF((qreal)x, (qreal)y); }
   };
 
   struct PreviewRect {
@@ -173,6 +176,7 @@ private:
     PreviewPoint topLeft() const;
     void moveCenter(const PreviewPoint & p);
     void moveToCenter();
+    QRectF toRectF() const { return QRectF((qreal)x, (qreal)y, (qreal)w, (qreal)h); }
     static const PreviewRect Full;
   };
 
@@ -189,7 +193,7 @@ private:
   QPixmap _transparentBackground;
   bool _paintOriginalImage;
   QSize _originalImageSize;
-  QSize _originaImageScaledSize;
+  QSize _originalImageScaledSize;
   bool _rightClickEnabled;
   QString _errorMessage;
   QString _overlayMessage;
@@ -200,4 +204,4 @@ private:
   unsigned long _keypointTimestamp;
 };
 
-#endif // _GMIC_QT_PREVIEWWIDGET_H_
+#endif // GMIC_QT_PREVIEWWIDGET_H

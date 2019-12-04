@@ -22,8 +22,8 @@
  *  along with gmic_qt.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef _GMIC_QT_UPDATER_H_
-#define _GMIC_QT_UPDATER_H_
+#ifndef GMIC_QT_UPDATER_H
+#define GMIC_QT_UPDATER_H
 
 #include <QApplication>
 #include <QDateTime>
@@ -63,8 +63,8 @@ public:
    *        older than the given age limit (in hours). To force download
    *        of all the sources, set the age limit to zero.
    *
-   * @param ageLimit Delay bewteen 2 network updates in hours
-   * @param timeout in seconds before aborting dowloads
+   * @param ageLimit Delay between 2 network updates in hours
+   * @param timeout in seconds before aborting downloads
    * @param useNetwork Enable internet access
    */
   void startUpdate(int ageLimit, int timeout, bool useNetwork);
@@ -85,7 +85,7 @@ signals:
 
 public slots:
   void onNetworkReplyFinished(QNetworkReply *);
-  void notifyAllDowloadsOK();
+  void notifyAllDownloadsOK();
   void cancelAllPendingDownloads();
   void onUpdateNotNecessary();
 
@@ -110,4 +110,4 @@ private:
   bool _someNetworkUpdatesAchieved;
 };
 
-#endif // _GMIC_QT_UPDATER_H_
+#endif // GMIC_QT_UPDATER_H
