@@ -58,13 +58,9 @@ void Updater::updateSources(bool useNetwork)
   _sources.clear();
   _sourceIsStdLib.clear();
   // Build sources map
-  QString prefix;
-  if (_outputMessageMode >= GmicQt::DebugConsole) {
-    prefix = "debug ";
-  } else if (_outputMessageMode >= GmicQt::VerboseLayerName) {
-    prefix = "v -99 ";
-  } else {
-    prefix = "v - ";
+  QString prefix = GmicQt::commandFromOutputMessageMode(_outputMessageMode);
+  if (!prefix.isEmpty()) {
+    prefix.push_back(QChar(' '));
   }
   cimg_library::CImgList<gmic_pixel_type> gptSources;
   cimg_library::CImgList<char> names;
@@ -252,7 +248,7 @@ void Updater::onNetworkReplyFinished(QNetworkReply * reply)
   reply->deleteLater();
 }
 
-void Updater::notifyAllDowloadsOK()
+void Updater::notifyAllDownloadsOK()
 {
   _errorMessages.clear();
   emit updateIsDone(UpdateSuccessful);

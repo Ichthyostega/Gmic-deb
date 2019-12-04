@@ -14,7 +14,7 @@ set(CMAKE_AUTOUIC OFF)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set (GMIC_QT_HOST "gimp" CACHE STRING "Define for which host qmic-qt will be built: gimp, krita or none.")
+set (GMIC_QT_HOST "gimp" CACHE STRING "Define for which host qmic-qt will be built: gimp, krita, none, paintdotnet, or digikam.")
 if (${GMIC_QT_HOST} STREQUAL "none")
   message("Building standalone version.")
 else()
@@ -31,6 +31,9 @@ message("G'MIC path: " ${GMIC_PATH})
 
 option(ENABLE_DYNAMIC_LINKING "Dynamically link the binaries to the GMIC shared library" OFF)
 set (GMIC_LIB_PATH "${GMIC_PATH}" CACHE STRING "Define the path to the GMIC shared library")
+
+option(ENABLE_ASAN "Enable -fsanitize=address (if debug build)" ON)
+option(ENABLE_FFTW3 "Enable FFTW3 library support" ON)
 
 #
 # Look for G'MIC repository
@@ -241,8 +244,10 @@ SET(CMAKE_INSTALL_RPATH "$ORIGIN/")
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     message("Debug build")
     add_definitions(-D_GMIC_QT_DEBUG_)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -fsanitize=address")
+    if(ENABLE_ASAN)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+    endif(ENABLE_ASAN)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
     message("Release build")
     add_definitions(-DQT_NO_DEBUG_OUTPUT)
@@ -251,7 +256,7 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
     if (WIN32)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
     endif()
 elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     message("Release build with debug info")
@@ -278,7 +283,7 @@ set (gmic_qt_SRCS
   src/FilterParameters/ChoiceParameter.h
   src/FilterParameters/ColorParameter.h
   src/FilterParameters/ConstParameter.h
-  src/FilterParameters/CustomDoubleSpinbox.h
+  src/FilterParameters/CustomDoubleSpinBox.h
   src/FilterParameters/FileParameter.h
   src/FilterParameters/FilterParametersWidget.h
   src/FilterParameters/FloatParameter.h
@@ -350,7 +355,7 @@ set (gmic_qt_SRCS
   src/FilterParameters/ChoiceParameter.cpp
   src/FilterParameters/ColorParameter.cpp
   src/FilterParameters/ConstParameter.cpp
-  src/FilterParameters/CustomDoubleSpinbox.cpp
+  src/FilterParameters/CustomDoubleSpinBox.cpp
   src/FilterParameters/FileParameter.cpp
   src/FilterParameters/FilterParametersWidget.cpp
   src/FilterParameters/FloatParameter.cpp
@@ -476,6 +481,7 @@ if (${GMIC_QT_HOST} STREQUAL "gimp")
 
     execute_process(COMMAND gimptool-2.0 --libs-noui OUTPUT_VARIABLE GIMP2_LIBRARIES OUTPUT_STRIP_TRAILING_WHITESPACE)
     execute_process(COMMAND gimptool-2.0 --cflags-noui OUTPUT_VARIABLE GIMP2_INCLUDE_DIRS OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND pkg-config gimp-2.0 --define-variable=prefix=${CMAKE_INSTALL_PREFIX} --variable gimplibdir OUTPUT_VARIABLE GIMP2_PKGLIBDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GIMP2_INCLUDE_DIRS}")
 
     set (gmic_qt_SRCS ${gmic_qt_SRCS} src/Host/Gimp/host_gimp.cpp)
@@ -487,7 +493,7 @@ if (${GMIC_QT_HOST} STREQUAL "gimp")
       ${GIMP2_LIBRARIES}
       ${gmic_qt_LIBRARIES}
       )
-    install(TARGETS gmic_gimp_qt RUNTIME DESTINATION bin)
+    install(TARGETS gmic_gimp_qt RUNTIME DESTINATION "${GIMP2_PKGLIBDIR}/plug-ins")
 
 elseif (${GMIC_QT_HOST} STREQUAL "krita")
 
@@ -520,8 +526,77 @@ elseif (${GMIC_QT_HOST} STREQUAL "paintdotnet")
       ${gmic_qt_LIBRARIES}
       )
 
+elseif (${GMIC_QT_HOST} STREQUAL "digikam")
+
+    include(GNUInstallDirs)
+
+    find_package(DigikamCore "6.3.0" CONFIG REQUIRED)
+
+    set_package_properties(DigikamCore PROPERTIES
+                           URL "http://www.digikam.org"
+                           DESCRIPTION "digiKam core library"
+    )
+
+    # --- Manage C++ exception rules -------
+
+    string(REPLACE " -DQT_NO_EXCEPTIONS " " " CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
+    string(REPLACE " -fno-exceptions "    " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(STRIP "${CMAKE_CXX_FLAGS}" CMAKE_CXX_FLAGS)
+
+    if (MSVC)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -EHsc")
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+        if (WIN32)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -EHsc")
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+    endif()
+
+    string(STRIP "${CMAKE_CXX_FLAGS}" ${CMAKE_CXX_FLAGS})
+
+    # ---
+
+    include_directories($<TARGET_PROPERTY:Digikam::digikamcore,INTERFACE_INCLUDE_DIRECTORIES>/digikam)
+
+    set (gmic_qt_SRCS ${gmic_qt_SRCS} src/Host/digiKam/host_digikam.cpp src/Host/digiKam/gmicqttoolplugin.cpp)
+    add_definitions(-DGMIC_HOST=digikam)
+    add_library(Editor_GmicQt_Plugin
+                MODULE ${gmic_qt_SRCS} ${gmic_qt_QRC} ${qmic_qt_QM})
+
+    set_target_properties(Editor_GmicQt_Plugin PROPERTIES PREFIX "")
+
+    target_link_libraries(Editor_GmicQt_Plugin
+                          PRIVATE
+                          ${gmic_qt_LIBRARIES}
+                          Digikam::digikamcore)
+
+    # --- Install rules ---------------------------------
+
+    get_target_property(QT_QMAKE_EXECUTABLE ${Qt5Core_QMAKE_EXECUTABLE} IMPORTED_LOCATION)
+
+    if(NOT QT_QMAKE_EXECUTABLE)
+        message(FATAL_ERROR "qmake is not found.")
+    endif()
+
+    # execute the command "qmake -query QT_INSTALL_PLUGINS" to get the path of plugins dir.
+    execute_process(COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_PLUGINS
+                    OUTPUT_VARIABLE QT_PLUGINS_DIR
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    if(NOT QT_PLUGINS_DIR)
+        message(FATAL_ERROR "Qt5 plugin directory cannot be detected.")
+    endif()
+
+    install(TARGETS Editor_GmicQt_Plugin
+            DESTINATION ${QT_PLUGINS_DIR}/digikam/editor)
+
 else()
-    message(FATAL_ERROR "GMIC_QT_HOST is not defined as gimp, krita, none or paintdotnet")
+    message(FATAL_ERROR "GMIC_QT_HOST is not defined as gimp, krita, none, paintdotnet, or digikam")
 endif()
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

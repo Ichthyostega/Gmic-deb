@@ -26,11 +26,12 @@
 #include <QAction>
 #include <QCursor>
 #include <QDebug>
-#include <QDesktopWidget>
 #include <QEvent>
+#include <QGuiApplication>
 #include <QKeySequence>
 #include <QMessageBox>
 #include <QPalette>
+#include <QScreen>
 #include <QSettings>
 #include <QShowEvent>
 #include <QStyleFactory>
@@ -38,6 +39,8 @@
 #include <iostream>
 #include <typeinfo>
 #include "Common.h"
+#include "CroppedActiveLayerProxy.h"
+#include "CroppedImageListProxy.h"
 #include "DialogSettings.h"
 #include "FilterSelector/FavesModelReader.h"
 #include "FilterSelector/FiltersPresenter.h"
@@ -166,6 +169,8 @@ MainWindow::MainWindow(QWidget * parent) : QWidget(parent), ui(new Ui::MainWindo
   connect(escAction, SIGNAL(triggered(bool)), this, SLOT(onEscapeKeyPressed()));
   addAction(escAction);
 
+  CroppedImageListProxy::clear();
+  CroppedActiveLayerProxy::clear();
   LayersExtentProxy::clear();
   QSize layersExtent = LayersExtentProxy::getExtent(ui->inOutSelector->inputMode());
   ui->previewWidget->setFullImageSize(layersExtent);
@@ -560,7 +565,14 @@ void MainWindow::onPreviewUpdateRequested(bool synchronous)
 void MainWindow::onPreviewKeypointsEvent(unsigned int flags, unsigned long time)
 {
   if (flags & PreviewWidget::KeypointMouseReleaseEvent) {
-    ui->filterParams->setKeypoints(ui->previewWidget->keypoints(), true);
+    if (flags & PreviewWidget::KeypointBurstEvent) {
+      // Notify the filter twice (synchronously) so that it can guess that the button has been released
+      ui->filterParams->setKeypoints(ui->previewWidget->keypoints(), false);
+      onPreviewUpdateRequested(true);
+      onPreviewUpdateRequested(true);
+    } else {
+      ui->filterParams->setKeypoints(ui->previewWidget->keypoints(), true);
+    }
     _lastPreviewKeypointBurstUpdateTime = 0;
   } else {
     ui->filterParams->setKeypoints(ui->previewWidget->keypoints(), false);
@@ -874,14 +886,16 @@ void MainWindow::loadSettings()
       setGeometry(r);
       move(position);
     } else {
-      QDesktopWidget desktop;
-      QRect screenSize = desktop.availableGeometry();
-      screenSize.setWidth(static_cast<int>(screenSize.width() * 0.66));
-      screenSize.setHeight(static_cast<int>(screenSize.height() * 0.66));
-      screenSize.moveCenter(desktop.availableGeometry().center());
-      setGeometry(screenSize);
-      int w = screenSize.width();
-      ui->splitter->setSizes(QList<int>() << static_cast<int>(w * 0.4) << static_cast<int>(w * 0.2) << static_cast<int>(w * 0.4));
+      QList<QScreen *> screens = QGuiApplication::screens();
+      if (!screens.isEmpty()) {
+        QRect screenSize = screens.front()->geometry();
+        screenSize.setWidth(static_cast<int>(screenSize.width() * 0.66));
+        screenSize.setHeight(static_cast<int>(screenSize.height() * 0.66));
+        screenSize.moveCenter(screens.front()->geometry().center());
+        setGeometry(screenSize);
+        int w = screenSize.width();
+        ui->splitter->setSizes(QList<int>() << static_cast<int>(w * 0.4) << static_cast<int>(w * 0.2) << static_cast<int>(w * 0.4));
+      }
     }
   }
 
@@ -1039,12 +1053,11 @@ void MainWindow::setNoFilter()
 void MainWindow::showEvent(QShowEvent * event)
 {
   TIMING;
-  static bool first = true;
   event->accept();
-  if (!first) {
+  if (_showEventReceived) {
     return;
   }
-  first = false;
+  _showEventReceived = true;
   adjustVerticalSplitter();
   if (_newSession) {
     Logger::clear();

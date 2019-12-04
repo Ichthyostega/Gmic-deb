@@ -14,7 +14,7 @@ _gmic()
 	COMPREPLY=() 
 	cur="${COMP_WORDS[COMP_CWORD]}" 
 	prev="${COMP_WORDS[COMP_CWORD-1]}" 
-	coms=" debug h help version camera clut m command cursor d display d0 display0 d2d display2d d3d display3d da display_array dfft display_fft dg display_graph dh display_histogram display_parametric dp display_parallel dp0 display_parallel0 display_polar dq display_quiver drgba display_rgba dt display_tensors dw display_warp document_gmic e echo echo_file echo_stdout function1d i input input_cube ig input_glob input_gpl o output output_cube output_ggr on outputn op outputp ow outputw ox outputx pass plot p print screen select serialize shape_circle shape_cupid shape_diamond shape_fern shape_gear shape_heart shape_polygon shape_snowflake shape_star sh shared sp sample srand string testimage2d uncommand uniform_distribution unserialize up update v verbose wait warn w window k keep mv move nm name rm remove remove_duplicates remove_empty rv reverse sort_list sort_str abs acos acosh + add & and argmax argmin asin asinh atan atan2 atanh << bsl >> bsr cos cosh / div div_complex == eq exp >= ge > gt <= le < lt log log10 log2 max m/ mdiv min % mod m* mmul * mul mul_channels mul_complex != neq | or ^ pow rol ror sign sin sinc sinh sqr sqrt - sub tan tanh xor apply_curve apply_gamma balance_gamma cast complex2polar compress_clut compress_rle cumulate c cut decompress_clut_rbf decompress_clut_pde decompress_clut decompress_rle discard eigen2tensor endian equalize f fill index ir inrange map map_clut mix_channels negate noise noise_perlin noise_poissondisk normp norm n normalize normalize_sum not orientation oneminus otsu polar2complex quantize quantize_area rand replace replace_inf replace_nan replace_seq replace_str round roundify = set set_vector_covariance threshold unrepeat vector2tensor adjust_colors ac apply_channels autoindex bayer2rgb cmy2rgb cmyk2rgb colorblind colormap compose_channels direction2rgb ditheredbw fc fill_color gradient2rgb hcy2rgb : hsi2rgb hsi82rgb hsl2rgb hsl82rgb hsv2rgb hsv82rgb int2rgb lab2lch lab2rgb lab2srgb lab82srgb lab2xyz lab82rgb lch2lab lch2rgb lch82rgb luminance lightness lut_rainbow lut_contrast mix_rgb pseudogray replace_color retinex rgb2bayer rgb2cmy rgb2cmyk rgb2hcy rgb2hsi rgb2hsi8 rgb2hsl rgb2hsl8 rgb2hsv rgb2hsv8 rgb2int rgb2lab rgb2lab8 rgb2lch rgb2lch8 rgb2luv rgb2ryb rgb2srgb rgb2xyz rgb2xyz8 rgb2yiq rgb2yiq8 rgb2ycbcr rgb2yuv rgb2yuv8 remove_opacity ryb2rgb select_color sepia solarize split_colors split_opacity srgb2lab srgb2lab8 srgb2rgb to_a to_color to_colormode to_gray to_graya to_pseudogray to_rgb to_rgba transfer_histogram transfer_rgb xyz2lab xyz2rgb xyz82rgb ycbcr2rgb yiq2rgb yiq82rgb yuv2rgb yuv82rgb a append append_tiles apply_scales autocrop autocrop_components autocrop_seq channels columns z crop diagonal elevate expand_x expand_xy expand_xyz expand_y expand_z extract_region montage mirror permute r resize resize_mn resize_pow2 rr2d resize_ratio2d r2dx resize2dx r2dy resize2dy r3dx resize3dx r3dy resize3dy r3dz resize3dz rotate rotate_tileable rows scale2x scale3x scale_dcci2x seamcarve shift shrink_x shrink_xy shrink_xyz shrink_y shrink_z slices sort s split split_tiles undistort y unroll upscale_smart warp warp_patch bandpass bilateral b blur blur_angular blur_bloom blur_linear blur_radial blur_selective blur_x blur_xy blur_xyz blur_y blur_z boxfilter bump2normal compose_freq convolve convolve_fft correlate cross_correlation curvature dct deblur deblur_goldmeinel deblur_richardsonlucy deconvolve_fft deinterlace denoise denoise_haar denoise_patchpca deriche dilate dilate_circ dilate_oct dilate_threshold divergence dog diffusiontensors edges erode erode_circ erode_oct erode_threshold fft g gradient gradient_norm gradient_orientation guided haar heat_flow hessian idct iee ifft ihaar ilaplacian inn inpaint inpaint_pde inpaint_flow inpaint_holes inpaint_morpho inpaint_matchpatch kuwahara laplacian lic map_tones map_tones_fast meancurvature_flow median nlmeans nlmeans_core normalize_local normalized_cross_correlation peronamalik_flow phase_correlation pde_flow periodize_poisson red_eye remove_hotpixels remove_pixels rolling_guidance sharpen smooth split_freq solve_poisson split_details structuretensors solidify syntexturize syntexturize_matchpatch tv_flow unsharp unsharp_octave vanvliet voronoi watermark_fourier watershed area area_fg at_line at_quadrangle barycenter delaunay detect_skin displacement distance fftpolar histogram histogram_nd histogram_cumul histogram_pointwise hough ifftpolar isophotes label label_fg max_patch min_patch minimal_path mse patches matchpatch plot2value pointcloud psnr segment_watershed shape2bump skeleton slic ssd_patch thinning tones topographic_map tsp variance_patch arrow axes ball chessboard cie1931 circle close_binary ellipse flood gaussian graph grid j image line linethick mandelbrot marble maze maze_mask j3d object3d pack_sprites piechart plasma point polka_dots polygon quiver rectangle rorschach sierpinski spiralbw spline tetraedron_shade t text to text_outline triangle_shade truchet turbulence yinyang dijkstra eigen invert solve svd transpose trisolve +3d add3d animate3d apply_camera3d apply_matrix3d array3d arrow3d axes3d box3d c3d center3d circle3d circles3d col3d color3d colorcube3d cone3d cubes3d cup3d cylinder3d delaunay3d distribution3d /3d div3d db3d double3d elevation3d empty3d extrude3d f3d focale3d gaussians3d gmic3d gyroid3d histogram3d image6cube3d imageblocks3d imagecube3d imageplane3d imagepyramid3d imagerubik3d imagesphere3d isoline3d isosurface3d label3d label_points3d lathe3d l3d light3d line3d lissajous3d m3d mode3d md3d moded3d *3d mul3d n3d normalize3d o3d opacity3d parametric3d pca_patch3d plane3d point3d pointcloud3d pose3d p3d primitives3d projections3d pyramid3d quadrangle3d random3d rv3d reverse3d r3d rotate3d rotation3d sierpinski3d size3d skeleton3d snapshot3d sl3d specl3d ss3d specs3d sphere3d spherical3d spline3d s3d split3d sprite3d sprites3d star3d streamline3d -3d sub3d superformula3d tensors3d text_pointcloud3d text3d t3d texturize3d torus3d triangle3d volume3d weird3d ap apply_parallel apc apply_parallel_channels apo apply_parallel_overlap at apply_tiles apply_timeout check check3d check_display continue break do done elif else fi endif endl endlocal error eval x exec for if l local mutex noarg onfail parallel progress q quit repeat return rprogress run skip u status while array array_fade array_mirror array_random frame frame_blur frame_cube frame_fuzzy frame_painting frame_pattern frame_round frame_seamless frame_x frame_xy frame_xyz frame_y img2ascii imagegrid imagegrid_hexagonal imagegrid_triangular linearize_tiles map_sprites pack puzzle quadratize_tiles rotate_tiles shift_tiles taquin tunnel boxfitting brushify cartoon color_ellipses cubism draw_whirl drawing drop_shadow ellipsionism fire_edges fractalize glow halftone hardsketchbw hearts houghsketchbw lightrays light_relief linify mosaic old_photo pencilbw pixelsort polaroid polygonize poster_edges poster_hope rodilius stained_glass stars sketchbw sponge stencil stencilbw tetris warhol weave whirls deform euclidean2polar equirectangular2nadirzenith fisheye flower kaleidoscope map_sphere nadirzenith2equirectangular polar2euclidean raindrops ripple rotoidoscope spherize symmetrize transform_polar twirl warp_perspective water wave wind zoom cracks light_patch noise_hurl pixelize scanlines shade_stripes shadow_patch spread stripes_y texturize_canvas texturize_paper vignette watermark_visible blend blend_edges blend_fade blend_median blend_seamless fade_diamond fade_linear fade_radial fade_x fade_y fade_z sub_alpha animate apply_camera apply_files apply_video average_files average_video fade_files fade_video files2video median_files median_video morph morph_files morph_video register_nonrigid register_rigid transition transition3d video2files alert arg arg2var autocrop_coords base642img base642uchar basename bin bin2dec dec dec2str dec2bin dec2hex dec2oct fact fibonacci file_mv file_rand file_rm filename files fitratio_wh fitscreen fontchart fps gcd hex hex2dec hex2img hex2str img2hex img2str img2text img82hex hex2img8 is_3d is_change is_ext is_image_arg is_pattern is_percent is_videofilename is_windows math_lib mad max_w max_h max_d max_s max_wh max_whd max_whds med median_color min_w min_h min_d min_s min_wh min_whd min_whds nmd named normalize_filename oct oct2dec padint path_cache path_gimp path_tmp reset RGB RGBA std_noise str str2hex strcontains strlen strreplace strlowercase strvar strver tic toc to_clutname uchar2base64 img2base64 average_colors covariance_colors demo x_2048 x_blobs x_bouncing x_color_curves x_colorize x_connect4 xz x_crop x_cut x_fire x_fireworks x_fisheye x_fourier x_grab_color x_hanoi x_histogram x_hough x_jawbreaker x_landscape x_life x_light x_mandelbrot x_mask_color x_metaballs3d x_minesweeper x_minimal_path x_morph x_pacman x_paint x_plasma x_quantize_rgb x_reflection3d x_rubber3d x_segment x_select_color x_select_function1d x_select_palette x_shadebobs x_spline x_starfield3d x_tetris x_threshold x_tictactoe x_warp x_waves x_whirl "
+	coms=" debug h help version camera clut m command cursor d display d0 display0 d2d display2d d3d display3d da display_array dfft display_fft dg display_graph dh display_histogram display_parametric dp display_parallel dp0 display_parallel0 display_polar dq display_quiver drgba display_rgba dt display_tensors dw display_warp document_gmic e echo echo_file echo_stdout function1d i input input_cube input_flo ig input_glob input_gpl o output output_cube output_flo output_ggr on outputn op outputp ow outputw ox outputx pass plot p print screen select serialize shape_circle shape_cupid shape_diamond shape_fern shape_gear shape_heart shape_polygon shape_snowflake shape_star sh shared sp sample srand store string testimage2d uncommand uniform_distribution unserialize up update v verbose wait warn w window k keep mv move nm name rm remove remove_duplicates remove_empty rv reverse sort_list sort_str abs acos acosh + add & and argmax argmin asin asinh atan atan2 atanh << bsl >> bsr cos cosh / div div_complex == eq exp >= ge > gt <= le < lt log log10 log2 max m/ mdiv min % mod m* mmul * mul mul_channels mul_complex != neq | or ^ pow rol ror sign sin sinc sinh sqr sqrt - sub tan tanh xor apply_curve apply_gamma balance_gamma cast complex2polar compress_clut compress_rle cumulate c cut decompress_clut decompress_clut_rbf decompress_clut_pde decompress_rle discard eigen2tensor endian equalize f fill index ir inrange map map_clut mix_channels negate noise noise_perlin noise_poissondisk normp norm n normalize normalize_sum not orientation oneminus otsu polar2complex quantize quantize_area rand replace replace_inf replace_nan replace_seq replace_str round roundify = set set_vector_covariance threshold unrepeat vector2tensor adjust_colors ac apply_channels autoindex bayer2rgb deltaE cmy2rgb cmyk2rgb colorblind colormap compose_channels direction2rgb ditheredbw fc fill_color gradient2rgb hcy2rgb : hsi2rgb hsi82rgb hsl2rgb hsl82rgb hsv2rgb hsv82rgb int2rgb lab2lch lab2rgb lab2srgb lab82srgb lab2xyz lab82rgb lch2lab lch2rgb lch82rgb luminance lightness lut_rainbow lut_contrast mix_rgb pseudogray replace_color retinex rgb2bayer rgb2cmy rgb2cmyk rgb2hcy rgb2hsi rgb2hsi8 rgb2hsl rgb2hsl8 rgb2hsv rgb2hsv8 rgb2int rgb2lab rgb2lab8 rgb2lch rgb2lch8 rgb2luv rgb2ryb rgb2srgb rgb2xyz rgb2xyz8 rgb2yiq rgb2yiq8 rgb2ycbcr rgb2yuv rgb2yuv8 remove_opacity ryb2rgb select_color sepia solarize split_colors split_opacity srgb2lab srgb2lab8 srgb2rgb to_a to_color to_colormode to_gray to_graya to_pseudogray to_rgb to_rgba transfer_histogram transfer_rgb xyz2lab xyz2rgb xyz82rgb ycbcr2rgb yiq2rgb yiq82rgb yuv2rgb yuv82rgb a append append_tiles apply_scales autocrop autocrop_components autocrop_seq channels columns z crop diagonal elevate expand_x expand_xy expand_xyz expand_y expand_z extract extract_region montage mirror permute r resize resize_mn resize_pow2 rr2d resize_ratio2d r2dx resize2dx r2dy resize2dy r3dx resize3dx r3dy resize3dy r3dz resize3dz rotate rotate_tileable rows scale2x scale3x scale_dcci2x seamcarve shift shrink_x shrink_xy shrink_xyz shrink_y shrink_z slices sort s split split_tiles undistort y unroll upscale_smart warp warp_patch bandpass bilateral b blur blur_angular blur_bloom blur_linear blur_radial blur_selective blur_x blur_xy blur_xyz blur_y blur_z boxfilter bump2normal compose_freq convolve convolve_fft correlate cross_correlation curvature dct deblur deblur_goldmeinel deblur_richardsonlucy deconvolve_fft deinterlace denoise denoise_haar denoise_patchpca deriche dilate dilate_circ dilate_oct dilate_threshold divergence dog diffusiontensors edges erode erode_circ erode_oct erode_threshold fft g gradient gradient_norm gradient_orientation guided haar heat_flow hessian idct iee ifft ihaar ilaplacian inn inpaint inpaint_pde inpaint_flow inpaint_holes inpaint_morpho inpaint_matchpatch kuwahara laplacian lic map_tones map_tones_fast meancurvature_flow median nlmeans nlmeans_core normalize_local normalized_cross_correlation peronamalik_flow phase_correlation pde_flow periodize_poisson red_eye remove_hotpixels remove_pixels rolling_guidance sharpen smooth split_freq solve_poisson split_details structuretensors solidify syntexturize syntexturize_matchpatch tv_flow unsharp unsharp_octave vanvliet voronoi watermark_fourier watershed area area_fg at_line at_quadrangle barycenter delaunay detect_skin displacement distance fftpolar histogram histogram_nd histogram_cumul histogram_pointwise hough ifftpolar isophotes label label_fg max_patch min_patch minimal_path mse patches matchpatch plot2value pointcloud psnr segment_watershed shape2bump skeleton slic ssd_patch thinning tones topographic_map tsp variance_patch arrow axes ball chessboard cie1931 circle close_binary ellipse flood gaussian graph grid j image line linethick mandelbrot marble maze maze_mask j3d object3d pack_sprites piechart plasma point polka_dots polygon quiver rectangle rorschach sierpinski spiralbw spline tetraedron_shade t text to text_outline triangle_shade truchet turbulence yinyang dijkstra eigen invert solve svd transpose trisolve +3d add3d animate3d apply_camera3d apply_matrix3d array3d arrow3d axes3d box3d c3d center3d circle3d circles3d col3d color3d colorcube3d cone3d cubes3d cup3d cylinder3d delaunay3d distribution3d /3d div3d db3d double3d elevation3d empty3d extrude3d f3d focale3d gaussians3d gmic3d gyroid3d histogram3d image6cube3d imageblocks3d imagecube3d imageplane3d imagepyramid3d imagerubik3d imagesphere3d isoline3d isosurface3d label3d label_points3d lathe3d l3d light3d line3d lissajous3d m3d mode3d md3d moded3d *3d mul3d n3d normalize3d o3d opacity3d parametric3d pca_patch3d plane3d point3d pointcloud3d pose3d p3d primitives3d projections3d pyramid3d quadrangle3d random3d rv3d reverse3d r3d rotate3d rotation3d sierpinski3d size3d skeleton3d snapshot3d sl3d specl3d ss3d specs3d sphere3d spherical3d spline3d s3d split3d sprite3d sprites3d star3d streamline3d -3d sub3d superformula3d tensors3d text_pointcloud3d text3d t3d texturize3d torus3d triangle3d volume3d weird3d ap apply_parallel apc apply_parallel_channels apo apply_parallel_overlap at apply_tiles apply_timeout check check3d check_display continue break do done elif else fi endif endl endlocal error eval x exec for if l local mutex noarg onfail parallel progress q quit repeat return rprogress run skip u status while array array_fade array_mirror array_random frame frame_blur frame_cube frame_fuzzy frame_painting frame_pattern frame_round frame_seamless frame_x frame_xy frame_xyz frame_y img2ascii imagegrid imagegrid_hexagonal imagegrid_triangular linearize_tiles map_sprites pack puzzle quadratize_tiles rotate_tiles shift_tiles taquin tunnel boxfitting brushify cartoon color_ellipses cubism draw_whirl drawing drop_shadow ellipsionism fire_edges fractalize glow halftone hardsketchbw hearts houghsketchbw lightrays light_relief linify mosaic old_photo pencilbw pixelsort polaroid polygonize poster_edges poster_hope rodilius sketchbw sponge stained_glass stars stencil stencilbw stylize tetris warhol weave whirls deform euclidean2polar equirectangular2nadirzenith fisheye flower kaleidoscope map_sphere nadirzenith2equirectangular polar2euclidean raindrops ripple rotoidoscope spherize symmetrize transform_polar twirl warp_perspective water wave wind zoom cracks light_patch noise_hurl pixelize scanlines shade_stripes shadow_patch spread stripes_y texturize_canvas texturize_paper vignette watermark_visible blend blend_edges blend_fade blend_median blend_seamless fade_diamond fade_linear fade_radial fade_x fade_y fade_z sub_alpha animate apply_camera apply_files apply_video average_files average_video fade_files fade_video files2video median_files median_video morph morph_files morph_video register_nonrigid register_rigid transition transition3d video2files nn_new_input nn_new_fullyconnected nn_propagate_batch nn_propagate nn_backpropagate_batch nn_backpropagate nn_update nn_output nn_serialize nn_unserialize nn_input alert arg arg2var autocrop_coords average_colors base642img base642uchar basename bin bin2dec covariance_colors dec dec2str dec2bin dec2hex dec2oct fact fibonacci file_mv file_rand file_rm filename files fitratio_wh fitscreen fontchart fps gcd hex hex2dec hex2img hex2str img2base64 img2hex img2str img2text img82hex hex2img8 is_3d is_change is_half is_ext is_image_arg is_pattern is_percent is_variable_name Returns 1 if specified argument can be considered as a variable name, 0 otherwise. is_videofilename is_windows math_lib mad max_w max_h max_d max_s max_wh max_whd max_whds med median_color min_w min_h min_d min_s min_wh min_whd min_whds nmd named normalize_filename oct oct2dec padint path_cache path_gimp path_tmp reset RGB RGBA std_noise str str2hex strcontains strlen strreplace strlowercase strvar strver tic toc to_clutname uchar2base64 demo x_2048 x_blobs x_bouncing x_color_curves x_colorize x_connect4 xz x_crop x_cut x_fire x_fireworks x_fisheye x_fourier x_grab_color x_hanoi x_histogram x_hough x_jawbreaker x_landscape x_life x_light x_mandelbrot x_mask_color x_metaballs3d x_minesweeper x_minimal_path x_morph x_pacman x_paint x_plasma x_quantize_rgb x_reflection3d x_rubber3d x_segment x_select_color x_select_function1d x_select_palette x_shadebobs x_spline x_starfield3d x_tetris x_threshold x_tictactoe x_warp x_waves x_whirl "
 	opts=$(echo "$coms" | sed "s: \([^ ]\+\): \1 -\1 \+\1 --\1:g")
 
 	case "${prev}" in
@@ -61,7 +61,7 @@ _gmic()
 		"function1d" | "-function1d" | "--function1d" | "+function1d")
 		    COMPREPLY=( $(compgen -W "0<=smoothness<=1,x0>=0,y0,x1>=0,y1,...,xn>=0,yn >") ); return 0;;
 		"pass" | "-pass" | "--pass" | "+pass")
-		    COMPREPLY=( $(compgen -W "_shared_state={_0=non-shared_(copy)_|_1=shared_|_2=adaptive_} >") ); return 0;;
+		    COMPREPLY=( $(compgen -W "_shared_state={_-1=status_only_|_0=non-shared_(copy)_|_1=shared_|_2=adaptive_} >") ); return 0;;
 		"plot" | "-plot" | "--plot" | "+plot")
 		    COMPREPLY=( $(compgen -W "_plot_type,_vertex_type,_xmin,_xmax,_ymin,_ymax,_exit_on_anykey={_0_|_1_} \'formula\',_resolution>=0,_plot_type,_vertex_type,_xmin,xmax,_ymin,_ymax,_exit_on_anykey={_0_|_1_}") ); return 0;;
 		"screen" | "-screen" | "--screen" | "+screen")
@@ -94,6 +94,8 @@ _gmic()
 		    COMPREPLY=( $(compgen -W "_name1={_?_|_apples_|_balloons_|_barbara_|_boats_|_bottles_|_butterfly_|_cameraman_|_car_|_cat_|_cliff_|_chick_|_colorful_|_david_|_dog_|_duck_|_eagle_|_elephant_|_earth_|_flower_|_fruits_|_gmicky_|_gmicky_mahvin_|_gmicky_wilber_|_greece_|_gummy_|_house_|_inside_|_landscape_|_leaf_|_lena_|_leno_|_lion_|_mandrill_|_monalisa_|_monkey_|_parrots_|_pencils_|_peppers_|_portrait0_|_portrait1_|_portrait2_|_portrait3_|_portrait4_|_portrait5_|_portrait6_|_portrait7_|_portrait8_|_portrait9_|_roddy_|_rooster_|_rose_|_square_|_swan_|_teddy_|_tiger_|_tulips_|_wall_|_waterfall_|_zelda_},_name2,...,_nameN,_width={_>=0_|_0_(auto)_},_height_=_{_>=0_|_0_(auto)_} (no_arg)") ); return 0;;
 		"srand" | "-srand" | "--srand" | "+srand")
 		    COMPREPLY=( $(compgen -W "value (no_arg)") ); return 0;;
+		"store" | "-store" | "--store" | "+store")
+		    COMPREPLY=( $(compgen -W "variable_name1,_variable_name2,... >") ); return 0;;
 		"string" | "-string" | "--string" | "+string")
 		    COMPREPLY=( $(compgen -W "\"string\" >") ); return 0;;
 		"testimage2d" | "-testimage2d" | "--testimage2d" | "+testimage2d")
@@ -179,19 +181,19 @@ _gmic()
 		"cast" | "-cast" | "--cast" | "+cast")
 		    COMPREPLY=( $(compgen -W "datatype_source,datatype_target >") ); return 0;;
 		"compress_clut" | "-compress_clut" | "--compress_clut" | "+compress_clut")
-		    COMPREPLY=( $(compgen -W "_max_error>0,_avg_error>0,_max_nbpoints>=8 >") ); return 0;;
+		    COMPREPLY=( $(compgen -W "_max_error>0,_avg_error>0,_max_nbpoints>=8,_error_metric={_0=L2-norm_|_1=deltaE_1976_|_2=deltaE_2000_},_reconstruction_colorspace={_0=srgb_|_1=rgb_|_2=lab_},_try_rbf_first={_0_|_1_} >") ); return 0;;
 		"compress_rle" | "-compress_rle" | "--compress_rle" | "+compress_rle")
 		    COMPREPLY=( $(compgen -W "_is_binary_data={_0_|_1_},_maximum_sequence_length>=0 >") ); return 0;;
 		"cumulate" | "-cumulate" | "--cumulate" | "+cumulate")
 		    COMPREPLY=( $(compgen -W "{_x_|_y_|_z_|_c_}...{_x_|_y_|_z_|_c_} (no_arg)") ); return 0;;
 		"cut" | "-cut" | "--cut" | "+cut")
 		    COMPREPLY=( $(compgen -W "{_value0[%]_|_[image0]_},{_value1[%]_|_[image1]_} [image]") ); return 0;;
-		"decompress_clut_rbf" | "-decompress_clut_rbf" | "--decompress_clut_rbf" | "+decompress_clut_rbf")
-		    COMPREPLY=( $(compgen -W "_width>0,_height>0,_depth>0 >") ); return 0;;
-		"decompress_clut_pde" | "-decompress_clut_pde" | "--decompress_clut_pde" | "+decompress_clut_pde")
-		    COMPREPLY=( $(compgen -W "_width>0,_height>0,_depth>0 >") ); return 0;;
 		"decompress_clut" | "-decompress_clut" | "--decompress_clut" | "+decompress_clut")
-		    COMPREPLY=( $(compgen -W "_width>0,_height>0,_depth>0 >") ); return 0;;
+		    COMPREPLY=( $(compgen -W "_width>0,_height>0,_depth>0,_reconstruction_colorspace={_0=srgb_|_1=rgb_|_2=lab_} >") ); return 0;;
+		"decompress_clut_rbf" | "-decompress_clut_rbf" | "--decompress_clut_rbf" | "+decompress_clut_rbf")
+		    COMPREPLY=( $(compgen -W "_width>0,_height>0,_depth>0,_reconstruction_colorspace={_0=srgb_|_1=rgb_|_2=lab_} >") ); return 0;;
+		"decompress_clut_pde" | "-decompress_clut_pde" | "--decompress_clut_pde" | "+decompress_clut_pde")
+		    COMPREPLY=( $(compgen -W "_width>0,_height>0,_depth>0,_reconstruction_colorspace={_0=srgb_|_1=rgb_|_2=lab_} >") ); return 0;;
 		"discard" | "-discard" | "--discard" | "+discard")
 		    COMPREPLY=( $(compgen -W "_value1,_value2,... {_x_|_y_|_z_|_c}...{_x_|_y_|_z_|_c},_value1,_value2,... (no_arg)") ); return 0;;
 		"endian" | "-endian" | "--endian" | "+endian")
@@ -225,7 +227,7 @@ _gmic()
 		"otsu" | "-otsu" | "--otsu" | "+otsu")
 		    COMPREPLY=( $(compgen -W "_nb_levels>0 >") ); return 0;;
 		"quantize" | "-quantize" | "--quantize" | "+quantize")
-		    COMPREPLY=( $(compgen -W "nb_levels>=1,_keep_values={_0_|_1_},_is_uniform={_0_|_1_} >") ); return 0;;
+		    COMPREPLY=( $(compgen -W "nb_levels>=1,_keep_values={_0_|_1_},_quantization_type={_-1=median-cut_|_0=k-means_|_1=uniform_} >") ); return 0;;
 		"quantize_area" | "-quantize_area" | "--quantize_area" | "+quantize_area")
 		    COMPREPLY=( $(compgen -W "_min_area>0 >") ); return 0;;
 		"rand" | "-rand" | "--rand" | "+rand")
@@ -258,10 +260,12 @@ _gmic()
 		    COMPREPLY=( $(compgen -W "nb_colors>0,0<=_dithering<=1,_method={_0=median-cut_|_1=k-means_} >") ); return 0;;
 		"bayer2rgb" | "-bayer2rgb" | "--bayer2rgb" | "+bayer2rgb")
 		    COMPREPLY=( $(compgen -W "_GM_smoothness,_RB_smoothness1,_RB_smoothness2 >") ); return 0;;
+		"deltaE" | "-deltaE" | "--deltaE" | "+deltaE")
+		    COMPREPLY=( $(compgen -W "[image],_metric={_0=deltaE_1976_|_1=deltaE_2000_},\"_to_Lab_command\" >") ); return 0;;
 		"colorblind" | "-colorblind" | "--colorblind" | "+colorblind")
 		    COMPREPLY=( $(compgen -W "type={_0=protanopia_|_1=protanomaly_|_2=deuteranopia_|_3=deuteranomaly_|_4=tritanopia_|_5=tritanomaly_|_6=achromatopsia_|_7=achromatomaly_} >") ); return 0;;
 		"colormap" | "-colormap" | "--colormap" | "+colormap")
-		    COMPREPLY=( $(compgen -W "nb_levels>=0,_method={_0=median-cut_|_1=k-means_},_sort_vectors={_0_|_1_} >") ); return 0;;
+		    COMPREPLY=( $(compgen -W "nb_levels>=0,_method={_0=median-cut_|_1=k-means_},_sort_vectors >") ); return 0;;
 		"fill_color" | "-fill_color" | "--fill_color" | "+fill_color")
 		    COMPREPLY=( $(compgen -W "col1,...,colN >") ); return 0;;
 		"gradient2rgb" | "-gradient2rgb" | "--gradient2rgb" | "+gradient2rgb")
@@ -356,6 +360,8 @@ _gmic()
 		    COMPREPLY=( $(compgen -W "size_y>=0,_boundary_conditions={_0=dirichlet_|_1=neumann_|_2=periodic_|_3=mirror_} >") ); return 0;;
 		"expand_z" | "-expand_z" | "--expand_z" | "+expand_z")
 		    COMPREPLY=( $(compgen -W "size_z>=0,_boundary_conditions={_0=dirichlet_|_1=neumann_|_2=periodic_|_3=mirror_} >") ); return 0;;
+		"extract" | "-extract" | "--extract" | "+extract")
+		    COMPREPLY=( $(compgen -W "\"condition\",_output_type={_0=xyzc-coordinates_|_1=xyz-coordinates_|_2=scalar-values_|_3=vector-values_} >") ); return 0;;
 		"extract_region" | "-extract_region" | "--extract_region" | "+extract_region")
 		    COMPREPLY=( $(compgen -W "[label_image],_extract_xyz_coordinates={_0_|_1_},_label_1,...,_label_M >") ); return 0;;
 		"montage" | "-montage" | "--montage" | "+montage")
@@ -755,7 +761,7 @@ _gmic()
 		"arrow3d" | "-arrow3d" | "--arrow3d" | "+arrow3d")
 		    COMPREPLY=( $(compgen -W "x0,y0,z0,x1,y1,z1,_radius[%]>=0,_head_length[%]>=0,_head_radius[%]>=0 >") ); return 0;;
 		"axes3d" | "-axes3d" | "--axes3d" | "+axes3d")
-		    COMPREPLY=( $(compgen -W "_size_x,_size_y,_size_z,_font_size>0,_label_x,_label_y,_label_z >") ); return 0;;
+		    COMPREPLY=( $(compgen -W "_size_x,_size_y,_size_z,_font_size>0,_label_x,_label_y,_label_z,_is_origin={_0=no_|_1=yes_} >") ); return 0;;
 		"box3d" | "-box3d" | "--box3d" | "+box3d")
 		    COMPREPLY=( $(compgen -W "_size_x,_size_y,_size_z >") ); return 0;;
 		"circle3d" | "-circle3d" | "--circle3d" | "+circle3d")
@@ -1036,18 +1042,20 @@ _gmic()
 		    COMPREPLY=( $(compgen -W "_smoothness>=0 >") ); return 0;;
 		"rodilius" | "-rodilius" | "--rodilius" | "+rodilius")
 		    COMPREPLY=( $(compgen -W "0<=_amplitude<=100,_0<=thickness<=100,_sharpness>=0,_nb_orientations>0,_offset,_color_mode={_0=darker_|_1=brighter_} >") ); return 0;;
-		"stained_glass" | "-stained_glass" | "--stained_glass" | "+stained_glass")
-		    COMPREPLY=( $(compgen -W "_edges[%]>=0,_shading>=0,_is_thin_separators={_0_|_1_} >") ); return 0;;
-		"stars" | "-stars" | "--stars" | "+stars")
-		    COMPREPLY=( $(compgen -W "_density[%]>=0,_depth>=0,_size>0,_nb_branches>=1,0<=_thickness<=1,_smoothness[%]>=0,_R,_G,_B,_opacity >") ); return 0;;
 		"sketchbw" | "-sketchbw" | "--sketchbw" | "+sketchbw")
 		    COMPREPLY=( $(compgen -W "_nb_angles>0,_start_angle,_angle_range>=0,_length>=0,_threshold>=0,_opacity,_bgfactor>=0,_density>0,_sharpness>=0,_anisotropy>=0,_smoothness>=0,_coherence>=0,_is_boost={_0_|_1_},_is_curved={_0_|_1_} >") ); return 0;;
 		"sponge" | "-sponge" | "--sponge" | "+sponge")
 		    COMPREPLY=( $(compgen -W "_size>0 >") ); return 0;;
+		"stained_glass" | "-stained_glass" | "--stained_glass" | "+stained_glass")
+		    COMPREPLY=( $(compgen -W "_edges[%]>=0,_shading>=0,_is_thin_separators={_0_|_1_} >") ); return 0;;
+		"stars" | "-stars" | "--stars" | "+stars")
+		    COMPREPLY=( $(compgen -W "_density[%]>=0,_depth>=0,_size>0,_nb_branches>=1,0<=_thickness<=1,_smoothness[%]>=0,_R,_G,_B,_opacity >") ); return 0;;
 		"stencil" | "-stencil" | "--stencil" | "+stencil")
 		    COMPREPLY=( $(compgen -W "_radius[%]>=0,_smoothness>=0,_iterations>=0 >") ); return 0;;
 		"stencilbw" | "-stencilbw" | "--stencilbw" | "+stencilbw")
 		    COMPREPLY=( $(compgen -W "_edges>=0,_smoothness>=0 >") ); return 0;;
+		"stylize" | "-stylize" | "--stylize" | "+stylize")
+		    COMPREPLY=( $(compgen -W "[style_image],_fidelity_finest,_fidelity_coarsest,_fidelity_smoothness_finest>=0,_fidelity_smoothnes_coarsest>=0,0<=_fidelity_chroma<=1,_init_type,_init_resolution>=0,init_max_gradient>=0,_patchsize_analysis>0,_patchsize_synthesis>0,_patchsize_synthesis_final>0,_nb_matches_finest>=0,_nb_matches_coarsest>=0,_penalize_repetitions>=0,_matching_precision>=0,_scale_factor>1,_skip_finest_scales>=0,\"image_matching_command\" >") ); return 0;;
 		"tetris" | "-tetris" | "--tetris" | "+tetris")
 		    COMPREPLY=( $(compgen -W "_scale>0 >") ); return 0;;
 		"warhol" | "-warhol" | "--warhol" | "+warhol")
@@ -1178,6 +1186,26 @@ _gmic()
 		    COMPREPLY=( $(compgen -W "_nb_frames>=2,_nb_xtiles>0,_nb_ytiles>0,_axis_x,_axis_y,_axis_z,_is_antialias={_0_|_1_} >") ); return 0;;
 		"video2files" | "-video2files" | "--video2files" | "+video2files")
 		    COMPREPLY=( $(compgen -W "input_filename,_output_filename,_first_frame>=0,_last_frame={_>=0_|_-1=last_},_frame_step>=1 >") ); return 0;;
+		"nn_new_input" | "-nn_new_input" | "--nn_new_input" | "+nn_new_input")
+		    COMPREPLY=( $(compgen -W "module_name,width,_height,_spectrum >") ); return 0;;
+		"nn_new_fullyconnected" | "-nn_new_fullyconnected" | "--nn_new_fullyconnected" | "+nn_new_fullyconnected")
+		    COMPREPLY=( $(compgen -W "module_name,previous_module_name,nb_neurons,activation_function >") ); return 0;;
+		"nn_propagate_batch" | "-nn_propagate_batch" | "--nn_propagate_batch" | "+nn_propagate_batch")
+		    COMPREPLY=( $(compgen -W "module_name,[inputs_zstacked] >") ); return 0;;
+		"nn_propagate" | "-nn_propagate" | "--nn_propagate" | "+nn_propagate")
+		    COMPREPLY=( $(compgen -W "module_name >") ); return 0;;
+		"nn_backpropagate_batch" | "-nn_backpropagate_batch" | "--nn_backpropagate_batch" | "+nn_backpropagate_batch")
+		    COMPREPLY=( $(compgen -W "module_name,[inputs_zstacked],[expected_outputs_zstacked],_insert_network_outputs={_0_|_1_},_loss_function >") ); return 0;;
+		"nn_backpropagate" | "-nn_backpropagate" | "--nn_backpropagate" | "+nn_backpropagate")
+		    COMPREPLY=( $(compgen -W "module_name,[expected_output],_loss_function >") ); return 0;;
+		"nn_update" | "-nn_update" | "--nn_update" | "+nn_update")
+		    COMPREPLY=( $(compgen -W "module_name,epsilon >") ); return 0;;
+		"nn_output" | "-nn_output" | "--nn_output" | "+nn_output")
+		    COMPREPLY=( $(compgen -W "module_name,filename >") ); return 0;;
+		"nn_serialize" | "-nn_serialize" | "--nn_serialize" | "+nn_serialize")
+		    COMPREPLY=( $(compgen -W "module_name,_is_compressed={_0_|_1_} >") ); return 0;;
+		"nn_input" | "-nn_input" | "--nn_input" | "+nn_input")
+		    COMPREPLY=( $(compgen -W "\"filename\" >") ); return 0;;
 		"alert" | "-alert" | "--alert" | "+alert")
 		    COMPREPLY=( $(compgen -W "_title,_message,_label_button1,_label_button2,... >") ); return 0;;
 		"arg" | "-arg" | "--arg" | "+arg")
@@ -1196,6 +1224,8 @@ _gmic()
 		    COMPREPLY=( $(compgen -W "binary_int1,... >") ); return 0;;
 		"bin2dec" | "-bin2dec" | "--bin2dec" | "+bin2dec")
 		    COMPREPLY=( $(compgen -W "binary_int1,... >") ); return 0;;
+		"covariance_colors" | "-covariance_colors" | "--covariance_colors" | "+covariance_colors")
+		    COMPREPLY=( $(compgen -W "_avg_outvarname >") ); return 0;;
 		"dec" | "-dec" | "--dec" | "+dec")
 		    COMPREPLY=( $(compgen -W "decimal_int1,... >") ); return 0;;
 		"dec2str" | "-dec2str" | "--dec2str" | "+dec2str")
@@ -1232,6 +1262,8 @@ _gmic()
 		    COMPREPLY=( $(compgen -W "\"hexadecimal_string\" >") ); return 0;;
 		"hex2str" | "-hex2str" | "--hex2str" | "+hex2str")
 		    COMPREPLY=( $(compgen -W "hexadecimal_string >") ); return 0;;
+		"img2base64" | "-img2base64" | "--img2base64" | "+img2base64")
+		    COMPREPLY=( $(compgen -W "_encoding={_0=base64_|_1=base64url_} >") ); return 0;;
 		"img2text" | "-img2text" | "--img2text" | "+img2text")
 		    COMPREPLY=( $(compgen -W "_line_separator >") ); return 0;;
 		"is_change" | "-is_change" | "--is_change" | "+is_change")
@@ -1244,6 +1276,8 @@ _gmic()
 		    COMPREPLY=( $(compgen -W "string >") ); return 0;;
 		"is_percent" | "-is_percent" | "--is_percent" | "+is_percent")
 		    COMPREPLY=( $(compgen -W "string >") ); return 0;;
+		"is_variable_name" | "-is_variable_name" | "--is_variable_name" | "+is_variable_name")
+		    COMPREPLY=( $(compgen -W "\"str\" >") ); return 0;;
 		"named" | "-named" | "--named" | "+named")
 		    COMPREPLY=( $(compgen -W "_mode,\"name1\",\"name2\",... >") ); return 0;;
 		"normalize_filename" | "-normalize_filename" | "--normalize_filename" | "+normalize_filename")
@@ -1274,10 +1308,6 @@ _gmic()
 		    COMPREPLY=( $(compgen -W "\"string\" >") ); return 0;;
 		"uchar2base64" | "-uchar2base64" | "--uchar2base64" | "+uchar2base64")
 		    COMPREPLY=( $(compgen -W "_encoding={_0=base64_|_1=base64url_} >") ); return 0;;
-		"img2base64" | "-img2base64" | "--img2base64" | "+img2base64")
-		    COMPREPLY=( $(compgen -W "_encoding={_0=base64_|_1=base64url_} >") ); return 0;;
-		"covariance_colors" | "-covariance_colors" | "--covariance_colors" | "+covariance_colors")
-		    COMPREPLY=( $(compgen -W "_avg_outvarname >") ); return 0;;
 		"demo" | "-demo" | "--demo" | "+demo")
 		    COMPREPLY=( $(compgen -W "_run_in_parallel={_0=no_|_1=yes_|_2=auto_} >") ); return 0;;
 		"x_color_curves" | "-x_color_curves" | "--x_color_curves" | "+x_color_curves")
@@ -1307,7 +1337,7 @@ _gmic()
 		"x_select_palette" | "-x_select_palette" | "--x_select_palette" | "+x_select_palette")
 		    COMPREPLY=( $(compgen -W "_variable_name,_number_of_columns={_0=auto_|_>0_} >") ); return 0;;
 		"x_warp" | "-x_warp" | "--x_warp" | "+x_warp")
-		    COMPREPLY=( $(compgen -W "_nb_keypoints_xgrid>=2,_nb_keypoints_ygrid>=2,_nb_keypoints_contours>=0,_preview_fidelity={_0=coarsest_|_1=coarse_|_2=normal_|_3=fine_|_4=finest_} >") ); return 0;;
+		    COMPREPLY=( $(compgen -W "_nb_keypoints_xgrid>=2,_nb_keypoints_ygrid>=2,_nb_keypoints_contours>=0,_preview_fidelity={_0=coarsest_|_1=coarse_|_2=normal_|_3=fine_|_4=finest_},_[background_image],0<=_background_opacity<=1 >") ); return 0;;
 		"x_whirl" | "-x_whirl" | "--x_whirl" | "+x_whirl")
 		    COMPREPLY=( $(compgen -W "_opacity>=0 >") ); return 0;;
 		"h" | "-h" | "--h" | "+h") COMPREPLY=( $(compgen -W "$coms" -- "$cur") ); return 0;;

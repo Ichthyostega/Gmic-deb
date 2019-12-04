@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -45,8 +45,8 @@
  *
  */
 
-#ifndef _WEBCAMGRABBER_H_
-#define _WEBCAMGRABBER_H_
+#ifndef ZART_WEBCAMSOURCE_H
+#define ZART_WEBCAMSOURCE_H
 
 #include <QList>
 #include <QSize>
@@ -74,7 +74,10 @@ public:
   static const QList<int> & getCachedWebcamList();
   static int getFirstUnusedWebcam();
   static bool isWebcamUnused(int index);
+  static bool canOpenDeviceFile(int index);
   static void retrieveWebcamResolutions(const QList<int> & camList, QSplashScreen * splashScreen = 0, QStatusBar * statusBar = 0);
+  static void retrieveWebcamResolutionsV4L2(const QList<int> & camList);
+  static void retrieveWebcamResolutionsOpenCV(const QList<int> & camList, QSplashScreen * splashScreen = 0, QStatusBar * statusBar = 0);
   static const QList<QSize> & webcamResolutions(int index);
   static void clearSavedSettings();
   static QString osName();
@@ -85,6 +88,8 @@ private:
   QSize _captureSize;
   static QList<int> _webcamList;
   static QVector<QList<QSize>> _webcamResolutions;
+
+  static bool captureIsValid(const cv::VideoCapture & capture, int index);
 };
 
-#endif
+#endif // ZART_WEBCAMSOURCE_H

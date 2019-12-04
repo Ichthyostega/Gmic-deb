@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -43,8 +43,8 @@
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL license and that you accept its terms.
  */
-#ifndef _CHOICEPARAMETER_H_
-#define _CHOICEPARAMETER_H_
+#ifndef ZART_CHOICEPARAMETER_H
+#define ZART_CHOICEPARAMETER_H
 
 #include <QDomNode>
 #include <QString>
@@ -76,4 +76,4 @@ private:
   QComboBox * _comboBox;
 };
 
-#endif // _CHOICEPARAMETER_H_
+#endif // ZART_CHOICEPARAMETER_H

@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -184,8 +184,6 @@ void FilterThread::run()
           call = QString(" -zart %1").arg(_arguments.object());
         _arguments.unlock();
         c += call;
-
-        // SHOW(c);
 
         _gmic->run(c.toLatin1().constData(), _gmic_images, _gmic_images_names);
         lastCommandDuration = timeMeasure.elapsed();

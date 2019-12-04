@@ -9,13 +9,13 @@
 ;;                 ( https://tschumperle.users.greyc.fr/ )
 ;;
 ;;   License     : CeCILL v2.0
-;;                 ( http://www.cecill.info/licences/Licence_CeCILL_V2-en.html )
+;;                 ( http://cecill.info/licences/Licence_CeCILL_V2-en.html )
 ;;
 ;;   This software is governed by the CeCILL  license under French law and
 ;;   abiding by the rules of distribution of free software.  You can  use,
 ;;   modify and/ or redistribute the software under the terms of the CeCILL
 ;;   license as circulated by CEA, CNRS and INRIA at the following URL
-;;   "http://www.cecill.info".
+;;   "http://cecill.info".
 ;;
 ;;   As a counterpart to the access to the source code and  rights to copy,
 ;;   modify and redistribute granted by the license, users are provided only
@@ -53,7 +53,6 @@
     ;; Render a 3D mapped cube from the active layer, using G'MIC.
     (plug-in-gmic-qt 1 img drawable 1 0
                   (string-append
-                   "v - " ; To have a silent output. Remove it to display errors from the G'MIC interpreter on stderr.
                    "fx_imageobject3d 1,{w},{h},0.5,"
                    (number->string x) ","
                    (number->string y) ","
@@ -61,7 +60,7 @@
                    ))
 
     ;; Merge two layers together, using the G'MIC 'edges' mode (this layer mode does not exist by default in GIMP).
-    (plug-in-gmic-qt 1 img drawable 2 0 "v - blend_edges 1")
+    (plug-in-gmic-qt 1 img drawable 2 0 "blend_edges 1")
 
     )
 

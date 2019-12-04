@@ -17,17 +17,17 @@
  #
  #                CeCILL-C
  #                The CeCILL-C license is close to the GNU LGPL.
- #                ( http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html )
+ #                ( http://cecill.info/licences/Licence_CeCILL-C_V1-en.html )
  #
  #            or  CeCILL v2.1
  #                The CeCILL license is compatible with the GNU GPL.
- #                ( http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html )
+ #                ( http://cecill.info/licences/Licence_CeCILL_V2.1-en.html )
  #
  #  This software is governed either by the CeCILL or the CeCILL-C license
  #  under French law and abiding by the rules of distribution of free software.
  #  You can  use, modify and or redistribute the software under the terms of
  #  the CeCILL or CeCILL-C licenses as circulated by CEA, CNRS and INRIA
- #  at the following URL: "http://www.cecill.info".
+ #  at the following URL: "http://cecill.info".
  #
  #  As a counterpart to the access to the source code and  rights to copy,
  #  modify and redistribute granted by the license, users are provided only
@@ -52,7 +52,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 270
+#define gmic_version 280
 
 #ifndef gmic_pixel_type
 #define gmic_pixel_type float
@@ -175,9 +175,15 @@ inline bool *gmic_abort_ptr(bool *const p_is_abort);
 #define cimg_abort_test if (*gmic_is_abort) throw CImgAbortException()
 #endif // #ifdef cimg_use_abort
 
-inline double gmic_mp_ext(char *const str, void *const p_list);
-#define cimg_mp_ext_function(str) return ::gmic_mp_ext(str._data,&mp.listout)
+template<typename T>
+inline double gmic_mp_call(char *const str, void *const p_list, const T& pixel_type);
+#define cimg_mp_call_function(str) return ::gmic_mp_call(str,&mp.listout,(T)0)
 
+template<typename Ts, typename T>
+inline double gmic_mp_store(const Ts *const ptr,
+                            const unsigned int w, const unsigned int h, const unsigned int d, const unsigned int s,
+                            const char *const str, void *const p_list, const T& pixel_type);
+#define cimg_mp_store_function(ptr,w,h,d,s,str) return ::gmic_mp_store(ptr,w,h,d,s,str,&mp.listout,(T)0)
 #ifndef cimg_display
 #define cimg_display 0
 #endif // #ifndef cimg_display
@@ -198,7 +204,8 @@ inline double gmic_mp_ext(char *const str, void *const p_list);
 #endif // #if cimg_OS==2
 
 // Define some special character codes used for replacement in double quoted strings.
-const char gmic_dollar = 23, gmic_lbrace = 24, gmic_rbrace = 25, gmic_comma = 26, gmic_dquote = 28, gmic_newline = 29;
+const char gmic_dollar = 23, gmic_lbrace = 24, gmic_rbrace = 25, gmic_comma = 26, gmic_dquote = 28,
+  gmic_store = 29; // <- this one is only used in variable names.
 
 #endif // #ifndef gmic_build
 
@@ -216,10 +223,12 @@ struct gmic {
   // Constructors.
   gmic();
 
+  template<typename T=gmic_pixel_type>
   gmic(const char *const commands_line,
        const char *const custom_commands=0,
        const bool include_stdlib=true,
-       float *const p_progress=0, bool *const p_is_abort=0);
+       float *const p_progress=0, bool *const p_is_abort=0,
+       const T& pixel_type=(T)0);
 
   template<typename T>
   gmic(const char *const commands_line,
@@ -227,8 +236,10 @@ struct gmic {
        const bool include_stdlib=true, float *const p_progress=0, bool *const p_is_abort=0);
 
   // Run G'MIC pipeline on an already-constructed object.
+  template<typename T=gmic_pixel_type>
   gmic& run(const char *const commands_line,
-            float *const p_progress=0, bool *const p_is_abort=0);
+            float *const p_progress=0, bool *const p_is_abort=0,
+            const T& pixel_type=(T)0);
 
   template<typename T>
   gmic& run(const char *const commands_line,
@@ -243,6 +254,12 @@ struct gmic {
   // Functions below should be considered as *private*, and should not be used in user's code.
   template<typename T>
   static bool search_sorted(const char *const str, const T& list, const unsigned int length, unsigned int &out_ind);
+  template<typename T>
+  static double mp_call(char *const str, void *const p_list, const T& pixel_type);
+  template<typename Ts, typename T>
+  static double mp_store(const Ts *const ptr,
+                         const unsigned int w, const unsigned int h, const unsigned int d, const unsigned int s,
+                         const char *const str, void *const p_list, const T& pixel_type);
   static int _levenshtein(const char *const s, const char *const t,
                           gmic_image<int>& d, const int i, const int j);
   static int levenshtein(const char *const s, const char *const t);
@@ -254,7 +271,6 @@ struct gmic {
   static char *strreplace_bw(char *const str);
   static unsigned int strescape(const char *const str, char *const res);
   static const gmic_image<char>& decompress_stdlib();
-  static double mp_ext(char *const str, void *const p_list);
   static bool *abort_ptr(bool *const p_is_abort);
 
   template<typename T>
@@ -265,6 +281,8 @@ struct gmic {
 
   const char *set_variable(const char *const name, const char *const value,
                            const char operation='=',
+                           const unsigned int *const variables_sizes=0);
+  const char *set_variable(const char *const name, const gmic_image<unsigned char>& value,
                            const unsigned int *const variables_sizes=0);
 
   gmic& add_commands(const char *const data_commands, const char *const commands_file=0,
@@ -280,7 +298,7 @@ struct gmic {
 
   gmic_image<unsigned int> selection2cimg(const char *const string, const unsigned int indice_max,
                                           const gmic_list<char>& names, const char *const command,
-                                          const bool is_selection=true, gmic_image<char> *const new_name=0);
+                                          const bool is_selection=true);
 
   gmic_image<char>& selection2string(const gmic_image<unsigned int>& selection,
                                      const gmic_list<char>& images_names,
@@ -307,7 +325,7 @@ struct gmic {
                                    const bool is_image_expr);
 
   template<typename T>
-  void wait_threads(void *const p_gmic_threads, const bool try_abort, const T foo);
+  void wait_threads(void *const p_gmic_threads, const bool try_abort, const T& pixel_type);
 
   template<typename T>
   gmic& print(const gmic_list<T>& list, const gmic_image<unsigned int> *const callstack_selection,
@@ -403,15 +421,15 @@ struct gmic {
 // Class 'gmic_exception'.
 //------------------------
 struct gmic_exception {
-  gmic_image<char> _command_help, _message;
+  gmic_image<char> _command, _message;
 
   // Constructors.
   gmic_exception() {}
 
   gmic_exception(const char *const command, const char *const message) {
     if (command) {
-      _command_help.assign((unsigned int)std::strlen(command) + 1,1,1,1);
-      std::strcpy(_command_help._data,command);
+      _command.assign((unsigned int)std::strlen(command) + 1,1,1,1);
+      std::strcpy(_command._data,command);
     }
     if (message) {
       _message.assign((unsigned int)std::strlen(message) + 1,1,1,1);
@@ -424,12 +442,21 @@ struct gmic_exception {
     return _message._data?_message._data:"";
   }
 
-  const char *command_help() const {
-    return _command_help._data?_command_help._data:"";
+  const char *command() const {
+    return _command._data?_command._data:"";
   }
 };
 
-inline double gmic_mp_ext(char *const str, void *const p_list) { return gmic::mp_ext(str,p_list); }
+template<typename T>
+inline double gmic_mp_call(char *const str, void *const p_list, const T& pixel_type) {
+  return gmic::mp_call(str,p_list,pixel_type);
+}
+template<typename Ts, typename T>
+inline double gmic_mp_store(const Ts *const ptr,
+                            const unsigned int w, const unsigned int h, const unsigned int d, const unsigned int s,
+                            const char *const str, void *const p_list, const T& pixel_type) {
+  return gmic::mp_store(ptr,w,h,d,s,str,p_list,pixel_type);
+}
 inline bool *gmic_abort_ptr(bool *const p_is_abort) { return gmic::abort_ptr(p_is_abort); }
 
 #endif // #ifndef gmic_version

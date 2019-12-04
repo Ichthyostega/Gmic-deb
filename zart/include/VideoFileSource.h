@@ -12,7 +12,7 @@
  *
  * This software is a computer program whose purpose is to demonstrate
  * the possibilities of the GMIC image processing language by offering the
- * choice of several manipulations on a video stream aquired from a webcam. In
+ * choice of several manipulations on a video stream acquired from a webcam. In
  * other words, ZArt is a GUI for G'MIC real-time manipulations on the output
  * of a webcam.
  *
@@ -44,8 +44,8 @@
  * knowledge of the CeCILL license and that you accept its terms.
  *
  */
-#ifndef _VIDEOFILESOURCE_H_
-#define _VIDEOFILESOURCE_H_
+#ifndef ZART_VIDEOFILESOURCE_H
+#define ZART_VIDEOFILESOURCE_H
 
 #include <QString>
 #include <opencv2/opencv.hpp>
@@ -69,4 +69,4 @@ private:
   bool _loop;
 };
 
-#endif
+#endif // ZART_VIDEOFILESOURCE_H

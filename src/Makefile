@@ -21,17 +21,17 @@
 #
 #                CeCILL-C
 #                The CeCILL-C license is close to the GNU LGPL.
-#                ( http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html )
+#                ( http://cecill.info/licences/Licence_CeCILL-C_V1-en.html )
 #
 #            or  CeCILL v2.1
 #                The CeCILL license is compatible with the GNU GPL.
-#                ( http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html )
+#                ( http://cecill.info/licences/Licence_CeCILL_V2.1-en.html )
 #
 #  This software is governed either by the CeCILL or the CeCILL-C license
 #  under French law and abiding by the rules of distribution of free software.
 #  You can  use, modify and or redistribute the software under the terms of
 #  the CeCILL or CeCILL-C licenses as circulated by CEA, CNRS and INRIA
-#  at the following URL: "http://www.cecill.info".
+#  at the following URL: "http://cecill.info".
 #
 #  As a counterpart to the access to the source code and  rights to copy,
 #  modify and redistribute granted by the license, users are provided only
@@ -245,7 +245,7 @@ endif
 # Enable faster X11 display, using XShm extension.
 # (ftp://www.x.org/pub/X11R7.7/doc/man/man3/XShm.3.xhtml)
 XSHM_CFLAGS = -Dcimg_use_xshm $(shell pkg-config --cflags xcb-shm)
-XSHM_LIBS = $(shell pkg-config --libs xcb-shm || echo -L$(USR)/X11R6/lib -lXext)
+XSHM_LIBS = $(shell pkg-config --libs xcb-shm || echo -L$(USR)/X11R6/lib) -lXext
 
 # Enable image display, using GDI32 (Windows).
 GDI32_CFLAGS = -Dcimg_display=2
@@ -342,7 +342,7 @@ native:
 GMIC_CLI_CFLAGS = $(MANDATORY_CFLAGS) $(ABORT_CFLAGS) $(PARALLEL_CFLAGS) $(EIGEN_CFLAGS) $(FFTW_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS)
 GMIC_CLI_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(EIGEN_LIBS) $(FFTW_LIBS) $(CURL_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(TIFF_LIBS)
 ifeq ($(OS),Unix) # Unix.
-GMIC_CLI_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS) $(OPENEXR_CFLAGS) $(OPENCV_CFLAGS) # $(XSHM_CFLAGS) $(MAGICK_CFLAGS)
+GMIC_CLI_CFLAGS += $(OPENMP_CFLAGS) $(X11_CFLAGS) $(OPENEXR_CFLAGS) $(OPENCV_CFLAGS) # $(XSHM_CFLAGS) # $(MAGICK_CFLAGS)
 GMIC_CLI_LIBS += $(OPENMP_LIBS) $(X11_LIBS) $(OPENEXR_LIBS) $(OPENCV_LIBS) # $(XSHM_LIBS) # $(MAGICK_LIBS)
 else
 ifeq ($(OS),Darwin) # MacOSX.
@@ -404,10 +404,10 @@ lib:
 _lib: libgmic.o use_libgmic.cpp
 	ar rcs libgmic.a libgmic.o
 ifeq ($(OS),Darwin)
-	$(CXX) -shared -o libgmic.so libgmic.o $(LIBS)
+	$(CXX) -shared -std=c++11 -pedantic -o libgmic.so libgmic.o $(LIBS)
 else
-	$(CXX) -shared -Wl,-soname,libgmic.so.$(VERSION1) -o libgmic.so libgmic.o $(LIBS)
-	$(CXX) -o use_libgmic use_libgmic.cpp -L. -lgmic $(LIBS)
+	$(CXX) -shared -std=c++11 -pedantic -Wl,-soname,libgmic.so.$(VERSION1) -o libgmic.so libgmic.o $(LIBS)
+	$(CXX) -o use_libgmic use_libgmic.cpp -std=c++11 -pedantic -L. -lgmic $(LIBS)
 endif
 
 libgmic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
@@ -638,17 +638,17 @@ do_gmic_stdlib.h:
  #\n\
  #                CeCILL-C\n\
  #                The CeCILL-C license is close to the GNU LGPL.\n\
- #                ( http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html )\n\
+ #                ( http://cecill.info/licences/Licence_CeCILL-C_V1-en.html )\n\
  #\n\
  #            or  CeCILL v2.1\n\
  #                The CeCILL license is compatible with the GNU GPL.\n\
- #                ( http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html )\n\
+ #                ( http://cecill.info/licences/Licence_CeCILL_V2.1-en.html )\n\
  #\n\
  #  This software is governed either by the CeCILL or the CeCILL-C license\n\
  #  under French law and abiding by the rules of distribution of free software.\n\
  #  You can  use, modify and or redistribute the software under the terms of\n\
  #  the CeCILL or CeCILL-C licenses as circulated by CEA, CNRS and INRIA\n\
- #  at the following URL: \"http://www.cecill.info\".\n\
+ #  at the following URL: \"http://cecill.info\".\n\
  #\n\
  #  As a counterpart to the access to the source code and  rights to copy,\n\
  #  modify and redistribute granted by the license, users are provided only\n\

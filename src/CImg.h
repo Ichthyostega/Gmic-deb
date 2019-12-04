@@ -18,17 +18,17 @@
  #
  #                    CeCILL-C
  #                    The CeCILL-C license is close to the GNU LGPL.
- #                    ( http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html )
+ #                    ( http://cecill.info/licences/Licence_CeCILL-C_V1-en.html )
  #
  #                or  CeCILL v2.1
  #                    The CeCILL license is compatible with the GNU GPL.
- #                    ( http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html )
+ #                    ( http://cecill.info/licences/Licence_CeCILL_V2.1-en.html )
  #
  #  This software is governed either by the CeCILL or the CeCILL-C license
  #  under French law and abiding by the rules of distribution of free software.
  #  You can  use, modify and or redistribute the software under the terms of
  #  the CeCILL or CeCILL-C licenses as circulated by CEA, CNRS and INRIA
- #  at the following URL: "http://www.cecill.info".
+ #  at the following URL: "http://cecill.info".
  #
  #  As a counterpart to the access to the source code and  rights to copy,
  #  modify and redistribute granted by the license, users are provided only
@@ -54,7 +54,7 @@
 
 // Set version number of the library.
 #ifndef cimg_version
-#define cimg_version 270
+#define cimg_version 280
 
 /*-----------------------------------------------------------
  #
@@ -649,7 +649,7 @@ extern "C" {
 // Macros to define program usage, and retrieve command line arguments.
 #define cimg_usage(usage) cimg_library_suffixed::cimg::option((char*)0,argc,argv,(char*)0,usage,false)
 #define cimg_help(str) cimg_library_suffixed::cimg::option((char*)0,argc,argv,str,(char*)0)
-#define cimg_option(name,defaut,usage) cimg_library_suffixed::cimg::option(name,argc,argv,defaut,usage)
+#define cimg_option(name,_default,usage) cimg_library_suffixed::cimg::option(name,argc,argv,_default,usage)
 
 // Macros to define and manipulate local neighborhoods.
 #define CImg_2x2(I,T) T I[4]; \
@@ -2260,7 +2260,7 @@ extern "C" {
 /**
    This namespace is defined to avoid functions and class names collisions
    that could happen with the inclusion of other C++ header files.
-   Anyway, it should not happen often and you should reasonnably start most of your
+   Anyway, it should not happen often and you should reasonably start most of your
    \CImg-based programs with
    \code
    #include "CImg.h"
@@ -2277,7 +2277,7 @@ namespace cimg_library_suffixed {
   struct CImgException;
 
   // Declare cimg:: namespace.
-  // This is an uncomplete namespace definition here. It only contains some
+  // This is an incomplete namespace definition here. It only contains some
   // necessary stuff to ensure a correct declaration order of the classes and functions
   // defined afterwards.
   namespace cimg {
@@ -2460,10 +2460,11 @@ namespace cimg_library_suffixed {
 #endif
 
     // Display a simple dialog box, and wait for the user's response.
-    inline int dialog(const char *const title, const char *const msg, const char *const button1_label="OK",
-                      const char *const button2_label=0, const char *const button3_label=0,
-                      const char *const button4_label=0, const char *const button5_label=0,
-                      const char *const button6_label=0, const bool centering=false);
+    inline int dialog(const char *const title, const char *const msg,
+                      const char *const button1_label="OK", const char *const button2_label=0,
+                      const char *const button3_label=0, const char *const button4_label=0,
+                      const char *const button5_label=0, const char *const button6_label=0,
+                      const bool centering=false);
 
     // Evaluate math expression.
     inline double eval(const char *const expression,
@@ -2504,7 +2505,7 @@ namespace cimg_library_suffixed {
       const float value = img.at(0);   // Try to read first pixel value (does not exist)
       \endcode
 
-      - \b CImgIOException: Thrown when an error occured when trying to load or save image files.
+      - \b CImgIOException: Thrown when an error occurred when trying to load or save image files.
       This happens when trying to read files that do not exist or with invalid formats.
       For instance, the following example throws a \c CImgIOException:
       \code
@@ -3082,7 +3083,7 @@ namespace cimg_library_suffixed {
 
     // Define variables used internally by CImg.
 #if cimg_display==1
-    struct X11_info {
+    struct X11_static {
       unsigned int nb_wins;
       pthread_t *events_thread;
       pthread_cond_t wait_event;
@@ -3100,7 +3101,7 @@ namespace cimg_library_suffixed {
       unsigned int curr_resolution;
       unsigned int nb_resolutions;
 #endif
-      X11_info():nb_wins(0),events_thread(0),display(0),
+      X11_static():nb_wins(0),events_thread(0),display(0),
                  nb_bits(0),is_blue_first(false),is_shm_enabled(false),byte_order(false) {
 #ifdef __FreeBSD__
         XInitThreads();
@@ -3116,7 +3117,7 @@ namespace cimg_library_suffixed {
 #endif
       }
 
-      ~X11_info() {
+      ~X11_static() {
         delete[] wins;
         /*
           if (events_thread) {
@@ -3129,75 +3130,75 @@ namespace cimg_library_suffixed {
           pthread_mutex_destroy(&wait_event_mutex);
         */
       }
-    }; // struct X11_info { ...
+    }; // struct X11_static { ...
 #if defined(cimg_module)
-    X11_info& X11_attr();
+    X11_static& X11_attr();
 #elif defined(cimg_main)
-    X11_info& X11_attr() { static X11_info val; return val; }
+    X11_static& X11_attr() { static X11_static val; return val; }
 #else
-    inline X11_info& X11_attr() { static X11_info val; return val; }
+    inline X11_static& X11_attr() { static X11_static val; return val; }
 #endif
 
 #elif cimg_display==2
-    struct Win32_info {
+    struct Win32_static {
       HANDLE wait_event;
-      Win32_info() { wait_event = CreateEvent(0,FALSE,FALSE,0); }
-    }; // struct Win32_info { ...
+      Win32_static() { wait_event = CreateEvent(0,FALSE,FALSE,0); }
+    }; // struct Win32_static { ...
 #if defined(cimg_module)
-    Win32_info& Win32_attr();
+    Win32_static& Win32_attr();
 #elif defined(cimg_main)
-    Win32_info& Win32_attr() { static Win32_info val; return val; }
+    Win32_static& Win32_attr() { static Win32_static val; return val; }
 #else
-    inline Win32_info& Win32_attr() { static Win32_info val; return val; }
+    inline Win32_static& Win32_attr() { static Win32_static val; return val; }
 #endif
 #endif
 #define cimg_lock_display() cimg::mutex(15)
 #define cimg_unlock_display() cimg::mutex(15,0)
 
-    struct Mutex_info {
+    struct Mutex_static {
 #ifdef _PTHREAD_H
       pthread_mutex_t mutex[32];
-      Mutex_info() { for (unsigned int i = 0; i<32; ++i) pthread_mutex_init(&mutex[i],0); }
+      Mutex_static() { for (unsigned int i = 0; i<32; ++i) pthread_mutex_init(&mutex[i],0); }
       void lock(const unsigned int n) { pthread_mutex_lock(&mutex[n]); }
       void unlock(const unsigned int n) { pthread_mutex_unlock(&mutex[n]); }
       int trylock(const unsigned int n) { return pthread_mutex_trylock(&mutex[n]); }
 #elif cimg_OS==2
       HANDLE mutex[32];
-      Mutex_info() { for (unsigned int i = 0; i<32; ++i) mutex[i] = CreateMutex(0,FALSE,0); }
+      Mutex_static() { for (unsigned int i = 0; i<32; ++i) mutex[i] = CreateMutex(0,FALSE,0); }
       void lock(const unsigned int n) { WaitForSingleObject(mutex[n],INFINITE); }
       void unlock(const unsigned int n) { ReleaseMutex(mutex[n]); }
       int trylock(const unsigned int) { return 0; }
 #else
-      Mutex_info() {}
+      Mutex_static() {}
       void lock(const unsigned int) {}
       void unlock(const unsigned int) {}
       int trylock(const unsigned int) { return 0; }
 #endif
-    }; // struct Mutex_info { ...
+    }; // struct Mutex_static { ...
 #if defined(cimg_module)
-    Mutex_info& Mutex_attr();
+    Mutex_static& Mutex_attr();
 #elif defined(cimg_main)
-    Mutex_info& Mutex_attr() { static Mutex_info val; return val; }
+    Mutex_static& Mutex_attr() { static Mutex_static val; return val; }
 #else
-    inline Mutex_info& Mutex_attr() { static Mutex_info val; return val; }
+    inline Mutex_static& Mutex_attr() { static Mutex_static val; return val; }
 #endif
 
 #if defined(cimg_use_magick)
-    struct Magick_info {
-      Magick_info() {
+    struct Magick_static {
+      Magick_static() {
         Magick::InitializeMagick("");
       }
-    }; // struct Magick_info { ...
-    static Magick_info _Magick_info;
+    }; // struct Magick_static { ...
+    static Magick_static _Magick_static;
 #endif
 
-#if defined(cimg_use_fftw3)
-    struct FFTW3_info {
-      FFTW3_info() {
+#if defined(cimg_use_fftw3) && !defined(cimg_use_fftw3_singlethread)
+    struct FFTW3_static {
+      FFTW3_static() {
         fftw_init_threads();
       }
-    }; // struct FFTW3_info { ...
-    static FFTW3_info _FFTW3_info;
+    }; // struct FFTW3_static { ...
+    static FFTW3_static _FFTW3_static;
 #endif
 
 #if cimg_display==1
@@ -5856,7 +5857,7 @@ namespace cimg_library_suffixed {
     //! Sleep for a given numbers of milliseconds.
     /**
        \param milliseconds Number of milliseconds to wait for.
-       \note This function frees the CPU ressources during the sleeping time.
+       \note This function frees the CPU resources during the sleeping time.
        It can be used to temporize your program properly, without wasting CPU time.
     **/
     inline void sleep(const unsigned int milliseconds) {
@@ -6738,7 +6739,7 @@ namespace cimg_library_suffixed {
 
     //! Return \c true if input character is blank (space, tab, or non-printable character).
     inline bool is_blank(const char c) {
-      return c>=0 && c<=' ';
+      return c>=0 && (unsigned char)c<=' ';
     }
 
     //! Read value in a C-string.
@@ -7093,7 +7094,7 @@ namespace cimg_library_suffixed {
        \param path Specified path to get attributes from.
        \param[in,out] attr Type of requested time attributes.
                       Can be { 0=year | 1=month | 2=day | 3=day of week | 4=hour | 5=minute | 6=second }
-                      Replaced by read attributes after return (or -1 if an error occured).
+                      Replaced by read attributes after return (or -1 if an error occurred).
        \param nb_attr Number of attributes to read/write.
        \return Latest read attribute.
     **/
@@ -7140,7 +7141,7 @@ namespace cimg_library_suffixed {
        \param path Specified path to get attributes from.
        \param attr Type of requested time attributes.
                    Can be { 0=year | 1=month | 2=day | 3=day of week | 4=hour | 5=minute | 6=second }
-       \return Specified attribute or -1 if an error occured.
+       \return Specified attribute or -1 if an error occurred.
     **/
     inline int fdate(const char *const path, unsigned int attr) {
       int out = (int)attr;
@@ -7150,8 +7151,9 @@ namespace cimg_library_suffixed {
     //! Get current local time (multiple-attributes version).
     /**
        \param[in,out] attr Type of requested time attributes.
-                           Can be { 0=year | 1=month | 2=day | 3=day of week | 4=hour | 5=minute | 6=second }
-                           Replaced by read attributes after return (or -1 if an error occured).
+                           Can be { 0=year | 1=month | 2=day | 3=day of week | 4=hour | 5=minute | 6=second |
+                                    7=millisecond }
+                           Replaced by read attributes after return (or -1 if an error occurred).
        \param nb_attr Number of attributes to read/write.
        \return Latest read attribute.
     **/
@@ -7163,19 +7165,29 @@ namespace cimg_library_suffixed {
       SYSTEMTIME st;
       GetLocalTime(&st);
       for (unsigned int i = 0; i<nb_attr; ++i) {
-        res = (int)(attr[i]==0?st.wYear:attr[i]==1?st.wMonth:attr[i]==2?st.wDay:
-                    attr[i]==3?st.wDayOfWeek:attr[i]==4?st.wHour:attr[i]==5?st.wMinute:
-                    attr[i]==6?st.wSecond:-1);
+        res = (int)(attr[i]==0?st.wYear:
+                    attr[i]==1?st.wMonth:
+                    attr[i]==2?st.wDay:
+                    attr[i]==3?st.wDayOfWeek:
+                    attr[i]==4?st.wHour:
+                    attr[i]==5?st.wMinute:
+                    attr[i]==6?st.wSecond:
+                    attr[i]==7?st.wMilliseconds:-1);
         attr[i] = (T)res;
       }
 #else
-      time_t _st;
-      std::time(&_st);
-      struct tm *st = std::localtime(&_st);
+      struct timeval _st;
+      gettimeofday(&_st,0);
+      struct tm *st = std::localtime(&_st.tv_sec);
       for (unsigned int i = 0; i<nb_attr; ++i) {
-        res = (int)(attr[i]==0?st->tm_year + 1900:attr[i]==1?st->tm_mon + 1:attr[i]==2?st->tm_mday:
-                    attr[i]==3?st->tm_wday:attr[i]==4?st->tm_hour:attr[i]==5?st->tm_min:
-                    attr[i]==6?st->tm_sec:-1);
+        res = (int)(attr[i]==0?st->tm_year + 1900:
+                    attr[i]==1?st->tm_mon + 1:
+                    attr[i]==2?st->tm_mday:
+                    attr[i]==3?st->tm_wday:
+                    attr[i]==4?st->tm_hour:
+                    attr[i]==5?st->tm_min:
+                    attr[i]==6?st->tm_sec:
+                    attr[i]==7?_st.tv_usec/1000:-1);
         attr[i] = (T)res;
       }
 #endif
@@ -7186,8 +7198,9 @@ namespace cimg_library_suffixed {
     //! Get current local time (single-attribute version).
     /**
        \param attr Type of requested time attribute.
-                   Can be { 0=year | 1=month | 2=day | 3=day of week | 4=hour | 5=minute | 6=second }
-       \return Specified attribute or -1 if an error occured.
+                   Can be { 0=year | 1=month | 2=day | 3=day of week | 4=hour | 5=minute | 6=second |
+                            7=millisecond }
+       \return Specified attribute or -1 if an error occurred.
     **/
     inline int date(unsigned int attr) {
       int out = (int)attr;
@@ -7245,18 +7258,9 @@ namespace cimg_library_suffixed {
       return p;
     }
 
-    //! Generate a numbered version of a filename.
+    // Generate a numbered version of a filename.
     inline char* number_filename(const char *const filename, const int number,
-                                 const unsigned int digits, char *const str) {
-      if (!filename) { if (str) *str = 0; return 0; }
-      char *const format = new char[1024], *const body = new char[1024];
-      const char *const ext = cimg::split_filename(filename,body);
-      if (*ext) cimg_snprintf(format,1024,"%%s_%%.%ud.%%s",digits);
-      else cimg_snprintf(format,1024,"%%s_%%.%ud",digits);
-      cimg_sprintf(str,format,body,number,ext);
-      delete[] format; delete[] body;
-      return str;
-    }
+                                 const unsigned int digits, char *const str);
 
     //! Read data from file.
     /**
@@ -7336,7 +7340,7 @@ namespace cimg_library_suffixed {
 
     //! Return options specified on the command line.
     inline const char* option(const char *const name, const int argc, const char *const *const argv,
-                              const char *const defaut, const char *const usage, const bool reset_static) {
+                              const char *const _default, const char *const usage, const bool reset_static) {
       static bool first = true, visu = false;
       if (reset_static) { first = true; return 0; }
       const char *res = 0;
@@ -7352,14 +7356,14 @@ namespace cimg_library_suffixed {
           std::fprintf(cimg::output(),": %s",usage);
           std::fprintf(cimg::output()," (%s, %s)\n\n",cimg_date,cimg_time);
         }
-        if (defaut) std::fprintf(cimg::output(),"%s\n",defaut);
+        if (_default) std::fprintf(cimg::output(),"%s\n",_default);
       }
       if (name) {
         if (argc>0) {
           int k = 0;
           while (k<argc && std::strcmp(argv[k],name)) ++k;
-          res = (k++==argc?defaut:(k==argc?argv[--k]:argv[k]));
-        } else res = defaut;
+          res = (k++==argc?_default:(k==argc?argv[--k]:argv[k]));
+        } else res = _default;
         if (visu && usage) std::fprintf(cimg::output(),"    %s%-16s%s %-24s %s%s%s\n",
                                         cimg::t_bold,name,cimg::t_normal,res?res:"0",
                                         cimg::t_green,usage,cimg::t_normal);
@@ -7368,22 +7372,22 @@ namespace cimg_library_suffixed {
     }
 
     inline const char* option(const char *const name, const int argc, const char *const *const argv,
-                              const char *const defaut, const char *const usage=0) {
-      return option(name,argc,argv,defaut,usage,false);
+                              const char *const _default, const char *const usage=0) {
+      return option(name,argc,argv,_default,usage,false);
     }
 
     inline bool option(const char *const name, const int argc, const char *const *const argv,
-                       const bool defaut, const char *const usage=0) {
+                       const bool _default, const char *const usage=0) {
       const char *const s = cimg::option(name,argc,argv,(char*)0);
-      const bool res = s?(cimg::strcasecmp(s,"false") && cimg::strcasecmp(s,"off") && cimg::strcasecmp(s,"0")):defaut;
+      const bool res = s?(cimg::strcasecmp(s,"false") && cimg::strcasecmp(s,"off") && cimg::strcasecmp(s,"0")):_default;
       cimg::option(name,0,0,res?"true":"false",usage);
       return res;
     }
 
     inline int option(const char *const name, const int argc, const char *const *const argv,
-                      const int defaut, const char *const usage=0) {
+                      const int _default, const char *const usage=0) {
       const char *const s = cimg::option(name,argc,argv,(char*)0);
-      const int res = s?std::atoi(s):defaut;
+      const int res = s?std::atoi(s):_default;
       char *const tmp = new char[256];
       cimg_snprintf(tmp,256,"%d",res);
       cimg::option(name,0,0,tmp,usage);
@@ -7392,9 +7396,9 @@ namespace cimg_library_suffixed {
     }
 
     inline char option(const char *const name, const int argc, const char *const *const argv,
-                       const char defaut, const char *const usage=0) {
+                       const char _default, const char *const usage=0) {
       const char *const s = cimg::option(name,argc,argv,(char*)0);
-      const char res = s?*s:defaut;
+      const char res = s?*s:_default;
       char tmp[8];
       *tmp = res; tmp[1] = 0;
       cimg::option(name,0,0,tmp,usage);
@@ -7402,9 +7406,9 @@ namespace cimg_library_suffixed {
     }
 
     inline float option(const char *const name, const int argc, const char *const *const argv,
-                        const float defaut, const char *const usage=0) {
+                        const float _default, const char *const usage=0) {
       const char *const s = cimg::option(name,argc,argv,(char*)0);
-      const float res = s?(float)cimg::atof(s):defaut;
+      const float res = s?(float)cimg::atof(s):_default;
       char *const tmp = new char[256];
       cimg_snprintf(tmp,256,"%g",res);
       cimg::option(name,0,0,tmp,usage);
@@ -7413,9 +7417,9 @@ namespace cimg_library_suffixed {
     }
 
     inline double option(const char *const name, const int argc, const char *const *const argv,
-                         const double defaut, const char *const usage=0) {
+                         const double _default, const char *const usage=0) {
       const char *const s = cimg::option(name,argc,argv,(char*)0);
-      const double res = s?cimg::atof(s):defaut;
+      const double res = s?cimg::atof(s):_default;
       char *const tmp = new char[256];
       cimg_snprintf(tmp,256,"%g",res);
       cimg::option(name,0,0,tmp,usage);
@@ -7423,7 +7427,7 @@ namespace cimg_library_suffixed {
       return res;
     }
 
-    //! Print information about \CImg environement variables.
+    //! Print information about \CImg environment variables.
     /**
        \note Output is done on the default output stream.
     **/
@@ -7434,7 +7438,7 @@ namespace cimg_library_suffixed {
 
       std::fprintf(cimg::output(),"  > Operating System:       %s%-13s%s %s('cimg_OS'=%d)%s\n",
                    cimg::t_bold,
-                   cimg_OS==1?"Unix":(cimg_OS==2?"Windows":"Unknow"),
+                   cimg_OS==1?"Unix":(cimg_OS==2?"Windows":"Unknown"),
                    cimg::t_normal,cimg::t_green,
                    cimg_OS,
                    cimg::t_normal);
@@ -7653,7 +7657,7 @@ namespace cimg_library_suffixed {
     }
 
     inline void sgels(char & TRANS, int &M, int &N, int &NRHS, float* lapA, int &LDA,
-		      float* lapB, int &LDB, float* WORK, int &LWORK, int &INFO){
+		      float* lapB, int &LDB, float* WORK, int &LWORK, int &INFO) {
       sgels_(&TRANS, &M, &N, &NRHS, lapA, &LDA, lapB, &LDB, WORK, &LWORK, &INFO);
     }
 
@@ -7670,7 +7674,7 @@ namespace cimg_library_suffixed {
    #
    -------------------------------------------------*/
 
-#define _cimg_create_ext_operators(typ) \
+#define _cimg_create_operator(typ) \
   template<typename T> \
   inline CImg<typename cimg::superset<T,typ>::type> operator+(const typ val, const CImg<T>& img) { \
     return img + val; \
@@ -7709,19 +7713,19 @@ namespace cimg_library_suffixed {
     return img != val; \
   }
 
-  _cimg_create_ext_operators(bool)
-  _cimg_create_ext_operators(unsigned char)
-  _cimg_create_ext_operators(char)
-  _cimg_create_ext_operators(signed char)
-  _cimg_create_ext_operators(unsigned short)
-  _cimg_create_ext_operators(short)
-  _cimg_create_ext_operators(unsigned int)
-  _cimg_create_ext_operators(int)
-  _cimg_create_ext_operators(cimg_uint64)
-  _cimg_create_ext_operators(cimg_int64)
-  _cimg_create_ext_operators(float)
-  _cimg_create_ext_operators(double)
-  _cimg_create_ext_operators(long double)
+  _cimg_create_operator(bool)
+  _cimg_create_operator(unsigned char)
+  _cimg_create_operator(char)
+  _cimg_create_operator(signed char)
+  _cimg_create_operator(unsigned short)
+  _cimg_create_operator(short)
+  _cimg_create_operator(unsigned int)
+  _cimg_create_operator(int)
+  _cimg_create_operator(cimg_uint64)
+  _cimg_create_operator(cimg_int64)
+  _cimg_create_operator(float)
+  _cimg_create_operator(double)
+  _cimg_create_operator(long double)
 
   template<typename T>
   inline CImg<_cimg_Tfloat> operator+(const char *const expression, const CImg<T>& img) {
@@ -7783,33 +7787,33 @@ namespace cimg_library_suffixed {
     return instance.get_pseudoinvert();
   }
 
-#define _cimg_create_ext_pointwise_function(name) \
+#define _cimg_create_pointwise_function(name) \
   template<typename T> \
   inline CImg<_cimg_Tfloat> name(const CImg<T>& instance) { \
     return instance.get_##name(); \
   }
 
-  _cimg_create_ext_pointwise_function(sqr)
-  _cimg_create_ext_pointwise_function(sqrt)
-  _cimg_create_ext_pointwise_function(exp)
-  _cimg_create_ext_pointwise_function(log)
-  _cimg_create_ext_pointwise_function(log2)
-  _cimg_create_ext_pointwise_function(log10)
-  _cimg_create_ext_pointwise_function(abs)
-  _cimg_create_ext_pointwise_function(sign)
-  _cimg_create_ext_pointwise_function(cos)
-  _cimg_create_ext_pointwise_function(sin)
-  _cimg_create_ext_pointwise_function(sinc)
-  _cimg_create_ext_pointwise_function(tan)
-  _cimg_create_ext_pointwise_function(acos)
-  _cimg_create_ext_pointwise_function(asin)
-  _cimg_create_ext_pointwise_function(atan)
-  _cimg_create_ext_pointwise_function(cosh)
-  _cimg_create_ext_pointwise_function(sinh)
-  _cimg_create_ext_pointwise_function(tanh)
-  _cimg_create_ext_pointwise_function(acosh)
-  _cimg_create_ext_pointwise_function(asinh)
-  _cimg_create_ext_pointwise_function(atanh)
+  _cimg_create_pointwise_function(sqr)
+  _cimg_create_pointwise_function(sqrt)
+  _cimg_create_pointwise_function(exp)
+  _cimg_create_pointwise_function(log)
+  _cimg_create_pointwise_function(log2)
+  _cimg_create_pointwise_function(log10)
+  _cimg_create_pointwise_function(abs)
+  _cimg_create_pointwise_function(sign)
+  _cimg_create_pointwise_function(cos)
+  _cimg_create_pointwise_function(sin)
+  _cimg_create_pointwise_function(sinc)
+  _cimg_create_pointwise_function(tan)
+  _cimg_create_pointwise_function(acos)
+  _cimg_create_pointwise_function(asin)
+  _cimg_create_pointwise_function(atan)
+  _cimg_create_pointwise_function(cosh)
+  _cimg_create_pointwise_function(sinh)
+  _cimg_create_pointwise_function(tanh)
+  _cimg_create_pointwise_function(acosh)
+  _cimg_create_pointwise_function(asinh)
+  _cimg_create_pointwise_function(atanh)
 
   /*-----------------------------------
    #
@@ -7821,7 +7825,7 @@ namespace cimg_library_suffixed {
      CImgDisplay methods rely on a low-level graphic library to perform: it can be either \b X-Window
      (X11, for Unix-based systems) or \b GDI32 (for Windows-based systems).
      If both libraries are missing, CImgDisplay will not be able to display images on screen, and will enter
-     a minimal mode where warning messages will be outputed each time the program is trying to call one of the
+     a minimal mode where warning messages will be outputted each time the program is trying to call one of the
      CImgDisplay method.
 
      The configuration variable \c cimg_display tells about the graphic library used.
@@ -7925,7 +7929,8 @@ namespace cimg_library_suffixed {
       _title(0),
       _window_width(0),_window_height(0),_button(0),
       _keys(new unsigned int[128]),_released_keys(new unsigned int[128]),
-      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _window_x(cimg::type<int>::min()),_window_y(cimg::type<int>::min()),
+      _mouse_x(-1),_mouse_y(-1),_wheel(0),
       _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign();
     }
@@ -7949,7 +7954,8 @@ namespace cimg_library_suffixed {
       _title(0),
       _window_width(0),_window_height(0),_button(0),
       _keys(new unsigned int[128]),_released_keys(new unsigned int[128]),
-      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _window_x(cimg::type<int>::min()),_window_y(cimg::type<int>::min()),
+      _mouse_x(-1),_mouse_y(-1),_wheel(0),
       _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign(width,height,title,normalization,is_fullscreen,is_closed);
     }
@@ -7973,7 +7979,8 @@ namespace cimg_library_suffixed {
       _title(0),
       _window_width(0),_window_height(0),_button(0),
       _keys(new unsigned int[128]),_released_keys(new unsigned int[128]),
-      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _window_x(cimg::type<int>::min()),_window_y(cimg::type<int>::min()),
+      _mouse_x(-1),_mouse_y(-1),_wheel(0),
       _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign(img,title,normalization,is_fullscreen,is_closed);
     }
@@ -7997,7 +8004,8 @@ namespace cimg_library_suffixed {
       _title(0),
       _window_width(0),_window_height(0),_button(0),
       _keys(new unsigned int[128]),_released_keys(new unsigned int[128]),
-      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _window_x(cimg::type<int>::min()),_window_y(cimg::type<int>::min()),
+      _mouse_x(-1),_mouse_y(-1),_wheel(0),
       _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign(list,title,normalization,is_fullscreen,is_closed);
     }
@@ -8014,7 +8022,8 @@ namespace cimg_library_suffixed {
       _title(0),
       _window_width(0),_window_height(0),_button(0),
       _keys(new unsigned int[128]),_released_keys(new unsigned int[128]),
-      _window_x(0),_window_y(0),_mouse_x(-1),_mouse_y(-1),_wheel(0),
+      _window_x(cimg::type<int>::min()),_window_y(cimg::type<int>::min()),
+      _mouse_x(-1),_mouse_y(-1),_wheel(0),
       _is_closed(true),_is_resized(false),_is_moved(false),_is_event(false) {
       assign(disp);
     }
@@ -8209,7 +8218,7 @@ namespace cimg_library_suffixed {
       return _is_moved;
     }
 
-    //! Return \c true if any event has occured on the associated window, \c false otherwise.
+    //! Return \c true if any event has occurred on the associated window, \c false otherwise.
     /**
     **/
     bool is_event() const {
@@ -8590,7 +8599,7 @@ namespace cimg_library_suffixed {
        - The returned value can be positive or negative depending on whether the mouse wheel has been scrolled
        forward or backward.
        - Scrolling the wheel forward add \c 1 to the wheel value.
-       - Scrolling the wheel backward substract \c 1 to the wheel value.
+       - Scrolling the wheel backward subtract \c 1 to the wheel value.
        - The returned value cumulates the number of forward of backward scrolls since the creation of the display,
        or since the last reset of the wheel value (using set_wheel()). It is strongly recommended to quickly reset
        the wheel counter when an action has been performed regarding the current wheel value.
@@ -9154,7 +9163,7 @@ namespace cimg_library_suffixed {
       return *this;
     }
 
-    //! Wait for any user event occuring on the current display.
+    //! Wait for any user event occurring on the current display.
     CImgDisplay& wait() {
       wait(*this);
       return *this;
@@ -9170,34 +9179,34 @@ namespace cimg_library_suffixed {
       return *this;
     }
 
-    //! Wait for any event occuring on the display \c disp1.
+    //! Wait for any event occurring on the display \c disp1.
     static void wait(CImgDisplay& disp1) {
       disp1._is_event = false;
       while (!disp1._is_closed && !disp1._is_event) wait_all();
     }
 
-    //! Wait for any event occuring either on the display \c disp1 or \c disp2.
+    //! Wait for any event occurring either on the display \c disp1 or \c disp2.
     static void wait(CImgDisplay& disp1, CImgDisplay& disp2) {
       disp1._is_event = disp2._is_event = false;
       while ((!disp1._is_closed || !disp2._is_closed) &&
              !disp1._is_event && !disp2._is_event) wait_all();
     }
 
-    //! Wait for any event occuring either on the display \c disp1, \c disp2 or \c disp3.
+    //! Wait for any event occurring either on the display \c disp1, \c disp2 or \c disp3.
     static void wait(CImgDisplay& disp1, CImgDisplay& disp2, CImgDisplay& disp3) {
       disp1._is_event = disp2._is_event = disp3._is_event = false;
       while ((!disp1._is_closed || !disp2._is_closed || !disp3._is_closed) &&
              !disp1._is_event && !disp2._is_event && !disp3._is_event) wait_all();
     }
 
-    //! Wait for any event occuring either on the display \c disp1, \c disp2, \c disp3 or \c disp4.
+    //! Wait for any event occurring either on the display \c disp1, \c disp2, \c disp3 or \c disp4.
     static void wait(CImgDisplay& disp1, CImgDisplay& disp2, CImgDisplay& disp3, CImgDisplay& disp4) {
       disp1._is_event = disp2._is_event = disp3._is_event = disp4._is_event = false;
       while ((!disp1._is_closed || !disp2._is_closed || !disp3._is_closed || !disp4._is_closed) &&
              !disp1._is_event && !disp2._is_event && !disp3._is_event && !disp4._is_event) wait_all();
     }
 
-    //! Wait for any event occuring either on the display \c disp1, \c disp2, \c disp3, \c disp4 or \c disp5.
+    //! Wait for any event occurring either on the display \c disp1, \c disp2, \c disp3, \c disp4 or \c disp5.
     static void wait(CImgDisplay& disp1, CImgDisplay& disp2, CImgDisplay& disp3, CImgDisplay& disp4,
                      CImgDisplay& disp5) {
       disp1._is_event = disp2._is_event = disp3._is_event = disp4._is_event = disp5._is_event = false;
@@ -9206,7 +9215,7 @@ namespace cimg_library_suffixed {
         wait_all();
     }
 
-    //! Wait for any event occuring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp6.
+    //! Wait for any event occurring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp6.
     static void wait(CImgDisplay& disp1, CImgDisplay& disp2, CImgDisplay& disp3, CImgDisplay& disp4, CImgDisplay& disp5,
                      CImgDisplay& disp6) {
       disp1._is_event = disp2._is_event = disp3._is_event = disp4._is_event = disp5._is_event =
@@ -9217,7 +9226,7 @@ namespace cimg_library_suffixed {
              !disp6._is_event) wait_all();
     }
 
-    //! Wait for any event occuring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp7.
+    //! Wait for any event occurring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp7.
     static void wait(CImgDisplay& disp1, CImgDisplay& disp2, CImgDisplay& disp3, CImgDisplay& disp4, CImgDisplay& disp5,
                      CImgDisplay& disp6, CImgDisplay& disp7) {
       disp1._is_event = disp2._is_event = disp3._is_event = disp4._is_event = disp5._is_event =
@@ -9228,7 +9237,7 @@ namespace cimg_library_suffixed {
              !disp6._is_event && !disp7._is_event) wait_all();
     }
 
-    //! Wait for any event occuring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp8.
+    //! Wait for any event occurring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp8.
     static void wait(CImgDisplay& disp1, CImgDisplay& disp2, CImgDisplay& disp3, CImgDisplay& disp4, CImgDisplay& disp5,
                      CImgDisplay& disp6, CImgDisplay& disp7, CImgDisplay& disp8) {
       disp1._is_event = disp2._is_event = disp3._is_event = disp4._is_event = disp5._is_event =
@@ -9239,7 +9248,7 @@ namespace cimg_library_suffixed {
              !disp6._is_event && !disp7._is_event && !disp8._is_event) wait_all();
     }
 
-    //! Wait for any event occuring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp9.
+    //! Wait for any event occurring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp9.
     static void wait(CImgDisplay& disp1, CImgDisplay& disp2, CImgDisplay& disp3, CImgDisplay& disp4, CImgDisplay& disp5,
                      CImgDisplay& disp6, CImgDisplay& disp7, CImgDisplay& disp8, CImgDisplay& disp9) {
       disp1._is_event = disp2._is_event = disp3._is_event = disp4._is_event = disp5._is_event =
@@ -9250,7 +9259,7 @@ namespace cimg_library_suffixed {
              !disp6._is_event && !disp7._is_event && !disp8._is_event && !disp9._is_event) wait_all();
     }
 
-    //! Wait for any event occuring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp10.
+    //! Wait for any event occurring either on the display \c disp1, \c disp2, \c disp3, \c disp4, ... \c disp10.
     static void wait(CImgDisplay& disp1, CImgDisplay& disp2, CImgDisplay& disp3, CImgDisplay& disp4, CImgDisplay& disp5,
                      CImgDisplay& disp6, CImgDisplay& disp7, CImgDisplay& disp8, CImgDisplay& disp9,
                      CImgDisplay& disp10) {
@@ -9265,7 +9274,7 @@ namespace cimg_library_suffixed {
 
 #if cimg_display==0
 
-    //! Wait for any window event occuring in any opened CImgDisplay.
+    //! Wait for any window event occurring in any opened CImgDisplay.
     static void wait_all() {
       return _no_display_exception();
     }
@@ -9408,7 +9417,9 @@ namespace cimg_library_suffixed {
           pthread_cond_broadcast(&cimg::X11_attr().wait_event);
         }
         if (nx!=_window_x || ny!=_window_y) {
-          _window_x = nx; _window_y = ny; _is_moved = _is_event = true;
+          _window_x = nx;
+          _window_y = ny;
+          _is_moved = _is_event = true;
           pthread_cond_broadcast(&cimg::X11_attr().wait_event);
         }
       } break;
@@ -9417,8 +9428,10 @@ namespace cimg_library_suffixed {
         _paint(false);
         if (_is_fullscreen) {
           XWindowAttributes attr;
-          XGetWindowAttributes(dpy,_window,&attr);
-          while (attr.map_state!=IsViewable) XSync(dpy,0);
+          do {
+            XGetWindowAttributes(dpy,_window,&attr);
+            if (attr.map_state!=IsViewable) { XSync(dpy,0); cimg::sleep(10); }
+          } while (attr.map_state!=IsViewable);
           XSetInputFocus(dpy,_window,RevertToParent,CurrentTime);
         }
       } break;
@@ -9692,33 +9705,23 @@ namespace cimg_library_suffixed {
 
       const unsigned int sx = screen_width(), sy = screen_height();
       if (sx==_width && sy==_height) return;
-      XSetWindowAttributes winattr;
-      winattr.override_redirect = 1;
+      XSetWindowAttributes attr_set;
+
+      attr_set.background_pixel = XBlackPixel(dpy,XDefaultScreen(dpy));
+      attr_set.override_redirect = 1;
       _background_window = XCreateWindow(dpy,DefaultRootWindow(dpy),0,0,sx,sy,0,0,
-                                         InputOutput,CopyFromParent,CWOverrideRedirect,&winattr);
-      const cimg_ulong buf_size = (cimg_ulong)sx*sy*(cimg::X11_attr().nb_bits==8?1:
-                                                     (cimg::X11_attr().nb_bits==16?2:4));
-      void *background_data = std::malloc(buf_size);
-      std::memset(background_data,0,buf_size);
-      XImage *background_image = XCreateImage(dpy,DefaultVisual(dpy,DefaultScreen(dpy)),cimg::X11_attr().nb_bits,
-                                              ZPixmap,0,(char*)background_data,sx,sy,8,0);
+                                         InputOutput,CopyFromParent,CWBackPixel | CWOverrideRedirect,&attr_set);
       XEvent event;
       XSelectInput(dpy,_background_window,StructureNotifyMask);
       XMapRaised(dpy,_background_window);
       do XWindowEvent(dpy,_background_window,StructureNotifyMask,&event);
       while (event.type!=MapNotify);
-      GC gc = DefaultGC(dpy,DefaultScreen(dpy));
 
-#ifdef cimg_use_xshm
-      if (_shminfo) XShmPutImage(dpy,_background_window,gc,background_image,0,0,0,0,sx,sy,0);
-      else XPutImage(dpy,_background_window,gc,background_image,0,0,0,0,sx,sy);
-#else
-      XPutImage(dpy,_background_window,gc,background_image,0,0,0,0,sx,sy);
-#endif
       XWindowAttributes attr;
-      XGetWindowAttributes(dpy,_background_window,&attr);
-      while (attr.map_state!=IsViewable) XSync(dpy,0);
-      XDestroyImage(background_image);
+      do {
+        XGetWindowAttributes(dpy,_background_window,&attr);
+        if (attr.map_state!=IsViewable) { XSync(dpy,0); cimg::sleep(10); }
+      } while (attr.map_state!=IsViewable);
     }
 
     void _desinit_fullscreen() {
@@ -9795,7 +9798,7 @@ namespace cimg_library_suffixed {
       _height = std::min(dimh,(unsigned int)screen_height());
       _normalization = normalization_type<4?normalization_type:3;
       _is_fullscreen = fullscreen_flag;
-      _window_x = _window_y = 0;
+      _window_x = _window_y = cimg::type<int>::min();
       _is_closed = closed_flag;
       _title = tmp_title;
       flush();
@@ -9804,10 +9807,10 @@ namespace cimg_library_suffixed {
       if (_is_fullscreen) {
         if (!_is_closed) _init_fullscreen();
         const unsigned int sx = screen_width(), sy = screen_height();
-        XSetWindowAttributes winattr;
-        winattr.override_redirect = 1;
+        XSetWindowAttributes attr_set;
+        attr_set.override_redirect = 1;
         _window = XCreateWindow(dpy,DefaultRootWindow(dpy),(sx - _width)/2,(sy - _height)/2,_width,_height,0,0,
-                                InputOutput,CopyFromParent,CWOverrideRedirect,&winattr);
+                                InputOutput,CopyFromParent,CWOverrideRedirect,&attr_set);
       } else
         _window = XCreateSimpleWindow(dpy,DefaultRootWindow(dpy),0,0,_width,_height,0,0L,0L);
 
@@ -9878,7 +9881,7 @@ namespace cimg_library_suffixed {
 
       if (_is_fullscreen) XGrabKeyboard(dpy,_window,1,GrabModeAsync,GrabModeAsync,CurrentTime);
       cimg::X11_attr().wins[cimg::X11_attr().nb_wins++]=this;
-      if (!_is_closed) _map_window(); else { _window_x = _window_y = cimg::type<int>::min(); }
+      if (!_is_closed) _map_window(); else _window_x = _window_y = cimg::type<int>::min();
       cimg_unlock_display();
       cimg::mutex(14,0);
     }
@@ -9896,29 +9899,28 @@ namespace cimg_library_suffixed {
 
       // Destroy window, image, colormap and title.
       if (_is_fullscreen && !_is_closed) _desinit_fullscreen();
-      XDestroyWindow(dpy,_window);
-      _window = 0;
+
 
 #ifdef cimg_use_xshm
       if (_shminfo) {
         XShmDetach(dpy,_shminfo);
-        XDestroyImage(_image);
         shmdt(_shminfo->shmaddr);
         shmctl(_shminfo->shmid,IPC_RMID,0);
         delete _shminfo;
         _shminfo = 0;
-      } else
+      }
 #endif
-        XDestroyImage(_image);
-      _data = 0; _image = 0;
+
+      XDestroyImage(_image);
       if (cimg::X11_attr().nb_bits==8) XFreeColormap(dpy,_colormap);
-      _colormap = 0;
+      XDestroyWindow(dpy,_window);
       XSync(dpy,0);
+      _window = 0; _colormap = 0; _data = 0; _image = 0;
 
       // Reset display variables.
       delete[] _title;
       _width = _height = _normalization = _window_width = _window_height = 0;
-      _window_x = _window_y = 0;
+      _window_x = _window_y = cimg::type<int>::min();
       _is_fullscreen = false;
       _is_closed = true;
       _min = _max = 0;
@@ -10031,9 +10033,9 @@ namespace cimg_library_suffixed {
     CImgDisplay& show() {
       if (is_empty() || !_is_closed) return *this;
       cimg_lock_display();
+      _is_closed = false;
       if (_is_fullscreen) _init_fullscreen();
       _map_window();
-      _is_closed = false;
       cimg_unlock_display();
       return paint();
     }
@@ -10044,7 +10046,7 @@ namespace cimg_library_suffixed {
       cimg_lock_display();
       if (_is_fullscreen) _desinit_fullscreen();
       XUnmapWindow(dpy,_window);
-      _window_x = _window_y = -1;
+      _window_x = _window_y = cimg::type<int>::min();
       _is_closed = true;
       cimg_unlock_display();
       return *this;
@@ -10052,12 +10054,13 @@ namespace cimg_library_suffixed {
 
     CImgDisplay& move(const int posx, const int posy) {
       if (is_empty()) return *this;
+      show();
       if (_window_x!=posx || _window_y!=posy) {
-        show();
         Display *const dpy = cimg::X11_attr().display;
         cimg_lock_display();
         XMoveWindow(dpy,_window,posx,posy);
-        _window_x = posx; _window_y = posy;
+        _window_x = posx;
+        _window_y = posy;
         cimg_unlock_display();
       }
       _is_moved = false;
@@ -10679,7 +10682,7 @@ namespace cimg_library_suffixed {
       switch (msg) {
       case WM_CLOSE :
         disp->_mouse_x = disp->_mouse_y = -1;
-        disp->_window_x = disp->_window_y = 0;
+        disp->_window_x = disp->_window_y = cimg::type<int>::min();
         disp->set_button().set_key(0).set_key(0,false)._is_closed = true;
         ReleaseMutex(disp->_mutex);
         ShowWindow(disp->_window,SW_HIDE);
@@ -10829,7 +10832,7 @@ namespace cimg_library_suffixed {
           GetWindowRect(disp->_window,&rect);
           disp->_window_x = rect.left + border1;
           disp->_window_y = rect.top + border2;
-        } else disp->_window_x = disp->_window_y = 0;
+        } else disp->_window_x = disp->_window_y = cimg::type<int>::min();
       } else { // Fullscreen window
         const unsigned int
           sx = (unsigned int)screen_width(),
@@ -10859,7 +10862,7 @@ namespace cimg_library_suffixed {
     }
 
     CImgDisplay& _update_window_pos() {
-      if (_is_closed) _window_x = _window_y = -1;
+      if (_is_closed) _window_x = _window_y = cimg::type<int>::min();
       else {
         RECT rect;
         rect.left = rect.top = 0; rect.right = (LONG)_width - 1; rect.bottom = (LONG)_height - 1;
@@ -10932,7 +10935,7 @@ namespace cimg_library_suffixed {
       _height = std::min(dimh,(unsigned int)screen_height());
       _normalization = normalization_type<4?normalization_type:3;
       _is_fullscreen = fullscreen_flag;
-      _window_x = _window_y = 0;
+      _window_x = _window_y = cimg::type<int>::min();
       _is_closed = closed_flag;
       _is_cursor_visible = true;
       _is_mouse_tracked = false;
@@ -10961,7 +10964,7 @@ namespace cimg_library_suffixed {
       _title = 0;
       if (_is_fullscreen) _desinit_fullscreen();
       _width = _height = _normalization = _window_width = _window_height = 0;
-      _window_x = _window_y = 0;
+      _window_x = _window_y = cimg::type<int>::min();
       _is_fullscreen = false;
       _is_closed = true;
       _min = _max = 0;
@@ -11080,7 +11083,7 @@ namespace cimg_library_suffixed {
       _is_closed = true;
       if (_is_fullscreen) _desinit_fullscreen();
       ShowWindow(_window,SW_HIDE);
-      _window_x = _window_y = 0;
+      _window_x = _window_y = cimg::type<int>::min();
       return *this;
     }
 
@@ -11098,8 +11101,8 @@ namespace cimg_library_suffixed {
         } else SetWindowPos(_window,0,posx,posy,0,0,SWP_NOSIZE | SWP_NOZORDER);
         _window_x = posx;
         _window_y = posy;
-        show();
       }
+      show();
       _is_moved = false;
       return *this;
     }
@@ -11118,9 +11121,11 @@ namespace cimg_library_suffixed {
 
     CImgDisplay& set_mouse(const int posx, const int posy) {
       if (is_empty() || _is_closed || posx<0 || posy<0) return *this;
-      _update_window_pos();
-      const int res = (int)SetCursorPos(_window_x + posx,_window_y + posy);
-      if (res) { _mouse_x = posx; _mouse_y = posy; }
+      if (!_is_closed) {
+        _update_window_pos();
+        const int res = (int)SetCursorPos(_window_x + posx,_window_y + posy);
+        if (res) { _mouse_x = posx; _mouse_y = posy; }
+      }
       return *this;
     }
 
@@ -12018,7 +12023,7 @@ namespace cimg_library_suffixed {
        \note
        - Similar to CImg(unsigned int,unsigned int,unsigned int,unsigned int), but it reads the image
          dimensions and pixel values from the specified image file.
-       - The recognition of the image file format by %CImg higly depends on the tools installed on your system
+       - The recognition of the image file format by %CImg higlhy depends on the tools installed on your system
          and on the external libraries you used to link your code against.
        - Considered pixel type \c T should better fit the file format specification, or data loss may occur during
          file load (e.g. constructing a \c CImg<unsigned char> from a float-valued image file).
@@ -12244,7 +12249,7 @@ namespace cimg_library_suffixed {
       if (siz!=curr_siz) {
 	if (_is_shared)
           throw CImgArgumentException(_cimg_instance
-                                      "assign(): Invalid assignement request of shared instance from specified "
+                                      "assign(): Invalid assignment request of shared instance from specified "
                                       "image (%u,%u,%u,%u).",
                                       cimg_instance,
                                       size_x,size_y,size_z,size_c);
@@ -12514,7 +12519,7 @@ namespace cimg_library_suffixed {
        \param list Destination list.
        \param pos Position of the newly inserted image in the list.
        \note
-       - When optional parameter \c pos is ommited, the image instance is transfered as a new
+       - When optional parameter \c pos is omitted, the image instance is transferred as a new
          image at the end of the specified \c list.
        - It is convenient to sequentially insert new images into image lists, with no
          additional copies of memory buffer.
@@ -12598,7 +12603,7 @@ namespace cimg_library_suffixed {
        \warning
        - There is \e no boundary checking done in this operator, to make it as fast as possible.
          You \e must take care of out-of-bounds access by yourself, if necessary.
-         For debuging purposes, you may want to define macro \c 'cimg_verbosity'>=3 to enable additional boundary
+         For debugging purposes, you may want to define macro \c 'cimg_verbosity'>=3 to enable additional boundary
          checking operations in this operator. In that case, warning messages will be printed on the error output
          when accessing out-of-bounds pixels.
        \par Example
@@ -12711,9 +12716,9 @@ namespace cimg_library_suffixed {
     }
 #endif
 
-    //! Implicitely cast an image into a \c T*.
+    //! Implicitly cast an image into a \c T*.
     /**
-       Implicitely cast a \c CImg<T> instance into a \c T* or \c const \c T* pointer, whether the image instance
+       Implicitly cast a \c CImg<T> instance into a \c T* or \c const \c T* pointer, whether the image instance
        is \e const or not. The returned pointer points on the first value of the image pixel buffer.
        \note
        - It simply returns the pointer data() to the pixel buffer.
@@ -12737,7 +12742,7 @@ namespace cimg_library_suffixed {
       return _data;
     }
 
-    //! Implicitely cast an image into a \c T* \const.
+    //! Implicitly cast an image into a \c T* \const.
     operator const T*() const {
       return _data;
     }
@@ -12772,7 +12777,7 @@ namespace cimg_library_suffixed {
            replace the image instance. The image size is modified if necessary.
        \par Example
        \code
-       CImg<float> img1(100,100), img2(img1), img3(img1); // Declare 3 scalar images 100x100 with unitialized values
+       CImg<float> img1(100,100), img2(img1), img3(img1); // Declare 3 scalar images 100x100 with uninitialized values
        img1 = "0,50,100,150,200,250,200,150,100,50"; // Set pixel values of 'img1' from a value sequence
        img2 = "10*((x*y)%25)";                       // Set pixel values of 'img2' from a formula
        img3 = "reference.jpg";                       // Set pixel values of 'img3' from a file (image size is modified)
@@ -12964,9 +12969,9 @@ namespace cimg_library_suffixed {
       return CImg<_cimg_Tt>(*this,false)+=img;
     }
 
-    //! In-place substraction operator.
+    //! In-place subtraction operator.
     /**
-       Similar to operator+=(const t), except that it performs a substraction instead of an addition.
+       Similar to operator+=(const t), except that it performs a subtraction instead of an addition.
      **/
     template<typename t>
     CImg<T>& operator-=(const t value) {
@@ -12975,17 +12980,17 @@ namespace cimg_library_suffixed {
       return *this;
     }
 
-    //! In-place substraction operator.
+    //! In-place subtraction operator.
     /**
-       Similar to operator+=(const char*), except that it performs a substraction instead of an addition.
+       Similar to operator+=(const char*), except that it performs a subtraction instead of an addition.
      **/
     CImg<T>& operator-=(const char *const expression) {
       return *this-=(+*this)._fill(expression,true,1,0,0,"operator-=",this);
     }
 
-    //! In-place substraction operator.
+    //! In-place subtraction operator.
     /**
-       Similar to operator+=(const CImg<t>&), except that it performs a substraction instead of an addition.
+       Similar to operator+=(const CImg<t>&), except that it performs a subtraction instead of an addition.
      **/
     template<typename t>
     CImg<T>& operator-=(const CImg<t>& img) {
@@ -13039,7 +13044,7 @@ namespace cimg_library_suffixed {
       return CImg<T>(_width,_height,_depth,_spectrum,(T)0)-=*this;
     }
 
-    //! Substraction operator.
+    //! Subtraction operator.
     /**
        Similar to operator-=(const t), except that it returns a new image instance instead of operating in-place.
        The pixel type of the returned image may be a superset of the initial pixel type \c T, if necessary.
@@ -13049,7 +13054,7 @@ namespace cimg_library_suffixed {
       return CImg<_cimg_Tt>(*this,false)-=value;
     }
 
-    //! Substraction operator.
+    //! Subtraction operator.
     /**
        Similar to operator-=(const char*), except that it returns a new image instance instead of operating in-place.
        The pixel type of the returned image may be a superset of the initial pixel type \c T, if necessary.
@@ -13058,7 +13063,7 @@ namespace cimg_library_suffixed {
       return CImg<Tfloat>(*this,false)-=expression;
     }
 
-    //! Substraction operator.
+    //! Subtraction operator.
     /**
        Similar to operator-=(const CImg<t>&), except that it returns a new image instance instead of operating in-place.
        The pixel type of the returned image may be a superset of the initial pixel type \c T, if necessary.
@@ -13938,7 +13943,7 @@ namespace cimg_library_suffixed {
 
     //! Split image along specified axis.
     /**
-       Return a new list of images (\c CImgList instance) containing the splitted components
+       Return a new list of images (\c CImgList instance) containing the split components
        of the instance image along the specified axis.
        \param axis Splitting axis (can be '\c x','\c y','\c z' or '\c c')
        \note
@@ -14573,7 +14578,7 @@ namespace cimg_library_suffixed {
 
     Tfloat _linear_atX_p(const float fx, const int y=0, const int z=0, const int c=0) const {
       const float
-        nfx = cimg::mod(fx,(float)_width);
+        nfx = cimg::mod(fx,_width - 0.5f);
       const unsigned int
         x = (unsigned int)nfx;
       const float
@@ -14651,8 +14656,8 @@ namespace cimg_library_suffixed {
 
     Tfloat _linear_atXY_p(const float fx, const float fy, const int z=0, const int c=0) const {
       const float
-        nfx = cimg::mod(fx,(float)_width),
-        nfy = cimg::mod(fy,(float)_height);
+        nfx = cimg::mod(fx,_width - 0.5f),
+        nfy = cimg::mod(fy,_height - 0.5f);
       const unsigned int
         x = (unsigned int)nfx,
         y = (unsigned int)nfy;
@@ -14758,9 +14763,9 @@ namespace cimg_library_suffixed {
 
     Tfloat _linear_atXYZ_p(const float fx, const float fy=0, const float fz=0, const int c=0) const {
       const float
-        nfx = cimg::mod(fx,(float)_width),
-        nfy = cimg::mod(fy,(float)_height),
-        nfz = cimg::mod(fz,(float)_depth);
+        nfx = cimg::mod(fx,_width - 0.5f),
+        nfy = cimg::mod(fy,_height - 0.5f),
+        nfz = cimg::mod(fz,_depth - 0.5f);
       const unsigned int
         x = (unsigned int)nfx,
         y = (unsigned int)nfy,
@@ -14910,10 +14915,10 @@ namespace cimg_library_suffixed {
 
     Tfloat _linear_atXYZC_p(const float fx, const float fy=0, const float fz=0, const float fc=0) const {
       const float
-        nfx = cimg::mod(fx,(float)_width),
-        nfy = cimg::mod(fy,(float)_height),
-        nfz = cimg::mod(fz,(float)_depth),
-        nfc = cimg::mod(fc,(float)_spectrum);
+        nfx = cimg::mod(fx,_width - 0.5f),
+        nfy = cimg::mod(fy,_height - 0.5f),
+        nfz = cimg::mod(fz,_depth - 0.5f),
+        nfc = cimg::mod(fc,_spectrum - 0.5f);
       const unsigned int
         x = (unsigned int)nfx,
         y = (unsigned int)nfy,
@@ -15058,7 +15063,7 @@ namespace cimg_library_suffixed {
 
     Tfloat _cubic_atX_p(const float fx, const int y=0, const int z=0, const int c=0) const {
       const float
-        nfx = cimg::type<float>::is_nan(fx)?0:cimg::mod(fx,(float)_width);
+        nfx = cimg::type<float>::is_nan(fx)?0:cimg::mod(fx,_width - 0.5f);
       const int
         x = (int)nfx;
       const float
@@ -15179,8 +15184,8 @@ namespace cimg_library_suffixed {
 
     Tfloat _cubic_atXY_p(const float fx, const float fy, const int z=0, const int c=0) const {
       const float
-        nfx = cimg::type<float>::is_nan(fx)?0:cimg::mod(fx,(float)_width),
-        nfy = cimg::type<float>::is_nan(fy)?0:cimg::mod(fy,(float)_height);
+        nfx = cimg::type<float>::is_nan(fx)?0:cimg::mod(fx,_width - 0.5f),
+        nfy = cimg::type<float>::is_nan(fy)?0:cimg::mod(fy,_height - 0.5f);
       const int x = (int)nfx, y = (int)nfy;
       const float dx = nfx - x, dy = nfy - y;
       const int
@@ -15440,9 +15445,9 @@ namespace cimg_library_suffixed {
 
     Tfloat _cubic_atXYZ_p(const float fx, const float fy, const float fz, const int c=0) const {
       const float
-        nfx = cimg::type<float>::is_nan(fx)?0:cimg::mod(fx,(float)_width),
-        nfy = cimg::type<float>::is_nan(fy)?0:cimg::mod(fy,(float)_height),
-        nfz = cimg::type<float>::is_nan(fz)?0:cimg::mod(fz,(float)_depth);
+        nfx = cimg::type<float>::is_nan(fx)?0:cimg::mod(fx,_width - 0.5f),
+        nfy = cimg::type<float>::is_nan(fy)?0:cimg::mod(fy,_height - 0.5f),
+        nfz = cimg::type<float>::is_nan(fz)?0:cimg::mod(fz,_depth - 0.5f);
       const int x = (int)nfx, y = (int)nfy, z = (int)nfz;
       const float dx = nfx - x, dy = nfy - y, dz = nfz - z;
       const int
@@ -16541,8 +16546,9 @@ namespace cimg_library_suffixed {
     // Define the math formula parser/compiler and expression evaluator.
     struct _cimg_math_parser {
       CImg<doubleT> mem;
-      CImg<intT> memtype;
-      CImgList<ulongT> _code, &code, code_begin, code_end;
+      CImg<intT> memtype, memmerge;
+      CImgList<ulongT> _code, &code, code_begin, code_end,
+        _code_begin_t, &code_begin_t, _code_end_t, &code_end_t;
       CImg<ulongT> opcode;
       const CImg<ulongT> *p_code_end, *p_code;
       const CImg<ulongT> *const p_break;
@@ -16563,7 +16569,7 @@ namespace cimg_library_suffixed {
       char *user_macro;
 
       unsigned int mempos, mem_img_median, debug_indent, result_dim, break_type, constcache_size;
-      bool is_parallelizable, is_fill, need_input_copy;
+      bool is_parallelizable, is_end_code, is_fill, need_input_copy;
       double *result;
       ulongT rng;
       const char *const calling_function, *s_op, *ss_op;
@@ -16608,7 +16614,8 @@ namespace cimg_library_suffixed {
                         const CImg<T>& img_input=CImg<T>::const_empty(), CImg<T> *const img_output=0,
                         const CImgList<T> *const list_inputs=0, CImgList<T> *const list_outputs=0,
                         const bool _is_fill=false):
-        code(_code),p_break((CImg<ulongT>*)(cimg_ulong)-2),
+        code(_code),code_begin_t(_code_begin_t),code_end_t(_code_end_t),
+        p_break((CImg<ulongT>*)(cimg_ulong)-2),
         imgin(img_input),listin(list_inputs?*list_inputs:CImgList<T>::const_empty()),
         imgout(img_output?*img_output:CImg<T>::empty()),listout(list_outputs?*list_outputs:CImgList<T>::empty()),
         img_stats(_img_stats),list_stats(_list_stats),list_median(_list_median),user_macro(0),
@@ -16683,7 +16690,7 @@ namespace cimg_library_suffixed {
         // [8] = is, [9] = ip, [10] = ic, [11] = xm, [12] = ym, [13] = zm, [14] = cm, [15] = xM,
         // [16] = yM, [17] = zM, [18]=cM, [19]=i0...[28]=i9, [29] = interpolation, [30] = boundary
 
-        // Compile expression into a serie of opcodes.
+        // Compile expression into a sequence of opcodes.
         s_op = ""; ss_op = expr._data;
         const unsigned int ind_result = compile(expr._data,expr._data + expr._width - 1,0,0,false);
         if (!_cimg_mp_is_constant(ind_result)) {
@@ -16722,7 +16729,8 @@ namespace cimg_library_suffixed {
       }
 
       _cimg_math_parser():
-        code(_code),p_code_end(0),p_break((CImg<ulongT>*)(cimg_ulong)-2),
+        code(_code),code_begin_t(_code_begin_t),code_end_t(_code_end_t),
+        p_code_end(0),p_break((CImg<ulongT>*)(cimg_ulong)-2),
         imgin(CImg<T>::const_empty()),listin(CImgList<T>::const_empty()),
         imgout(CImg<T>::empty()),listout(CImgList<T>::empty()),
         img_stats(_img_stats),list_stats(_list_stats),list_median(_list_median),debug_indent(0),
@@ -16733,11 +16741,12 @@ namespace cimg_library_suffixed {
       }
 
       _cimg_math_parser(const _cimg_math_parser& mp):
-        mem(mp.mem),code(mp.code),p_code_end(mp.p_code_end),p_break(mp.p_break),
-        imgin(mp.imgin),listin(mp.listin),imgout(mp.imgout),listout(mp.listout),img_stats(mp.img_stats),
-        list_stats(mp.list_stats),list_median(mp.list_median),debug_indent(0),result_dim(mp.result_dim),
-        break_type(0),constcache_size(0),is_parallelizable(mp.is_parallelizable),is_fill(mp.is_fill),
-        need_input_copy(mp.need_input_copy), result(mem._data + (mp.result - mp.mem._data)),
+        mem(mp.mem),code(mp.code),code_begin_t(mp.code_begin_t),code_end_t(mp.code_end_t),
+        p_code_end(mp.p_code_end),p_break(mp.p_break),
+        imgin(mp.imgin),listin(mp.listin),imgout(mp.imgout),listout(mp.listout),
+        img_stats(mp.img_stats),list_stats(mp.list_stats),list_median(mp.list_median),debug_indent(0),
+        result_dim(mp.result_dim),break_type(0),constcache_size(0),is_parallelizable(mp.is_parallelizable),
+        is_fill(mp.is_fill),need_input_copy(mp.need_input_copy), result(mem._data + (mp.result - mp.mem._data)),
         rng((cimg::_rand(),cimg::rng())),calling_function(0) {
 
 #if cimg_use_openmp!=0
@@ -17005,17 +17014,17 @@ namespace cimg_library_suffixed {
         is_sth = false;
         for (s0 = ss, s = ss1; s<se1; ++s)
           if (*s==';' && level[s - expr._data]==clevel) { // Separator ';'
-            arg1 = code_end._width;
-            arg2 = compile(s0,s++,depth,0,is_single);
-            if (code_end._width==arg1) pos = arg2; // makes 'end()' return void
+            is_end_code = false;
+            arg1 = compile(s0,s++,depth,0,is_single);
+            if (!is_end_code) pos = arg1; // 'end()' and 'end_t()' return void
             is_sth = true;
             while (*s && (cimg::is_blank(*s) || *s==';')) ++s;
             s0 = s;
           }
         if (is_sth) {
-          arg1 = code_end._width;
-          arg2 = compile(s0,se,depth,p_ref,is_single);
-          if (code_end._width==arg1) pos = arg2; // makes 'end()' return void
+          is_end_code = false;
+          arg1 = compile(s0,se,depth,p_ref,is_single);
+          if (!is_end_code) pos = arg1; // 'end()' and 'end_t()' return void
           _cimg_mp_return(pos);
         }
 
@@ -17997,7 +18006,7 @@ namespace cimg_library_suffixed {
           }
 
         for (s = se2, ns = se1, ps = se3; s>ss; --s, --ns, --ps)
-          if (*s=='>' && *ns!='>' && *ps!='>' && level[s - expr._data]==clevel) { // Greather than ('>')
+          if (*s=='>' && *ns!='>' && *ps!='>' && level[s - expr._data]==clevel) { // Greater than ('>')
             _cimg_mp_op("Operator '>'");
             arg1 = compile(ss,s,depth1,0,is_single);
             arg2 = compile(s + 1,se,depth1,0,is_single);
@@ -18917,6 +18926,14 @@ namespace cimg_library_suffixed {
               code.swap(code_begin);
               _cimg_mp_return(arg1);
             }
+
+            if (!std::strncmp(ss,"begin_t(",8)) { // Begin thread
+              _cimg_mp_op("Function 'begin_t()'");
+              code.swap(code_begin_t);
+              arg1 = compile(ss8,se1,depth1,p_ref,true);
+              code.swap(code_begin_t);
+              _cimg_mp_return(arg1);
+            }
             break;
 
           case 'c' :
@@ -18926,6 +18943,28 @@ namespace cimg_library_suffixed {
               _cimg_mp_check_type(arg1,0,2,2);
               _cimg_mp_scalar2(mp_complex_abs,arg1 + 1,arg1 + 2);
             }
+
+#ifdef cimg_mp_call_function
+            if (!std::strncmp(ss,"call(",5)) { // Extern
+              _cimg_mp_op("Function 'call()'");
+              if (!is_single) is_parallelizable = false;
+              CImg<ulongT>::vector((ulongT)mp_call,0,0).move_to(l_opcode);
+              pos = 1;
+              for (s = ss5; s<se; ++s) {
+                ns = s; while (ns<se && (*ns!=',' || level[ns - expr._data]!=clevel1) &&
+                               (*ns!=')' || level[ns - expr._data]!=clevel)) ++ns;
+                arg1 = compile(s,ns,depth1,0,is_single);
+                CImg<ulongT>::vector(arg1,_cimg_mp_size(arg1)).move_to(l_opcode);
+                s = ns;
+              }
+              (l_opcode>'y').move_to(opcode);
+              pos = scalar();
+              opcode[1] = pos;
+              opcode[2] = opcode._height;
+              opcode.move_to(code);
+              _cimg_mp_return(pos);
+            }
+#endif
 
             if (!std::strncmp(ss,"carg(",5)) { // Complex argument
               _cimg_mp_op("Function 'carg()'");
@@ -19178,9 +19217,9 @@ namespace cimg_library_suffixed {
                   opcode[6]==(ulongT)~0U || opcode[7]==(ulongT)~0U) {
                 if (p1!=~0U) {
                   _cimg_mp_check_constant(p1,1,1);
-                  p1 = (unsigned int)cimg::mod((int)mem[p1],listin.width());
+                  p2 = (unsigned int)cimg::mod((int)mem[p1],listin.width());
                 }
-                const CImg<T> &img = p1!=~0U?listin[p1]:imgin;
+                const CImg<T> &img = p1!=~0U?listin[p2]:imgin;
                 if (!img) {
                   *se = saved_char;
                   s0 = ss - 4>expr._data?ss - 4:expr._data;
@@ -19664,14 +19703,6 @@ namespace cimg_library_suffixed {
               _cimg_mp_return(pos);
             }
 
-            if (!std::strncmp(ss,"end(",4)) { // End
-              _cimg_mp_op("Function 'end()'");
-              code.swap(code_end);
-              compile(ss4,se1,depth1,p_ref,true);
-              code.swap(code_end);
-              _cimg_mp_return_nan();
-            }
-
             if (!std::strncmp(ss,"ellipse(",8)) { // Ellipse/circle drawing
               if (!is_single) is_parallelizable = false;
               _cimg_mp_op("Function 'ellipse()'");
@@ -19699,26 +19730,6 @@ namespace cimg_library_suffixed {
               _cimg_mp_return_nan();
             }
 
-            if (!std::strncmp(ss,"ext(",4)) { // Extern
-              _cimg_mp_op("Function 'ext()'");
-              if (!is_single) is_parallelizable = false;
-              CImg<ulongT>::vector((ulongT)mp_ext,0,0).move_to(l_opcode);
-              pos = 1;
-              for (s = ss4; s<se; ++s) {
-                ns = s; while (ns<se && (*ns!=',' || level[ns - expr._data]!=clevel1) &&
-                               (*ns!=')' || level[ns - expr._data]!=clevel)) ++ns;
-                arg1 = compile(s,ns,depth1,0,is_single);
-                CImg<ulongT>::vector(arg1,_cimg_mp_size(arg1)).move_to(l_opcode);
-                s = ns;
-              }
-              (l_opcode>'y').move_to(opcode);
-              pos = scalar();
-              opcode[1] = pos;
-              opcode[2] = opcode._height;
-              opcode.move_to(code);
-              _cimg_mp_return(pos);
-            }
-
             if (!std::strncmp(ss,"exp(",4)) { // Exponential
               _cimg_mp_op("Function 'exp()'");
               arg1 = compile(ss4,se1,depth1,0,is_single);
@@ -19736,9 +19747,35 @@ namespace cimg_library_suffixed {
               CImg<ulongT>::vector((ulongT)mp_eye,pos,p1).move_to(code);
               _cimg_mp_return(pos);
             }
+
+            if (!std::strncmp(ss,"end(",4)) { // End
+              _cimg_mp_op("Function 'end()'");
+              code.swap(code_end);
+              compile(ss4,se1,depth1,p_ref,true);
+              code.swap(code_end);
+              is_end_code = true;
+              _cimg_mp_return_nan();
+            }
+
+            if (!std::strncmp(ss,"end_t(",6)) { // End thread
+              _cimg_mp_op("Function 'end_t()'");
+              code.swap(code_end_t);
+              compile(ss6,se1,depth1,p_ref,true);
+              code.swap(code_end_t);
+              is_end_code = true;
+              _cimg_mp_return_nan();
+            }
             break;
 
           case 'f' :
+            if (!std::strncmp(ss,"f2ui(",5)) { // Special float->uint conversion
+              _cimg_mp_op("Function 'f2ui()'");
+              arg1 = compile(ss5,se1,depth1,0,is_single);
+              if (_cimg_mp_is_vector(arg1)) _cimg_mp_vector1_v(mp_f2ui,arg1);
+              if (_cimg_mp_is_constant(arg1)) _cimg_mp_constant((double)cimg::float2uint((float)mem[arg1]));
+              _cimg_mp_scalar1(mp_f2ui,arg1);
+            }
+
             if (!std::strncmp(ss,"fact(",5)) { // Factorial
               _cimg_mp_op("Function 'fact()'");
               arg1 = compile(ss5,se1,depth1,0,is_single);
@@ -20113,6 +20150,53 @@ namespace cimg_library_suffixed {
               }
               pos = vector(arg4*p3);
               CImg<ulongT>::vector((ulongT)mp_matrix_mul,pos,arg1,arg2,arg4,arg5,p3).move_to(code);
+              _cimg_mp_return(pos);
+            }
+
+            if (!std::strncmp(ss,"merge(",6)) { // Merge inter-thread variables
+              _cimg_mp_op("Function 'merge()'");
+              s1 = ss6; while (s1<se1 && (*s1!=',' || level[s1 - expr._data]!=clevel1)) ++s1;
+              pos = compile(ss6,s1,depth1,0,is_single);
+              arg1 = ~0U; // Merge operator (0='=',1='+',2='-',3='*',4='/',5='min',6='max')
+              if (s1<se1) {
+                ++s1;
+                char st_op[4] = { 0 };
+                is_sth = false; // blank after operator?
+                if (cimg_sscanf(s1," %3[=+-*/minax]%c",st_op,&sep)==2 && (sep==')' || (is_sth=cimg::is_blank(sep)))) {
+                  if (!is_sth || (is_sth && cimg_sscanf(s1," %*[=+-*/minax ]%c",&sep)==1 && sep==')')) {
+                    cimg::strpare(st_op,' ',false,true);
+                    if (!st_op[1]) arg1 = *st_op=='='?0:*st_op=='+'?1:*st_op=='-'?2:*st_op=='*'?3:*st_op=='/'?4:~0U;
+                    if (*st_op=='m' && st_op[1]=='i' && st_op[2]=='n' && !st_op[3]) arg1 = 5;
+                    if (*st_op=='m' && st_op[1]=='a' && st_op[2]=='x' && !st_op[3]) arg1 = 6;
+                  }
+                }
+              }
+              cimg_rofY(memmerge,k) if (memmerge(0,k)==(int)pos) {
+                *se = saved_char;
+                s0 = ss - 4>expr._data?ss - 4:expr._data;
+                cimg::strellipsize(s0,64);
+                throw CImgArgumentException("[" cimg_appname "_math_parser] "
+                                            "CImg<%s>::%s: %s: Merge has already been requested before "
+                                            "for specified variable "
+                                            "in expression '%s%s%s'.",
+                                            pixel_type(),_cimg_mp_calling_function,s_op,
+                                            s0!=expr._data?"...":"",s0,se<&expr.back()?"...":"");
+              }
+              if (arg1==~0U) {
+                *se = saved_char;
+                s0 = ss - 4>expr._data?ss - 4:expr._data;
+                cimg::strellipsize(s0,64);
+                throw CImgArgumentException("[" cimg_appname "_math_parser] "
+                                            "CImg<%s>::%s: %s: Invalid specified operator "
+                                            "(should be one of '=,+,-,*,/,min,max'), "
+                                            "in expression '%s%s%s'.",
+                                            pixel_type(),_cimg_mp_calling_function,s_op,
+                                            s0!=expr._data?"...":"",s0,se<&expr.back()?"...":"");
+              }
+              memmerge.resize(3,memmerge._height + 1,1,1,0,0);
+              memmerge(0,memmerge._height - 1) = (int)pos;
+              memmerge(1,memmerge._height - 1) = (int)_cimg_mp_size(pos);
+              memmerge(2,memmerge._height - 1) = (int)arg1;
               _cimg_mp_return(pos);
             }
             break;
@@ -20618,6 +20702,59 @@ namespace cimg_library_suffixed {
               _cimg_mp_return(pos);
             }
 
+#ifdef cimg_mp_store_function
+            if (!std::strncmp(ss,"store(",6)) { // Store vector to variable
+              _cimg_mp_op("Function 'store()'");
+              s1 = ss6; while (s1<se1 && (*s1!=',' || level[s1 - expr._data]!=clevel1)) ++s1;
+              arg1 = compile(ss6,s1,depth1,0,is_single);
+              p1 = _cimg_mp_size(arg1);
+              p3 = std::max(1U,p1);
+              s2 = s1 + 1; while (s2<se1 && (*s2!=',' || level[s2 - expr._data]!=clevel1)) ++s2;
+              arg2 = compile(++s1,s2,depth1,0,is_single);
+              _cimg_mp_check_type(arg2,2,2,0);
+              p2 = _cimg_mp_size(arg2);
+              arg3 = arg5 = arg6 = 1U; arg4 = p3;
+              if (s2<se1) {
+                s1 = s2 + 1; while (s1<se1 && (*s1!=',' || level[s1 - expr._data]!=clevel1)) ++s1;
+                arg3 = compile(++s2,s1,depth1,0,is_single);
+                _cimg_mp_check_constant(arg3,3,3);
+                arg3 = (unsigned int)mem[arg3];
+                arg4 = arg5 = arg6 = 1U;
+                if (s1<se1) {
+                  s2 = s1 + 1; while (s2<se1 && (*s2!=',' || level[s2 - expr._data]!=clevel1)) ++s2;
+                  arg4 = compile(++s1,s2,depth1,0,is_single);
+                  _cimg_mp_check_constant(arg4,4,3);
+                  arg4 = (unsigned int)mem[arg4];
+                  if (s2<se1) {
+                    s1 = s2 + 1; while (s1<se1 && (*s1!=',' || level[s1 - expr._data]!=clevel1)) ++s1;
+                    arg5 = compile(++s2,s1,depth1,0,is_single);
+                    arg6 = s1<se1?compile(++s1,se1,depth1,0,is_single):1;
+                    _cimg_mp_check_constant(arg5,5,3);
+                    _cimg_mp_check_constant(arg6,6,3);
+                    arg5 = (unsigned int)mem[arg5];
+                    arg6 = (unsigned int)mem[arg6];
+                  }
+                }
+              }
+
+              if (arg3*arg4*arg5*arg6!=p3) {
+                *se = saved_char;
+                s0 = ss - 4>expr._data?ss - 4:expr._data;
+                cimg::strellipsize(s0,64);
+                throw CImgArgumentException("[" cimg_appname "_math_parser] "
+                                            "CImg<%s>::%s: %s: Specified dimensions (%u,%u,%u,%u) "
+                                            "does not match data size (%u), "
+                                            "in expression '%s%s%s'.",
+                                            pixel_type(),_cimg_mp_calling_function,s_op,
+                                            arg3,arg4,arg5,arg6,p3,
+                                            s0!=expr._data?"...":"",s0,se<&expr.back()?"...":"");
+              }
+              CImg<ulongT>::vector((ulongT)mp_store,_cimg_mp_slot_nan,arg1,p1,arg2,p2,
+                                   arg3,arg4,arg5,arg6).move_to(code);
+              _cimg_mp_return_nan();
+            }
+#endif
+
             if (!std::strncmp(ss,"stov(",5)) { // String to double
               _cimg_mp_op("Function 'stov()'");
               s1 = ss5; while (s1<se1 && (*s1!=',' || level[s1 - expr._data]!=clevel1)) ++s1;
@@ -20728,6 +20865,14 @@ namespace cimg_library_suffixed {
               if (_cimg_mp_is_vector(arg1) && _cimg_mp_is_scalar(arg2)) _cimg_mp_vector2_vs(mp_u,arg1,arg2);
               if (_cimg_mp_is_scalar(arg1) && _cimg_mp_is_vector(arg2)) _cimg_mp_vector2_sv(mp_u,arg1,arg2);
               _cimg_mp_scalar2(mp_u,arg1,arg2);
+            }
+
+            if (!std::strncmp(ss,"ui2f(",5)) { // Special uint->float conversion
+              _cimg_mp_op("Function 'ui2f()'");
+              arg1 = compile(ss5,se1,depth1,0,is_single);
+              if (_cimg_mp_is_vector(arg1)) _cimg_mp_vector1_v(mp_ui2f,arg1);
+              if (_cimg_mp_is_constant(arg1)) _cimg_mp_constant((double)cimg::uint2float((unsigned int)mem[arg1]));
+              _cimg_mp_scalar1(mp_ui2f,arg1);
             }
 
             if (!std::strncmp(ss,"unref(",6)) { // Un-reference variable
@@ -21347,9 +21492,9 @@ namespace cimg_library_suffixed {
         } else *output = (t)*result;
       }
 
-      // Evaluation procedure for the end() blocks.
+      // Evaluation procedure the end() bloc.
       void end() {
-        if (code_end.is_empty()) return;
+        if (!code_end) return;
         if (imgin) {
           mem[_cimg_mp_slot_x] = imgin._width - 1.;
           mem[_cimg_mp_slot_y] = imgin._height - 1.;
@@ -21361,6 +21506,84 @@ namespace cimg_library_suffixed {
           opcode._data = p_code->_data;
           const ulongT target = opcode[1];
           mem[target] = _cimg_mp_defunc(*this);
+        }
+      }
+
+      // Evaluation procedure for end_t() bloc.
+      void end_t() {
+        if (!code_end_t) return;
+        if (imgin) {
+          mem[_cimg_mp_slot_x] = imgin._width - 1.;
+          mem[_cimg_mp_slot_y] = imgin._height - 1.;
+          mem[_cimg_mp_slot_z] = imgin._depth - 1.;
+          mem[_cimg_mp_slot_c] = imgin._spectrum - 1.;
+        } else mem[_cimg_mp_slot_x] = mem[_cimg_mp_slot_y] = mem[_cimg_mp_slot_z] = mem[_cimg_mp_slot_c] = 0;
+        p_code_end = code_end_t.end();
+        for (p_code = code_end_t; p_code<p_code_end; ++p_code) {
+          opcode._data = p_code->_data;
+          const ulongT target = opcode[1];
+          mem[target] = _cimg_mp_defunc(*this);
+        }
+      }
+
+      // Evaluation procedure for begin_t() bloc.
+      void begin_t() {
+        if (!code_begin_t) return;
+        if (imgin) {
+          mem[_cimg_mp_slot_x] = imgin._width - 1.;
+          mem[_cimg_mp_slot_y] = imgin._height - 1.;
+          mem[_cimg_mp_slot_z] = imgin._depth - 1.;
+          mem[_cimg_mp_slot_c] = imgin._spectrum - 1.;
+        } else mem[_cimg_mp_slot_x] = mem[_cimg_mp_slot_y] = mem[_cimg_mp_slot_z] = mem[_cimg_mp_slot_c] = 0;
+        p_code_end = code_begin_t.end();
+        for (p_code = code_begin_t; p_code<p_code_end; ++p_code) {
+          opcode._data = p_code->_data;
+          const ulongT target = opcode[1];
+          mem[target] = _cimg_mp_defunc(*this);
+        }
+        p_code_end = code.end();
+      }
+
+      // Merge inter-thread variables.
+      // (argument 'mp' is the master instance).
+      void merge(_cimg_math_parser& mp) {
+        if (&mp==this) return;
+        cimg_rofY(mp.memmerge,k) {
+          const unsigned int
+            pos = (unsigned int)mp.memmerge(0,k),
+            siz = (unsigned int)mp.memmerge(1,k),
+            iop = (unsigned int)mp.memmerge(2,k);
+          if (!siz) switch (iop) { // Scalar value
+            case 0 : mp.mem[pos] = mem[pos]; break;                       // Assignment
+            case 1 : mp.mem[pos]+=mem[pos]; break;                        // Operator+
+            case 2 : mp.mem[pos]-=mem[pos]; break;                        // Operator-
+            case 3 : mp.mem[pos]*=mem[pos]; break;                        // Operator*
+            case 4 : mp.mem[pos]/=mem[pos]; break;                        // Operator/
+            case 5 : mp.mem[pos] = std::min(mp.mem[pos],mem[pos]); break; // Operator 'min'
+            case 6 : mp.mem[pos] = std::max(mp.mem[pos],mem[pos]); break; // Operator 'max'
+            } else switch (iop) { // Vector value
+            case 0 :
+              CImg<doubleT>(&mp.mem[pos + 1],siz,1,1,1,true) = CImg<doubleT>(&mem[pos + 1],siz,1,1,1,true);
+              break;
+            case 1 :
+              CImg<doubleT>(&mp.mem[pos + 1],siz,1,1,1,true)+=CImg<doubleT>(&mem[pos + 1],siz,1,1,1,true);
+              break;
+            case 2 :
+              CImg<doubleT>(&mp.mem[pos + 1],siz,1,1,1,true)-=CImg<doubleT>(&mem[pos + 1],siz,1,1,1,true);
+              break;
+            case 3 :
+              CImg<doubleT>(&mp.mem[pos + 1],siz,1,1,1,true)*=CImg<doubleT>(&mem[pos + 1],siz,1,1,1,true);
+              break;
+            case 4 :
+              CImg<doubleT>(&mp.mem[pos + 1],siz,1,1,1,true)/=CImg<doubleT>(&mem[pos + 1],siz,1,1,1,true);
+              break;
+            case 5 :
+              CImg<doubleT>(&mp.mem[pos + 1],siz,1,1,1,true).min(CImg<doubleT>(&mem[pos + 1],siz,1,1,1,true));
+              break;
+            case 6 :
+              CImg<doubleT>(&mp.mem[pos + 1],siz,1,1,1,true).max(CImg<doubleT>(&mem[pos + 1],siz,1,1,1,true));
+              break;
+            }
         }
       }
 
@@ -21927,6 +22150,31 @@ namespace cimg_library_suffixed {
         return cimg::type<double>::nan();
       }
 
+#ifdef cimg_mp_call_function
+      static double mp_call(_cimg_math_parser& mp) {
+        const unsigned int nb_args = (unsigned int)(mp.opcode[2] - 3)/2;
+        CImgList<charT> _str;
+        CImg<charT> it;
+        for (unsigned int n = 0; n<nb_args; ++n) {
+          const unsigned int siz = (unsigned int)mp.opcode[4 + 2*n];
+          if (siz) { // Vector argument -> string
+            const double *ptr = &_mp_arg(3 + 2*n) + 1;
+            unsigned int l = 0;
+            while (l<siz && ptr[l]) ++l;
+            CImg<doubleT>(ptr,l,1,1,1,true).move_to(_str);
+          } else { // Scalar argument -> number
+            it.assign(256);
+            cimg_snprintf(it,it._width,"%.17g",_mp_arg(3 + 2*n));
+            CImg<charT>::string(it,false,true).move_to(_str);
+          }
+        }
+        CImg(1,1,1,1,0).move_to(_str);
+        CImg<charT> str = _str>'x';
+        cimg_mp_call_function(str._data);
+        return cimg::type<double>::nan();
+      }
+#endif
+
       static double mp_cats(_cimg_math_parser& mp) {
         const double *ptrd = &_mp_arg(1) + 1;
         const unsigned int
@@ -22155,7 +22403,7 @@ namespace cimg_library_suffixed {
       }
 
       static double mp_critical(_cimg_math_parser& mp) {
-        const double res = _mp_arg(1);
+        const ulongT g_target = mp.opcode[1];
         cimg_pragma_openmp(critical(mp_critical))
         {
           for (const CImg<ulongT> *const p_end = ++mp.p_code + mp.opcode[2];
@@ -22166,7 +22414,7 @@ namespace cimg_library_suffixed {
           }
         }
         --mp.p_code;
-        return res;
+        return mp.mem[g_target];
       }
 
       static double mp_crop(_cimg_math_parser& mp) {
@@ -22255,7 +22503,7 @@ namespace cimg_library_suffixed {
           std::fflush(cimg::output());
           mp.debug_indent+=3;
         }
-        const CImg<ulongT> *const p_end = (++mp.p_code) + mp.opcode[3];
+        const CImg<ulongT> *const p_end = ++mp.p_code + mp.opcode[3];
         CImg<ulongT> _op;
         for ( ; mp.p_code<p_end; ++mp.p_code) {
           const CImg<ulongT> &op = *mp.p_code;
@@ -22517,31 +22765,6 @@ namespace cimg_library_suffixed {
         return (double)(_mp_arg(2)==_mp_arg(3));
       }
 
-      static double mp_ext(_cimg_math_parser& mp) {
-        const unsigned int nb_args = (unsigned int)(mp.opcode[2] - 3)/2;
-        CImgList<charT> _str;
-        CImg<charT> it;
-        for (unsigned int n = 0; n<nb_args; ++n) {
-          const unsigned int siz = (unsigned int)mp.opcode[4 + 2*n];
-          if (siz) { // Vector argument -> string
-            const double *ptr = &_mp_arg(3 + 2*n) + 1;
-            unsigned int l = 0;
-            while (l<siz && ptr[l]) ++l;
-            CImg<doubleT>(ptr,l,1,1,1,true).move_to(_str);
-          } else { // Scalar argument -> number
-            it.assign(256);
-            cimg_snprintf(it,it._width,"%.17g",_mp_arg(3 + 2*n));
-            CImg<charT>::string(it,false,true).move_to(_str);
-          }
-        }
-        CImg(1,1,1,1,0).move_to(_str);
-        CImg<charT> str = _str>'x';
-#ifdef cimg_mp_ext_function
-        cimg_mp_ext_function(str);
-#endif
-        return cimg::type<double>::nan();
-      }
-
       static double mp_exp(_cimg_math_parser& mp) {
         return std::exp(_mp_arg(2));
       }
@@ -22551,6 +22774,10 @@ namespace cimg_library_suffixed {
         const unsigned int k = (unsigned int)mp.opcode[2];
         CImg<doubleT>(ptrd,k,k,1,1,true).identity_matrix();
         return cimg::type<double>::nan();
+      }
+
+      static double mp_f2ui(_cimg_math_parser& mp) {
+        return (double)cimg::float2uint((float)_mp_arg(2));
       }
 
       static double mp_factorial(_cimg_math_parser& mp) {
@@ -24758,6 +24985,30 @@ namespace cimg_library_suffixed {
         return cimg::type<double>::nan();
       }
 
+#ifdef cimg_mp_store_function
+      static double mp_store(_cimg_math_parser& mp) {
+        const double
+          *ptr1 = &_mp_arg(2),
+          *ptr2 = &_mp_arg(4) + 1;
+        const unsigned int
+          siz1 = (unsigned int)mp.opcode[3],
+          siz2 = (unsigned int)mp.opcode[5],
+          w = (unsigned int)mp.opcode[6],
+          h = (unsigned int)mp.opcode[7],
+          d = (unsigned int)mp.opcode[8],
+          s = (unsigned int)mp.opcode[9];
+
+        CImg<charT> ss(siz2 + 1);
+        cimg_for_inX(ss,0,ss.width() - 1,i) ss[i] = (char)ptr2[i];
+        ss.back() = 0;
+
+        CImg<doubleT> img;
+        if (siz1) cimg_mp_store_function(ptr1 + 1,w,h,d,s,ss._data);
+        else cimg_mp_store_function(ptr1,1,1,1,1,ss._data);
+        return cimg::type<double>::nan();
+      }
+#endif
+
       static double mp_stov(_cimg_math_parser& mp) {
         const double *ptrs = &_mp_arg(2);
         const ulongT siz = (ulongT)mp.opcode[3];
@@ -24836,6 +25087,10 @@ namespace cimg_library_suffixed {
 
       static double mp_u(_cimg_math_parser& mp) {
         return cimg::rand(_mp_arg(2),_mp_arg(3),&mp.rng);
+      }
+
+      static double mp_ui2f(_cimg_math_parser& mp) {
+        return (double)cimg::uint2float((unsigned int)_mp_arg(2));
       }
 
       static double mp_uppercase(_cimg_math_parser& mp) {
@@ -26349,7 +26604,7 @@ namespace cimg_library_suffixed {
     /**
        \param variance_method Method used to compute the variance (see variance(const unsigned int) const).
        \note Because of structures such as edges in images it is
-       recommanded to use a robust variance estimation. The variance of the
+       recommended to use a robust variance estimation. The variance of the
        noise is estimated by computing the variance of the Laplacian \f$(\Delta
        I)^2 \f$ scaled by a factor \f$c\f$ insuring \f$ c E[(\Delta I)^2]=
        \sigma^2\f$ where \f$\sigma\f$ is the noise variance.
@@ -26487,7 +26742,9 @@ namespace cimg_library_suffixed {
       _cimg_math_parser mp(expression + (*expression=='>' || *expression=='<' ||
                                          *expression=='*' || *expression==':'),"eval",
                            *this,img_output,list_inputs,list_outputs,false);
+      mp.begin_t();
       const double val = mp(x,y,z,c);
+      mp.end_t();
       mp.end();
       return val;
     }
@@ -26535,7 +26792,9 @@ namespace cimg_library_suffixed {
                                          *expression=='*' || *expression==':'),"eval",
                            *this,img_output,list_inputs,list_outputs,false);
       output.assign(1,std::max(1U,mp.result_dim));
+      mp.begin_t();
       mp(x,y,z,c,output._data);
+      mp.end_t();
       mp.end();
     }
 
@@ -26572,6 +26831,8 @@ namespace cimg_library_suffixed {
         _cimg_math_parser
           _mp = omp_get_thread_num()?mp:_cimg_math_parser(),
           &lmp = omp_get_thread_num()?_mp:mp;
+        cimg_pragma_openmp(barrier)
+        lmp.begin_t();
         cimg_pragma_openmp(for)
           for (int i = 0; i<res.height(); ++i) {
             const unsigned int i4 = 4*i;
@@ -26580,13 +26841,17 @@ namespace cimg_library_suffixed {
               z = (double)xyzc[i4 + 2], c = (double)xyzc[i4 + 3];
             res[i] = lmp(x,y,z,c);
           }
-        }
+        lmp.end_t();
+        cimg_pragma_openmp(barrier) cimg_pragma_openmp(critical) { lmp.merge(mp); }
+      }
 #else
+      mp.begin_t();
       const t *ps = xyzc._data;
       cimg_for(res,pd,double) {
         const double x = (double)*(ps++), y = (double)*(ps++), z = (double)*(ps++), c = (double)*(ps++);
         *pd = mp(x,y,z,c);
       }
+      mp.end_t();
 #endif
       mp.end();
       return res;
@@ -28147,7 +28412,7 @@ namespace cimg_library_suffixed {
        \param a5 Sixth matrix value.
        \param a6 Seventh matrix value.
        \param a7 Eighth matrix value.
-       \param a8 Nineth matrix value.
+       \param a8 Ninth matrix value.
     **/
     static CImg<T> matrix(const T& a0, const T& a1, const T& a2,
 			  const T& a3, const T& a4, const T& a5,
@@ -28798,6 +29063,7 @@ namespace cimg_library_suffixed {
               T *ptrd = *expression=='<'?_data + _width*_height*_depth - 1:_data;
               if (*expression=='<') {
                 CImg<doubleT> res(1,mp.result_dim);
+                mp.begin_t();
                 cimg_rofYZ(*this,y,z) {
                   cimg_abort_test;
                   if (formula_mode==2) cimg_rofX(*this,x) mp(x,y,z,0);
@@ -28807,8 +29073,11 @@ namespace cimg_library_suffixed {
                       T *_ptrd = ptrd--; for (unsigned int n = N; n>0; --n) { *_ptrd = (T)(*ptrs++); _ptrd+=whd; }
                     }
                 }
+                mp.end_t();
+
               } else if (*expression=='>' || !do_in_parallel) {
                 CImg<doubleT> res(1,mp.result_dim);
+                mp.begin_t();
                 cimg_forYZ(*this,y,z) {
                   cimg_abort_test;
                   if (formula_mode==2) cimg_forX(*this,x) mp(x,y,z,0);
@@ -28818,7 +29087,9 @@ namespace cimg_library_suffixed {
                       T *_ptrd = ptrd++; for (unsigned int n = N; n>0; --n) { *_ptrd = (T)(*ptrs++); _ptrd+=whd; }
                     }
                 }
-             } else {
+                mp.end_t();
+
+              } else {
 
 #if cimg_use_openmp!=0
                 cimg_pragma_openmp(parallel)
@@ -28827,6 +29098,8 @@ namespace cimg_library_suffixed {
                     _mp = omp_get_thread_num()?mp:_cimg_math_parser(),
                     &lmp = omp_get_thread_num()?_mp:mp;
                   lmp.is_fill = true;
+                  cimg_pragma_openmp(barrier)
+                  lmp.begin_t();
                   cimg_pragma_openmp(for cimg_openmp_collapse(2))
                     cimg_forYZ(*this,y,z) _cimg_abort_try_openmp {
                     cimg_abort_test;
@@ -28841,6 +29114,8 @@ namespace cimg_library_suffixed {
                       }
                     }
                   } _cimg_abort_catch_openmp _cimg_abort_catch_fill_openmp
+                  lmp.end_t();
+                  cimg_pragma_openmp(barrier) cimg_pragma_openmp(critical) { lmp.merge(mp); }
                 }
 #endif
               }
@@ -28848,11 +29123,17 @@ namespace cimg_library_suffixed {
             } else { // Scalar-valued expression
               T *ptrd = *expression=='<'?end() - 1:_data;
               if (*expression=='<') {
+                mp.begin_t();
                 if (formula_mode==2) cimg_rofYZC(*this,y,z,c) { cimg_abort_test; cimg_rofX(*this,x) mp(x,y,z,c); }
                 else cimg_rofYZC(*this,y,z,c) { cimg_abort_test; cimg_rofX(*this,x) *(ptrd--) = (T)mp(x,y,z,c); }
+                mp.end_t();
+
               } else if (*expression=='>' || !do_in_parallel) {
+                mp.begin_t();
                 if (formula_mode==2) cimg_forYZC(*this,y,z,c) { cimg_abort_test; cimg_forX(*this,x) mp(x,y,z,c); }
                 else cimg_forYZC(*this,y,z,c) { cimg_abort_test; cimg_forX(*this,x) *(ptrd++) = (T)mp(x,y,z,c); }
+                mp.end_t();
+
               } else {
 
 #if cimg_use_openmp!=0
@@ -28862,6 +29143,8 @@ namespace cimg_library_suffixed {
                     _mp = omp_get_thread_num()?mp:_cimg_math_parser(),
                     &lmp = omp_get_thread_num()?_mp:mp;
                   lmp.is_fill = true;
+                  cimg_pragma_openmp(barrier)
+                  lmp.begin_t();
                   cimg_pragma_openmp(for cimg_openmp_collapse(3))
                     cimg_forYZC(*this,y,z,c) _cimg_abort_try_openmp {
                     cimg_abort_test;
@@ -28871,6 +29154,8 @@ namespace cimg_library_suffixed {
                       cimg_forX(*this,x) *(_ptrd++) = (T)lmp(x,y,z,c);
                     }
                   } _cimg_abort_catch_openmp _cimg_abort_catch_fill_openmp
+                  lmp.end_t();
+                  cimg_pragma_openmp(barrier) cimg_pragma_openmp(critical) { lmp.merge(mp); }
                 }
 #endif
               }
@@ -29168,7 +29453,7 @@ namespace cimg_library_suffixed {
     /**
        \param val_min Minimal authorized random value.
        \param val_max Maximal authorized random value.
-       \note Random variables are uniformely distributed in [val_min,val_max].
+       \note Random variables are uniformly distributed in [val_min,val_max].
      **/
     CImg<T>& rand(const T& val_min, const T& val_max) {
       const float delta = (float)val_max - (float)val_min + (cimg::type<T>::is_float()?0:1);
@@ -32239,7 +32524,7 @@ namespace cimg_library_suffixed {
         return resc._is_shared?(resz._is_shared?(resy._is_shared?(resx._is_shared?(+(*this)):resx):resy):resz):resc;
       } break;
 
-        // Unknow interpolation.
+        // Unknown interpolation.
         //
       default :
         throw CImgArgumentException(_cimg_instance
@@ -35161,11 +35446,11 @@ namespace cimg_library_suffixed {
     //! Split image into a list along specified axis.
     /**
        \param axis Splitting axis. Can be <tt>{ 'x' | 'y' | 'z' | 'c' }</tt>.
-       \param nb Number of splitted parts.
+       \param nb Number of split parts.
        \note
-       - If \c nb==0, instance image is splitted into blocs of egal values along the specified axis.
-       - If \c nb<=0, instance image is splitted into blocs of -\c nb pixel wide.
-       - If \c nb>0, instance image is splitted into \c nb blocs.
+       - If \c nb==0, instance image is split into blocs of egal values along the specified axis.
+       - If \c nb<=0, instance image is split into blocs of -\c nb pixel wide.
+       - If \c nb>0, instance image is split into \c nb blocs.
     **/
     CImgList<T> get_split(const char axis, const int nb=-1) const {
       CImgList<T> res;
@@ -35307,7 +35592,7 @@ namespace cimg_library_suffixed {
     /**
        \param values Splitting value sequence.
        \param axis Axis along which the splitting is performed. Can be '0' to ignore axis.
-       \param keep_values Tells if the splitting sequence must be kept in the splitted blocs.
+       \param keep_values Tells if the splitting sequence must be kept in the split blocs.
      **/
     template<typename t>
     CImgList<T> get_split(const CImg<t>& values, const char axis=0, const bool keep_values=true) const {
@@ -36992,7 +37277,7 @@ namespace cimg_library_suffixed {
        \param filter the coefficient of the filter in the following order [n,n - 1,n - 2,n - 3].
        \param N size of the data
        \param off the offset between two data point
-       \param order the order of the filter 0 (smoothing), 1st derivtive, 2nd derivative, 3rd derivative
+       \param order the order of the filter 0 (smoothing), 1st derivative, 2nd derivative, 3rd derivative
        \param boundary_conditions Boundary conditions. Can be <tt>{ 0=dirichlet | 1=neumann }</tt>.
        \note Boundary condition using B. Triggs method (IEEE trans on Sig Proc 2005).
     */
@@ -37751,7 +38036,7 @@ namespace cimg_library_suffixed {
       \param N size of the data
       \param boxsize Size of the box filter (can be subpixel).
       \param off the offset between two data point
-      \param order the order of the filter 0 (smoothing), 1st derivtive and 2nd derivative.
+      \param order the order of the filter 0 (smoothing), 1st derivative and 2nd derivative.
       \param boundary_conditions Boundary conditions. Can be <tt>{ 0=dirichlet | 1=neumann }</tt>.
     */
     static void _cimg_blur_box_apply(T *ptr, const float boxsize, const int N, const ulongT off,
@@ -38083,7 +38368,7 @@ namespace cimg_library_suffixed {
           cimg_for_in##N##XY(res,x0,y0,x1,y1,p,q) if (p!=x || q!=y) { \
             tfloat *pQ = Q._data; cimg_forC(_guide,c) { cimg_get##N##x##N(_guide,p,q,0,c,pQ,tfloat); pQ+=N2; } \
             tfloat distance2 = 0; \
-            pQ = Q._data; cimg_for(P,_pP,T) { const tfloat dI = *_pP - *(pQ++); distance2+=dI*dI; } \
+            pQ = Q._data; cimg_for(P,_pP,tfloat) { const tfloat dI = *_pP - *(pQ++); distance2+=dI*dI; } \
             distance2/=Pnorm; \
             const tfloat dx = (tfloat)p - x, dy = (tfloat)q - y, \
               alldist = distance2 + (dx*dx+dy*dy)/sigma_s2, weight = std::exp(-alldist); \
@@ -38531,173 +38816,127 @@ namespace cimg_library_suffixed {
        \param axes Axes considered for the gradient computation, as a C-string (e.g "xy").
        \param scheme = Numerical scheme used for the gradient computation:
        - -1 = Backward finite differences
-       - 0 = Centered finite differences
+       - 0 = Centered finite differences (default)
        - 1 = Forward finite differences
        - 2 = Using Sobel kernels
        - 3 = Using rotation invariant kernels
-       - 4 = Using Deriche recusrsive filter.
-       - 5 = Using Van Vliet recusrsive filter.
+       - 4 = Using Deriche recursive filter.
+       - 5 = Using Van Vliet recursive filter.
     **/
-    CImgList<Tfloat> get_gradient(const char *const axes=0, const int scheme=3) const {
-      CImgList<Tfloat> grad(2,_width,_height,_depth,_spectrum);
-      bool is_3d = false;
-      if (axes) {
-        for (unsigned int a = 0; axes[a]; ++a) {
-          const char axis = cimg::lowercase(axes[a]);
-          switch (axis) {
-          case 'x' : case 'y' : break;
-          case 'z' : is_3d = true; break;
-          default :
-            throw CImgArgumentException(_cimg_instance
-                                        "get_gradient(): Invalid specified axis '%c'.",
-                                        cimg_instance,
-                                        axis);
-          }
+    CImgList<Tfloat> get_gradient(const char *const axes=0, const int scheme=0) const {
+      CImgList<Tfloat> res;
+      char __axes[4] = { 0 };
+      const char *_axes = axes?axes:__axes;
+      if (!axes) {
+        unsigned int k = 0;
+        if (_width>1) __axes[k++] = 'x';
+        if (_height>1) __axes[k++] = 'y';
+        if (_depth>1) __axes[k++] = 'z';
+      }
+
+      CImg<Tfloat> grad;
+      while (*_axes) {
+        const char axis = cimg::lowercase(*(_axes++));
+        if (axis!='x' && axis!='y' && axis!='z')
+          throw CImgArgumentException(_cimg_instance
+                                      "get_gradient(): Invalid specified axes '%s'.",
+                                      cimg_instance,
+                                      axes);
+        const longT off = axis=='x'?1:axis=='y'?_width:_width*_height;
+        if ((axis=='x' && _width==1) || (axis=='y' && _height==1) || (axis=='z' && _depth==1)) {
+          grad.assign(_width,_height,_depth,_spectrum,0).move_to(res);
+          continue;
         }
-      } else is_3d = (_depth>1);
-      if (is_3d) {
-        CImg<Tfloat>(_width,_height,_depth,_spectrum).move_to(grad);
-        switch (scheme) { // 3D
+
+        const int _scheme = axis=='z' && (scheme==2 || scheme==3)?0:scheme;
+        switch (_scheme) {
         case -1 : { // Backward finite differences
-          cimg_pragma_openmp(parallel for cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*1048576 &&
-                                                         _spectrum>=2))
-          cimg_forC(*this,c) {
-            const ulongT off = (ulongT)c*_width*_height*_depth;
-            Tfloat *ptrd0 = grad[0]._data + off, *ptrd1 = grad[1]._data + off, *ptrd2 = grad[2]._data + off;
-            CImg_3x3x3(I,Tfloat);
-            cimg_for3x3x3(*this,x,y,z,c,I,Tfloat) {
-              *(ptrd0++) = Iccc - Ipcc;
-              *(ptrd1++) = Iccc - Icpc;
-              *(ptrd2++) = Iccc - Iccp;
-            }
+          grad.assign(_width,_height,_depth,_spectrum);
+          cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(size(),16384))
+          cimg_forXYZC(*this,x,y,z,c) {
+            const ulongT pos = offset(x,y,z,c);
+            if ((axis=='x' && !x) || (axis=='y' && !y) || (axis=='z' && !z))
+              grad[pos] = 0;
+            else
+              grad[pos] = (Tfloat)_data[pos] - _data[pos - off];
           }
+          grad.move_to(res);
         } break;
         case 1 : { // Forward finite differences
-          cimg_pragma_openmp(parallel for cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*1048576 &&
-                                                         _spectrum>=2))
-          cimg_forC(*this,c) {
-            const ulongT off = (ulongT)c*_width*_height*_depth;
-            Tfloat *ptrd0 = grad[0]._data + off, *ptrd1 = grad[1]._data + off, *ptrd2 = grad[2]._data + off;
-            CImg_2x2x2(I,Tfloat);
-            cimg_for2x2x2(*this,x,y,z,c,I,Tfloat) {
-              *(ptrd0++) = Incc - Iccc;
-              *(ptrd1++) = Icnc - Iccc;
-              *(ptrd2++) = Iccn - Iccc;
+          grad.assign(_width,_height,_depth,_spectrum);
+          cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(size(),16384))
+          cimg_forXYZC(*this,x,y,z,c) {
+            const ulongT pos = offset(x,y,z,c);
+            if ((axis=='x' && x==width() - 1) || (axis=='y' && y==height() - 1) || (axis=='z' && z==depth() - 1))
+              grad[pos] = 0;
+            else
+              grad[pos] = (Tfloat)_data[pos + off] - _data[pos];
+          }
+          grad.move_to(res);
+        } break;
+        case 2 : { // Sobel scheme
+          grad.assign(_width,_height,_depth,_spectrum);
+          if (axis=='x') // X-axis
+            cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
+                               cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*16384 &&
+                                              _depth*_spectrum>=2))
+            cimg_forZC(*this,z,c) {
+              CImg_3x3(I,Tfloat);
+              cimg_for3x3(*this,x,y,z,c,I,Tfloat) grad(x,y,z,c) = - Ipp + Inp - 2*Ipc + 2*Inc - Ipn + Inn;
             }
-          }
-        } break;
-        case 4 : { // Deriche filter with low standard variation
-          grad[0] = get_deriche(0,1,'x');
-          grad[1] = get_deriche(0,1,'y');
-          grad[2] = get_deriche(0,1,'z');
-        } break;
-        case 5 : { // Van Vliet filter with low standard variation
-          grad[0] = get_vanvliet(0,1,'x');
-          grad[1] = get_vanvliet(0,1,'y');
-          grad[2] = get_vanvliet(0,1,'z');
-        } break;
-        default : { // Central finite differences
-          cimg_pragma_openmp(parallel for cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*1048576 &&
-                                                         _spectrum>=2))
-          cimg_forC(*this,c) {
-            const ulongT off = (ulongT)c*_width*_height*_depth;
-            Tfloat *ptrd0 = grad[0]._data + off, *ptrd1 = grad[1]._data + off, *ptrd2 = grad[2]._data + off;
-            CImg_3x3x3(I,Tfloat);
-            cimg_for3x3x3(*this,x,y,z,c,I,Tfloat) {
-              *(ptrd0++) = (Incc - Ipcc)/2;
-              *(ptrd1++) = (Icnc - Icpc)/2;
-              *(ptrd2++) = (Iccn - Iccp)/2;
+          else // Y-axis
+            cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
+                               cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*16384 &&
+                                              _depth*_spectrum>=2))
+            cimg_forZC(*this,z,c) {
+              CImg_3x3(I,Tfloat);
+              cimg_for3x3(*this,x,y,z,c,I,Tfloat) grad(x,y,z,c) = - Ipp - 2*Icp - Inp + Ipn + 2*Icn + Inn;
             }
-          }
-        }
-        }
-      } else switch (scheme) { // 2D
-      case -1 : { // Backward finite differences
-        cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
-                           cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576 && _depth*_spectrum>=2))
-        cimg_forZC(*this,z,c) {
-          const ulongT off = (ulongT)c*_width*_height*_depth + z*_width*_height;
-          Tfloat *ptrd0 = grad[0]._data + off, *ptrd1 = grad[1]._data + off;
-          CImg_3x3(I,Tfloat);
-          cimg_for3x3(*this,x,y,z,c,I,Tfloat) {
-            *(ptrd0++) = Icc - Ipc;
-            *(ptrd1++) = Icc - Icp;
-          }
-        }
-      } break;
-      case 1 : { // Forward finite differences
-        cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
-                           cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576 && _depth*_spectrum>=2))
-        cimg_forZC(*this,z,c) {
-          const ulongT off = (ulongT)c*_width*_height*_depth + z*_width*_height;
-          Tfloat *ptrd0 = grad[0]._data + off, *ptrd1 = grad[1]._data + off;
-          CImg_2x2(I,Tfloat);
-          cimg_for2x2(*this,x,y,z,c,I,Tfloat) {
-            *(ptrd0++) = Inc - Icc;
-            *(ptrd1++) = Icn - Icc;
-          }
-        }
-      } break;
-      case 2 : { // Sobel scheme
-        cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
-                           cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576 && _depth*_spectrum>=2))
-        cimg_forZC(*this,z,c) {
-          const ulongT off = (ulongT)c*_width*_height*_depth + z*_width*_height;
-          Tfloat *ptrd0 = grad[0]._data + off, *ptrd1 = grad[1]._data + off;
-          CImg_3x3(I,Tfloat);
-          cimg_for3x3(*this,x,y,z,c,I,Tfloat) {
-            *(ptrd0++) = -Ipp - 2*Ipc - Ipn + Inp + 2*Inc + Inn;
-            *(ptrd1++) = -Ipp - 2*Icp - Inp + Ipn + 2*Icn + Inn;
-          }
-        }
-      } break;
-      case 3 : { // Rotation invariant kernel
-        cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
-                           cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576 && _depth*_spectrum>=2))
-        cimg_forZC(*this,z,c) {
-          const ulongT off = (ulongT)c*_width*_height*_depth + z*_width*_height;
-          Tfloat *ptrd0 = grad[0]._data + off, *ptrd1 = grad[1]._data + off;
-          CImg_3x3(I,Tfloat);
+          grad.move_to(res);
+        } break;
+        case 3 : { // Rotation invariant scheme
           const Tfloat a = (Tfloat)(0.25f*(2 - std::sqrt(2.f))), b = (Tfloat)(0.5f*(std::sqrt(2.f) - 1));
-          cimg_for3x3(*this,x,y,z,c,I,Tfloat) {
-            *(ptrd0++) = -a*Ipp - b*Ipc - a*Ipn + a*Inp + b*Inc + a*Inn;
-            *(ptrd1++) = -a*Ipp - b*Icp - a*Inp + a*Ipn + b*Icn + a*Inn;
+          grad.assign(_width,_height,_depth,_spectrum);
+          if (axis=='x') // X-axis
+            cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
+                               cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*16384 &&
+                                              _depth*_spectrum>=2))
+            cimg_forZC(*this,z,c) {
+              CImg_3x3(I,Tfloat);
+              cimg_for3x3(*this,x,y,z,c,I,Tfloat) grad(x,y,z,c) = -a*Ipp - b*Ipc - a*Ipn + a*Inp + b*Inc + a*Inn;
+            }
+          else // Y-axis
+            cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
+                               cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*16384 &&
+                                              _depth*_spectrum>=2))
+            cimg_forZC(*this,z,c) {
+              CImg_3x3(I,Tfloat);
+              cimg_for3x3(*this,x,y,z,c,I,Tfloat) grad(x,y,z,c) = -a*Ipp - b*Icp - a*Inp + a*Ipn + b*Icn + a*Inn;
+            }
+          grad.move_to(res);
+        } break;
+        case 4 : // Deriche filter
+          get_deriche(0,1,axis).move_to(res);
+          break;
+        case 5 : // Van Vliet filter
+          get_vanvliet(0,1,axis).move_to(res);
+          break;
+        default : { // Central finite differences
+          grad.assign(_width,_height,_depth,_spectrum);
+          cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(size(),16384))
+          cimg_forXYZC(*this,x,y,z,c) {
+            const ulongT pos = offset(x,y,z,c);
+            if ((axis=='x' && !x) || (axis=='y' && !y) || (axis=='z' && !z))
+              grad[pos] = ((Tfloat)_data[pos + off] - _data[pos])/2;
+            else if ((axis=='x' && x==width() - 1) || (axis=='y' && y==height() - 1) || (axis=='z' && z==depth() - 1))
+              grad[pos] = ((Tfloat)_data[pos] - _data[pos - off])/2;
+            else
+              grad[pos] = ((Tfloat)_data[pos + off] - _data[pos - off])/2;
           }
-        }
-      } break;
-      case 4 : { // Van Vliet filter with low standard variation
-        grad[0] = get_deriche(0,1,'x');
-        grad[1] = get_deriche(0,1,'y');
-      } break;
-      case 5 : { // Deriche filter with low standard variation
-        grad[0] = get_vanvliet(0,1,'x');
-        grad[1] = get_vanvliet(0,1,'y');
-      } break;
-      default : { // Central finite differences
-        cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
-                           cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576 && _depth*_spectrum>=2))
-        cimg_forZC(*this,z,c) {
-          const ulongT off = (ulongT)c*_width*_height*_depth + z*_width*_height;
-          Tfloat *ptrd0 = grad[0]._data + off, *ptrd1 = grad[1]._data + off;
-          CImg_3x3(I,Tfloat);
-          cimg_for3x3(*this,x,y,z,c,I,Tfloat) {
-            *(ptrd0++) = (Inc - Ipc)/2;
-            *(ptrd1++) = (Icn - Icp)/2;
-          }
+          grad.move_to(res);
+        } break;
         }
       }
-      }
-      if (!axes) return grad;
-      CImgList<Tfloat> res;
-      for (unsigned int l = 0; axes[l]; ++l) {
-        const char axis = cimg::lowercase(axes[l]);
-        switch (axis) {
-        case 'x' : res.insert(grad[0]); break;
-        case 'y' : res.insert(grad[1]); break;
-        case 'z' : res.insert(grad[2]); break;
-        }
-      }
-      grad.assign();
       return res;
     }
 
@@ -38707,121 +38946,84 @@ namespace cimg_library_suffixed {
     **/
     CImgList<Tfloat> get_hessian(const char *const axes=0) const {
       CImgList<Tfloat> res;
-      const char *naxes = axes, *const def_axes2d = "xxxyyy", *const def_axes3d = "xxxyxzyyyzzz";
-      if (!axes) naxes = _depth>1?def_axes3d:def_axes2d;
-      const unsigned int lmax = (unsigned int)std::strlen(naxes);
-      if (lmax%2)
+      char __axes[12] = { 0 };
+      const char *_axes = axes?axes:__axes;
+      if (!axes) {
+        unsigned int k = 0;
+        if (_width>1) { __axes[k++] = 'x'; __axes[k++] = 'x'; }
+        if (_width>1 && _height>1) { __axes[k++] = 'x'; __axes[k++] = 'y'; }
+        if (_width>1 && _depth>1) { __axes[k++] = 'x'; __axes[k++] = 'z'; }
+        if (_height>1) { __axes[k++] = 'y'; __axes[k++] = 'y'; }
+        if (_height>1 && _depth>1) { __axes[k++] = 'y'; __axes[k++] = 'z'; }
+        if (_depth>1) { __axes[k++] = 'z'; __axes[k++] = 'z'; }
+      }
+      const unsigned int len = (unsigned int)std::strlen(_axes);
+      if (len%2)
         throw CImgArgumentException(_cimg_instance
                                     "get_hessian(): Invalid specified axes '%s'.",
                                     cimg_instance,
-                                    naxes);
+                                    axes);
+      CImg<Tfloat> hess;
+      for (unsigned int k = 0; k<len; k+=2) {
+        const char
+          _axis1 = cimg::lowercase(_axes[k]),
+          _axis2 = cimg::lowercase(_axes[k + 1]),
+          axis1 = std::min(_axis1,_axis2),
+          axis2 = std::max(_axis2,_axis2);
+        if (axis1!='x' && axis1!='y' && axis1!='z' &&
+            axis2!='x' && axis2!='y' && axis2!='z')
+          throw CImgArgumentException(_cimg_instance
+                                      "get_hessian(): Invalid specified axes '%s'.",
+                                      cimg_instance,
+                                      axes);
+        const longT off = axis1=='x'?1:axis1=='y'?_width:_width*_height;
 
-      res.assign(lmax/2,_width,_height,_depth,_spectrum);
-      if (!cimg::strcasecmp(naxes,def_axes3d)) { // 3D
+        hess.assign(_width,_height,_depth,_spectrum);
 
-        cimg_pragma_openmp(parallel for cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*1048576 &&
-                                                       _spectrum>=2))
-        cimg_forC(*this,c) {
-          const ulongT off = (ulongT)c*_width*_height*_depth;
-          Tfloat
-            *ptrd0 = res[0]._data + off, *ptrd1 = res[1]._data + off, *ptrd2 = res[2]._data + off,
-            *ptrd3 = res[3]._data + off, *ptrd4 = res[4]._data + off, *ptrd5 = res[5]._data + off;
-          CImg_3x3x3(I,Tfloat);
-          cimg_for3x3x3(*this,x,y,z,c,I,Tfloat) {
-            *(ptrd0++) = Ipcc + Incc - 2*Iccc;          // Ixx
-            *(ptrd1++) = (Ippc + Innc - Ipnc - Inpc)/4; // Ixy
-            *(ptrd2++) = (Ipcp + Incn - Ipcn - Incp)/4; // Ixz
-            *(ptrd3++) = Icpc + Icnc - 2*Iccc;          // Iyy
-            *(ptrd4++) = (Icpp + Icnn - Icpn - Icnp)/4; // Iyz
-            *(ptrd5++) = Iccn + Iccp - 2*Iccc;          // Izz
-          }
+        if (((axis1=='x' || axis2=='x') && _width==1) ||
+            ((axis1=='y' || axis2=='y') && _height==1) ||
+            ((axis1=='z' || axis2=='z') && _depth==1)) {
+          hess.fill(0).move_to(res);
+          continue;
         }
-      } else if (!cimg::strcasecmp(naxes,def_axes2d)) { // 2D
-        cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
-                           cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576 && _depth*_spectrum>=2))
-        cimg_forZC(*this,z,c) {
-          const ulongT off = (ulongT)c*_width*_height*_depth + z*_width*_height;
-          Tfloat *ptrd0 = res[0]._data + off, *ptrd1 = res[1]._data + off, *ptrd2 = res[2]._data + off;
-          CImg_3x3(I,Tfloat);
-          cimg_for3x3(*this,x,y,z,c,I,Tfloat) {
-            *(ptrd0++) = Ipc + Inc - 2*Icc;         // Ixx
-            *(ptrd1++) = (Ipp + Inn - Ipn - Inp)/4; // Ixy
-            *(ptrd2++) = Icp + Icn - 2*Icc;         // Iyy
+
+        if (axis1==axis2) // Ixx, Iyy, Izz
+          cimg_pragma_openmp(parallel for cimg_openmp_collapse(3) cimg_openmp_if_size(size(),16384))
+          cimg_forXYZC(*this,x,y,z,c) {
+            const ulongT pos = offset(x,y,z,c);
+            if ((axis1=='x' && !x) || (axis1=='y' && !y) || (axis1=='z' && !z))
+              hess[pos] = (Tfloat)_data[pos + off] - _data[pos];
+            else if ((axis1=='x' && x==width() - 1) ||
+                     (axis1=='y' && y==height() - 1) ||
+                     (axis1=='z' && z==depth() - 1))
+              hess[pos] = (Tfloat)_data[pos - off] - _data[pos];
+            else
+              hess[pos] = (Tfloat)_data[pos + off] + _data[pos - off] - 2*_data[pos];
           }
-        }
-      } else for (unsigned int l = 0; l<lmax; ) { // Version with custom axes
-          const unsigned int l2 = l/2;
-          char axis1 = naxes[l++], axis2 = naxes[l++];
-          if (axis1>axis2) cimg::swap(axis1,axis2);
-          bool valid_axis = false;
-          if (axis1=='x' && axis2=='x') { // Ixx
-            valid_axis = true;
-            cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
-                               cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576 && _depth*_spectrum>=2))
-            cimg_forZC(*this,z,c) {
-              Tfloat *ptrd = res[l2].data(0,0,z,c);
-              CImg_3x3(I,Tfloat);
-              cimg_for3x3(*this,x,y,z,c,I,Tfloat) *(ptrd++) = Ipc + Inc - 2*Icc;
-            }
+        else if (axis1=='x' && axis2=='y') // Ixy
+          cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
+                             cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*16384 &&
+                                            _depth*_spectrum>=2))
+          cimg_forZC(*this,z,c) {
+            CImg_3x3(I,Tfloat);
+            cimg_for3x3(*this,x,y,z,c,I,Tfloat) hess(x,y,z,c) = (Inn + Ipp - Inp - Ipn)/4;
           }
-          else if (axis1=='x' && axis2=='y') { // Ixy
-            valid_axis = true;
-            cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
-                               cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576 &&
-                                              _depth*_spectrum>=2))
-            cimg_forZC(*this,z,c) {
-              Tfloat *ptrd = res[l2].data(0,0,z,c);
-              CImg_3x3(I,Tfloat);
-              cimg_for3x3(*this,x,y,z,c,I,Tfloat) *(ptrd++) = (Ipp + Inn - Ipn - Inp)/4;
-            }
+        else if (axis1=='x' && axis2=='z') // Ixz
+          cimg_pragma_openmp(parallel for cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*16384 &&
+                                                         _spectrum>=2))
+          cimg_forC(*this,c) {
+            CImg_3x3x3(I,Tfloat);
+            cimg_for3x3x3(*this,x,y,z,c,I,Tfloat) hess(x,y,z,c) = (Incn + Ipcp - Incp - Ipcn)/4;
           }
-          else if (axis1=='x' && axis2=='z') { // Ixz
-            valid_axis = true;
-            cimg_pragma_openmp(parallel for cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*1048576 &&
-                                                           _spectrum>=2))
-            cimg_forC(*this,c) {
-              Tfloat *ptrd = res[l2].data(0,0,0,c);
-              CImg_3x3x3(I,Tfloat);
-              cimg_for3x3x3(*this,x,y,z,c,I,Tfloat) *(ptrd++) = (Ipcp + Incn - Ipcn - Incp)/4;
-            }
+        else // Iyz
+          cimg_pragma_openmp(parallel for cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*16384 &&
+                                                         _spectrum>=2))
+          cimg_forC(*this,c) {
+            CImg_3x3x3(I,Tfloat);
+            cimg_for3x3x3(*this,x,y,z,c,I,Tfloat) hess(x,y,z,c) = (Icnn + Icpp - Icnp - Icpn)/4;
           }
-          else if (axis1=='y' && axis2=='y') { // Iyy
-            valid_axis = true;
-            cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
-                               cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576 &&
-                                              _depth*_spectrum>=2))
-            cimg_forZC(*this,z,c) {
-              Tfloat *ptrd = res[l2].data(0,0,z,c);
-              CImg_3x3(I,Tfloat);
-              cimg_for3x3(*this,x,y,z,c,I,Tfloat) *(ptrd++) = Icp + Icn - 2*Icc;
-            }
-          }
-          else if (axis1=='y' && axis2=='z') { // Iyz
-            valid_axis = true;
-            cimg_pragma_openmp(parallel for cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*1048576 &&
-                                                           _spectrum>=2))
-            cimg_forC(*this,c) {
-              Tfloat *ptrd = res[l2].data(0,0,0,c);
-              CImg_3x3x3(I,Tfloat);
-              cimg_for3x3x3(*this,x,y,z,c,I,Tfloat) *(ptrd++) = (Icpp + Icnn - Icpn - Icnp)/4;
-            }
-          }
-          else if (axis1=='z' && axis2=='z') { // Izz
-            valid_axis = true;
-            cimg_pragma_openmp(parallel for cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*1048576 &&
-                                                           _spectrum>=2))
-            cimg_forC(*this,c) {
-              Tfloat *ptrd = res[l2].data(0,0,0,c);
-              CImg_3x3x3(I,Tfloat);
-              cimg_for3x3x3(*this,x,y,z,c,I,Tfloat) *(ptrd++) = Iccn + Iccp - 2*Iccc;
-            }
-          }
-          else if (!valid_axis)
-            throw CImgArgumentException(_cimg_instance
-                                        "get_hessian(): Invalid specified axes '%s'.",
-                                        cimg_instance,
-                                        naxes);
-        }
+        hess.move_to(res);
+      }
       return res;
     }
 
@@ -39461,26 +39663,8 @@ namespace cimg_library_suffixed {
       CImg<intT> a_map(_width,_height,_depth,patch_image._depth>1?3:2);
       CImg<ucharT> is_updated(_width,_height,_depth,1,3);
       CImg<floatT> score(_width,_height,_depth);
-      CImg<uintT> occ, loop_order;
-      ulongT rng = (cimg::_rand(),cimg::rng());
-      if (occ_penalization!=0) {
-        occ.assign(patch_image._width,patch_image._height,patch_image._depth,1,0);
-        loop_order.assign(_width,_height,_depth,_depth>1?3:2);
-        cimg_forXYZ(loop_order,x,y,z) {
-          loop_order(x,y,z,0) = x;
-          loop_order(x,y,z,1) = y;
-          if (loop_order._spectrum>2) loop_order(x,y,z,2) = z;
-        }
-        cimg_forXYZ(loop_order,x,y,z) { // Randomize loop order in case of constraints on patch occurrence
-          const unsigned int
-            X = (unsigned int)cimg::round(cimg::rand(loop_order._width - 1.,&rng)),
-            Y = (unsigned int)cimg::round(cimg::rand(loop_order._height - 1.,&rng)),
-            Z = loop_order._depth>1?(unsigned int)cimg::round(cimg::rand(loop_order._depth  - 1.,&rng)):0U;
-          cimg::swap(loop_order(x,y,z,0),loop_order(X,Y,Z,0));
-          cimg::swap(loop_order(x,y,z,1),loop_order(X,Y,Z,1));
-          if (loop_order._spectrum>2) cimg::swap(loop_order(x,y,z,2),loop_order(X,Y,Z,2));
-        }
-      }
+      CImg<uintT> occ;
+      if (occ_penalization!=0) occ.assign(patch_image._width,patch_image._height,patch_image._depth,1,0);
       const int
         psizew = (int)patch_width,  psizew1 = psizew/2, psizew2 = psizew - psizew1 - 1,
         psizeh = (int)patch_height, psizeh1 = psizeh/2, psizeh2 = psizeh - psizeh1 - 1,
@@ -39519,10 +39703,9 @@ namespace cimg_library_suffixed {
                                        u - cx1,v - cy1,w - cz1,
                                        u,v,w,0,cimg::type<float>::inf());
           } else cimg_pragma_openmp(parallel cimg_openmp_if_size(_width,64)) {
-            ulongT _rng = (cimg::_rand(),cimg::rng());
-
+            ulongT rng = (cimg::_rand(),cimg::rng());
 #if cimg_use_openmp!=0
-            _rng+=omp_get_thread_num();
+            rng+=omp_get_thread_num();
 #endif
             cimg_pragma_openmp(for cimg_openmp_collapse(2))
               cimg_forXYZ(*this,x,y,z) { // Random initialization
@@ -39530,9 +39713,9 @@ namespace cimg_library_suffixed {
                 cx1 = x<=psizew1?x:(x<width()  - psizew2?psizew1:psizew + x - width()),  cx2 = psizew - cx1 - 1,
                 cy1 = y<=psizeh1?y:(y<height() - psizeh2?psizeh1:psizeh + y - height()), cy2 = psizeh - cy1 - 1,
                 cz1 = z<=psized1?z:(z<depth()  - psized2?psized1:psized + z - depth()),  cz2 = psized - cz1 - 1,
-                u = (int)cimg::round(cimg::rand(cx1,patch_image.width() - 1 - cx2,&_rng)),
-                v = (int)cimg::round(cimg::rand(cy1,patch_image.height() - 1 - cy2,&_rng)),
-                w = (int)cimg::round(cimg::rand(cz1,patch_image.depth() - 1 - cz2,&_rng));
+                u = (int)cimg::round(cimg::rand(cx1,patch_image.width() - 1 - cx2,&rng)),
+                v = (int)cimg::round(cimg::rand(cy1,patch_image.height() - 1 - cy2,&rng)),
+                w = (int)cimg::round(cimg::rand(cz1,patch_image.depth() - 1 - cz2,&rng));
               a_map(x,y,z,0) = u;
               a_map(x,y,z,1) = v;
               a_map(x,y,z,2) = w;
@@ -39541,37 +39724,29 @@ namespace cimg_library_suffixed {
                                          u - cx1,v - cy1,w - cz1,
                                          u,v,w,0,cimg::type<float>::inf());
             }
-            cimg::srand(_rng);
+            cimg::srand(rng);
           }
 
         // Start iteration loop.
         cimg_abort_init;
         for (unsigned int iter = 0; iter<nb_iterations; ++iter) {
           cimg_abort_test;
-          const bool is_odd = iter%2;
-          const unsigned int cmask = is_odd?1:2, nmask = 3 - cmask;
-          if (iter) occ.fill(0);
+          const bool is_backward = iter&1;
+          const unsigned int cmask = is_backward?1:2, nmask = 3 - cmask;
 
           cimg_pragma_openmp(parallel cimg_openmp_if(_width>=(cimg_openmp_sizefactor)*64 &&
                                                      iter<nb_iterations-2)) {
-            ulongT _rng = (cimg::_rand(),cimg::rng());
+            ulongT rng = (cimg::_rand(),cimg::rng());
 
 #if cimg_use_openmp!=0
-            _rng+=omp_get_thread_num();
+            rng+=omp_get_thread_num();
 #endif
             cimg_pragma_openmp(for cimg_openmp_collapse(2))
               cimg_forXYZ(*this,X,Y,Z) {
               const int
-                _x = is_odd?width() - 1 - X:X,
-                _y = is_odd?height() - 1 - Y:Y,
-                _z = is_odd?depth() - 1 - Z:Z;
-              int x, y, z;
-              if (occ_penalization) {
-                x = loop_order(_x,_y,_z,0);
-                y = loop_order(_x,_y,_z,1);
-                if (loop_order._spectrum>2) z = loop_order(_x,_y,_z,2); else z = _z;
-              } else { x = _x; y = _y; z = _z; }
-
+                x = is_backward?width() - 1 - X:X,
+                y = is_backward?height() - 1 - Y:Y,
+                z = is_backward?depth() - 1 - Z:Z;
               if (score(x,y,z)<=1e-5 || (constraint && guide(x,y,z,constraint)!=0)) continue;
               const int
                 cx1 = x<=psizew1?x:(x<width()  - psizew2?psizew1:psizew + x - width()),  cx2 = psizew - cx1 - 1,
@@ -39585,7 +39760,6 @@ namespace cimg_library_suffixed {
               const float best_score0 = score(x,y,z);
               float best_score = best_score0, s;
 
-              // Propagation.
               if (x>0 && (is_updated(x - 1,y,z)&cmask)) { // Compare with left neighbor
                 u = a_map(x - 1,y,z,0);
                 v = a_map(x - 1,y,z,1);
@@ -39665,18 +39839,17 @@ namespace cimg_library_suffixed {
                 }
               }
 
-              // Randomization.
               float
                 dw = (float)patch_image.width(),
                 dh = (float)patch_image.height(),
                 dd = (float)patch_image.depth();
               for (unsigned int i = 0; i<nb_randoms; ++i) {
                 u = (int)cimg::round(cimg::rand(std::max((float)cx1,best_u - dw),
-                                                std::min(patch_image.width() - 1.f - cx2,best_u + dw),&_rng));
+                                                std::min(patch_image.width() - 1.f - cx2,best_u + dw),&rng));
                 v = (int)cimg::round(cimg::rand(std::max((float)cy1,best_v - dh),
-                                                std::min(patch_image.height() - 1.f - cy2,best_v + dh),&_rng));
+                                                std::min(patch_image.height() - 1.f - cy2,best_v + dh),&rng));
                 w = (int)cimg::round(cimg::rand(std::max((float)cz1,best_w - dd),
-                                                std::min(patch_image.depth() - 1.f - cz2,best_w + dd),&_rng));
+                                                std::min(patch_image.depth() - 1.f - cz2,best_w + dd),&rng));
                 if (u!=best_u || v!=best_v || w!=best_w) {
                   s = _matchpatch(in_this,in_patch,occ,patch_width,patch_height,patch_depth,_spectrum,
                                   xp,yp,zp,u - cx1,v - cy1,w - cz1,
@@ -39687,19 +39860,19 @@ namespace cimg_library_suffixed {
               }
 
               if (best_score<best_score0) {
-                a_map(x,y,z,0) = best_u;
-                a_map(x,y,z,1) = best_v;
-                a_map(x,y,z,2) = best_w;
-                score(x,y,z) = best_score;
                 if (occ_penalization!=0) {
                   uintT &n_occ = occ(a_map(x,y,z,0),a_map(x,y,z,1),a_map(x,y,z,2));
                   if (n_occ) cimg_pragma_openmp(atomic) --n_occ;
                 }
+                a_map(x,y,z,0) = best_u;
+                a_map(x,y,z,1) = best_v;
+                a_map(x,y,z,2) = best_w;
+                score(x,y,z) = best_score;
                 is_updated(x,y,z) = 3;
               } else is_updated(x,y,z)&=~nmask;
               if (occ_penalization!=0) cimg_pragma_openmp(atomic) ++occ(best_u,best_v,best_w);
             }
-            cimg::srand(_rng);
+            cimg::srand(rng);
           }
         }
 
@@ -39720,53 +39893,46 @@ namespace cimg_library_suffixed {
                                      x - cx1,y - cy1,u - cx1,v - cy1,
                                      u,v,0,cimg::type<float>::inf());
           } else cimg_pragma_openmp(parallel cimg_openmp_if_size(_width,64)) {
-            ulongT _rng = (cimg::_rand(),cimg::rng());
+            ulongT rng = (cimg::_rand(),cimg::rng());
 
 #if cimg_use_openmp!=0
-            _rng+=omp_get_thread_num();
+            rng+=omp_get_thread_num();
 #endif
             cimg_pragma_openmp(for)
               cimg_forXY(*this,x,y) { // Random initialization
               const int
                 cx1 = x<=psizew1?x:(x<width()  - psizew2?psizew1:psizew + x - width()),  cx2 = psizew - cx1 - 1,
                 cy1 = y<=psizeh1?y:(y<height() - psizeh2?psizeh1:psizeh + y - height()), cy2 = psizeh - cy1 - 1,
-                u = (int)cimg::round(cimg::rand(cx1,patch_image.width() - 1 - cx2,&_rng)),
-                v = (int)cimg::round(cimg::rand(cy1,patch_image.height() - 1 - cy2,&_rng));
+                u = (int)cimg::round(cimg::rand(cx1,patch_image.width() - 1 - cx2,&rng)),
+                v = (int)cimg::round(cimg::rand(cy1,patch_image.height() - 1 - cy2,&rng));
               a_map(x,y,0) = u;
               a_map(x,y,1) = v;
               score(x,y) = _matchpatch(in_this,in_patch,occ,patch_width,patch_height,_spectrum,
                                        x - cx1,y - cy1,u - cx1,v - cy1,
                                        u,v,0,cimg::type<float>::inf());
             }
-            cimg::srand(_rng);
+            cimg::srand(rng);
           }
 
         // Start iteration loop.
         cimg_abort_init;
         for (unsigned int iter = 0; iter<nb_iterations; ++iter) {
           cimg_abort_test;
-          const bool is_odd = iter%2;
-          const unsigned int cmask = is_odd?1:2, nmask = 3 - cmask;
-          if (iter) occ.fill(0);
+          const bool is_backward = iter&1;
+          const unsigned int cmask = is_backward?1:2, nmask = 3 - cmask;
 
           cimg_pragma_openmp(parallel cimg_openmp_if(_width>=(cimg_openmp_sizefactor)*64 &&
                                                      iter<nb_iterations-2)) {
-            ulongT _rng = (cimg::_rand(),cimg::rng());
+            ulongT rng = (cimg::_rand(),cimg::rng());
 
 #if cimg_use_openmp!=0
-            _rng+=omp_get_thread_num();
+            rng+=omp_get_thread_num();
 #endif
             cimg_pragma_openmp(for)
               cimg_forXY(*this,X,Y) {
               const int
-                _x = is_odd?width() - 1 - X:X,
-                _y = is_odd?height() - 1 - Y:Y;
-              int x, y;
-              if (occ_penalization) {
-                x = loop_order(_x,_y,0);
-                y = loop_order(_x,_y,1);
-              } else { x = _x; y = _y; }
-
+                x = is_backward?width() - 1 - X:X,
+                y = is_backward?height() - 1 - Y:Y;
               if (score(x,y)<=1e-5 || (constraint && guide(x,y,constraint)!=0)) continue;
               const int
                 cx1 = x<=psizew1?x:(x<width()  - psizew2?psizew1:psizew + x - width()),  cx2 = psizew - cx1 - 1,
@@ -39778,7 +39944,6 @@ namespace cimg_library_suffixed {
               const float best_score0 = score(x,y);
               float best_score = best_score0, s;
 
-              // Propagation.
               if (x>0 && (is_updated(x - 1,y)&cmask)) { // Compare with left neighbor
                 u = a_map(x - 1,y,0);
                 v = a_map(x - 1,y,1);
@@ -39824,15 +39989,14 @@ namespace cimg_library_suffixed {
                 }
               }
 
-              // Randomization.
               float
                 dw = (float)patch_image.width(),
                 dh = (float)patch_image.height();
               for (unsigned int i = 0; i<nb_randoms; ++i) {
                 u = (int)cimg::round(cimg::rand(std::max((float)cx1,best_u - dw),
-                                                std::min(patch_image.width() - 1.f - cx2,best_u + dw),&_rng));
+                                                std::min(patch_image.width() - 1.f - cx2,best_u + dw),&rng));
                 v = (int)cimg::round(cimg::rand(std::max((float)cy1,best_v - dh),
-                                                std::min(patch_image.height() - 1.f - cy2,best_v + dh),&_rng));
+                                                std::min(patch_image.height() - 1.f - cy2,best_v + dh),&rng));
                 if (u!=best_u || v!=best_v) {
                   s = _matchpatch(in_this,in_patch,occ,patch_width,patch_height,_spectrum,
                                   xp,yp,u - cx1,v - cy1,
@@ -39843,21 +40007,22 @@ namespace cimg_library_suffixed {
               }
 
               if (best_score<best_score0) {
-                a_map(x,y,0) = best_u;
-                a_map(x,y,1) = best_v;
-                score(x,y) = best_score;
                 if (occ_penalization!=0) {
                   uintT &n_occ = occ(a_map(x,y,0),a_map(x,y,1));
                   if (n_occ) cimg_pragma_openmp(atomic) --n_occ;
                 }
+                a_map(x,y,0) = best_u;
+                a_map(x,y,1) = best_v;
+                score(x,y) = best_score;
                 is_updated(x,y) = 3;
               } else is_updated(x,y)&=~nmask;
               if (occ_penalization!=0) cimg_pragma_openmp(atomic) ++occ(best_u,best_v);
             }
+            cimg::srand(rng);
           }
-          cimg::srand(rng);
         }
       }
+
       if (is_matching_score) score.move_to(matching_score);
       return a_map;
     }
@@ -42933,7 +43098,7 @@ namespace cimg_library_suffixed {
           T *const ptrd = is_horizontal?data(y,x):data(x,y);
           cimg_forC(*this,c) {
             const T val = color[c];
-            ptrd[c*_sc_whd] = (T)(opacity>=1?val:val*_sc_nopacity + ptrd[c*_sc_whd]*_sc_copacity);
+            ptrd[c*_sc_whd] = opacity>=1?val:(T)(val*_sc_nopacity + ptrd[c*_sc_whd]*_sc_copacity);
           }
         }
         if (!(hatch>>=1)) hatch = ~0U - (~0U>>1);
@@ -43009,7 +43174,7 @@ namespace cimg_library_suffixed {
           T *const ptrd = is_horizontal?data(y,x):data(x,y);
           cimg_forC(*this,c) {
             const T val = color[c];
-            ptrd[c*_sc_whd] = (T)(opacity>=1?val:val*_sc_nopacity + ptrd[c*_sc_whd]*_sc_copacity);
+            ptrd[c*_sc_whd] = opacity>=1?val:(T)(val*_sc_nopacity + ptrd[c*_sc_whd]*_sc_copacity);
           }
         }
         if (!(hatch>>=1)) hatch = ~0U - (~0U>>1);
@@ -43181,7 +43346,7 @@ namespace cimg_library_suffixed {
           const tc *const color = &texture._atXY(tx,ty);
           cimg_forC(*this,c) {
             const T val = color[c*twhd];
-            ptrd[c*_sc_whd] = (T)(opacity>=1?val:val*_sc_nopacity + ptrd[c*_sc_whd]*_sc_copacity);
+            ptrd[c*_sc_whd] = opacity>=1?val:(T)(val*_sc_nopacity + ptrd[c*_sc_whd]*_sc_copacity);
           }
         }
         if (!(hatch>>=1)) hatch = ~0U - (~0U>>1);
@@ -43279,7 +43444,7 @@ namespace cimg_library_suffixed {
           const tc *const color = &texture._atXY(tx,ty);
           cimg_forC(*this,c) {
             const T val = color[c*twhd];
-            ptrd[c*_sc_whd] = (T)(opacity>=1?val:val*_sc_nopacity + ptrd[c*_sc_whd]*_sc_copacity);
+            ptrd[c*_sc_whd] = opacity>=1?val:(T)(val*_sc_nopacity + ptrd[c*_sc_whd]*_sc_copacity);
           }
         }
         if (!(hatch>>=1)) hatch = ~0U - (~0U>>1);
@@ -43378,7 +43543,7 @@ namespace cimg_library_suffixed {
        \note
        - The curve is a 2D cubic Bezier spline, from the set of specified starting/ending points
        and corresponding velocity vectors.
-       - The spline is drawn as a serie of connected segments. The \p precision parameter sets the
+       - The spline is drawn as a sequence of connected segments. The \p precision parameter sets the
        average number of pixels in each drawn segment.
        - A cubic Bezier curve is sometimes defined by a set of 4 points { (\p x0,\p y0), (\p xa,\p ya),
          (\p xb,\p yb), (\p x1,\p y1) } where (\p x0,\p y0) is the starting point, (\p x1,\p y1) is the ending point
@@ -49662,7 +49827,7 @@ namespace cimg_library_suffixed {
       unsigned char *ptrs = buffer;
 
       // Decompress buffer (if necessary)
-      if (compression) {
+      if (compression==1 || compression==2) {
         if (file)
           throw CImgIOException(_cimg_instance
                                 "load_bmp(): Unable to load compressed data from '(*FILE)' inputs.",
@@ -49728,7 +49893,7 @@ namespace cimg_library_suffixed {
           ptrs+=align_bytes;
         }
       } break;
-      case 16 : { // 16 bits colors
+      case 16 : { // 16 bits colors (RGB565)
         for (int y = height() - 1; y>=0; --y) {
           if (buf_size>=cimg_iobuffer) {
             if (!cimg::fread(ptrs=buffer._data,dx_bytes,nfile)) break;
@@ -49736,10 +49901,10 @@ namespace cimg_library_suffixed {
           }
           cimg_forX(*this,x) {
             const unsigned char c1 = *(ptrs++), c2 = *(ptrs++);
-            const unsigned short col = (unsigned short)(c1|(c2<<8));
-            (*this)(x,y,2) = (T)(col&0x1F);
-            (*this)(x,y,1) = (T)((col>>5)&0x1F);
-            (*this)(x,y,0) = (T)((col>>10)&0x1F);
+            const unsigned short col = (unsigned short)c2<<8 | c1;
+            (*this)(x,y,2) = (T)((col&0x1F)<<3);
+            (*this)(x,y,1) = (T)(((col>>5)&0x3F)<<3);
+            (*this)(x,y,0) = (T)(((col>>11)&0x1F)<<3);
           }
           ptrs+=align_bytes;
         }
@@ -52033,7 +52198,7 @@ namespace cimg_library_suffixed {
       \param last_frame Index of the last frame to read.
       \param step_frame Step value for frame reading.
       \param axis Alignment axis.
-      \param align Apending alignment.
+      \param align Appending alignment.
     **/
     CImg<T>& load_video(const char *const filename,
                         const unsigned int first_frame=0, const unsigned int last_frame=~0U,
@@ -52430,7 +52595,7 @@ namespace cimg_library_suffixed {
        \param capture_width Width of the desired image ('0' stands for default value).
        \param capture_height Height of the desired image ('0' stands for default value).
        \param skip_frames Number of frames to skip before the capture.
-       \param release_camera Tells if the camera ressource must be released at the end of the method.
+       \param release_camera Tells if the camera resource must be released at the end of the method.
     **/
     CImg<T>& load_camera(const unsigned int camera_index=0,
                          const unsigned int capture_width=0, const unsigned int capture_height=0,
@@ -55107,7 +55272,7 @@ namespace cimg_library_suffixed {
         \param dc Number of channels of the image.
         \note
         - All pixel values of the saved image are set to \c 0.
-        - Use this method to save large images without having to instanciate and allocate them.
+        - Use this method to save large images without having to instantiate and allocate them.
     **/
     static void save_empty_cimg(const char *const filename,
                                 const unsigned int dx, const unsigned int dy=1,
@@ -55754,18 +55919,18 @@ namespace cimg_library_suffixed {
                    cimg_instance,filename);
 
 #ifdef cimg_use_png
-#define _cimg_sge_ext1 "png"
-#define _cimg_sge_ext2 "png"
+#define _cimg_sge_extension1 "png"
+#define _cimg_sge_extension2 "png"
 #else
-#define _cimg_sge_ext1 "pgm"
-#define _cimg_sge_ext2 "ppm"
+#define _cimg_sge_extension1 "pgm"
+#define _cimg_sge_extension2 "ppm"
 #endif
       CImg<charT> command(1024), filename_tmp(256);
       std::FILE *file;
       do {
         cimg_snprintf(filename_tmp,filename_tmp._width,"%s%c%s.%s",
                       cimg::temporary_path(),cimg_file_separator,cimg::filenamerand(),
-                      _spectrum==1?_cimg_sge_ext1:_cimg_sge_ext2);
+                      _spectrum==1?_cimg_sge_extension1:_cimg_sge_extension2);
         if ((file=cimg::std_fopen(filename_tmp,"rb"))!=0) cimg::fclose(file);
       } while (file);
 
@@ -55811,17 +55976,17 @@ namespace cimg_library_suffixed {
                    "ImageMagick only writes the first image slice.",
                    cimg_instance,filename);
 #ifdef cimg_use_png
-#define _cimg_sie_ext1 "png"
-#define _cimg_sie_ext2 "png"
+#define _cimg_sie_extension1 "png"
+#define _cimg_sie_extension2 "png"
 #else
-#define _cimg_sie_ext1 "pgm"
-#define _cimg_sie_ext2 "ppm"
+#define _cimg_sie_extension1 "pgm"
+#define _cimg_sie_extension2 "ppm"
 #endif
       CImg<charT> command(1024), filename_tmp(256);
       std::FILE *file;
       do {
         cimg_snprintf(filename_tmp,filename_tmp._width,"%s%c%s.%s",cimg::temporary_path(),
-                      cimg_file_separator,cimg::filenamerand(),_spectrum==1?_cimg_sie_ext1:_cimg_sie_ext2);
+                      cimg_file_separator,cimg::filenamerand(),_spectrum==1?_cimg_sie_extension1:_cimg_sie_extension2);
         if ((file=cimg::std_fopen(filename_tmp,"rb"))!=0) cimg::fclose(file);
       } while (file);
 #ifdef cimg_use_png
@@ -58123,11 +58288,17 @@ namespace cimg_library_suffixed {
         res.assign(dx,dy,dz,dc,(T)0);
         if (res) cimglist_for(*this,l) {
             const CImg<T>& img = (*this)[l];
-            if (img) res.draw_image(pos,
-                                    (int)(align*(dy - img._height)),
-                                    (int)(align*(dz - img._depth)),
-                                    (int)(align*(dc - img._spectrum)),
-                                    img);
+            if (img) {
+              if (img._height==1 && img._depth==1 && img._spectrum==1 &&
+                  res._height==1 && res._depth==1 && res._spectrum==1)
+                std::memcpy(&res[pos],img._data,sizeof(T)*img._width);
+              else
+                res.draw_image(pos,
+                               (int)(align*(dy - img._height)),
+                               (int)(align*(dz - img._depth)),
+                               (int)(align*(dc - img._spectrum)),
+                               img);
+            }
             pos+=img._width;
           }
       } break;
@@ -58144,11 +58315,17 @@ namespace cimg_library_suffixed {
         res.assign(dx,dy,dz,dc,(T)0);
         if (res) cimglist_for(*this,l) {
             const CImg<T>& img = (*this)[l];
-            if (img) res.draw_image((int)(align*(dx - img._width)),
-                                    pos,
-                                    (int)(align*(dz - img._depth)),
-                                    (int)(align*(dc - img._spectrum)),
-                                    img);
+            if (img) {
+              if (img._width==1 && img._depth==1 && img._spectrum==1 &&
+                  res._width==1 && res._depth==1 && res._spectrum==1)
+                std::memcpy(&res[pos],img._data,sizeof(T)*img._height);
+              else
+                res.draw_image((int)(align*(dx - img._width)),
+                               pos,
+                               (int)(align*(dz - img._depth)),
+                               (int)(align*(dc - img._spectrum)),
+                               img);
+            }
             pos+=img._height;
           }
       } break;
@@ -58165,11 +58342,17 @@ namespace cimg_library_suffixed {
         res.assign(dx,dy,dz,dc,(T)0);
         if (res) cimglist_for(*this,l) {
             const CImg<T>& img = (*this)[l];
-            if (img) res.draw_image((int)(align*(dx - img._width)),
-                                    (int)(align*(dy - img._height)),
-                                    pos,
-                                    (int)(align*(dc - img._spectrum)),
-                                    img);
+            if (img) {
+              if (img._width==1 && img._height==1 && img._spectrum==1 &&
+                  res._width==1 && res._height==1 && res._spectrum==1)
+                std::memcpy(&res[pos],img._data,sizeof(T)*img._depth);
+              else
+                res.draw_image((int)(align*(dx - img._width)),
+                               (int)(align*(dy - img._height)),
+                               pos,
+                               (int)(align*(dc - img._spectrum)),
+                               img);
+            }
             pos+=img._depth;
           }
       } break;
@@ -58186,11 +58369,17 @@ namespace cimg_library_suffixed {
         res.assign(dx,dy,dz,dc,(T)0);
         if (res) cimglist_for(*this,l) {
             const CImg<T>& img = (*this)[l];
-            if (img) res.draw_image((int)(align*(dx - img._width)),
-                                    (int)(align*(dy - img._height)),
-                                    (int)(align*(dz - img._depth)),
-                                    pos,
-                                    img);
+            if (img) {
+              if (img._width==1 && img._height==1 && img._depth==1 &&
+                  res._width==1 && res._height==1 && res._depth==1)
+                std::memcpy(&res[pos],img._data,sizeof(T)*img._spectrum);
+              else
+                res.draw_image((int)(align*(dx - img._width)),
+                               (int)(align*(dy - img._height)),
+                               (int)(align*(dz - img._depth)),
+                               pos,
+                               img);
+            }
             pos+=img._spectrum;
           }
       }
@@ -58201,7 +58390,7 @@ namespace cimg_library_suffixed {
     //! Return a list where each image has been split along the specified axis.
     /**
         \param axis Axis to split images along.
-        \param nb Number of spliting parts for each image.
+        \param nb Number of split parts for each image.
     **/
     CImgList<T>& split(const char axis, const int nb=-1) {
       return get_split(axis,nb).move_to(*this);
@@ -59705,10 +59894,10 @@ namespace cimg_library_suffixed {
     /**
        \param disp Reference to an existing CImgDisplay instance, where the current image list will be displayed.
        \param axis Appending axis. Can be <tt>{ 'x' | 'y' | 'z' | 'c' }</tt>.
-       \param align Appending alignmenet.
+       \param align Appending alignment.
        \note This function displays the list images of the current CImgList instance into an existing
          CImgDisplay window.
-       Images of the list are appended in a single temporarly image for visualization purposes.
+       Images of the list are appended in a single temporary image for visualization purposes.
        The function returns immediately.
     **/
     const CImgList<T>& display(CImgDisplay &disp, const char axis='x', const float align=0) const {
@@ -59721,12 +59910,12 @@ namespace cimg_library_suffixed {
         \param disp Display window.
         \param display_info Tells if image information are displayed on the standard output.
         \param axis Alignment axis for images viewing.
-        \param align Apending alignment.
+        \param align Appending alignment.
         \param[in,out] XYZ Contains the XYZ coordinates at start / exit of the function.
         \param exit_on_anykey Exit function when any key is pressed.
         \note This function opens a new window with a specific title and displays the list images of the
           current CImgList instance into it.
-        Images of the list are appended in a single temporarly image for visualization purposes.
+        Images of the list are appended in a single temporary image for visualization purposes.
         The function returns when a key is pressed or the display window is closed by the user.
     **/
     const CImgList<T>& display(CImgDisplay &disp, const bool display_info,
@@ -59996,19 +60185,19 @@ namespace cimg_library_suffixed {
       std::FILE *file = 0;
 
 #ifdef cimg_use_png
-#define _cimg_save_gif_ext "png"
+#define _cimg_save_gif_extension "png"
 #else
-#define _cimg_save_gif_ext "ppm"
+#define _cimg_save_gif_extension "ppm"
 #endif
 
       do {
         cimg_snprintf(filename_tmp,filename_tmp._width,"%s%c%s",
                       cimg::temporary_path(),cimg_file_separator,cimg::filenamerand());
-        cimg_snprintf(filename_tmp2,filename_tmp2._width,"%s_000001." _cimg_save_gif_ext,filename_tmp._data);
+        cimg_snprintf(filename_tmp2,filename_tmp2._width,"%s_000001." _cimg_save_gif_extension,filename_tmp._data);
         if ((file=cimg::std_fopen(filename_tmp2,"rb"))!=0) cimg::fclose(file);
       } while (file);
       cimglist_for(*this,l) {
-        cimg_snprintf(filename_tmp2,filename_tmp2._width,"%s_%.6u." _cimg_save_gif_ext,filename_tmp._data,l + 1);
+        cimg_snprintf(filename_tmp2,filename_tmp2._width,"%s_%.6u." _cimg_save_gif_extension,filename_tmp._data,l + 1);
         CImg<charT>::string(filename_tmp2).move_to(filenames);
         if (_data[l]._depth>1 || _data[l]._spectrum!=3) _data[l].get_resize(-100,-100,1,3).save(filename_tmp2);
         else _data[l].save(filename_tmp2);
@@ -60736,13 +60925,11 @@ namespace cimg_library_suffixed {
             CImg<Tss> raw; \
             CImg<T> &img = res._data[l]; \
             if (err==5) _cimgz_unserialize_case(Tss) \
-            else if (sizeof(Tss)==sizeof(t) && cimg::type<Tss>::is_float()==cimg::type<t>::is_float()) { \
-              raw.assign((Tss*)stream,W,H,D,C,true); \
-              stream+=raw.size(); \
-            } else { \
+            else { \
               raw.assign(W,H,D,C); \
               CImg<ucharT> _raw((unsigned char*)raw._data,W*sizeof(Tss),H,D,C,true); \
-              cimg_for(_raw,p,unsigned char) *p = (unsigned char)*(stream++); \
+              if (sizeof(t)==1) { std::memcpy(_raw,stream,_raw.size()); stream+=_raw.size(); } \
+              else cimg_for(_raw,p,unsigned char) *p = (unsigned char)*(stream++); \
             } \
             if (endian!=cimg::endianness()) cimg::invert_endianness(raw._data,raw.size()); \
             raw.move_to(img); \
@@ -61651,6 +61838,18 @@ namespace cimg_library_suffixed {
       return std::strcmp(sa._data,sb._data);
     }
 
+    //! Generate a numbered version of a filename.
+    inline char* number_filename(const char *const filename, const int number,
+                                 const unsigned int digits, char *const str) {
+      if (!filename) { if (str) *str = 0; return 0; }
+      CImg<char> format(1024), body(1024);
+      const char *const ext = cimg::split_filename(filename,body);
+      if (*ext) cimg_snprintf(format,1024,"%%s_%%.%ud.%%s",digits);
+      else cimg_snprintf(format,1024,"%%s_%%.%ud",digits);
+      cimg_snprintf(str,1024,format._data,body._data,number,ext);
+      return str;
+    }
+
     //! Return list of files/directories in specified directory.
     /**
        \param path Path to the directory. Set to 0 for current directory.
@@ -62052,7 +62251,7 @@ namespace cimg_library_suffixed {
        \note
        - Up to 6 buttons can be defined in the dialog window.
        - The function returns when a user clicked one of the button or closed the dialog window.
-       - If a button text is set to 0, the corresponding button (and the followings) will not appear in the dialog box.
+       - If a button text is set to 0, the corresponding button (and the following) will not appear in the dialog box.
        At least one button must be specified.
     **/
     template<typename t>
@@ -62220,8 +62419,9 @@ namespace cimg_library_suffixed {
 
     //! Display a simple dialog box, and wait for the user's response \specialization.
     inline int dialog(const char *const title, const char *const msg,
-                      const char *const button1_label, const char *const button2_label, const char *const button3_label,
-                      const char *const button4_label, const char *const button5_label, const char *const button6_label,
+                      const char *const button1_label, const char *const button2_label,
+                      const char *const button3_label, const char *const button4_label,
+                      const char *const button5_label, const char *const button6_label,
                       const bool is_centered) {
       return dialog(title,msg,button1_label,button2_label,button3_label,button4_label,button5_label,button6_label,
                     CImg<unsigned char>::_logo40x38(),is_centered);
