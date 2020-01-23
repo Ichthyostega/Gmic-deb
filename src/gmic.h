@@ -52,7 +52,7 @@
 */
 
 #ifndef gmic_version
-#define gmic_version 280
+#define gmic_version 283
 
 #ifndef gmic_pixel_type
 #define gmic_pixel_type float
@@ -78,18 +78,28 @@ namespace cimg_library {
     unsigned int _height;      // Number of image lines (dimension along the Y-axis)
     unsigned int _depth;       // Number of image slices (dimension along the Z-axis)
     unsigned int _spectrum;    // Number of image channels (dimension along the C-axis)
-    bool _is_shared;           // Tells if the data buffer is shared by another structure
+    bool _is_shared;           // Tells if the data buffer has been allocated by another object
     T *_data;                  // Pointer to the first pixel value
 
     // Destructor.
-    ~gmic_image();
+    ~gmic_image() {
+      if (!_is_shared) delete[] _data;
+    }
 
     // Constructor.
-    gmic_image():_width(0),_height(0),_depth(0),_spectrum(0),_is_shared(false),_data(0) {}
+    gmic_image():_width(0),_height(0),_depth(0),_spectrum(0),_is_shared(false),_data(0) { }
 
     // Allocate memory for specified image dimensions.
     gmic_image<T>& assign(const unsigned int size_x, const unsigned int size_y=1,
                           const unsigned int size_z=1, const unsigned int size_c=1);
+
+    // Create image by copying existing buffer of t values.
+    template<typename t>
+    gmic_image<T>& assign(const t *const values, const unsigned int size_x, const unsigned int size_y=1,
+                          const unsigned int size_z=1, const unsigned int size_c=1);
+
+    gmic_image<T>& assign(const T *const values, const unsigned int size_x, const unsigned int size_y,
+                          const unsigned int size_z, const unsigned int size_c, const bool is_shared);
 
     // Pixel access.
     operator T*() {
@@ -117,7 +127,9 @@ namespace cimg_library {
     gmic_image<T> *_data;          // Pointer to the first image of the list
 
     // Destructor.
-    ~gmic_list();
+    ~gmic_list() {
+      delete[] _data;
+    }
 
     // Constructor.
     gmic_list():_width(0),_allocated_width(0),_data(0) {}
@@ -260,6 +272,7 @@ struct gmic {
   static double mp_store(const Ts *const ptr,
                          const unsigned int w, const unsigned int h, const unsigned int d, const unsigned int s,
                          const char *const str, void *const p_list, const T& pixel_type);
+  static bool get_debug_info(const char *const s, unsigned int &line_number, unsigned int &file_number);
   static int _levenshtein(const char *const s, const char *const t,
                           gmic_image<int>& d, const int i, const int j);
   static int levenshtein(const char *const s, const char *const t);
@@ -286,9 +299,11 @@ struct gmic {
                            const unsigned int *const variables_sizes=0);
 
   gmic& add_commands(const char *const data_commands, const char *const commands_file=0,
-                     unsigned int *count_new=0, unsigned int *count_replaced=0);
+                     unsigned int *count_new=0, unsigned int *count_replaced=0,
+                     bool *const is_entrypoint=0);
   gmic& add_commands(std::FILE *const file, const char *const filename=0,
-                     unsigned int *count_new=0, unsigned int *count_replaced=0);
+                     unsigned int *count_new=0, unsigned int *count_replaced=0,
+                     bool *const is_entrypoint=0);
 
   gmic_image<char> callstack2string(const bool _is_debug=false) const;
   gmic_image<char> callstack2string(const gmic_image<unsigned int>& callstack_selection,
@@ -413,7 +428,7 @@ struct gmic {
   unsigned long reference_time;
   unsigned int nb_dowhiles, nb_fordones, nb_repeatdones, nb_carriages, debug_filename, debug_line, cimg_exception_mode;
   int verbosity,render3d, renderd3d;
-  bool is_change, is_debug, is_running, is_start, is_return, is_quit, is_double3d, is_debug_info,
+  bool allow_entrypoint, is_change, is_debug, is_running, is_start, is_return, is_quit, is_double3d, is_debug_info,
     _is_abort, *is_abort, is_abort_thread;
   const char *starting_commands_line;
 };

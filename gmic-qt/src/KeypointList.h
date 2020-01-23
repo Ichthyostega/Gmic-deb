@@ -26,10 +26,12 @@
 #define GMIC_QT_KEYPOINTLIST_H
 
 #include <QColor>
+#include <QDebug>
 #include <QPointF>
 #include <QSize>
 #include <cmath>
 #include <deque>
+#include "Common.h"
 
 class KeypointList {
 public:
@@ -49,7 +51,7 @@ public:
     Keypoint & setNaN();
     inline void setPosition(float x, float y);
     inline void setPosition(const QPointF & p);
-    static const int DefaultRadius = 6;
+    static const float DefaultRadius;
 
     inline int actualRadiusFromPreviewSize(const QSize & size) const;
   };
@@ -104,9 +106,9 @@ void KeypointList::Keypoint::setPosition(const QPointF & point)
 int KeypointList::Keypoint::actualRadiusFromPreviewSize(const QSize & size) const
 {
   if (radius >= 0) {
-    return radius;
+    return static_cast<int>(radius);
   } else {
-    return std::round(-radius * (std::sqrt(size.width() * size.width() + size.height() * size.height())) / 100.0);
+    return std::max(2, static_cast<int>(std::round(-static_cast<double>(radius) * (std::sqrt(size.width() * size.width() + size.height() * size.height())) / 100.0)));
   }
 }
 

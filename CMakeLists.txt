@@ -82,6 +82,7 @@ option(BUILD_CLI "Build the CLI interface" ON)
 option(BUILD_MAN "Build the manpage" ON)
 option(BUILD_BASH_COMPLETION "Build Bash completion" ON)
 option(CUSTOM_CFLAGS "Override default compiler optimization flags" OFF)
+option(ENABLE_CURL "Add support for curl" ON)
 option(ENABLE_X "Add support for X11" ON)
 option(ENABLE_FFMPEG "Add support for FFMpeg" ON)
 option(ENABLE_FFTW "Add support for FFTW" ON)
@@ -133,6 +134,16 @@ if(ZLIB_FOUND)
   set(COMPILE_FLAGS "${COMPILE_FLAGS} -Dcimg_use_zlib")
   include_directories(${ZLIB_INCLUDE_DIRS})
   link_directories(${ZLIB_LIBRARY_DIRS})
+endif()
+
+# curl support
+if(ENABLE_CURL)
+  find_package(CURL)
+endif()
+if(CURL_FOUND)
+  set(COMPILE_FLAGS "${COMPILE_FLAGS} -Dcimg_use_curl")
+  include_directories(${CURL_INCLUDE_DIRS})
+  link_directories(${CURL_LIBRARY_DIRS})
 endif()
 
 #X11 support
@@ -236,7 +247,7 @@ endif()
 
 # CImg.h header
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/src/CImg.h)
-  file(DOWNLOAD https://framagit.org/dtschump/CImg/raw/master/CImg.h ${CMAKE_SOURCE_DIR}/src/CImg.h)
+  file(DOWNLOAD https://github.com/dtschump/CImg/raw/master/CImg.h ${CMAKE_SOURCE_DIR}/src/CImg.h)
   execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_SOURCE_DIR}/src/CImg.h)
 endif()
 
@@ -287,6 +298,7 @@ if(BUILD_LIB)
     ${OPENEXR_LIBRARIES}
     ${OPENCV_LIBRARIES}
     ${ZLIB_LIBRARIES}
+    ${CURL_LIBRARIES}
     ${FFTW3_LIBRARIES}
     ${EXTRA_LIBRARIES}
   )
@@ -315,6 +327,7 @@ if(BUILD_LIB_STATIC)
     ${OPENEXR_LIBRARIES}
     ${OPENCV_LIBRARIES}
     ${ZLIB_LIBRARIES}
+    ${CURL_LIBRARIES}
     ${FFTW3_LIBRARIES}
     ${EXTRA_LIBRARIES}
   )
@@ -344,6 +357,7 @@ if(BUILD_CLI)
       ${OPENEXR_LIBRARIES}
       ${OPENCV_LIBRARIES}
       ${ZLIB_LIBRARIES}
+      ${CURL_LIBRARIES}
       ${FFTW3_LIBRARIES}
       ${EXTRA_LIBRARIES}
     )
