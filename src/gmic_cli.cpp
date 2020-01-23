@@ -147,10 +147,10 @@ int main(int argc, char **argv) {
   const char
     *const is_help1 = cimg_option("--h",(char*)0,0),
     *const is_help2 = cimg_option("-h",(char*)0,0),
-    *const is_help3 = cimg_option("h",(char*)0,0),
+    *const is_help3 = argc>1 && !std::strcmp(argv[1],"h")?(argc>2?argv[2]:argv[1]):0,
     *const is_help4 = cimg_option("--help",(char*)0,0),
     *const is_help5 = cimg_option("-help",(char*)0,0),
-    *const is_help6 = cimg_option("help",(char*)0,0),
+    *const is_help6 = argc>1 && !std::strcmp(argv[1],"help")?(argc>2?argv[2]:argv[1]):0,
     *const help_command = is_help1?"--h":is_help2?"-h":is_help3?"h":is_help4?"--help":is_help5?"-help":"help",
     *const help_argument = is_help1?is_help1:is_help2?is_help2:is_help3?is_help3:
     is_help4?is_help4:is_help5?is_help5:is_help6;
@@ -223,6 +223,9 @@ int main(int argc, char **argv) {
   }
 
   // Convert 'argv' into G'MIC command line.
+  const bool is_version = argc>1 && (!std::strcmp(argv[1],"version") ||
+                                     !std::strcmp(argv[1],"-version") ||
+                                     !std::strcmp(argv[1],"--version"));
   commands_user.assign();
   commands_update.assign();
 
@@ -236,9 +239,35 @@ int main(int argc, char **argv) {
         CImg<char>(argv[l],(unsigned int)std::strlen(argv[l])).move_to(items);
         CImg<char>::string("\"").move_to(items);
       } else CImg<char>::string(argv[l]).move_to(items);
-      if (l<argc - 1) items.back().back()=' ';
+      items.back().back()=' ';
     }
-    gmic_instance.verbosity = 1;
+
+    // Determine special mode for running .gmic files as scripts : 'gmic commands.gmic [arguments]'.
+    if (argc==2 || argc==3) {
+      const char *const ext = cimg::split_filename(argv[1]);
+      if (!*ext || !std::strcmp(ext,"gmic")) {
+        std::FILE *gmic_file = std::fopen(argv[1],"rb");
+        if (gmic_file) {
+          bool allow_entrypoint = false;
+          gmic gi(0,0,false,0,0,(gmic_pixel_type)0);
+          gi.add_commands(gmic_file,argv[1],0,0,&allow_entrypoint);
+          if (allow_entrypoint && argc==3) { // Check if command '_main_' has arguments
+            const unsigned int hash = (int)gmic::hashcode("_main_",false);
+            unsigned int ind = 0;
+            if (gmic::search_sorted("_main_",gi.commands_names[hash],
+                                    gi.commands_names[hash].size(),ind)) // Command found
+              allow_entrypoint = (bool)gi.commands_has_arguments[hash](ind,0);
+          }
+          gmic_instance.allow_entrypoint = allow_entrypoint;
+          std::fclose(gmic_file);
+        }
+      }
+    }
+
+    // Determine initial verbosity.
+    const char *const s_verbosity = std::getenv("GMIC_VERBOSITY");
+    if (!s_verbosity || std::sscanf(s_verbosity,"%d%c",&gmic_instance.verbosity,&sep)!=1)
+      gmic_instance.verbosity = gmic_instance.allow_entrypoint || is_version?0:1;
   }
 
   // Insert startup command.
@@ -260,7 +289,8 @@ int main(int argc, char **argv) {
     items.insert(CImg<char>::string(tmpstr.data(),false),is_first_item_verbose?2:0);
   }
 
-  const CImg<char> commands_line(items>'x');
+  CImg<char> commands_line(items>'x');
+  commands_line.back() = 0;
   items.assign();
 
   // Launch G'MIC interpreter.

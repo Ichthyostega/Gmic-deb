@@ -193,7 +193,8 @@ endif
 # Enable optimizations.
 OPT_CFLAGS = -Ofast
 ifdef IS_GCC
-OPT_CFLAGS = -Ofast -mtune=generic # -fno-finite-math-only
+OPT_CFLAGS = -Ofast -mtune=generic -flto # -fno-finite-math-only
+OPT_LIBS = -flto
 endif
 ifdef icpc
 OPT_CFLAGS = -fast
@@ -355,15 +356,17 @@ endif
 endif
 
 cli:
-	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_CLI_LIBS)" _cli
+	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_CLI_LIBS) $(OPT_LIBS)" _cli
 	$(STRIP) gmic$(EXE)
 
 debug:
 	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) $(DEBUG_CFLAGS)" "LIBS+=$(GMIC_CLI_LIBS)" _cli
 
-_cli: gmic.cpp gmic.h gmic_stdlib.h CImg.h
-	$(CXX) -o gmic_cli.o -c gmic.cpp $(CFLAGS)
+_cli: gmic_cli.o gmic.cpp gmic.h gmic_stdlib.h CImg.h
 	$(CXX) -o gmic gmic_cli.cpp gmic_cli.o $(CFLAGS) $(LIBS)
+
+gmic_cli.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
+	$(CXX) -o gmic_cli.o -c gmic.cpp $(CFLAGS)
 
 # CLI (static)
 #-------------
@@ -378,7 +381,7 @@ GMIC_STATIC_CLI_LIBS = $(PARALLEL_LIBS) $(EIGEN_LIBS) \
 	               $(GMIC_STATIC_CLI_EXTRA)
 
 static:
-	$(MAKE) "CFLAGS+=$(GMIC_STATIC_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_STATIC_CLI_LIBS)" _cli
+	$(MAKE) "CFLAGS+=$(GMIC_STATIC_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_STATIC_CLI_LIBS) $(OPT_LIBS)" _cli
 	$(STRIP) gmic$(EXE)
 
 # Libgmic
@@ -399,7 +402,7 @@ endif
 endif
 
 lib:
-	$(MAKE) "CFLAGS+=$(GMIC_LIB_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_LIB_LIBS)" _lib
+	$(MAKE) "CFLAGS+=$(GMIC_LIB_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_LIB_LIBS) $(OPT_LIBS)" _lib
 
 _lib: libgmic.o use_libgmic.cpp
 	ar rcs libgmic.a libgmic.o
@@ -431,7 +434,7 @@ endif
 endif
 
 libc:
-	$(MAKE) "CFLAGS+=$(GMIC_LIBC_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_LIBC_LIBS)" _libc
+	$(MAKE) "CFLAGS+=$(GMIC_LIBC_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_LIBC_LIBS) $(OPT_LIBS)" _libc
 
 _libc: libcgmic_files libgmic.o libcgmic.o
 	ar rcs libcgmic.a libcgmic.o
@@ -487,7 +490,7 @@ endif
 
 libcstatic:
 	rm -f libgmic.o
-	$(MAKE) "CFLAGS+=$(GMIC_LIBC_STATIC_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_LIBC_STATIC_LIBS)" _libcstatic
+	$(MAKE) "CFLAGS+=$(GMIC_LIBC_STATIC_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_LIBC_STATIC_LIBS) $(OPT_LIBS)" _libcstatic
 
 _libcstatic: libcgmic_files libgmic.o libcgmicstatic.o
 	ar rcs libcgmicstatic.a libcgmicstatic.o
@@ -508,7 +511,7 @@ libcgmicstatic.o: gmic.cpp gmic.h gmic_stdlib.h CImg.h
 # All interfaces, sharing the same dynamic library
 #--------------------------------------------------
 allshared:
-	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_CLI_LIBS)" _allshared
+	$(MAKE) "CFLAGS+=$(GMIC_CLI_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMIC_CLI_LIBS) $(OPT_LIBS)" _allshared
 
 _allshared: libgmic_shared.o
 	ar rcs libgmic_shared.a libgmic_shared.o
@@ -528,7 +531,7 @@ GMICOL_CFLAGS = $(MANDATORY_CFLAGS) $(PARALLEL_CFLAGS) $(EIGEN_CFLAGS) $(FFTW_CF
 GMICOL_LIBS = $(MANDATORY_LIBS) $(PARALLEL_LIBS) $(EIGEN_LIBS) $(PNG_LIBS) $(JPEG_LIBS) $(ZLIB_LIBS) $(GMICOL_LIB_PATH)/libfftw3.a $(GMICOL_LIB_PATH)/libfftw3_threads.a # $(OPENMP_LIBS)
 
 gmicol:
-	$(MAKE) "CFLAGS+=$(GMICOL_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMICOL_LIBS)" _cli
+	$(MAKE) "CFLAGS+=$(GMICOL_CFLAGS) $(OPT_CFLAGS)" "LIBS+=$(GMICOL_LIBS) $(OPT_LIBS)" _cli
 	$(STRIP) gmic$(EXE)
 
 # G'MIC-Qt
@@ -613,7 +616,7 @@ CImg.h:
 	@if [ -f ../../CImg/CImg.h ]; then \
           if [ ! -f ./CImg.h ]; then ln -s ../../CImg/CImg.h .; fi; \
         elif [ ! -e ./CImg.h ]; then \
-          $(WGET) CImg.h https://framagit.org/dtschump/CImg/raw/master/CImg.h; \
+          $(WGET) CImg.h https://github.com/dtschump/CImg/raw/master/CImg.h; \
           touch CImg.h; \
         fi
 	@echo " done!"
