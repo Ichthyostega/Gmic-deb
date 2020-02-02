@@ -1,3 +1,14 @@
+gmic (2.8.3-1~buster) Lumiera-buster-tool; urgency=low
+
+  * Build/Port für Debian/Buster(stable)
+
+  [ Ichthyostega ]
+  * New Upstream release 2.8.3
+  * [f93562e7] adapt installation (gmic_cluts.gmz)
+  * [2bedab97] make QT-host explicit for gimp (cosmetic change)
+
+ -- Hermann Vosseler <deb@ichthyostega.de>  Sun, 02 Feb 2020 23:42:23 +0100
+
 gmic (2.4.5-1) unstable; urgency=medium
 
   * [592c9d2] Update upstream source from tag 'upstream/2.4.5'
