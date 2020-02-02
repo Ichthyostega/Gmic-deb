@@ -1,3 +1,5 @@
 usr/bin/gmic
 etc/bash_completion.d/gmic
 usr/share/man/man1/gmic.1
+usr/share/doc/gmic/examples
+

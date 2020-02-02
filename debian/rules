@@ -23,9 +23,11 @@ override_dh_auto_install:
 	mkdir -p $(CURDIR)/debian/tmp/etc/bash_completion.d/
 	cp resources/gmic_bashcompletion.sh $(CURDIR)/debian/tmp/etc/bash_completion.d/gmic
 	mkdir -p $(CURDIR)/debian/tmp/usr/lib/gimp/2.0/plug-ins
-	cp resources/gmic_film_cluts.gmz $(CURDIR)/debian/tmp/usr/lib/gimp/2.0/plug-ins
+	cp resources/gmic_cluts.gmz $(CURDIR)/debian/tmp/usr/lib/gimp/2.0/plug-ins
 	cp build-gmic-qt/gmic_gimp_qt $(CURDIR)/debian/tmp/usr/lib/gimp/2.0/plug-ins/gmic_gimp
 	cp build-gmic-krita/gmic_krita_qt $(CURDIR)/debian/tmp/usr/bin
+	mkdir -p $(CURDIR)/debian/tmp/usr/share/doc/gmic/examples
+	cp resources/samples/* $(CURDIR)/debian/tmp/usr/share/doc/gmic/examples/
 
 override_dh_auto_clean:
 	dh_auto_clean -Bbuild-gmic
