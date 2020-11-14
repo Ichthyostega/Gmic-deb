@@ -1,3 +1,11 @@
+gmic (2.8.4-1~buster) Lumiera-buster-tool; urgency=low
+
+  * New Upstream release 2.8.4
+  * Note: using OpenCV 3 here
+  * Build/Port für Debian/Buster(stable)
+
+ -- Hermann Vosseler <deb@ichthyostega.de>  Sun, 15 Nov 2020 00:03:33 +0100
+
 gmic (2.8.3-1~buster) Lumiera-buster-tool; urgency=low
 
   * Build/Port für Debian/Buster(stable)
