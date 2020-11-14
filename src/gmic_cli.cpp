@@ -223,9 +223,10 @@ int main(int argc, char **argv) {
   }
 
   // Convert 'argv' into G'MIC command line.
-  const bool is_version = argc>1 && (!std::strcmp(argv[1],"version") ||
-                                     !std::strcmp(argv[1],"-version") ||
-                                     !std::strcmp(argv[1],"--version"));
+  const bool is_version = argc==2 && (!std::strcmp(argv[1],"version") ||
+                                      !std::strcmp(argv[1],"-version") ||
+                                      !std::strcmp(argv[1],"--version") ||
+                                      !std::strcmp(argv[1],"+v"));
   commands_user.assign();
   commands_update.assign();
 
