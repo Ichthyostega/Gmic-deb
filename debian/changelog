@@ -1,3 +1,12 @@
+gmic (2.8.4-1ppa2~bionic) bionic; urgency=low
+
+  * New Upstream release 2.8.4
+  * Note: using OpenCV 3 here
+  * Build/Port für Ubuntu/Bionic (18.04 LTS)
+  * lower CMake requirement for backport (2.12 -> 2.10)
+
+ -- Hermann Vosseler <deb@ichthyostega.de>  Sun, 15 Nov 2020 15:41:06 +0100
+
 gmic (2.8.4-1~buster) Lumiera-buster-tool; urgency=low
 
   * New Upstream release 2.8.4

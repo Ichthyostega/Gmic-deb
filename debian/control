@@ -17,7 +17,7 @@ Build-Depends: debhelper (>= 11),
  libcurl4-openssl-dev,
  libgraphicsmagick++1-dev,
  bash-completion,
- cmake (>= 3.12~)
+ cmake (>= 3.10~)
 Standards-Version: 3.9.4
 Homepage: https://gmic.eu/
 #Vcs-Git: https://salsa.debian.org/debian/gmic.git
