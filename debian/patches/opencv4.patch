@@ -1,0 +1,177 @@
+Description:  Attempt at opencv 4 support.
+     + Bump libopencv-dev build-dependency as I am not attempting to retain
+       compatibility with older opencv versions, someone who knows the
+       buildsystem better can do that if they wish.
+     + Change pkg-config file for opencv from "opencv" to "opencv4".
+     + Change/add a bunch of #include statements
+Author: Peter Michael Green <plugwash@debian.org>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: <vendor|upstream|other>, <url of original patch>
+Bug: <url in upstream bugtracker>
+Bug-Debian: https://bugs.debian.org/<bugnumber>
+Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
+Forwarded: <no|not-needed|url proving that it has been forwarded>
+Reviewed-By: <name and email of someone who approved the patch>
+Last-Update: 2019-11-12
+
+Index: gmic-2.4.5/CMakeLists.txt
+===================================================================
+--- gmic-2.4.5.orig/CMakeLists.txt
++++ gmic-2.4.5/CMakeLists.txt
+@@ -174,7 +174,7 @@ if(FFTW3_FOUND)
+ endif()
+ 
+ if(ENABLE_OPENCV)
+-  pkg_check_modules(OPENCV opencv)
++  pkg_check_modules(OPENCV opencv4)
+ endif()
+ if(OPENCV_FOUND)
+   set(CLI_COMPILE_FLAGS "${CLI_COMPILE_FLAGS} -Dcimg_use_opencv")
+Index: gmic-2.4.5/src/Makefile
+===================================================================
+--- gmic-2.4.5.orig/src/Makefile
++++ gmic-2.4.5/src/Makefile
+@@ -283,8 +283,8 @@ CURL_LIBS = $(shell pkg-config --libs li
+ 
+ # Enable native support of webcams and video streaming, using the OpenCV library.
+ # (https://opencv.org/)
+-OPENCV_CFLAGS = -Dcimg_use_opencv $(shell pkg-config opencv --cflags || echo -I/usr/include/opencv) -I/usr/include/opencv
+-OPENCV_LIBS = $(shell pkg-config opencv --libs || echo -lopencv_core -lopencv_highgui)
++OPENCV_CFLAGS = -Dcimg_use_opencv $(shell pkg-config opencv4 --cflags || echo -I/usr/include/opencv) -I/usr/include/opencv
++OPENCV_LIBS = $(shell pkg-config opencv4 --libs || echo -lopencv_core -lopencv_highgui)
+ 
+ # Enable support of most classical image file formats, using the GraphicsMagick++ library.
+ # (http://www.graphicsmagick.org/Magick++/)
+Index: gmic-2.4.5/zart/zart.pro
+===================================================================
+--- gmic-2.4.5.orig/zart/zart.pro
++++ gmic-2.4.5/zart/zart.pro
+@@ -19,7 +19,7 @@ greaterThan(QT_MAJOR_VERSION, 4): CONFIG
+ CONFIG	+= warn_on
+ QT_CONFIG -= no-pkg-config
+ CONFIG += link_pkgconfig
+-PKGCONFIG += opencv fftw3 zlib
++PKGCONFIG += opencv4 fftw3 zlib
+ # LIBS += -lfftw3_threads
+ DEFINES += cimg_use_fftw3 cimg_use_zlib
+ 
+Index: gmic-2.4.5/src/CImg.h
+===================================================================
+--- gmic-2.4.5.orig/src/CImg.h
++++ gmic-2.4.5/src/CImg.h
+@@ -410,8 +410,9 @@
+ #define _cimg_redefine_False
+ #endif
+ #include <cstddef>
+-#include "cv.h"
+-#include "highgui.h"
++//#include "cv.h"
++//#include "highgui.h"
++#include "opencv2/videoio/videoio_c.h"
+ #endif
+ 
+ // Configure LibPNG support.
+Index: gmic-2.4.5/zart/include/ImageConverter.h
+===================================================================
+--- gmic-2.4.5.orig/zart/include/ImageConverter.h
++++ gmic-2.4.5/zart/include/ImageConverter.h
+@@ -50,7 +50,7 @@
+ #include <opencv2/core/core_c.h>
+ #include <opencv2/imgproc/imgproc_c.h>
+ #else
+-#include <cv.h>
++#include <opencv2/videoio/videoio_c.h>
+ #endif
+ 
+ #include <QMutex>
+Index: gmic-2.4.5/zart/include/ImageSource.h
+===================================================================
+--- gmic-2.4.5.orig/zart/include/ImageSource.h
++++ gmic-2.4.5/zart/include/ImageSource.h
+@@ -49,10 +49,10 @@
+ 
+ #if defined(HAS_OPENCV2_HEADERS) || defined(OPENCV2_HEADERS)
+ #include <opencv2/core/core_c.h>
+-#include <opencv2/highgui/highgui_c.h>
++#include <opencv2/opencv2/highgui/highgui_c.highgui_c.h>
+ #else
+-#include <cv.h>
+-#include <highgui.h>
++#include <opencv2/videoio/videoio_c.h>
++#include <opencv2/highgui/highgui_c.h>
+ #endif
+ 
+ #include <QSize>
+Index: gmic-2.4.5/zart/include/StillImageSource.h
+===================================================================
+--- gmic-2.4.5.orig/zart/include/StillImageSource.h
++++ gmic-2.4.5/zart/include/StillImageSource.h
+@@ -50,10 +50,10 @@
+ 
+ #if defined(HAS_OPENCV2_HEADERS) || defined(OPENCV2_HEADERS)
+ #include <opencv2/core/core_c.h>
+-#include <opencv2/highgui/highgui_c.h>
++#include <opencv2/opencv2/highgui/highgui_c.highgui_c.h>
+ #else
+-#include <cv.h>
+-#include <highgui.h>
++#include <opencv2/videoio/videoio_c.h>
++#include <opencv2/highgui/highgui_c.h>
+ #endif
+ #include <QString>
+ #include "ImageSource.h"
+Index: gmic-2.4.5/zart/include/VideoFileSource.h
+===================================================================
+--- gmic-2.4.5.orig/zart/include/VideoFileSource.h
++++ gmic-2.4.5/zart/include/VideoFileSource.h
+@@ -49,10 +49,10 @@
+ 
+ #if defined(HAS_OPENCV2_HEADERS) || defined(OPENCV2_HEADERS)
+ #include <opencv2/core/core_c.h>
+-#include <opencv2/highgui/highgui_c.h>
++#include <opencv2/opencv2/highgui/highgui_c.highgui_c.h>
+ #else
+-#include <cv.h>
+-#include <highgui.h>
++#include <opencv2/videoio/videoio_c.h>
++#include <opencv2/highgui/highgui_c.h>
+ #endif
+ #include <QString>
+ #include "ImageSource.h"
+Index: gmic-2.4.5/zart/include/WebcamSource.h
+===================================================================
+--- gmic-2.4.5.orig/zart/include/WebcamSource.h
++++ gmic-2.4.5/zart/include/WebcamSource.h
+@@ -50,10 +50,10 @@
+ 
+ #if defined(HAS_OPENCV2_HEADERS) || defined(OPENCV2_HEADERS)
+ #include <opencv2/core/core_c.h>
+-#include <opencv2/highgui/highgui_c.h>
++#include <opencv2/opencv2/highgui/highgui_c.highgui_c.h>
+ #else
+-#include <cv.h>
+-#include <highgui.h>
++#include <opencv2/videoio/videoio_c.h>
++#include <opencv2/highgui/highgui_c.h>
+ #endif
+ #include <QList>
+ #include <QSize>
+Index: gmic-2.4.5/zart/src/ImageConverter.cpp
+===================================================================
+--- gmic-2.4.5.orig/zart/src/ImageConverter.cpp
++++ gmic-2.4.5/zart/src/ImageConverter.cpp
+@@ -51,6 +51,9 @@
+ #include <cassert>
+ #include <iostream>
+ #include "Common.h"
++#include <opencv2/imgproc/types_c.h>
++#include <opencv2/imgproc/imgproc_c.h>
++
+ IplImage * ImageConverter::_image = 0;
+ 
+ void ImageConverter::convert(const IplImage * in, QImage * out)

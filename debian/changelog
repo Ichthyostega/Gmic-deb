@@ -1,3 +1,18 @@
+gmic (2.4.5-1.1) unstable; urgency=low
+
+  [ Ying-Chun Liu (PaulLiu) <paulliu@debian.org> ]
+  * Non-maintainer upload.
+
+  [ Peter Michael Green <plugwash@debian.org> ]
+  * Make package build with opencv 4 (Closes: #922582)
+    + Bump libopencv-dev build-dependency as I am not attempting to retain
+      compatibility with older opencv versions, someone who knows the
+      buildsystem better can do that if they wish.
+    + Change pkg-config file for opencv from "opencv" to "opencv4".
+    + Change/add a bunch of #include statements.
+
+ -- Ying-Chun Liu (PaulLiu) <paulliu@debian.org>  Tue, 12 Nov 2019 07:25:35 +0000
+
 gmic (2.8.4-1~buster) Lumiera-buster-tool; urgency=low
 
   * New Upstream release 2.8.4
