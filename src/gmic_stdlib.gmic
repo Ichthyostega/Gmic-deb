@@ -220,11 +220,17 @@ h :
 #@cli : Display help (optionally for specified command only) and exit.
 #@cli : (eq. to 'h').
 help : skip ${1=""},${2=1}
+  if isfile(['$_path_rc/update$_version.gmic'])
+    l[] cimgz:$_path_rc/update$_version.gmic k[0]
+    onfail l[] raw:$_path_rc/update$_version.gmic,uchar k[0] onfail endl
+    endl
+    if $! k. fi
+  fi
   if !$! return fi
   y a y
   +_help $1,$2 k[0]
   if narg(${}) _help[0] ${},0 fi # In case of shortcut, display also help for shortcut command.
-  rm
+  rm v 0 q
 
 _help : skip ${1=""}
   v 0 use_vt100
@@ -420,7 +426,7 @@ ${g}"int"$n"', etc...).
 \n       '"${g}"selection"$n"' may represent one or several images
 \n       (see section '"${c}"Command items and selections"$n"' to learn more about selections).
 \n
-\n    . '"${c}"width[%],_height[%],_depth[%],_spectrum[%],_values"$n"': Insert a new image with specified
+\n    . '"${c}"width[%],_height[%],_depth[%],_spectrum[%],_values[xN]"$n"': Insert one or N images with specified
 \n       size and values (adding '"${g}"%"$n"' to a dimension means 'percentage of the size along the same
 \n       axis, taken from the last image '"${g}"[-1]"$n"''). Any specified dimension can be also written as
 \n       '"${c}"[image]"$n"', and is then set to the size (along the same axis) of the existing specified image
@@ -429,13 +435,13 @@ ${g}"int"$n"', etc...).
 \n       creates a 256x256 RGB color image with a spatial shading on the red and green channels.
 \n       (see section '"${c}"Mathematical expressions"$n"' to learn more about mathematical expressions).
 \n
-\n    . '"${c}"(v1,v2,..)"$n"': Insert a new image from specified prescribed values. Value separator inside
-\n       parentheses can be '"${g}","$n"' (column separator), '"${g}";"$n"' (row separator), '"${g}"/"$n"'
+\n    . '"${c}"(v1,v2,..)[xN]"$n"': Insert one or N new images from specified prescribed values. Value separator
+\n       inside parentheses can be '"${g}","$n"' (column separator), '"${g}";"$n"' (row separator), '"${g}"/"$n"'
  (slice separator) or
 \n       '"${g}"^"$n"' (channel separator). For instance, expression '"${c}"(1,2,3;4,5,6;7,8,9)"$n"' creates a
 \n        3x3 matrix (scalar image), with values running from 1 to 9.
 \n
-\n    . '"${c}"0"$n"': Insert a new '"${g}"empty"$n"' image, containing no pixel data.
+\n    . '"${c}"0[xN]"$n"': Insert one or N new '"${g}"empty"$n"' images, containing no pixel data.
 \n       Empty images are used only in rare occasions.
 \n
 \n  - Input item '"${c}"name=value"$n"' declares a new variable '"${g}"name"$n"', or assign a new string value
@@ -803,6 +809,7 @@ ${c}"med()"$n"', '"${c}"min()"$n"', '"${c}"std()"$n"', '"${c}"sum()"$n"'
 \n    _ "${g}"Variable names"$n" below are pre-defined. They can be overridden.
 \n
 \n       . '"${c}"l"$n"': length of the associated list of images.
+\n       . '"${c}"k"$n"': index of the associated image, in "${g}"[0,l-1]"$n".
 \n       . '"${c}"w"$n"': width of the associated image, if any ("${g}"0"$n" otherwise).
 \n       . '"${c}"h"$n"': height of the associated image, if any ("${g}"0"$n" otherwise).
 \n       . '"${c}"d"$n"': depth of the associated image, if any ("${g}"0"$n" otherwise).
@@ -1425,7 +1432,8 @@ _help_header_html :
 \n<li><a href=\"#subsection20\">Neural networks</a></li>
 \n<li><a href=\"#subsection21\">Convenience functions</a></li>
 \n<li><a href=\"#subsection22\">Other interactive commands</a></li>
-\n<li><a href=\"#subsection23\">Command shortcuts</a></li>
+\n<li><a href=\"#subsection23\">Funny one-liners</a></li>
+\n<li><a href=\"#subsection24\">Command shortcuts</a></li>
 \n</ul>
 \n<li><a href=\"#section13\">Examples of use</a></li>
 \n</ul>
@@ -4319,6 +4327,22 @@ shape_diamond : check "${1=512}>=0"
   fi
   nm. "[2D diamond shape]"
 
+#@cli shape_dragon : _size>=0,_recursion_level>=0,_angle
+#@cli : Input a 2D Dragon curve with specified size.
+#@cli : Default value: 'size=512', 'recursion_level=18' and 'angle=0'.
+#@cli : $ shape_dragon ,
+shape_dragon : check "${1=512}>=0 && ${2=18}>=0" skip "${3=0}"
+  e[^-1] "Input a $1x$1 Dragon curve, with recursion level $2 and angle $3."
+  ir={round($1)}
+  if !$ir 0
+  else l[]
+    (0,1^0,0) ind=1
+    repeat $2 +f "begin(C = I["$ind"]; R = rot(90)); R*(I - C) + C" ind={2*h} a y done
+    s c -.. {-2,ia} -. {ia} a c / {max(abs(im),abs(iM))}
+    angle={$3-atan2(i1,i0)*180/pi} f. "begin(R = rot("$angle")); R*I"
+    n 0,{$1-1} round $1,$1,1,1 eval.. "!x?polygon(#1,2,I(0,y),I(1,y),1,1); I" k.
+  endl fi
+
 #@cli shape_fern : _size>=0,_density[%]>=0,_angle,0<=_opacity<=1,\
 # _type={ 0=Asplenium adiantum-nigrum | 1=Thelypteridaceae }
 #@cli : Input a 2D Barnsley fern with specified size.
@@ -5377,7 +5401,6 @@ update_download_version : check "
       );
     );
     p = find(data,'/source/gmic_',1,0);
-    print(p);
     p>0?(
       str = data[p + 13,5];
       is_digit(str[0]) && str[1]==_'.' && is_digit(str[2]) && str[3]=='.' && is_digit(str[4])?(
@@ -5731,7 +5754,7 @@ update_server :
     replace_str "<i>David Tschumperl&#233;</i>","<i><a href=\""$url"\">David Tschumperl&#233;</a></i>"
     o cimgz:/tmp/update$_version.gmic,uchar
 
-    (280,281,282,283)
+    (280,281,282,283,284)
     repeat w
       v={i[$>]}
       _update_server_upload[] ${_path_rc}update$_version.gmic,plain_update$v.gmic
@@ -5895,7 +5918,7 @@ _update_server_binaries : check "isbool(${2=1})"
       file=${file$>}
       is_win=${strcontains[]" "$file,win}
       if $is_win folder="windows" else folder="linux" fi
-      e[] "https://gmic.eu/files/"$folder/$file
+      e[] "http://gmic.eu/files/"$folder/$file
     done
     e[] ""
 
@@ -7810,40 +7833,6 @@ roundify : check $1>=0
 #@cli : $ 2,2 set 1,0,0 set 2,1,0 set 3,0,1 set 4,1,1
 #@cli : $ image.jpg repeat 10000 set 255,{u(100)}%,{u(100)}%,0,{u(100)}% done
 
-#@cli set_vector_covariance : coef1,coef2,...,coefN
-#@cli : Apply linear transformation on selected images so that the covariance matrix of their vector-valued pixels
-#@cli : is prescribed to given matrix. Matrix size 'N' must be equal to 'spectrum^2'.
-set_vector_covariance :
-  e[^-1] "Set covariance matrix of image$? to [ $* ]."
-  repeat $! l[$>]
-    if narg($*)!=s^2
-      error[0--4] "Command '$0': Invalid arguments '$*' for image '"{n}"' with size ("{[w,h,d,s]}") ("{s^2}\
-                  " argument"${"if s==1 u \"\" else u s fi"}" expected)."
-    fi
-
-    # Compute current covariance matrix.
-    C=${"vector_covariance _avg"}
-
-    # Transform data to fit new covariance matrix.
-    f "begin(
-         avg = [ "$_avg" ];
-         C1 = [ "$C" ];
-         C2 = [ $* ];
-         eig1 = eig(C1);
-         eig2 = eig(C2);
-         for (k = 0, k<s, ++k, # Align eigenvector orientations.
-           k1s = (k + 1)*s;
-           if (dot(eig2[k1s,s],eig1[k1s,s])<0, copy(eig2[k1s],eig2[k1s,s]*=-1,s));
-         );
-         invD1 = diag(eig1[0,s]^-0.5);
-         invR1 = eig1[s,size(eig1)-s];
-         D2 = diag(eig2[0,s]^0.5);
-         R2 = transp(eig2[s,size(eig2)-s],s);
-         T = mul(R2,mul(D2,mul(invD1,invR1,s),s),s);
-       );
-       avg + T*(I - avg)"
-  endl done
-
 #@cli threshold : value[%],_is_soft={ 0 | 1 } :
 #@cli : Threshold values of selected images.
 #@cli : 'soft' can be { 0=hard-thresholding | 1=soft-thresholding }.
@@ -8626,7 +8615,9 @@ palette :
   _palette_$name
 
 _palette_names :
-  u default,hsv,lines,hot,cool,jet,flag,cube,rainbow,algae,amp,balance,curl,deep,delta,dense,diff,gray,haline,ice,\
+  u default,hsv,lines,hot,cool,jet,flag,cube,rainbow,\
+    parula,spring,summer,autumn,winter,bone,copper,pink,vga,\
+    algae,amp,balance,curl,deep,delta,dense,diff,gray,haline,ice,\
     matter,oxy,phase,rain,solar,speed,tarn,tempo,thermal,topo,turbid,aurora,hocuspocus,srb2,uzebox
 
 _palette2code : # Convert a set of input palettes
@@ -8658,33 +8649,6 @@ InqiU/44MDQ/m4BMtHV9Wq5bgqjtJ6laFWKUDtOwsRFvaMLvSAZbHj+u9o/u0itAN5xHX85KSu4GblHN
 6Hov85VvUXaEWosOIqirYUDkWW/OH7FGP18B9h0jjs49tyukEYSKYiZTjCmPnkxI7neAWkOOTxrs4A3blzFEhvJsgMXqmsicxgRGMFil7o5wS3HuIZmAGcc\
 g8wvlM8UfPWXpfJN5JTPj+YlnxB6QD6tvGmdD9oUxoBrWc3mf8h5fjM="
 
-_palette_hot :
-  base642img \
-"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICMxMTQKeJxjYGbj5OEXEpWQllNUUdfSNTA2s7Sxd3L18PYLDAmPik1ITsvMyS\
-8qraiua2xp7+qdMHnazDnzFy1dsXrdxi3bd+09cPjYyTPnL129cfvewyfPX7398Pnbzz//hw5goAkYOoFKG//TBNAkUAEAWH6Q"
-
-_palette_cool :
-  base642img \
-"MSBmbG9hdCBsaXR0bGVfZW5kaWFuCjI1NiAxIDEgMyAjODk1Cnic7dX7a81xHMfxr/udud+Z+9yP+92OmRmGY4aZmWEYhoOZYViSliRJWtJakpYkSV\
-qSlqQlSZKWpCWtJWlJWtLyfOVV/ghbe+yHtZ3zPZ/P+/16BYG+iuP5EeYbxShHFWoRLAqCGMQihDAiyEYUxSjBJZSiHBW4h0pUoRqvUYNa1KMBjQgSgqA12\
-qMzYtAL/TAIsRiJOExACNMxG/MRRiKSkYII0pCOTGQjB7nIQxT5KEQRinEGZ3EOJTiPC7iIS7iMK7iKUlzDdZShHDdwE7dQgdu4g7u4h/t4gIeoxCM8xhNU\
-4Sme4Tmq8QIv8Qqv8QZv8Q41eI8P+IhafMJn1KEeX/AV39CA7/iBn2jEL/xGE4LFQdACLdEKrdEGbdEO7dEBHdEJndEFXdENMeiOHuiJXuiNPuiLfuiPARi\
-IQRiMIRiKWAzDcIzASIzCaIxBHMZiHMZjAiZiEiYjhCmYimmYjhmYiVmYjTmYi3mYjwVYiHiEsQgJWIxELEESliIZy7AcK5CClViF1YhgDVKxFmlYh/XYgH\
-RsRAY2IRObkYUtyMZWbMN25GAHdmIXcrEbe7AXediH/TiAKA7iEA4jH0dQgKMoxDEcxwkU4SRO4bSd8u+K/DfH/T+Ffo0Cv2a+3+OQ3zPqZ9jvZ8rzM+7xM\
-+f6M+z0Z8rxZ9zmz5ztM8jymWT6jDJ8Zuk+w/U+0zSfcarPPOI7WOU7SfEdLfedJfsOk3ynib7jBN+57l4zoFnQTGg2NCOaFc2MZkczpFnSTGm2NGOaNc2c\
-Zk8zqFnUTGo2NaOaVc2sZlczrFnWTGu2NeOadc28Zl87oF3QTmg3tCPaFe2Mdkc7pF3STmm3tGPaNe2cdk87qF3UTmo3taPaVe2sdlc7rF3WTmu3tePade2\
-8dr/JWfDL2fDTWfHd2fHNWfLF2VLnrPnk7PnoLHrvbHrnrHrj7HrlLHvhbHvurHvq7HviLHzkbHzorLzv7LzrLL3tbL3lrL3h7C1zFl9zNl91Vl92dl90lp\
-93tp9z1p9x9qsD1AXqBHWDOkJdoc5Qd6hD1CXqFHWLOkZdo85R96iD1EXqJHWTOkpdpc5Sd6nD1GXqNHWbOk5dp85T9zW6C+vdjTXuymp3Z6W7tMLdWuquL\
-XH3Rt3FEXdzyF2tzlZ317rLy93t4fDfrqfzY7eM/5cBzZo1+9/8ARSvF3c="
-
-_palette_jet :
-  base642img \
-"MSBmbG9hdCBsaXR0bGVfZW5kaWFuCjI1NiAxIDEgMyAjMzUzCnic7dbBR4MBHMbxNyIiRpQYETGWiBERb40Ro4x4iRGjjHiJEaPLTp3eU6edOu1Ul5\
-06vadOO3XaqdNOnd5Tpx36Pjx/QjPN+/Jhhx3m/X0fFgT5M5snDIMgReGEz4iRYIAUY2RYPuU7KKKECkLUEaGFGF308IQEz+jjBQO8Yoh3pPjACJ8Y4wsTf\
-CPDD6ZYqvIbsIJVrKGAdWxgC0VsYwe7KKGMfRyggkMc4RghqqjhDHWco4FLRLhCE9do4QZt3CHGPTp4QBePuZnIW81b/S+6fscdv/PYN2j7Ji3fqOmbRb5h\
-wzet+8Y131y3VwNqQU2oDTWiVtSM2lFDaklNqS01ptbUnNpTg2pRTapNNTp1s5kbnrjpsRsfufnUGxh6EwNvpO/NJN5Qz5uKvbHImwu9wZI3qW1qo5k3m3r\
-DiTetbWvj2jqbv93cm/9NF1Xe6p+2evFWntc/uUV+fgEA+6WF"
-
 _palette_flag :
   base642img \
 "MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICMyNAp4nPv/n4Hh/wjGDCMeD4JIGEAMAH3RPtA="
@@ -8707,6 +8671,120 @@ HDh4+duLkmXMXL184d+rooX07t21as3zR3BkTulvqK4tz0pJiwv29XR3srMxNjAz1oUAPCIARp6Wlqam
 Xm5+UVEBISEuTn5eFkYhOWVNA0NHd09w+JSkjLyi+tbGhp6+6fNHXG7Dlz589fsHDR4iVLli5bvmzpsmXLl69YsWIlEKyCgNUQcvUakPs3bt6yfefufQePn\
 Tx39fbDx4/v37p25viBHZvXrFg0Z/rE7ta6isKspKjQIDQQEgKmgoMDAwMDAvz8/Hy8PD3dPVxdnB3trK0sjI0MdbU11FSVFeQhPlFWUQGlUh1dPT19A0MD\
 OACHga6utrYW2P9qaqpArKamrgGCGurqQAFlJQU5GSlxEQE+HgFgAAgK8PFyMgEAsxoliA=="
+
+# The color palettes below have been converted from
+# 'https://stackoverflow.com/questions/33273340/matlab-set-color-map-color-range'.
+_palette_parula :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICM3MTQKeJwzNTU1gwJTUxMTYyNDfT0dLXUVRTkpMUFeLnYWZmYmJiZmZhZWNjZ2Ti\
+5uHl4+fgEBQUEhIWFhEQgQFhYWEhQU4Ofj5eHm4uLk4GAHAjYkwM7OwQHSCtQpJCwqJiktI6egpKKmqa2rb2Ribmlj5+js5untFxgSHhWbkJyWmZNfVFpeV\
+Vvf1Nre1Tth0tTps+bMW7h46fJVa9Zt2LR1+87d+w4cOnLsxKkz5y5cvnr9xq079x48evLsxas37z58+vL1+89fv//8/ffv//////79+/v3z5/fv3/9+vnj\
+x/dv374iwLdv377/+PFTS0dX38DIxNTcwsra1s7B0dnFzcPLxy8gKDQ8Mjo2PjEpJTUtPTMrOycvv6CgsKi4pLSsvKKyqrqmtq6+obGpuaW1rb2js6unt69\
+/4qTJU6ZNnzFz1uw5c+fNX7Bw0eIlS5cuW758xYqVq1atXrNm7dp169dv2Lhx06bNm7ds2bp127bt23fs2Llz167du3fvAYK9QLAPCPZjAftgAKRoDxQA9e\
+3eBQQ7EQBk2J69+/YfOHjoyNFjx0+eOnP23IWLly5fvQYMqNt37z14+BgYVC9fv33/8TMwqH6DQnjytJlzFyxetnLths3bdu49cPjYqbMXLl8Dhev9Bw8h4\
+MGDB/fv37t39+6dO7dv37p18+aNG9evX7t29eqVK1cuA8ElKLh48eKFC+fPnz937uyZM6dPnTxx/NjRI4cPHTywf9/ePbt37ti+bcvmTRvXr1u7etWK5cuW\
+Ll60YP7cObNmTp82ZfLECf29PV2d7W0tzY0NdbU11VWVFeVlpSXFRYUF+Xm5OdlZmRnpaWmpKclJiQnx8XGxMdFRkRER4WGhIcFBgQH+fr4+3l6eHm6uzo4\
+OdjbWlhZmpqDkbKCvp6ujraWpoa6mqqykqCAvJysjJSkhLiYCTLX8fAA1ipoS"
+
+_palette_jet :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICMzNjkKeJxjYKAlYOHgERCRlJFX0dDRN7awtnd29/YPDo+OT07Pzisqr6prauvqnT\
+h15tyFS1eu3bh1554DR06cuXDlxp0HT168+fDlx5//lIJ/v759evfq2aN7t65dOnfq2KF9u7ZvXrd6+eL5s6dP7u/uaGnA63xmdm5+YQlpeWV1bT0jc2s7J\
+zcvv6CwqLiktKy8wrKq2sbWzp4JU2bMWbBkxZoNW3bs2X/4+Onzl6/fvv/4+ev3n7//ptz5v79/fv/6+eP7t69fPn/6+OH9u3dsWb9mxZIFc2ZMmdDT2dpY\
+W1lamJuVlhgXFRbk5+XmZGdlZqSnra4sLy0uzM/NzkwwhvonT589f/Hy1es3b9+97/DxU+cuXbt179GzV+8+ffv1j2L3//nx5cObF08e3Llx5cKZE0cO7Nm\
+xZcOalUsXzp05dWJvZ1tTXVVZUV52elJcdHiwv7e7s721ubG+joaKvIyECD8PBwt1UiE+AABM93G0"
+
+_palette_hot :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICMyODEKeJzj5hMUFpWQllVQVtPQ1jUwMjW3srV3cnX39PEPCgmPiolPSknPzMkrLC\
+mrrKlvbGnr7O6bOHnazNlzFyxeumL1ug2bt+3YvffAoaMnTp29cPnqjVt37z96+vzV2/cfv3z/+ef/4AcMNAVMrBzcfAJCohJSsvJKqhpawAA2AQewCzCA/\
+QJDwiNj4hNT0jKz8wqLgQFc19jc1tHdN2HytBnAAF60dMWqtRs2b92xa+/+Q0ePAwP40tXrt+7cf/Tk+as3wAD+9vPPv0Huf5oDZnYefhEJGXlldW19Y3Nr\
+e2d3b7+gsKi4pLSsvKKyqrqm1s7eCVNnzFmwZMWaDVt27Dlw5MSZC1du3Ln/+Pnr95+///4PAFqcZIU="
+
+_palette_cool :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICM1NTEKeJxjYGRiZmFlY+fg5OLm4eXjFxAUEhYRFROXkJSSlpGVk1dQVFJWUVVT19\
+DU0tbR1dc3MDQyNjE1M7ewtLK2sbWzd3B0cnZxdXP38PTy9vH18w8IDAoOCQ0Lj4iMio6JjYtPSExKTklNS8/IzMrOyc3LLygsKi4pLSuvqKyqrqmtq29ob\
+GpuaW1r7+js6u7p7eufMHHS5ClTp02fMXPW7Dlz581fsHDR4iVLly1fsXLV6jVr163fsHHT5i1bt23fsXPX7j179+0/cPDQ4SNHjx0/cfLU6TNnz52/cPHS\
+5StXr12/cfPW7Tt3791/8PDR4ydPnz1/8fLV6zdv373/8PHT5y9fv33/8fPX7z9///3//+/vn9+/fv74/u3rl8+fPn54/+7tm9evXr54/uzpk8ePHj64f+/\
+undu3bt64fu3qlcuXLl44f+7smdOnTp44fuzokcOHDh7Yv2/vnt27du7Yvm3rls2bNm5Yv27tmtWrVq5YvmzpksWLFi6YP2/unNmzZs6YPm3qlMmTJk7o7+\
+vt6e7q7Ghva21pbmpsqK+rramuqqwoLystKS4qLMjPy83JzsrMSE9LTUlOSkyIj4uNiY6KjAgPCw0JDgoM8Pfz9fH28vRwd3N1cXZydLC3s7WxtrK0MDczN\
+TE2MjTQ19fV0dbS1FBXU1VRVlJUkJeTlZGWkpQQFxMVERYSFODn4+Xh5uLkYGdjZWFmYmT4P8IBAKtj/hI="
+
+_palette_spring :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICM1NTIKeJz7/39kAwZGJmYWVjZ2Dk4ubh5ePn4BQSFhEVExcQlJKWkZWTl5BUUlZR\
+VVNXUNTS1tHV19fQNDI2MTUzNzC0sraxtbO3sHRydnF1c3dw9PL28fXz//gMCg4JDQsPCIyKjomNi4+ITEpOSU1LT0jMys7JzcvPyCwqLiktKy8orKquqa2\
+rr6hsam5pbWtvaOzq7unt6+/gkTJ02eMnXa9BkzZ82eM3fe/AULFy1esnTZ8hUrV61es3bd+g0bN23esnXb9h07d+3es3ff/gMHDx0+cvTY8RMnT50+c/bc\
++QsXL12+cvXa9Rs3b92+c/fe/QcPHz1+8vTZ8xcvX71+8/bd+w8fP33+8vXb9x8/f/3+8/ff/////v75/evnj+/fvn75/Onjh/fv3r55/erli+fPnj55/Oj\
+hg/v37t65fevmjevXrl65fOnihfPnzp45ferkiePHjh45fOjggf379u7ZvWvnju3btm7ZvGnjhvXr1q5ZvWrliuXLli5ZvGjhgvnz5s6ZPWvmjOnTpk6ZPG\
+nihP6+3p7urs6O9rbWluamxob6utqa6qrKivKy0pLiosKC/LzcnOyszIz0tNSU5KTEhPi42JjoqMiI8LDQkOCgwAB/P18fby9PD3c3VxdnJ0cHeztbG2srS\
+wtzM1MTYyNDA319XR1tLU0NdTVVFWUlRQV5OVkZaSlJCXExURFhIUEBfj5eHm4uTg52NlYWZiZGBgC4VP4S"
+
+_palette_summer :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICM1NjQKeJxjYGRiZmFlY+fg5OLm4eXjFxAUEhYRFROXkJSSlpGVk1dQVFJWUVVT19\
+DU0tbR1dc3MDQyNjE1M7ewtLK2sbWzd3B0cnZxdXP38PTy9vH18w8IDAoOCQ0Lj4iMio6JjYtPSExKTklNS8/IzMrOyc3LLygsKi4pLSuvqKyqrqmtq29ob\
+GpuaW1r7+js6u7p7eufMHHS5ClTp02fMXPW7Dlz581fsHDR4iVLly1fsXLV6jVr163fsHHT5i1bt23fsXPX7j179+0/cPDQ4SNHjx0/cfLU6TNnz52/cPHS\
+5StXr12/cfPW7Tt3791/8PDR4ydPnz1/8fLV6zdv373/8PHT5y9fv33/8fPX7z9///1vaGhsbGpqbm5paW1ta2tv7+jo7Ozq6u7u6ent7evr758wYeLESZM\
+mT54yZerUadOmT58xY+bMWbNmz54zZ+7cefPmz1+wYOHCRYsWL16yZOnSZcuWL1+xYuXKVatWrV69Zs3atevWrV+/YcPGjZs2bd68ZcvWrdu2bd++Y8fOnb\
+t27d69Z8/evfv27d9/4MDBg4cOHT585MjRo8eOHT9+4sTJk6dOnT595szZs+fOnT9/4cLFi5cuXb585cpVoLeu37hx8+atW7dv37lz9+69e/fvP3jw8OGjR\
+48fP3ny9OmzZ8+fv3jx8uWrV69fv3nz9u27d+/ff/jw8eOnT58/f/ny9eu3b9+///jx8+evX79///nz9++/f///p41wAAC7XaTl"
+
+_palette_autumn :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICMyODUKeJz7/39kAwZGJmYWVjZ2Dk4ubh5ePn4BQSFhEVExcQlJKWkZWTl5BUUlZR\
+VVNXUNTS1tHV19fQNDI2MTUzNzC0sraxtbO3sHRydnF1c3dw9PL28fXz//gMCg4JDQsPCIyKjomNi4+ITEpOSU1LT0jMys7JzcvPyCwqLiktKy8orKquqa2\
+rr6hsam5pbWtvaOzq7unt6+/gkTJ02eMnXa9BkzZ82eM3fe/AULFy1esnTZ8hUrV61es3bd+g0bN23esnXb9h07d+3es3ff/gMHDx0+cvTY8RMnT50+c/bc\
++QsXL12+cvXa9Rs3b92+c/fe/QcPHz1+8vTZ8xcvX71+8/bd+w8fP33+8vXb9x8/f/3+8/fff4YRDgBeKn6R"
+
+_palette_winter :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICM1NjUKeJxjYBjhgJGJmYWVjZ2Dk4ubh5ePX0BQSFhEVExcQlJKWkZWTl5BUUlZRV\
+VNXUNTS1tHV1/fwNDI2MTUzNzC0sraxtbO3sHRydnF1c3dw9PL28fXzz8gMCg4JDQsPCIyKjomNi4+ITEpOSU1LT0jMys7Jzcvv6CwqLiktKy8orKquqa2r\
+r6hsam5pbWtvaOzq7unt69/wsRJk6dMnTZ9xsxZs+fMnTd/wcJFi5csXbZ8xcpVq9esXbd+w8ZNm7ds3bZ9x85du/fs3bf/wMFDh48cPXb8xMlTp8+cPXf+\
+wsVLl69cvXb9xs1bt+/cvXf/wcNHj588ffb8xctXr9+8fff+w8dPn798/fb9x89fv//8/ff///9///7+/fPn9+9fv37+/PHj+/dv375+/fLl8+dPnz5+/PD\
+h/ft3796+ffPm9etXr16+fPHi+fNnz54+ffLk8eNHjx4+fPDg/v179+7evXPn9u1bt27evHHj+vVr165evXLl8qVLFy9euHD+/LlzZ8+eOXP69KlTJ0+eOH\
+H8+LFjR48eOXL48KFDBw8eOLB//759e/fu2bN7965dO3fu2LF9+7ZtW7du2bJ586ZNGzdu2LB+/bp1a9euWbN69apVq1auXLFi+fJly5YuXbJk8eJFixYuX\
+LBg/vx58+bOnTNn9uxZs2bOnDFj+vRp06ZOnTJl8uRJkyZOnDChv7+vr7e3p6e7u6urs7Ojo729ra21taWlubmpqbGxoQEA9Wc+6A=="
+
+_palette_bone :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICM1MDUKeJxjYGRiZmFlZWPn4OTi5uHh5eMXEBQSFhYRFROXkJSSkpaRlZNXUFBUUl\
+ZRVVNX19TU0tbR1dPTNzA0MjYxMTUzt7C0sra2sbWzd3B0cnJ2cXVz9/D09PL28fXz9w8IDAoOCQ0Lj4iMioqOiY2LT0hMTEpOSU1LT8/IzMrOyc3Lyy8oL\
+CwqLiktK6+oqKyqrqmtq29obGpqbmlta+/o7Ozq7unt658wYeKkyVOmTps2fcbMWbPnzJ07b/6ChYsWL1mydNnylavWrF2/YdPmLVu379i5e8++/QcOHj5y\
+7PjJU6fPnDt/8dLlq9eu37x1++69Bw8fPX767MXLV2/evvvw8fOXr99//Pz9599/Bhr7H+R9kOeBfk9KBvo8A+RvoK+LikF+BnkZ5GOwf0G+BXp2IsirEI8\
+C/Qn05tLlK0C+XAf35q49e0H+PATy6AmgT0+fOXvu/AWgZ69cBXr3BtC/t+/cvXf/PsjPT54+e/Yc6O3Xb4Aef//h46fPQL9/A3r+16/ff/7++w/0PsjzQL\
++DfQ7ytyTI1/JQP2uAfAzyrzHQtyDPgr0K9agXyJugSAbHMSiGQfGbBovdAkjUQv0JjtpGSNQC4xYctSDvQuJ2+gyol6FxuxQYt0Bvrwb7e8NGkM+3bQP5f\
+feevTDfHzlKuf8BKPB7Yw=="
+
+_palette_copper :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICM2MzYKeJyV0oc3FAAcwPH3cM65o6zicCfjjLPOOnucw9njOM4s2w1kj8ySEtESiZ\
+IWiZIGFUpOr/Uar3r1Wq/1Gq/1Wq+lfr/7D/r+CZ/3JSgTSapkivqixRqa2jpLlupS9Q0M6UbLjE3MGOYWVkwbWzuWg6OTM9vVzd3Ty9vHl+PPDQjkBYeEh\
+kdERkXzY+ME8cLEpOTUtOUr0jOzsnPyRGKJtKBwZVFxaVl5RVX1qpra+obVa5qa161vaW3b2N6xecvWbZ1d3Tt6evt27e4f2Ltv/4HBoUPDI6NHjo6NHz9x\
+cmLy9Jmz0zPnzs/OyeYvXrp85eq16zdu3rp95+69+w8ePnr85Omz5y9evnr95u279x8+fvr85eu37z9+/vr9Z2Hh7/+nqKREUCYSVRBBTR0YwEFLCySAQle\
+Pqg8aNOAAD1NTEDG3sLS0YlpbA4udvRzG2YXtCjYeHp5eyOPrJwcKDOIFg1FYWHgEMkXH8GNRKkGYCFYpKaAFXOkZmVkglpsrN8vPBzVgKykpLQO5ykqwA7\
+y6+obGRvBrWtuMhC0bWttAsb1jk9yxc3tXN1D27OztQ83+PQNy0IODQ0A6fHhkFFXHjo0j7KmJSaSdmpqeQd3ZC3My2byCgiISEJQRQYVEUlUlkykUNaRAC\
+w1N1NDW1kEQFNGjoomBoSGNRqcbIYyxCdKYMRiogzxWTASysUUiexbLwcHR0QmdXNhspHJzRyzU8vZBLz8Ox9+fyw1AtCAenBUSim4IFxmFdDF8xIsTCOLj\
+ExKEKJiUnIyIqWnIiI4ZmSiZnYOWeSKRWCyRSKUoWlCIpkXFqIqs5RUIW1WNtDW1tXV1/wC9CEEB"
+
+_palette_pink :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICM1OTYKeJyTU9HUMzKztHVwdvXw9g0ICg2PjI5NSEpJTc/Mzs0vLC4pK6+sqqlraG\
+xuaWvv7Oru6eufOGny1GnTZ8yaPWfu/AULFy1Zumz5ilWr16xdt37Dxs1btm7bvmPnrt179u7bf/DQoUOHDx8+cuTo0WPHjh8/ceLkyZOnTp06ffrMmbNnz\
+507d/78+QsXLl68dOny5ctXrly5evXatevXb9y4cfPmzVu3bt++fefOnbt37927d//+/QcPHgLBo0ePHj9+8uTJ06dPnz17/vz5ixcvXr589erV69ev37x5\
++/btu3fv3r//8OHDx48fP336/PnzFyD4+vXrt2/fv3//8ePHz5+/fv36DQR//vz5+/ffv3////9n4BAQlZJVUFJV19TW1TcwMjE1t7S2sbVzcHRydnVz9/D\
+y9vH1CwgMCg4JDQsLj4iMio6JjYtPSExKSk5JTUvPyMjMys7Oyc3Lyy8oLCwqLikpLSsvr6isrKquqamtq29samlt7+jq7u2bgBZsi3EG24GDhw4fOXrs+I\
+mTp06fOXvu/IWLly5fuXoNGDI3b92+cxcYHA8ePnr8BBQEg97/9Q2NjU1NzS0trW1t7e0dncAU1N3T09vb1z9hwsSJkyZNnjxlCjBUps+YMXPmrFmzZ8+ZM\
+3fuvPnA8Fm4aNHixUuWLF26bNny5StWrFy5atWq1avXrFm7dt269es3bNi4cdOmzeBg27lrz15QmIGDDBRioAADhRc0tB48BIXV8xcvX71+8/bd+4+fPn/5\
++u37j5+/fv/5++8/AD1c8t4="
+
+_palette_vga :
+  base642img \
+"MSB1bnNpZ25lZF9jaGFyIGxpdHRsZV9lbmRpYW4KMjU2IDEgMSAzICMxNzgKeJz7/+fn10/vXz9/8uDOjasXzpw4sv/IiTMXrt648+DJ89fvP339+ec/Bv\
+jx8dXj25dOHdi2ZsGU1tIEVwbCwDWhtHXKgjXbDpy6dPvxq48/MM2Q0zF3cPcLiYpPycgtLK2saSAMaipLC3MzUuKjQvzcHcx15IhwB4Yt/zH8v2vr+pWL5\
+07r72goz00KdTPEdDthQEYIYbgMw3c0CSEi/E9G7JIRQoT9T0YYEgYAJsphWQ=="
 
 # The color palettes below have been converted from 'https://matplotlib.org/cmocean/'.
 _palette_algae :
@@ -13403,14 +13481,17 @@ patches : check "isint($1) && $1>0 && isint($2) && $2>0 && isint($3) && $3>0"
   repeat $! l[$<] s y,$H s x,$W k[0-{$N-1}] endl done
 
 #@cli matchpatch : [patch_image],patch_width>=1,_patch_height>=1,_patch_depth>=1,_nb_iterations>=0,\
-# _nb_randoms>=0,_occ_penalization,_output_score={ 0 | 1 },_[guide] : (+)
+# _nb_randoms>=0,_patch_penalization,_output_score={ 0 | 1 },_[guide] : (+)
 #@cli : Estimate correspondence map between selected images and specified patch image, using
 #@cli : a patch-matching algorithm.
 #@cli : Each pixel of the returned correspondence map gives the location (p,q) of the closest patch in
 #@cli : the specified patch image. If 'output_score=1', the third channel also gives the corresponding
 #@cli : matching score for each patch as well.
+#@cli : If 'patch_penalization' is >=0, SSD is penalized with patch occurences.
+#@cli : If 'patch_penalization' is <0, SSD is inf-penalized when distance between patches are less \
+# than '-patch_penalization'.
 #@cli : Default values: 'patch_height=patch_width', 'patch_depth=1', 'nb_iterations=5', 'nb_randoms=5', \
-# 'occ_penalization=0', 'output_score=0' and 'guide=(undefined)'.
+# 'patch_penalization=0', 'output_score=0' and 'guide=(undefined)'.
 #@cli : $ image.jpg sample ? to_rgb +matchpatch[0] [1],3 +warp[-2] [-1],0
 
 #@cli plot2value
@@ -23067,7 +23148,7 @@ render_donations : skip "${1="$HOME"/work/src/gmic_donations/donations.csv}",${2
     *. 200 i[-2] 100%,100%,1,3 a[-2,-1] c
 
     rows -5,100% a y,0.5 r2dx 480
-    o $HOME/work/src/gmic/html/img/donations_latest_months.png
+    if $2==5 o $HOME/work/src/gmic/html/img/donations_latest_months.png fi
   endl
 
   all_charged_sum={sum(0$all_charged_amounts)}
@@ -23171,7 +23252,12 @@ strreplace : skip "${3=}"
 #@cli strlowercase : string
 #@cli : Return a lower-case version of the specified string.
 strlowercase :
-  ({'"$*"'}) +. 'if(i>=65&&i<=90,32,0)' u {t} rm.
+  ({'"$*"'}) u {`lowercase([{^}])`} rm.
+
+#@cli struppercase : string
+#@cli : Return an upper-case version of the specified string.
+struppercase :
+  ({'"$*"'}) u {`uppercase([{^}])`} rm.
 
 #@cli strvar : string
 #@cli : Return a simplified version of the specified string, that can be used as a variable name.
@@ -28240,6 +28326,34 @@ x_whirl : check "${1=0.2}>=0" check_display
 
 #-------------------------------------
 #
+#@cli :: Funny one-liners
+#
+#-------------------------------------
+
+#@cli oneliner_sierpinski_carpet :
+#@cli : Draw a sierpinski carpet.
+#@cli : $ 729,729,1,3,"c(x,y,l) = (S = round(w/3^l); (int(x/S)%3)*(int(y/S)%3)==1?255:l<6?c(x,y,l + 1):0); c(x,y,1)"
+oneliner_sierpinski_carpet :
+  729,729,1,3,"c(x,y,l) = (S = round(w/3^l); (int(x/S)%3)*(int(y/S)%3)==1?255:l<6?c(x,y,l + 1):0); c(x,y,1)"
+
+#@cli oneliner_sierpinski_triangle :
+#@cli : Draw a sierpinski triangle.
+#@cli : $ 1024,1024,1,1,">x>y?0:y<2?1:xor(j(0,-1),j(-1,-1))" f. "255*j(-w/2+y/2,0)"
+oneliner_sierpinski_triangle :
+  1024,1024,1,1,">x>y?0:y<2?1:xor(j(0,-1),j(-1,-1))" f. "255*j(-w/2+y/2,0)"
+
+#@cli oneliner_lightspeed :
+#@cli : A colorful lightspeed travel effect.
+#@cli : $ 500,500 repeat 10 +noise_poissondisk[0] {3+$>} done rm[0] a z \
+# f "!z?(R=cut(norm(x-w/2,y-h/2)/20,0,d-1);i(x,y,R)):0" slices 0 to_rgb f "max(I)?u([255,255,255]):I" blur_radial 0.6% \
+# equalize n 0,255
+onliner_lightspeed :
+  500,500 repeat 10 +noise_poissondisk[0] {3+$>} done rm[0] a z \
+  f "!z?(R=cut(norm(x-w/2,y-h/2)/20,0,d-1);i(x,y,R)):0" slices 0 to_rgb f "max(I)?u([255,255,255]):I" blur_radial 0.6% \
+  equalize n 0,255
+
+#-------------------------------------
+#
 # Define menu entries for
 # the G'MIC plug-in
 #
@@ -29523,11 +29637,11 @@ fx_gmicky_preview :
 #@gui : - <b>2019/03/15</b> : version <i>2.5.0</i>.\n
 #@gui : - <b>2019/04/29</b> : version <i>2.6.0</i>.\n
 #@gui : - <b>2019/08/14</b> : version <i>2.7.0</i>.\n
-#@gui : - <span foreground="purple"><b>2019/12/19</b> : version <i>2.8.1</i> (Current stable).</span>\n
-##@gui : - <b>2019/10/29</b> : version <i>2.8.1</i> (Current pre-release).\n
+#@gui : - <span foreground="purple"><b>2020/02/10</b> : version <i>2.8.4</i> (Current stable).</span>\n
+##@gui : - <b>2019/10/29</b> : version <i>2.9.0</i> (Current pre-release).\n
 #@gui : "}
 #@gui : sep = separator()
-##@gui : url = link{"View changelog to upcoming minor version (2.8)","https://discuss.pixls.us/t/on-the-road-to-2-8"}
+##@gui : url = link{"View changelog to upcoming minor version (2.9)","https://discuss.pixls.us/t/on-the-road-to-2-8"}
 #@gui : url = link{"View latest minor changelog (2.8)","https://discuss.pixls.us/t/release-of-gmic-2-8"}
 #@gui : url = link{"View latest major changelog (2.0)","https://discuss.pixls.us/t/release-of-gmic-2-0-0"}
 
@@ -43305,7 +43419,7 @@ fx_rainbow :
     100%,100% spline. 0,$1%,100,{-$3}%,100%,$2%,100,$4%,1,1
     flood. 0,0,0,0,0,1,1 flood. {w-1},0,0,0,0,1,1
     distance. 0 c. 0,255 n. 0,{$5*255}
-    lut_rainbow +luminance. c. 0,{min(100,200-$6)}% n. 0,255 a[-2,-1] c
+    palette rainbow +luminance. c. 0,{min(100,200-$6)}% n. 0,255 a[-2,-1] c
     map.. . rm.
     if $6<100 sh. 3 *. {$6/100} rm. fi
     blend alpha
@@ -44163,6 +44277,22 @@ fx_snowflake :
   repeat $! l[$>] to_color split_opacity l[0]
     shape_snowflake {min(w,h)},$1 100%,100%,1,3,[${3-5}]
     j[0] .,{([w#0,h#0]-[w#1,h#1])/2},0,0,$2,.. k[0]
+  endl a c endl done
+
+#@gui _<i>Others</i>
+
+#@gui Dragon Curve : fx_dragoncurve, fx_dragoncurve(1)
+#@gui : Recursions = int(20,0,30)
+#@gui : Angle = float(0,-180,180)
+#@gui : Opacity = float(1,0,1)
+#@gui : Color = color(255,255,255)
+#@gui : sep = separator()
+#@gui : note = note("<small>Author: <i>David Tschumperl&#233;</i>.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+#@gui : Latest Update: <i>2019/01/29</i>.</small>")
+fx_dragoncurve :
+  repeat $! l[$>] to_color split_opacity l[0]
+    shape_dragon {min(w,h)},$1,$2 100%,100%,1,3,[${4-6}]
+    j[0] .,{([w#0,h#0]-[w#1,h#1])/2},0,0,$3,.. k[0]
   endl a c endl done
 
 #@gui ____<b>Various</b>

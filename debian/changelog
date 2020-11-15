@@ -1,12 +1,18 @@
+gmic (2.8.4-1~buster) Lumiera-buster-tool; urgency=low
+
+  * New Upstream release 2.8.4
+  * Note: using OpenCV 3 here
+  * Build/Port für Debian/Buster(stable)
+
+ -- Hermann Vosseler <deb@ichthyostega.de>  Sun, 15 Nov 2020 00:03:33 +0100
+
 gmic (2.8.3-1ppa1~focal) focal; urgency=low
 
-  * Build/Port für Ubuntu/Focal (20.04 LTS - upcoming)
-  * Using OpenCV 4.x on Ubuntu (instead of 3.x as on Debian)
-
-  [ Ichthyostega ]
   * New Upstream release 2.8.3
   * [f93562e7] adapt installation (gmic_cluts.gmz)
   * [2bedab97] make QT-host explicit for gimp (cosmetic change)
+  * Using OpenCV 4.x on Ubuntu (instead of 3.x as on Debian)
+  * Build/Port für Ubuntu/Focal (20.04 LTS - upcoming)
 
  -- Hermann Vosseler <deb@ichthyostega.de>  Sun, 02 Feb 2020 23:42:23 +0100
 
